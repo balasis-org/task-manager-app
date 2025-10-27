@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>task-manager-context</artifactId>
+
     <packaging>pom</packaging>
     <modules>
         <module>task-manager-context-base</module>
