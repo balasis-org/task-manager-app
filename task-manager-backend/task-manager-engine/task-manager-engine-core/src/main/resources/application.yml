@@ -1,0 +1,27 @@
+spring:
+  profiles:
+    active: @activeProfile@
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        generate_statistics: true
+
+server:
+  port: 3000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans
+
+logging:
+  level:
+    root: info
+    gr.balasis.hotel.engine.core: trace
+    gr.balasis.hotel.engine.monitoring: trace
+    org:
+      springframework:
+        transaction:
+          interceptor: TRACE
