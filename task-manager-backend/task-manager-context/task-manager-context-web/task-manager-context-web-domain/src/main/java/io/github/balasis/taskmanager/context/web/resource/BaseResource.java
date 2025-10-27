@@ -1,4 +1,12 @@
 package io.github.balasis.taskmanager.context.web.resource;
 
-public class BaseResource {
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serializable;
+
+@Getter
+@Setter
+public class BaseResource implements Serializable {
+    protected Long id;
 }

@@ -39,40 +39,169 @@
 	<properties>
 		<java.version>21</java.version>
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
 		<activeProfile>h2</activeProfile>
 	</properties>
 
 
 	<dependencyManagement>
 		<dependencies>
+
+			<!-- MapStruct -->
 			<dependency>
 				<groupId>org.mapstruct</groupId>
 				<artifactId>mapstruct</artifactId>
-				<version>1.6.3</version>
+				<version>${mapstruct.version}</version>
 			</dependency>
+
+			<!-- Lombok -->
 			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-starter-web</artifactId>
-				<version>3.4.2</version>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.18.32</version>
 			</dependency>
-			<dependency>
-				<groupId>org.springframework</groupId>
-				<artifactId>spring-context</artifactId>
-				<version>6.2.3</version>
-			</dependency>
-			<dependency>
-				<groupId>com.thedeanda</groupId>
-				<artifactId>lorem</artifactId>
-				<version>2.2</version>
-			</dependency>
+
+			<!-- Jakarta Validation API -->
 			<dependency>
 				<groupId>jakarta.validation</groupId>
 				<artifactId>jakarta.validation-api</artifactId>
 				<version>3.1.1</version>
 			</dependency>
+
+			<!-- H2 Database -->
+			<dependency>
+				<groupId>com.h2database</groupId>
+				<artifactId>h2</artifactId>
+				<version>2.4.240</version>
+			</dependency>
+
+			<!-- Microsoft SQL Server JDBC -->
+			<dependency>
+				<groupId>com.microsoft.sqlserver</groupId>
+				<artifactId>mssql-jdbc</artifactId>
+				<version>13.2.0.jre11</version>
+			</dependency>
+
+
+			<!-- AspectJ -->
+			<dependency>
+				<groupId>org.aspectj</groupId>
+				<artifactId>aspectjweaver</artifactId>
+				<version>1.9.22</version>
+			</dependency>
+
+			<!-- Hibernate Core (used by JPA) -->
+
+
+			<!-- Lorem (dummy text for placeholders) -->
+			<dependency>
+				<groupId>com.thedeanda</groupId>
+				<artifactId>lorem</artifactId>
+				<version>2.2</version>
+			</dependency>
+
+
 		</dependencies>
 	</dependencyManagement>
 
+	<dependencies>
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-dependencies</artifactId>
+			<version>3.5.7</version>
+			<type>pom</type>
+		</dependency>
+
+	</dependencies>
+
+
+	<build>
+		<pluginManagement>
+			<plugins>
+
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<annotationProcessorPaths>
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+								<version>${lombok.version}</version>
+							</path>
+							<path>
+								<groupId>org.mapstruct</groupId>
+								<artifactId>mapstruct-processor</artifactId>
+								<version>${mapstruct.version}</version>
+							</path>
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok-mapstruct-binding</artifactId>
+								<version>${lombok-mapstruct-binding.version}</version>
+							</path>
+						</annotationProcessorPaths>
+					</configuration>
+				</plugin>
+
+				<plugin>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-maven-plugin</artifactId>
+					<configuration>
+						<excludes>
+							<exclude>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+							</exclude>
+						</excludes>
+					</configuration>
+				</plugin>
+
+				<plugin>
+					<groupId>com.livetribe</groupId>
+					<artifactId>dotenv-maven-plugin</artifactId>
+					<version>1.0.2</version>
+					<executions>
+						<execution>
+							<phase>initialize</phase>
+							<goals>
+								<goal>load</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+
+		</plugins>
+
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*.yml</include>
+					<include>**/*.properties</include>
+					<include>**/*.sql</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<finalName>custom-name</finalName>
+		<defaultGoal>package</defaultGoal>
+	</build>
 
 	<profiles>
 		<profile>

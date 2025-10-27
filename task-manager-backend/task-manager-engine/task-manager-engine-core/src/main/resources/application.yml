@@ -19,8 +19,7 @@ management:
 logging:
   level:
     root: info
-    gr.balasis.hotel.engine.core: trace
-    gr.balasis.hotel.engine.monitoring: trace
+    io.github.balasis.taskmanager: TRACE
     org:
       springframework:
         transaction:
