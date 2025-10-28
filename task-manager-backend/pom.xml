@@ -40,7 +40,7 @@
 		<java.version>21</java.version>
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
-		<activeProfile>h2</activeProfile>
+		<activeProfile>mssql</activeProfile>
 	</properties>
 
 
@@ -208,6 +208,16 @@
 			<id>h2</id>
 			<properties>
 				<activeProfile>h2</activeProfile>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mssql</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<activeProfile>mssql</activeProfile>
 			</properties>
 		</profile>
 	</profiles>

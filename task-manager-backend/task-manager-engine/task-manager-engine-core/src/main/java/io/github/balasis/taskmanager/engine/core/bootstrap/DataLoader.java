@@ -20,7 +20,7 @@ import java.util.Random;
 
 @Component
 @AllArgsConstructor
-@Profile({"h2"})
+@Profile({"h2","mssql"})
 public class DataLoader implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(DataLoader.class);
     private static final Lorem lorem = LoremIpsum.getInstance();
