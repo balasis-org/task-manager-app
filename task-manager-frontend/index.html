@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Manager Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #output { margin-top: 15px; padding: 10px; border: 1px solid #ccc; min-height: 50px; }
+        button { margin-right: 10px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+<h1>Task Manager Demo</h1>
+<button id="fetchBtn">Fetch Tasks</button>
+<button id="clearBtn">Clear</button>
+
+<div id="output"></div>
+
+<script>
+    const fetchBtn = document.getElementById('fetchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const outputDiv = document.getElementById('output');
+
+    fetchBtn.addEventListener('click', () => {
+        fetch('/api/tasks')
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                outputDiv.innerHTML = JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+                outputDiv.innerHTML = 'Error: ' + err.message;
+            });
+    });
+
+    clearBtn.addEventListener('click', () => {
+        outputDiv.innerHTML = '';
+    });
+</script>
+</body>
+</html>

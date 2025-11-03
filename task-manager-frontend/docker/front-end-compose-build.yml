@@ -1,0 +1,6 @@
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    container_name: taskmanager_frontend_prod
