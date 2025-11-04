@@ -1,0 +1,27 @@
+# =========================
+# IDE and OS files
+# =========================
+.vscode/
+.idea/
+*.iml
+*.log
+structure.txt
+
+# =========================
+# Documentation / temp
+# =========================
+*.tmp
+docs/*.tmp
+
+# =========================
+# Node/Frontend (if added later)
+# =========================
+node_modules/
+dist/
+build/
+
+# =========================
+# Misc
+# =========================
+*.old
+
