@@ -1,0 +1,29 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILE_ACTIVE:dev,mssql}
+  jpa:
+    open-in-view: true
+  jackson:
+    time-zone: UTC
+
+server:
+  port: 8080
+
+# Exposes the /actuator endpoints over HTTP for monitoring purposes.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans, health, info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: info
+    io.github.balasis.taskmanager: TRACE
+    org:
+      springframework:
+        transaction:
+          interceptor: TRACE

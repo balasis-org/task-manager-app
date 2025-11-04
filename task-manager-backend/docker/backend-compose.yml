@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+      context: ..                      # root folder of your project
+      dockerfile: docker/Dockerfile
+    container_name: taskmanager_backend
+    env_file:
+      - .env                     # pick up env variables from this file
+    ports:
+      - "8080:3000" # redirect from host port to container port...
+    restart: always
