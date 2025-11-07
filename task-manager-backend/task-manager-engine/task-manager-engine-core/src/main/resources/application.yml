@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILE_ACTIVE:dev,mssql}
+    active: ${SPRING_PROFILE_ACTIVE:dev-h2}
   jpa:
     open-in-view: true
   jackson:
