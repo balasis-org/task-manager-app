@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILE_ACTIVE:dev-h2}
+    active: ${SPRING_PROFILES_ACTIVE:dev-h2}
   jpa:
     open-in-view: true
   jackson:
