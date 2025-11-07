@@ -1,9 +1,4 @@
 spring:
-  cloud:
-    azure:
-      keyvault:
-        secret:
-          endpoint: ${KEYVAULT_URI}
   jpa:
     hibernate:
       ddl-auto: create
@@ -14,3 +9,4 @@ logging:
     root: info
     io.github.balasis.taskmanager: TRACE
     org.springframework.transaction.interceptor: TRACE
+    com.azure.identity: DEBUG
