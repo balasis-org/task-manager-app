@@ -9,6 +9,7 @@ spring:
 server:
   port: 8080
 
+
 # Exposes the /actuator endpoints over HTTP for monitoring purposes.
 management:
   endpoints:
@@ -27,3 +28,5 @@ logging:
       springframework:
         transaction:
           interceptor: TRACE
+    com.azure.monitor.opentelemetry: DEBUG
+
