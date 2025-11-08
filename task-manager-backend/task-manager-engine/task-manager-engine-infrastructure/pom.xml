@@ -5,18 +5,23 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.balasis</groupId>
-        <artifactId>task-manager-backend</artifactId>
+        <artifactId>task-manager-engine</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>task-manager-engine</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>task-manager-engine-base</module>
-        <module>task-manager-engine-core</module>
-        <module>task-manager-engine-monitoring</module>
-        <module>task-manager-engine-infrastructure</module>
-    </modules>
+    <artifactId>task-manager-engine-infrastructure</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-security-keyvault-secrets</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.azure.spring</groupId>
+            <artifactId>spring-cloud-azure-starter-keyvault-secrets</artifactId>
+        </dependency>
+    </dependencies>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
