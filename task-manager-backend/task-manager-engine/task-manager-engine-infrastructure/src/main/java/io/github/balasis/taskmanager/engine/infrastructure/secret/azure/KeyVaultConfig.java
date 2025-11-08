@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.engine.core.config;
+package io.github.balasis.taskmanager.engine.infrastructure.secret.azure;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-@Profile("prod-azuresql")
+@Profile({"prod-h2","prod-azuresql"})
 @Configuration
 public class KeyVaultConfig {
 
