@@ -1,4 +1,4 @@
-name: Push backend to azure
+name: backend-cd
 
 on:
   push:
@@ -6,7 +6,10 @@ on:
       - main
     paths:
       - 'task-manager-backend/**'
-
+  workflow_run:
+    workflows: ["Backend CI"]
+    types:
+      - completed
 jobs:
   push_backend_to_azure:
     runs-on: ubuntu-latest
