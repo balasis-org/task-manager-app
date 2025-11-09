@@ -1,0 +1,49 @@
+name: Push backend to azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'task-manager-backend/**'
+
+jobs:
+  push_backend_to_azure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create package
+        run: |
+          mvn -f task-manager-backend/pom.xml clean package -DskipTests
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: |
+          docker build -t anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-backend:$IMAGE_TAG task-manager-backend
+
+      - name: Push Docker image
+        run: |
+          docker push anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-backend:$IMAGE_TAG
+
+      - name: Change the image of backend web app service
+        run: |
+          az webapp config container set \
+            --name taskmanager-rg-backend \
+            --resource-group TaskManager-RG \
+            --container-image-name anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-backend:$IMAGE_TAG \
+            --container-registry-url https://anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io
