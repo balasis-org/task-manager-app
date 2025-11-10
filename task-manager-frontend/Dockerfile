@@ -1,10 +1,10 @@
 FROM nginx:alpine
 
 # Copy all frontend files into nginx html folder
-COPY ../ /usr/share/nginx/html
+COPY ./ /usr/share/nginx/html
 
 # Use default nginx config (no dev proxy needed)
-COPY ./docker/nginx.prod.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx.prod.conf /etc/nginx/conf.d/default.conf
 
 # Expose HTTP
 EXPOSE 80
