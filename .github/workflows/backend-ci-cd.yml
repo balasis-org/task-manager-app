@@ -21,20 +21,15 @@ jobs:
           java-version: '21'
 
       # NOTE:
-      # The DataLoader profile, although originally meant to populate basic data,
-      # currently serves as the project's only testing unit.
-      # It triggers the full service layer (repositories, mappers, transactions, etc.),
-      # effectively validating most of the backend chain.
-      # Later, a dedicated 'test' profile will be introduced for more detailed logic tests.
       # Controller endpoints will still remain out of scope for automated testing,
       # since they depend heavily on network routing, authentication middleware,
       # and runtime configuration that are validated more reliably through integration
       # and deployment tests rather than unit execution.
 
-      - name: Build and run tests with H2 and DataLoader profiles
+      - name: Build and run tests with H2
         run: |
           mvn -f task-manager-backend/pom.xml clean test \
-            -Dspring.profiles.active="dev-h2,DataLoader"
+            -Dspring.profiles.active="dev-h2"
 
   deploy_backend:
     runs-on: ubuntu-latest
