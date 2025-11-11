@@ -5,6 +5,8 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,15 +14,26 @@ import org.springframework.context.annotation.Configuration;
 @AllArgsConstructor
 public class BlobStorageConfig {
     private final SecretClientProvider secretClientProvider;
+    private static final Logger logger = LoggerFactory.getLogger(BlobStorageConfig.class);
+
 
     @Bean
     public BlobServiceClient blobServiceClient() {
-        String cs = secretClientProvider.getSecret("AZURITE-STORAGE-CONNECTION-STRING");
-        if (cs != null) {
-            return new BlobServiceClientBuilder().connectionString(cs).buildClient();
+        String connectionString = null;
+        try {
+            connectionString = secretClientProvider.getSecret("AZURITE-STORAGE-CONNECTION-STRING");
+        } catch (Exception e) {
+            logger.info("No Azurite storage connection string found, using default endpoint...");
         }
+
+        if (connectionString != null && !connectionString.isBlank()) {
+            return new BlobServiceClientBuilder()
+                    .connectionString(connectionString)
+                    .buildClient();
+        }
+
         return new BlobServiceClientBuilder()
-                .endpoint(secretClientProvider.getSecret("BLOB-SERVICE-ENDPOINT"))
+                .endpoint(secretClientProvider.getSecret("TASKMANAGER-BLOB-SERVICE-ENDPOINT"))
                 .credential(new DefaultAzureCredentialBuilder().build())
                 .buildClient();
     }

@@ -19,7 +19,7 @@ public class BlobStorageService {
     private final BlobServiceClient blobServiceClient;
 
     public String upload(MultipartFile file) throws IOException {
-        String containerName = secretClientProvider.getSecret("BLOB-CONTAINERS-NAME");
+        String containerName = secretClientProvider.getSecret("TASKMANAGER-BLOB-CONTAINERS-NAME");
         BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
         if (!containerClient.exists()) containerClient.create();
 
