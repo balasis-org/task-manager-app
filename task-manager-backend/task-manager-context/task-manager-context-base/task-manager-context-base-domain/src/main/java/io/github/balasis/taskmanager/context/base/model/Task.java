@@ -26,4 +26,7 @@ public class Task extends BaseModel{
     @Column(nullable = false)
     private TaskState taskState;
 
+    @Column
+    private String fileUrl;
+
 }

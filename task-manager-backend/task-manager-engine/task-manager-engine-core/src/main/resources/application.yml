@@ -24,9 +24,6 @@ logging:
   level:
     root: info
     io.github.balasis.taskmanager: TRACE
-    org:
-      springframework:
-        transaction:
-          interceptor: TRACE
-    com.azure.monitor.opentelemetry: DEBUG
+    org.springframework.transaction.interceptor: TRACE
+    com.azure.monitor.opentelemetry: INFO
 

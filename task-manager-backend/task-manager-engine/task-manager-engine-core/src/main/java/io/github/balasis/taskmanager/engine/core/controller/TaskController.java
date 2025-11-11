@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.engine.core.controller;
 
+
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.service.BaseService;
 import io.github.balasis.taskmanager.context.web.controller.BaseController;
@@ -11,12 +12,9 @@ import io.github.balasis.taskmanager.engine.core.service.TaskService;
 import io.github.balasis.taskmanager.engine.core.validation.TaskValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -27,6 +25,26 @@ public class TaskController extends BaseController<Task, TaskResource> {
     private final ResourceDataValidator resourceDataValidator;
     private final TaskValidator taskValidator;//Do not remove
     private final TaskMapper taskMapper;
+
+
+    @PostMapping("/upload")
+    public ResponseEntity<TaskResource> createWithFile(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("taskState") String taskState,
+            @RequestPart(required = false) MultipartFile file){
+
+//    if (file == null || file.isEmpty()) {
+//        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File must not be empty");
+//    }
+
+    var taskResource = new TaskResource(title,description,taskState,null);
+    resourceDataValidator.validateResourceData(taskResource);
+    return ResponseEntity.ok(
+            taskMapper.toResource(
+                    taskService.createWithFile( getMapper().toDomain(taskResource),file) )
+    );
+    }
 
     @GetMapping
     public ResponseEntity<List<TaskResource>> findAll() {

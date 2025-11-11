@@ -2,22 +2,34 @@ package io.github.balasis.taskmanager.engine.core.test;
 
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
-import io.github.balasis.taskmanager.engine.core.service.TaskService;
+import io.github.balasis.taskmanager.engine.core.service.TaskServiceImpl;
+import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.core.validation.TaskValidator;
+
+import io.github.balasis.taskmanager.engine.core.validation.TaskValidatorImpl;
+import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+
 import java.util.Random;
 
-@SpringBootTest
-@ActiveProfiles("dev-h2")
-public class TaskServiceTest {
-    @Autowired
-    private TaskService taskService;
+import static org.mockito.Mockito.*;
 
-    @Autowired
+class TaskServiceTest {
+
+    private TaskRepository taskRepository;
+    private BlobStorageService blobStorageService;
     private TaskValidator taskValidator;
+    private TaskServiceImpl taskService;
+
+    @BeforeEach
+    void setUp() {
+        taskRepository = mock(TaskRepository.class);
+        blobStorageService = mock(BlobStorageService.class);
+        taskValidator = new TaskValidatorImpl(taskRepository);
+
+        taskService = new TaskServiceImpl(taskRepository, blobStorageService);
+    }
 
     @Test
     void createSampleTask() {
@@ -27,7 +39,10 @@ public class TaskServiceTest {
                 .taskState(TaskState.values()[new Random().nextInt(TaskState.values().length)])
                 .build();
 
-        taskService.create(taskValidator.validate(task));
+        Task validatedTask = taskValidator.validate(task);
+        taskService.create(validatedTask);
+
+        verify(taskRepository, times(1)).save(validatedTask);
 
         System.out.println("Task created with ID: " + task.getId());
     }
