@@ -1,0 +1,12 @@
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./azurite-data:/data
+    environment:
+      AZURITE_ACCOUNTS: "account1:key1"
+    command: "azurite-blob --blobHost 0.0.0.0 --location /data --debug /data/debug.log"

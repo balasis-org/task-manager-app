@@ -3,6 +3,8 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: taskmanager_mssql
     restart: always
+    env_file:
+      - .env
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "${DB_PASSWORD}"
