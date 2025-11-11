@@ -35,7 +35,7 @@ public class BlobStorageConfig {
         }else{
             // Placeholder for managed identity credential
             var managedIdentityCredential =  new ManagedIdentityCredentialBuilder()
-                    .clientId( secretClientProvider.getSecret("MANAGED_IDENTITY_CLIENT_ID"))
+                    .clientId( System.getenv("MANAGED_IDENTITY_CLIENT_ID"))
                     .build();
 
             return new BlobServiceClientBuilder()
