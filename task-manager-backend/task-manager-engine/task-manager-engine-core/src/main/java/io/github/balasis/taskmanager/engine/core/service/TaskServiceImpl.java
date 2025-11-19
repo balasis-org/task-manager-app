@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.service.BasicServiceImpl;
 import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class TaskServiceImpl extends BasicServiceImpl<Task, TaskNotFoundException> implements TaskService {
     private final TaskRepository taskRepository;
     private final BlobStorageService blobStorageService;
+    private final EmailClient emailClient;
 
     @Override
     public JpaRepository<Task, Long> getRepository() {
@@ -26,6 +28,7 @@ public class TaskServiceImpl extends BasicServiceImpl<Task, TaskNotFoundExceptio
 
     @Override
     public Task create(final Task item) {
+        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
         return getRepository().save(item);
     }
 
@@ -37,6 +40,7 @@ public class TaskServiceImpl extends BasicServiceImpl<Task, TaskNotFoundExceptio
         } catch (IOException e) {
             throw new TaskManagerException("Failed to upload file");
         }
+
     }
 
     @Override
