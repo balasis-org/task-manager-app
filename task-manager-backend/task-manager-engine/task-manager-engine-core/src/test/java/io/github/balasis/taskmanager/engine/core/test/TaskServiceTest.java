@@ -8,6 +8,7 @@ import io.github.balasis.taskmanager.engine.core.validation.TaskValidator;
 
 import io.github.balasis.taskmanager.engine.core.validation.TaskValidatorImpl;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ class TaskServiceTest {
 
     private TaskRepository taskRepository;
     private BlobStorageService blobStorageService;
+    private EmailClient emailClient;
     private TaskValidator taskValidator;
     private TaskServiceImpl taskService;
 
@@ -26,9 +28,10 @@ class TaskServiceTest {
     void setUp() {
         taskRepository = mock(TaskRepository.class);
         blobStorageService = mock(BlobStorageService.class);
+        emailClient = mock(EmailClient.class);
         taskValidator = new TaskValidatorImpl(taskRepository);
 
-        taskService = new TaskServiceImpl(taskRepository, blobStorageService);
+        taskService = new TaskServiceImpl(taskRepository, blobStorageService,emailClient);
     }
 
     @Test
