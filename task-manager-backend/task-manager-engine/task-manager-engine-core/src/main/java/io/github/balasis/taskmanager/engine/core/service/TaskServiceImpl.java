@@ -28,7 +28,7 @@ public class TaskServiceImpl extends BasicServiceImpl<Task, TaskNotFoundExceptio
 
     @Override
     public Task create(final Task item) {
-        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
+//        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
         return getRepository().save(item);
     }
 
