@@ -33,7 +33,7 @@ public class DataLoader implements ApplicationRunner {
     }
     private void loadTasks() {
         logger.trace("Loading tasks...");
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 1; i++) {
             try {
                 createTasksTransactional();
             } catch (Exception e) {
