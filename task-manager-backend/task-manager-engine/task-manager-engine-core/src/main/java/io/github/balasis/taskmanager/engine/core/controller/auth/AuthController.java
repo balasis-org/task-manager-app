@@ -50,9 +50,9 @@ public class AuthController {
 
         Map<String, Object> claims = authService.decodeIdToken(idToken);
 
-        String azureId = (String) claims.get("oid");  // unique user id
+        String azureId = (String) claims.get("oid");
         if (azureId == null) {
-            azureId = (String) claims.get("sub");     // fallback
+            azureId = (String) claims.get("sub");
         }
 
         String email = (String) claims.get("email");
@@ -89,8 +89,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        // Clear the JWT cookie
-        Cookie cookie = new Cookie("JWT_TOKEN", null);
+
+        Cookie cookie = new Cookie("jwt", null);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setPath("/");
