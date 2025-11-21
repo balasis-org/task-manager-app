@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.balasis</groupId>
-            <artifactId>task-manager-engine-monitoring</artifactId>
+            <artifactId>task-manager-engine-infrastructure</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

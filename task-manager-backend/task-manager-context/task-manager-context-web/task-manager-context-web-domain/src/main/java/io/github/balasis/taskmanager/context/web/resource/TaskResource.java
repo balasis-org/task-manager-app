@@ -4,15 +4,13 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.validation.custom.ValidEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Setter
 @ToString
 @AllArgsConstructor
+@NoArgsConstructor
 public class TaskResource extends BaseResource{
     @NotBlank(message = "title is mandatory")
     private String title;
@@ -24,4 +22,5 @@ public class TaskResource extends BaseResource{
     @ValidEnum(enumClass = TaskState.class, message = "Invalid task state")
     private String taskState;
 
+    private String fileUrl;
 }

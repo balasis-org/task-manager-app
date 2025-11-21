@@ -15,6 +15,7 @@
         <module>task-manager-engine-base</module>
         <module>task-manager-engine-core</module>
         <module>task-manager-engine-monitoring</module>
+        <module>task-manager-engine-infrastructure</module>
     </modules>
 
     <properties>

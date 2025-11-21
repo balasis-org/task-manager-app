@@ -9,9 +9,11 @@ import org.springframework.context.annotation.ComponentScan;
         "io.github.balasis.taskmanager.engine.core",
         "io.github.balasis.taskmanager.context.base",
         "io.github.balasis.taskmanager.engine.monitoring",
+        "io.github.balasis.taskmanager.engine.infrastructure"
 })
 public class TaskManagerCore {
+
     public static void main(String[] args) {
-        SpringApplication.run(TaskManagerCore.class, args);
+      SpringApplication.run(TaskManagerCore.class, args);
     }
 }
