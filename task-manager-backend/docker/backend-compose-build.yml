@@ -1,6 +1,0 @@
-services:
-  backend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: taskmanager_backend

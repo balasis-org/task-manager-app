@@ -1,9 +1,0 @@
-FROM nginx:alpine
-
-# Copy all frontend files into nginx html folder
-COPY ../ usr/share/nginx/html
-
-# Copy custom nginx config for dev (with proxy to backend)
-COPY docker/nginx.dev.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
