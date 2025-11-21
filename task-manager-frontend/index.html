@@ -46,7 +46,7 @@
     });
 
     logoutBtn.addEventListener('click', () => {
-        fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
             .then(response => {
                 if (response.ok) {
                     outputDiv.innerHTML = 'Logged out successfully.';

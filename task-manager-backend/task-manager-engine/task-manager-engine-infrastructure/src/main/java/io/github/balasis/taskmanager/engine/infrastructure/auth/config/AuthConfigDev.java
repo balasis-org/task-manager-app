@@ -11,7 +11,7 @@ public class AuthConfigDev implements AuthConfig {
 
     private final String clientId = System.getenv("client-id");
     private final String tenantId = System.getenv("tenant-id");
-    private final String redirectUri = "http://localhost:8081/auth/callback";
+    private final String redirectUri = System.getenv("auth-redirectUri");
     private final String authority = "https://login.microsoftonline.com/" + tenantId;
     private final String scope = "openid profile email";
     private final String clientSecret = System.getenv("auth-client-secret");

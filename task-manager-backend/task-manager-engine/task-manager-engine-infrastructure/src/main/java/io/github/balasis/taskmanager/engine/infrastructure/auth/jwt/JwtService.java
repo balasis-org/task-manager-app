@@ -1,7 +1,9 @@
 package io.github.balasis.taskmanager.engine.infrastructure.auth.jwt;
 
+import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -12,13 +14,14 @@ import java.util.Date;
 import java.util.Map;
 
 @Service
+@AllArgsConstructor
 public class JwtService {
-
-    private static final String SECRET_KEY = System.getenv("JWT_SECRET"); // base64-encoded recommended
+    private final SecretClientProvider secretClientProvider;
     private static final long EXPIRATION_MS = 1000L * 60 * 60 * 24; // 24 hours
 
     private SecretKey getSignInKey() {
-        byte[] bytes = Base64.getDecoder().decode(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        String secret_key = secretClientProvider.getSecret("TASKMANAGER-JWT-SECRET");
+        byte[] bytes = Base64.getDecoder().decode(secret_key.getBytes(StandardCharsets.UTF_8));
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 

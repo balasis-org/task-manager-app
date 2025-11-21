@@ -15,24 +15,23 @@ public class AuthConfigProd implements AuthConfig {
     private final String clientId;
     private final String tenantId;
     private final String redirectUri;
-    private final String scope = "openid profile email";
+    private final String authority;
+    private final String scope;
     private final String clientSecret;
 
     public AuthConfigProd(SecretClientProvider secretClientProvider) {
         this.secretClientProvider = secretClientProvider;
+
         this.clientId = secretClientProvider.getSecret("TASKMANAGER-AUTH-CLIENT-ID");
         this.tenantId = secretClientProvider.getSecret("TASKMANAGER-AUTH-TENANT-ID");
         this.redirectUri = secretClientProvider.getSecret("TASKMANAGER-AUTH-REDIRECT-URI");
+        this.authority = "https://login.microsoftonline.com/" + tenantId;
+        this.scope = "openid profile email";
         this.clientSecret = secretClientProvider.getSecret("TASKMANAGER-AUTH-CLIENT-SECRET");
     }
 
     @Override
-    public String getAuthority() {
-        return "https://login.microsoftonline.com/" + tenantId;
-    }
-
-    @Override
     public String getAuthorizationEndpoint() {
-        return getAuthority() + "/oauth2/v2.0/authorize";
+        return authority + "/oauth2/v2.0/authorize";
     }
 }

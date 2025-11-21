@@ -23,9 +23,6 @@ public class AuthService {
     private final AuthConfig authConfig;
     private final WebClient webClient = WebClient.builder().build();
 
-    /**
-     * Build the Azure AD login URL for redirect.
-     */
     public String getLoginUrl() {
         return UriComponentsBuilder.fromHttpUrl(authConfig.getAuthorizationEndpoint())
                 .queryParam("client_id", authConfig.getClientId())
