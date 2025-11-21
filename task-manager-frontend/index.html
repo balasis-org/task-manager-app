@@ -17,17 +17,50 @@
 <div id="output"></div>
 
 <h2>Upload Task with File</h2>
-<form action="api/tasks/upload" method="POST" enctype="multipart/form-data">
+<form action="/api/tasks/upload" method="POST" enctype="multipart/form-data">
     <label>Title: <input type="text" name="title" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
     <label>Task State: <input type="text" name="taskState" required></label><br><br>
     <label>File: <input type="file" name="file"></label><br><br>
     <button type="submit">Submit</button>
 </form>
+<br><br>
+<button id="loginBtn">Login</button>
+<br><br>
+<button id="logoutBtn">Logout</button>
 <script>
     const fetchBtn = document.getElementById('fetchBtn');
     const clearBtn = document.getElementById('clearBtn');
     const outputDiv = document.getElementById('output');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+
+
+    loginBtn.addEventListener('click', () => {
+        fetch('/api/auth/login-url')
+            .then(res => res.text())
+            .then(url => {
+                window.location.href = url;   // redirect to Azure AD
+            });
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+            .then(response => {
+                if (response.ok) {
+                    outputDiv.innerHTML = 'Logged out successfully.';
+                    // optionally reload page
+                    window.location.reload();
+                } else {
+                    outputDiv.innerHTML = 'Logout failed.';
+                }
+            })
+            .catch(err => {
+                outputDiv.innerHTML = 'Error: ' + err.message;
+            });
+    });
+
 
     fetchBtn.addEventListener('click', () => {
         fetch('/api/tasks')
@@ -46,6 +79,9 @@
     clearBtn.addEventListener('click', () => {
         outputDiv.innerHTML = '';
     });
+
+
+
 </script>
 </body>
 </html>
