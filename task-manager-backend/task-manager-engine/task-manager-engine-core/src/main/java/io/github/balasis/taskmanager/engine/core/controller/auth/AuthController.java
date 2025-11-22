@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.controller.auth;
 
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.CurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.JwtService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -24,6 +25,7 @@ public class AuthController {
     private final AuthService authService;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final CurrentUser currentUser;
 
     @GetMapping("/login-url")
     public ResponseEntity<String> getLoginUrl() {
@@ -81,6 +83,8 @@ public class AuthController {
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
                 .build();
+
+        currentUser.setAzureId(user.getAzureId());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
