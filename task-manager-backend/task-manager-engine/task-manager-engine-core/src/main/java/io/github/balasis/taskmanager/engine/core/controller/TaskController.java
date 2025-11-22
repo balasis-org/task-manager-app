@@ -2,9 +2,6 @@ package io.github.balasis.taskmanager.engine.core.controller;
 
 
 import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.service.BaseService;
-import io.github.balasis.taskmanager.context.web.controller.BaseController;
-import io.github.balasis.taskmanager.context.web.mapper.BaseMapper;
 import io.github.balasis.taskmanager.context.web.resource.TaskResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.mapper.TaskMapper;
@@ -20,7 +17,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/tasks")
-public class TaskController extends BaseController<Task, TaskResource> {
+public class TaskController {
     private final TaskService taskService;
     private final ResourceDataValidator resourceDataValidator;
     private final TaskValidator taskValidator;//Do not remove
@@ -42,8 +39,49 @@ public class TaskController extends BaseController<Task, TaskResource> {
     resourceDataValidator.validateResourceData(taskResource);
     return ResponseEntity.ok(
             taskMapper.toResource(
-                    taskService.createWithFile( getMapper().toDomain(taskResource),file) )
+                    taskService.createWithFile( taskMapper.toDomain(taskResource),file) )
     );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResource> get(
+            @PathVariable("id") final Long id) {
+        return ResponseEntity.ok(
+                taskMapper.toResource(taskService.get(id))
+        );
+    }
+
+    @PostMapping
+    public ResponseEntity<TaskResource> create(
+            @RequestBody final TaskResource resource) {
+
+        resourceDataValidator.validateResourceData(resource);
+        resource.setId(null);
+        return ResponseEntity.ok(
+                taskMapper.toResource(
+                        taskService.create(taskMapper.toDomain(resource)))
+        );
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> update(
+            @PathVariable Long id,
+            @RequestBody final TaskResource resource) {
+
+        resourceDataValidator.validateResourceData(resource);
+        resource.setId(id);
+        Task domainObject = taskMapper.toDomain(resource);
+        domainObject.setId(id);
+        taskService.update(domainObject);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id) {
+
+        taskService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
@@ -51,18 +89,4 @@ public class TaskController extends BaseController<Task, TaskResource> {
         return ResponseEntity.ok(taskMapper.toResources(taskService.findAll()));
     }
 
-    @Override
-    protected BaseService<Task, Long> getBaseService() {
-        return taskService;
-    }
-
-    @Override
-    protected BaseMapper<Task, TaskResource> getMapper() {
-        return taskMapper;
-    }
-
-    @Override
-    protected ResourceDataValidator resourceDatavalidator() {
-        return resourceDataValidator;
-    }
 }
