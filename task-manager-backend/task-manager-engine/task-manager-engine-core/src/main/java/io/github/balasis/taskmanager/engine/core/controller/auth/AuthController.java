@@ -15,6 +15,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -25,7 +26,6 @@ public class AuthController {
     private final AuthService authService;
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final CurrentUser currentUser;
 
     @GetMapping("/login-url")
     public ResponseEntity<String> getLoginUrl() {
@@ -42,7 +42,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Missing authorization code");
         }
 
-        // Exchange authorization code for tokens
         Map<String, Object> tokenResponse = authService.exchangeCodeForToken(code);
 
         String idToken = (String) tokenResponse.get("id_token");
@@ -50,7 +49,7 @@ public class AuthController {
             return ResponseEntity.status(500).body("Missing ID token from Azure");
         }
 
-        Map<String, Object> claims = authService.decodeIdToken(idToken);
+        Map<String, Object> claims = new HashMap<>(authService.decodeIdToken(idToken));
 
         String azureId = (String) claims.get("oid");
         if (azureId == null) {
@@ -73,7 +72,7 @@ public class AuthController {
                     u.setName(name);
                     return userRepository.save(u);
                 });
-
+        claims.put("userId", user.getId());
         String jwt = jwtService.generateToken(user.getAzureId(), claims);
 
         ResponseCookie cookie = ResponseCookie.from("jwt", jwt)
@@ -83,8 +82,6 @@ public class AuthController {
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
                 .build();
-
-        currentUser.setAzureId(user.getAzureId());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())

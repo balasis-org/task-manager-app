@@ -1,52 +1,76 @@
 package io.github.balasis.taskmanager.engine.core.test;
 
-import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
-import io.github.balasis.taskmanager.engine.core.service.TaskServiceImpl;
-import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
-import io.github.balasis.taskmanager.engine.core.validation.TaskValidator;
-
-import io.github.balasis.taskmanager.engine.core.validation.TaskValidatorImpl;
-import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.context.base.model.Group;
+import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.context.base.model.GroupMembership;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
+import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
+import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
+import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Random;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
-class TaskServiceTest {
+class GroupServiceTest {
 
+    private GroupRepository groupRepository;
+    private UserRepository userRepository;
+    private GroupMembershipRepository groupMembershipRepository;
+    private EffectiveCurrentUser effectiveCurrentUser;
+    private EmailClient emailClient;
     private TaskRepository taskRepository;
     private BlobStorageService blobStorageService;
-    private EmailClient emailClient;
-    private TaskValidator taskValidator;
-    private TaskServiceImpl taskService;
+
+    private GroupServiceImpl groupService;
 
     @BeforeEach
     void setUp() {
+        groupRepository = mock(GroupRepository.class);
+        userRepository = mock(UserRepository.class);
+        groupMembershipRepository = mock(GroupMembershipRepository.class);
+        effectiveCurrentUser = mock(EffectiveCurrentUser.class);
+        emailClient = mock(EmailClient.class);
         taskRepository = mock(TaskRepository.class);
         blobStorageService = mock(BlobStorageService.class);
-        emailClient = mock(EmailClient.class);
-        taskValidator = new TaskValidatorImpl(taskRepository);
 
-        taskService = new TaskServiceImpl(taskRepository, blobStorageService,emailClient);
+        groupService = new GroupServiceImpl(
+                groupRepository,
+                userRepository,
+                groupMembershipRepository,
+                effectiveCurrentUser,
+                emailClient,
+                taskRepository,
+                blobStorageService
+        );
     }
 
     @Test
-    void createSampleTask() {
-        Task task = Task.builder()
-                .title("Test Task")
-                .description("This task is created by CI test")
-                .taskState(TaskState.values()[new Random().nextInt(TaskState.values().length)])
-                .build();
+    void createGroup_success() {
+        User user = User.builder().id(1L).name("Seeder").email("admin@example.com").build();
+        Group group = Group.builder().name("Test Group").description("CI created").build();
+        Group savedGroup = Group.builder().id(100L).name("Test Group").description("CI created").build();
 
-        Task validatedTask = taskValidator.validate(task);
-        taskService.create(validatedTask);
+        when(effectiveCurrentUser.getUserId()).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(groupRepository.save(group)).thenReturn(savedGroup);
 
-        verify(taskRepository, times(1)).save(validatedTask);
+        groupService.create(group);
 
-        System.out.println("Task created with ID: " + task.getId());
+        // verify repository calls
+        verify(groupRepository, times(1)).save(group);
+        verify(groupMembershipRepository, times(1))
+                .save(argThat(membership ->
+                        membership.getUser().equals(user) &&
+                                membership.getGroup().equals(savedGroup) &&
+                                membership.getRole() == Role.GROUP_LEADER
+                ));
     }
 }
