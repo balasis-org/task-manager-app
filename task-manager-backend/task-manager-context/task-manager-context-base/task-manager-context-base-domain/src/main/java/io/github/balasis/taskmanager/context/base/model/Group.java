@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "Groups" )
 public class Group extends BaseModel{
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Column

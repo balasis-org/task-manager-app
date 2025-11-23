@@ -4,7 +4,7 @@ spring:
       ddl-auto: create
     properties:
       hibernate:
-        generate_statistics: true
+        generate_statistics: false
         dialect: org.hibernate.dialect.H2Dialect
     show-sql: true
 

@@ -28,7 +28,7 @@ public class GroupController{
     private final AuthorizationService authorizationService;
 
     @PostMapping
-    public ResponseEntity<GroupResource> create(@ModelAttribute final GroupResource groupResource){
+    public ResponseEntity<GroupResource> create(@RequestBody final GroupResource groupResource){
         groupResource.setId(null);
         var group =  groupValidator.validate(groupMapper.toDomain(groupResource));
         return ResponseEntity.ok(groupMapper.toResource(
