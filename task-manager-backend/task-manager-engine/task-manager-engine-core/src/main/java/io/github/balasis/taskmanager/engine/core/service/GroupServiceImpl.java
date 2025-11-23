@@ -41,6 +41,9 @@ public class GroupServiceImpl implements GroupService{
     public Group create(Group group){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(()->new UserNotFoundException("User not found"));
+        if (groupRepository.existsByName(group.getName())) {
+            throw new TaskManagerException("Group with name '" + group.getName() + "' already exists");
+        }
         Group savedGroup = groupRepository.save(group);
         groupMembershipRepository.save(new GroupMembership(user,savedGroup, Role.GROUP_LEADER));
         return savedGroup;
