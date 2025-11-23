@@ -2,11 +2,13 @@ package io.github.balasis.taskmanager.engine.core.bootstrap;
 
 import com.thedeanda.lorem.Lorem;
 import com.thedeanda.lorem.LoremIpsum;
-import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
-import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.engine.core.service.TaskService;
-import io.github.balasis.taskmanager.engine.core.validation.TaskValidator;
+import io.github.balasis.taskmanager.context.base.model.Group;
+import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.service.GroupService;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.UserContext;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -16,45 +18,64 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Random;
-
 @Component
-@AllArgsConstructor
 @Profile({"DataLoader"})
+@RequiredArgsConstructor
 public class DataLoader implements ApplicationRunner {
-    private static final Logger logger = LoggerFactory.getLogger(DataLoader.class);
+
+    private static final Logger log = LoggerFactory.getLogger(DataLoader.class);
     private static final Lorem lorem = LoremIpsum.getInstance();
-    private final TaskService guestService;
-    private final TaskValidator guestValidator;
+    private final UserRepository userRepository;
+    private final GroupService groupService;
+    private final UserContext userContext;
 
     @Override
     public void run(ApplicationArguments args) {
-        loadTasks();
-    }
-    private void loadTasks() {
-        logger.trace("Loading tasks...");
-        for (int i = 0; i < 1; i++) {
-            try {
-                createTasksTransactional();
-            } catch (Exception e) {
-                logger.warn(e.getMessage());
-            }
+        log.info("=== Running DataLoader ===");
+        User admin = seedInitialUser();
+        userContext.setUserId(admin.getId());
+        try {
+            seedGroups();
+        } finally {
+            userContext.clear(); // safety
         }
 
-        logger.trace("Finished loading tasks");
+        log.info("=== DataLoader finished ===");
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void createTasksTransactional() {
-        guestService.create(
-                guestValidator.validate(
-                        Task.builder()
-                                .title(lorem.getTitle(1))
-                                .description(lorem.getParagraphs(1,1))
-                                .taskState(TaskState.values()[new Random().nextInt(TaskState.values().length)])
+    private User seedInitialUser() {
+        log.info("Seeding base user...");
+
+        String email = "admin@example.com";
+
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .azureId("local-seed-user")  // fake ID for local run
+                                .email(email)
+                                .name("System Seeder")
                                 .build()
-                )
+                ));
+    }
+
+    private void seedGroups() {
+        log.info("Seeding groups...");
+
+        for (int i = 0; i < 2; i++) {
+            try {
+                createGroup();
+            } catch (Exception ex) {
+                log.warn("Group seed error: {}", ex.getMessage());
+            }
+        }
+    }
+
+    public void createGroup() {
+        groupService.create(
+                Group.builder()
+                        .name(lorem.getTitle(1))
+                        .description(lorem.getTitle(1))
+                        .build()
         );
     }
-
 }

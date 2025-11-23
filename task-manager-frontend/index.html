@@ -16,14 +16,13 @@
 
 <div id="output"></div>
 
-<h2>Upload Task with File</h2>
-<form action="/api/tasks/upload" method="POST" enctype="multipart/form-data">
-    <label>Title: <input type="text" name="title" required></label><br><br>
+<h2>Create a group</h2>
+<form action="/api/groups" method="POST" enctype="multipart/form-data">
+    <label>Title: <input type="text" name="name" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
-    <label>Task State: <input type="text" name="taskState" required></label><br><br>
-    <label>File: <input type="file" name="file"></label><br><br>
     <button type="submit">Submit</button>
 </form>
+
 <br><br>
 <button id="loginBtn">Login</button>
 <br><br>
@@ -50,7 +49,7 @@
             .then(response => {
                 if (response.ok) {
                     outputDiv.innerHTML = 'Logged out successfully.';
-                    // optionally reload page
+
                     window.location.reload();
                 } else {
                     outputDiv.innerHTML = 'Logout failed.';
@@ -63,7 +62,7 @@
 
 
     fetchBtn.addEventListener('click', () => {
-        fetch('/api/tasks')
+        fetch('/api/groups')
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();

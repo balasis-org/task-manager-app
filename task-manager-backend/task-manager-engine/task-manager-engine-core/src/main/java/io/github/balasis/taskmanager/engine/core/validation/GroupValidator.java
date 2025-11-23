@@ -1,4 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.validation;
 
-public interface GroupValidator {
+import io.github.balasis.taskmanager.context.base.model.Group;
+
+public interface GroupValidator extends BaseValidator<Group>{
+
 }

@@ -10,5 +10,5 @@ import org.springframework.web.context.annotation.RequestScope;
 @Component
 @RequestScope
 public class CurrentUser {
-    private String azureId;
+    private Long userId;
 }
