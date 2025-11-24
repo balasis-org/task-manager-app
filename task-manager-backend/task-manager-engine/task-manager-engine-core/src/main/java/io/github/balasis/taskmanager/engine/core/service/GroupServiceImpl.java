@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
+import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.Group;
@@ -11,6 +12,7 @@ import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepos
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.CurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
@@ -31,6 +33,7 @@ import java.util.List;
 @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
 public class GroupServiceImpl implements GroupService{
     private final GroupRepository groupRepository;
+    private final GroupValidator groupValidator;
     private final UserRepository userRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
@@ -41,9 +44,8 @@ public class GroupServiceImpl implements GroupService{
     public Group create(Group group){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(()->new UserNotFoundException("User not found"));
-        if (groupRepository.existsByName(group.getName())) {
-            throw new TaskManagerException("Group with name '" + group.getName() + "' already exists");
-        }
+        groupValidator.validate(group);
+        group.setOwner(user);
         Group savedGroup = groupRepository.save(group);
         groupMembershipRepository.save(new GroupMembership(user,savedGroup, Role.GROUP_LEADER));
         return savedGroup;
@@ -52,7 +54,7 @@ public class GroupServiceImpl implements GroupService{
     @Override
     public List<Group> findAllByCurrentUser() {
         Long userId = effectiveCurrentUser.getUserId();
-        return groupMembershipRepository.findByUserId(userId)
+        return groupMembershipRepository.findByUserIdWithGroup(userId)
                 .stream()
                 .map(GroupMembership::getGroup)
                 .toList();

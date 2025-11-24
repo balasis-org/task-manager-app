@@ -5,6 +5,6 @@ import io.github.balasis.taskmanager.context.web.mapper.BaseMapper;
 import io.github.balasis.taskmanager.context.web.resource.GroupResource;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {UserMapper.class})
 public interface GroupMapper extends BaseMapper<Group, GroupResource> {
 }

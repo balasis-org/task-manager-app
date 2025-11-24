@@ -1,9 +1,7 @@
 package io.github.balasis.taskmanager.context.base.model;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -14,13 +12,19 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Groups" )
+@Table(name = "Groups" , uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"name","owner_id"})
+})
 public class Group extends BaseModel{
 
-    @Column(nullable = false)
+    @Column(name="name", nullable = false)
     private String name;
 
     @Column
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id",nullable = false)
+    private User owner;
 
 }

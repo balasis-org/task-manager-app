@@ -14,4 +14,6 @@ public class GroupResource extends BaseResource{
     private String name;
 
     private String description;
+
+    private UserResource owner;
 }
