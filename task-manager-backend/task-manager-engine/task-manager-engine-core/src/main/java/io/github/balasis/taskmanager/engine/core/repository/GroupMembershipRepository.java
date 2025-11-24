@@ -3,6 +3,8 @@ package io.github.balasis.taskmanager.engine.core.repository;
 import com.azure.core.http.HttpHeaders;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,5 +15,12 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
 
     Optional<GroupMembership> findByUserIdAndGroupId(Long userId, Long groupId);
 
-    List<GroupMembership> findByUserId(Long userId);
+    @Query("""
+    select gm
+    from GroupMembership gm
+    join fetch gm.group g
+    join fetch g.owner
+    where gm.user.id = :userId
+""")
+    List<GroupMembership> findByUserIdWithGroup(@Param("userId") Long userId);
 }

@@ -21,7 +21,6 @@ import java.util.List;
 @RequestMapping("/groups")
 public class GroupController{
     private final ResourceDataValidator resourceDataValidator;
-    private final GroupValidator groupValidator;//Do not remove
     private final GroupService groupService;
     private final GroupMapper groupMapper;
     private final TaskMapper taskMapper;
@@ -30,9 +29,8 @@ public class GroupController{
     @PostMapping
     public ResponseEntity<GroupResource> create(@RequestBody final GroupResource groupResource){
         groupResource.setId(null);
-        var group =  groupValidator.validate(groupMapper.toDomain(groupResource));
         return ResponseEntity.ok(groupMapper.toResource(
-                groupService.create(group)
+                groupService.create(groupMapper.toDomain(groupResource))
         ));
     }
 
