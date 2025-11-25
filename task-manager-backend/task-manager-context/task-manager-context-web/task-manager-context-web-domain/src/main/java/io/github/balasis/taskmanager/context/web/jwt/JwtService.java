@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.jwt;
 
+import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -47,16 +48,12 @@ public class JwtService {
                 .getPayload();
     }
 
-    public Object getClaim(String token, String claimKey) {
-        return extractAllClaims(token).get(claimKey);
-    }
-
-    public boolean isTokenValid(String token) {
+    public Claims validateAndExtractClaims(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.getExpiration().after(new Date());
+        if (claims.getExpiration().before(new Date())) {
+            throw new UnauthenticatedException("JWT token expired");
+        }
+        return claims;
     }
 
-    public String getSubject(String token) {
-        return extractAllClaims(token).getSubject();
-    }
 }

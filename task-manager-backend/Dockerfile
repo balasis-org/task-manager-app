@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 
 # Copy the Spring Boot jar into the container
-COPY /task-manager-engine/task-manager-engine-core/target/TaskManager.jar app.jar
+COPY /task-manager-context/task-manager-context-web/task-manager-context-web-domain/target/TaskManager.jar app.jar
 
 # Expose default Spring Boot port
 EXPOSE 8080
