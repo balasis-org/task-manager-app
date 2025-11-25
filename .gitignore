@@ -8,7 +8,7 @@
 *.txt
 backcicd.bat
 frontendcicd.bat
-
+azurite-data
 # =========================
 # Documentation / temp
 # =========================
