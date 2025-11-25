@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.exception.notfound.GroupNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
@@ -37,6 +38,7 @@ public class GroupServiceImpl implements GroupService{
     private final EmailClient emailClient;
     private final BlobStorageService blobStorageService;
 
+    @Override
     public Group create(Group group){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(()->new UserNotFoundException("User not found"));
@@ -55,6 +57,29 @@ public class GroupServiceImpl implements GroupService{
                 .map(GroupMembership::getGroup)
                 .toList();
     }
+
+
+    @Override
+    public Group patch(Long groupId, Group group) {
+        groupValidator.validateForPatch(groupId, group);
+        Group existingGroup = groupRepository.findById(groupId)
+                .orElseThrow(()->new GroupNotFoundException("Group with id:"+groupId +" doesn't exist"));
+
+        if (group.getName() != null) existingGroup.setName(group.getName());
+        if (group.getDescription() != null) existingGroup.setDescription(group.getDescription());
+
+        return groupRepository.save(existingGroup);
+    }
+
+    @Override
+    public void delete(Long groupId) {
+        taskRepository.deleteAllByGroup_Id(groupId);
+        groupMembershipRepository.deleteAllByGroup_Id(groupId);
+        groupRepository.deleteById(groupId);
+    }
+
+
+
 
     @Override
     public Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file) {
@@ -80,41 +105,6 @@ public class GroupServiceImpl implements GroupService{
 //        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
         return taskRepository.save(task);
     }
-
-
-
-//
-//    public Task get(final Long id) {
-//        return getRepository().findById(id)
-//                .orElseThrow(() -> new TaskNotFoundException(
-//                        getModelName() + " with ID " + id + " not found."));
-//    }
-//
-//
-//    public void update(final Task item) {
-//        if (!getRepository().existsById(item.getId())) {
-//            throw new TaskNotFoundException(
-//                    getModelName() + " with ID " + item.getId() + " not found.");
-//        }
-//        getRepository().save(item);
-//    }
-//
-//    public void delete(final Long id) {
-//        if (!getRepository().existsById(id)) {
-//            throw new TaskNotFoundException(
-//                    getModelName() + " with ID " + id + " not found.");
-//        }
-//        getRepository().deleteById(id);
-//    }
-//
-//    @Override
-//    public List<Task> findAll() {
-//        return getRepository().findAll();
-//    }
-//
-//    public boolean exists(final Task item) {
-//        return getRepository().existsById(item.getId());
-//    }
 
     public String getModelName() {
         return "Group";

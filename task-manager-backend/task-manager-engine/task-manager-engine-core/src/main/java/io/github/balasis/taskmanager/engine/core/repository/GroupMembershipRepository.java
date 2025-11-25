@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.repository;
 
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -26,4 +27,7 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     boolean existsByGroupIdAndUserId(Long groupId, Long assignedId);
 
     Optional<GroupMembership> findByGroupIdAndUserId(Long groupId, Long reviewerId);
+
+    @Modifying
+    void deleteAllByGroup_Id(Long groupId);
 }

@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.validation;
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
+import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
@@ -33,9 +34,15 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     @Override
-    public void validateForUpdate(Long id, Group group) {
-
-
+    public void validateForPatch(Long id, Group group) {
+        if (group.getName() != null && group.getName().isBlank()) {
+            throw new InvalidFieldValueException("Name cannot be empty");
+        }
+        boolean doesGroupExistWithSameName = groupRepository.existsByNameAndOwner_IdAndIdNot(
+                group.getName(), effectiveCurrentUser.getUserId(),id);
+        if (doesGroupExistWithSameName) {
+            throw new GroupDuplicateException("You already have a group with that name");
+        }
     }
 
 

@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.context.web.mapper;
+package io.github.balasis.taskmanager.context.web.mapper.outbound;
 
 import java.util.List;
 

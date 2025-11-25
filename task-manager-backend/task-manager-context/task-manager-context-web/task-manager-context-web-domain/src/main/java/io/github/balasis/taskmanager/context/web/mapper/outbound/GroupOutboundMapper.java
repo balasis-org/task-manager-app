@@ -1,7 +1,6 @@
 package io.github.balasis.taskmanager.context.web.mapper.outbound;
 
 import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.web.mapper.BaseOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
 import org.mapstruct.Mapper;
 

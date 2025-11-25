@@ -11,68 +11,79 @@
 </head>
 <body>
 <h1>Task Manager Demo</h1>
+<h2>Login</h2>
+<div style="display:flex;justify-content: flex-start;gap:1.5em;">
+<button id="loginBtn">Login</button>
+<button id="logoutBtn">Logout</button>
+</div>
+<br><br>
+<h2>Find groups</h2>
+<div id="output"></div>
+<br>
 <button id="fetchBtn">Fetch Groups</button>
 <button id="clearBtn">Clear</button>
-
-<div id="output"></div>
-
+<br><br>
 <h2>Create a group</h2>
 <form id="createGroupForm">
+    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Title: <input type="text" name="name" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
+    </div>
+    <br><br>
     <button id="createGroupBtn" type="submit">Create</button>
 </form>
 <br><br>
 
+<h2>Update Group</h2>
+<form id="updateGroupForm">
+    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
+    <label>Group ID: <input type="number" name="groupId" required></label><br><br>
+    <label>New Name: <input type="text" name="name"></label><br><br>
+    <label>New Description: <input type="text" name="description"></label><br><br>
+    </div>
+    <br><br>
+    <button type="submit">Update Group</button>
+</form>
+<br><br>
+
+<h2>Delete Group</h2>
+<form id="deleteGroupForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <br><br>
+    <button type="submit">Delete Group</button>
+</form>
+
+<br><br>
 <h2>Create a Task</h2>
 <form id="createTaskForm">
+    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Group ID: <input type="number" id="groupIdInput" value="1" required></label><br><br>
     <label>Title: <input type="text" name="title" required></label><br><br>
-    <label>Description: <input type="text" name="description" required></label><br><br>
+    <label>Description: <input type="text" name="description" required></label>
+    </div>
+    <br><br>
+    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Task State:
         <select name="taskState">
             <option value="TODO">TODO</option>
             <option value="IN_PROGRESS">IN_PROGRESS</option>
             <option value="DONE">DONE</option>
         </select>
-    </label><br><br>
+    </label>
     <label>Assigned User ID: <input type="number" name="assignedId"></label><br><br>
     <label>Reviewer User ID: <input type="number" name="reviewerId"></label><br><br>
-    <label>File: <input type="file" name="file"></label><br><br>
+    </div>
+    <br><br>
+    <label>File: <input type="file" name="file"></label>
+    <br><br>
     <button type="submit">Create Task</button>
 </form>
 
-<br><br>
-<button id="loginBtn">Login</button>
-<br><br>
-<button id="logoutBtn">Logout</button>
+
 <script>
-    const fetchBtn = document.getElementById('fetchBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const outputDiv = document.getElementById('output');
+
+    // LOGIN
     const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const groupFormBtn = document.querySelector("#createGroupBtn");
-    const groupForm = document.querySelector("#createGroupForm");
-
-    groupFormBtn.addEventListener('click',async (event)=>{
-        event.preventDefault();
-        const json =JSON.stringify(Object.fromEntries(new FormData(groupForm).entries()));
-        const res = await fetch('/api/groups',{
-            method:'POST',
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:json
-        })
-        if (res.ok){
-            const result = await res.json()
-            console.log("Group created",result)
-        }else{
-            console.error("Failed to create group:", res.status);
-        }
-    })
-
     loginBtn.addEventListener('click', () => {
         fetch('/api/auth/login-url')
             .then(res => res.text())
@@ -81,6 +92,8 @@
             });
     });
 
+    // LOGOUT
+    const logoutBtn = document.getElementById('logoutBtn');
     logoutBtn.addEventListener('click', () => {
         fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
             .then(response => {
@@ -97,7 +110,9 @@
             });
     });
 
-
+    //FIND GROUPS OF LOGGED IN USER
+    const fetchBtn = document.getElementById('fetchBtn');
+    const outputDiv = document.getElementById('output');
     fetchBtn.addEventListener('click', () => {
         fetch('/api/groups')
             .then(response => {
@@ -112,15 +127,80 @@
             });
     });
 
+    //CLEAR RESULTS OF GROUPS OF LOGGED IN USER
+    const clearBtn = document.getElementById('clearBtn');
     clearBtn.addEventListener('click', () => {
         outputDiv.innerHTML = '';
     });
 
+    //CREATE GROUP
+    const groupFormBtn = document.querySelector("#createGroupBtn");
+    const groupForm = document.querySelector("#createGroupForm");
+    groupFormBtn.addEventListener('click',async (event)=>{
+        event.preventDefault();
+        const json =JSON.stringify(Object.fromEntries(new FormData(groupForm).entries()));
+        const res = await fetch('/api/groups',{
+            method:'POST',
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:json
+        })
+        if (res.ok){
+            const result = await res.json()
+            console.log("Group created",result)
+        }else{
+            console.error("Failed to create group:", res.status);
+        }
+    });
 
+    // UPDATE GROUP
+    const updateGroupForm = document.getElementById("updateGroupForm");
+    updateGroupForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = Object.fromEntries(new FormData(updateGroupForm).entries());
+        const groupId = formData.groupId;
+        delete formData.groupId; // remove ID from payload
 
+        try {
+            const res = await fetch(`/api/groups/${groupId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData)
+            });
 
+            if (res.ok) {
+                const result = await res.json();
+                alert("Group updated: " + JSON.stringify(result, null, 2));
+            } else {
+                alert("Failed to update group: " + res.status);
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    });
+
+    //DELETE GROUP
+    const deleteGroupForm = document.getElementById("deleteGroupForm");
+    deleteGroupForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const groupId = deleteGroupForm.groupId.value;
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
+
+            if (res.ok) {
+                alert(`Group ${groupId} deleted successfully.`);
+            } else {
+                alert("Failed to delete group: " + res.status);
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    });
+
+    //CREATE TASK
     const createTaskForm = document.getElementById("createTaskForm");
-
     createTaskForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -156,6 +236,8 @@
             console.error("Error:", err);
         }
     });
+
+
 
 </script>
 </body>
