@@ -7,6 +7,5 @@ import java.io.Serializable;
 
 @Getter
 @Setter
-public class BaseResource implements Serializable {
-    protected Long id;
+public class BaseInboundResource implements Serializable {
 }

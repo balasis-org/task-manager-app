@@ -11,9 +11,8 @@ import java.util.List;
 public interface GroupService extends BaseService{
     Group create(Group group);
     List<Group> findAllByCurrentUser();
+    Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file);
 
-//    Task createTaskWithFile(Long groupID,Task task, MultipartFile file);
-//    Task createTask(Long groupID,final Task item);
 //    Task getTask(Long groupID,final Long id);
 //    void updateTask(Long groupID,final Task item);
 //    void deleteTask(Long groupID,final Long id);

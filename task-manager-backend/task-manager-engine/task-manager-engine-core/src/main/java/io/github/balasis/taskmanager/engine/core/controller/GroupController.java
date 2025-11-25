@@ -1,42 +1,68 @@
 package io.github.balasis.taskmanager.engine.core.controller;
 
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.web.resource.GroupResource;
-import io.github.balasis.taskmanager.context.web.resource.TaskResource;
+import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
+import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
+import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
-import io.github.balasis.taskmanager.engine.core.mapper.GroupMapper;
-import io.github.balasis.taskmanager.engine.core.mapper.TaskMapper;
+import io.github.balasis.taskmanager.engine.core.mapper.inbound.GroupInboundMapper;
+import io.github.balasis.taskmanager.engine.core.mapper.inbound.TaskInboundMapper;
+import io.github.balasis.taskmanager.engine.core.mapper.outbound.GroupOutboundMapper;
+import io.github.balasis.taskmanager.engine.core.mapper.outbound.TaskOutboundMapper;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
-import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/groups")
 public class GroupController{
     private final ResourceDataValidator resourceDataValidator;
+    private final GroupOutboundMapper groupOutboundMapper;
+    private final GroupInboundMapper groupInboundMapper;
+    private final TaskOutboundMapper taskOutboundMapper;
+    private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
-    private final GroupMapper groupMapper;
-    private final TaskMapper taskMapper;
     private final AuthorizationService authorizationService;
 
     @PostMapping
-    public ResponseEntity<GroupResource> create(@RequestBody final GroupResource groupResource){
-        groupResource.setId(null);
-        return ResponseEntity.ok(groupMapper.toResource(
-                groupService.create(groupMapper.toDomain(groupResource))
+    public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
+        resourceDataValidator.validateResourceData(groupInboundResource);
+        return ResponseEntity.ok(
+                groupOutboundMapper.toResource(
+                groupService.create(groupInboundMapper.toDomain(groupInboundResource)
+                )
         ));
     }
 
     @GetMapping
-    public ResponseEntity<List<GroupResource>> findAllByCurrentUser() {
-        return ResponseEntity.ok(groupMapper.toResources(groupService.findAllByCurrentUser()));
+    public ResponseEntity<List<GroupOutboundResource>> findAllByCurrentUser() {
+        return ResponseEntity.ok(
+                groupOutboundMapper.toResources(
+                        groupService.findAllByCurrentUser()
+                ));
+    }
+
+    @PostMapping(path = "/{groupId}/tasks",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskOutboundResource> createTask(
+            @PathVariable Long groupId,
+            @RequestPart("data") TaskInboundResource inbound,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
+        authorizationService.requireRoleIn(groupId, Set.of(
+                Role.GROUP_LEADER,Role.TASK_MANAGER));
+        var partialTask = taskInboundMapper.toDomain(inbound);
+        return ResponseEntity.ok(taskOutboundMapper.toResource(
+                groupService.createTask(groupId, partialTask, inbound.getAssignedId(),inbound.getReviewerId(),file)));
     }
 
 //    @PostMapping("/{id}/task/upload")

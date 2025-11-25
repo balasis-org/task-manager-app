@@ -11,7 +11,7 @@
 </head>
 <body>
 <h1>Task Manager Demo</h1>
-<button id="fetchBtn">Fetch Tasks</button>
+<button id="fetchBtn">Fetch Groups</button>
 <button id="clearBtn">Clear</button>
 
 <div id="output"></div>
@@ -21,6 +21,25 @@
     <label>Title: <input type="text" name="name" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
     <button id="createGroupBtn" type="submit">Create</button>
+</form>
+<br><br>
+
+<h2>Create a Task</h2>
+<form id="createTaskForm">
+    <label>Group ID: <input type="number" id="groupIdInput" value="1" required></label><br><br>
+    <label>Title: <input type="text" name="title" required></label><br><br>
+    <label>Description: <input type="text" name="description" required></label><br><br>
+    <label>Task State:
+        <select name="taskState">
+            <option value="TODO">TODO</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="DONE">DONE</option>
+        </select>
+    </label><br><br>
+    <label>Assigned User ID: <input type="number" name="assignedId"></label><br><br>
+    <label>Reviewer User ID: <input type="number" name="reviewerId"></label><br><br>
+    <label>File: <input type="file" name="file"></label><br><br>
+    <button type="submit">Create Task</button>
 </form>
 
 <br><br>
@@ -98,6 +117,45 @@
     });
 
 
+
+
+    const createTaskForm = document.getElementById("createTaskForm");
+
+    createTaskForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const groupId = document.getElementById("groupIdInput").value; // dynamically fetch groupId
+        const formData = new FormData();
+        const taskJson = {};
+
+        for (const [key, value] of new FormData(createTaskForm).entries()) {
+            if (key !== "file" && key !== "groupId") taskJson[key] = value;
+        }
+
+        formData.append("data", new Blob([JSON.stringify(taskJson)], { type: "application/json" }));
+
+        const fileInput = createTaskForm.querySelector('input[name="file"]');
+        if (fileInput.files.length > 0) {
+            formData.append("file", fileInput.files[0]);
+        }
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/tasks`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                console.log("Task created:", result);
+                alert("Task created: " + JSON.stringify(result, null, 2));
+            } else {
+                console.error("Failed to create task", res.status);
+            }
+        } catch (err) {
+            console.error("Error:", err);
+        }
+    });
 
 </script>
 </body>

@@ -2,16 +2,15 @@ package io.github.balasis.taskmanager.engine.core.test;
 
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.User;
-import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
+import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
-import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,32 +21,31 @@ import static org.mockito.Mockito.*;
 class GroupServiceTest {
 
     private GroupRepository groupRepository;
+    private GroupValidator groupValidator;
     private UserRepository userRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
     private EmailClient emailClient;
-    private TaskRepository taskRepository;
     private BlobStorageService blobStorageService;
-
     private GroupServiceImpl groupService;
 
     @BeforeEach
     void setUp() {
         groupRepository = mock(GroupRepository.class);
+        groupValidator = mock(GroupValidator.class);
         userRepository = mock(UserRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
         emailClient = mock(EmailClient.class);
-        taskRepository = mock(TaskRepository.class);
         blobStorageService = mock(BlobStorageService.class);
 
         groupService = new GroupServiceImpl(
                 groupRepository,
+                groupValidator,
                 userRepository,
                 groupMembershipRepository,
                 effectiveCurrentUser,
                 emailClient,
-                taskRepository,
                 blobStorageService
         );
     }
