@@ -29,7 +29,7 @@ public class JwtInterceptor implements HandlerInterceptor{
         if(token == null){
             throw new UnauthenticatedException("No JWT token provided");
         }
-        Claims claims = jwtService.extractAllClaims(token);
+        Claims claims = jwtService.validateAndExtractClaims(token);
 
         currentUser.setUserId(
                 ( (Number) claims.get("userId") ).longValue()
