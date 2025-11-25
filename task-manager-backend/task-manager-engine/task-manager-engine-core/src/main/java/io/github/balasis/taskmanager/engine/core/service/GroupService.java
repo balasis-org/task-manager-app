@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface GroupService extends BaseService{
     Group create(Group group);
+    Group patch(Long groupId, Group group);
+    void delete(Long groupId);
     List<Group> findAllByCurrentUser();
     Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file);
 
