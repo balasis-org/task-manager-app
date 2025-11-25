@@ -1,8 +1,7 @@
-package io.github.balasis.taskmanager.engine.core.config;
+package io.github.balasis.taskmanager.context.web.config;
 
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.JwtInterceptor;
+import io.github.balasis.taskmanager.context.web.jwt.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -10,7 +9,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @RequiredArgsConstructor
-@ComponentScan(basePackages = "io.github.balasis.taskmanager.context.web")
 public class WebConfig implements WebMvcConfigurer {
     private final JwtInterceptor jwtInterceptor;
 

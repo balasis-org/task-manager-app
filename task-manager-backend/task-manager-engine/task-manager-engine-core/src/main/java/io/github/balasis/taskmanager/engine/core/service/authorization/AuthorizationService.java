@@ -4,8 +4,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.CurrentUser;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

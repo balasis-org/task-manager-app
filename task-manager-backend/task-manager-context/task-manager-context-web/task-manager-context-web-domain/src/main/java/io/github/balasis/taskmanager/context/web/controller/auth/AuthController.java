@@ -1,9 +1,8 @@
-package io.github.balasis.taskmanager.engine.core.controller.auth;
+package io.github.balasis.taskmanager.context.web.controller.auth;
 
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.CurrentUser;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.JwtService;
+import io.github.balasis.taskmanager.context.web.jwt.JwtService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
