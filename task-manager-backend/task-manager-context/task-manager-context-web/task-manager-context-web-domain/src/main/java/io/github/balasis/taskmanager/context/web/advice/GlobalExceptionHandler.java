@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.context.web.advice;
 
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
+import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthenticatedException.class)
     public ResponseEntity<String> handleUnauthenticated(UnauthenticatedException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
     }
 
 }

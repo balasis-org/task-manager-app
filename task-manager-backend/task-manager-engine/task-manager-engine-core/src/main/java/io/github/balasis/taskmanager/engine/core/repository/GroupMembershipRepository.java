@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.engine.core.repository;
 
-import com.azure.core.http.HttpHeaders;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +22,8 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     where gm.user.id = :userId
 """)
     List<GroupMembership> findByUserIdWithGroup(@Param("userId") Long userId);
+
+    boolean existsByGroupIdAndUserId(Long groupId, Long assignedId);
+
+    Optional<GroupMembership> findByGroupIdAndUserId(Long groupId, Long reviewerId);
 }

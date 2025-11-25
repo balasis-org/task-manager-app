@@ -1,19 +1,16 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
-import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
-import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
-import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.context.base.model.Task;
+import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.CurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
@@ -35,10 +32,10 @@ public class GroupServiceImpl implements GroupService{
     private final GroupRepository groupRepository;
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
     private final EmailClient emailClient;
-    private final TaskRepository taskRepository;
     private final BlobStorageService blobStorageService;
 
     public Group create(Group group){
@@ -60,22 +57,33 @@ public class GroupServiceImpl implements GroupService{
                 .toList();
     }
 
+    @Override
+    public Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file) {
+        groupValidator.validateForCreateTask(groupId, assignedId, reviewerId);
 
-//    public Task create(final Task item) {
-////        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
-//        return getRepository().save(item);
-//    }
-//
-//    public Task createWithFile(final Task item, MultipartFile file){
-//        try {
-//            String url = blobStorageService.upload(file);
-//            item.setFileUrl(url);
-//            return getRepository().save(item);
-//        } catch (IOException e) {
-//            throw new TaskManagerException("Failed to upload file");
-//        }
-//
-//    }
+        task.setGroup(groupRepository.getReferenceById(groupId));
+        task.setCreator(userRepository.getReferenceById(effectiveCurrentUser.getUserId()));
+
+        if (assignedId != null)
+            task.setAssigned(userRepository.getReferenceById(assignedId));
+
+        if (reviewerId != null)
+            task.setReviewer(userRepository.getReferenceById(reviewerId));
+
+        if (file != null && !file.isEmpty()) {
+            try {
+                String url = blobStorageService.upload(file);
+                task.setFileUrl(url);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+//        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
+        return taskRepository.save(task);
+    }
+
+
+
 //
 //    public Task get(final Long id) {
 //        return getRepository().findById(id)
