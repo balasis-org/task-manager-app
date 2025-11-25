@@ -5,10 +5,11 @@ import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
+import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ class GroupServiceTest {
     private GroupRepository groupRepository;
     private GroupValidator groupValidator;
     private UserRepository userRepository;
+    private TaskRepository taskRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
     private EmailClient emailClient;
@@ -34,6 +36,7 @@ class GroupServiceTest {
         groupRepository = mock(GroupRepository.class);
         groupValidator = mock(GroupValidator.class);
         userRepository = mock(UserRepository.class);
+        taskRepository = mock(TaskRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
         emailClient = mock(EmailClient.class);
@@ -43,6 +46,7 @@ class GroupServiceTest {
                 groupRepository,
                 groupValidator,
                 userRepository,
+                taskRepository,
                 groupMembershipRepository,
                 effectiveCurrentUser,
                 emailClient,

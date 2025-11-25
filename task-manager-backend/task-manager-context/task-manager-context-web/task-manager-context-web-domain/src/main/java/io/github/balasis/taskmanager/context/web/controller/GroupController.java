@@ -1,16 +1,15 @@
-package io.github.balasis.taskmanager.engine.core.controller;
+package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
-import io.github.balasis.taskmanager.context.base.model.Task;
+import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupOutboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
-import io.github.balasis.taskmanager.engine.core.mapper.inbound.GroupInboundMapper;
-import io.github.balasis.taskmanager.engine.core.mapper.inbound.TaskInboundMapper;
-import io.github.balasis.taskmanager.engine.core.mapper.outbound.GroupOutboundMapper;
-import io.github.balasis.taskmanager.engine.core.mapper.outbound.TaskOutboundMapper;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import lombok.RequiredArgsConstructor;

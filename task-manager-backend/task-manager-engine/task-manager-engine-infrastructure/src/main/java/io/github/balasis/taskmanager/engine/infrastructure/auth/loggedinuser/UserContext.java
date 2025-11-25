@@ -1,8 +1,6 @@
-package io.github.balasis.taskmanager.engine.infrastructure.auth.jwt;
+package io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser;
 
 
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
 
 @Component

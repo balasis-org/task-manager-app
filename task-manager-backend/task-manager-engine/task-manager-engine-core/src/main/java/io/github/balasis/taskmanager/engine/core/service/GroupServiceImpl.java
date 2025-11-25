@@ -5,13 +5,12 @@ import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoun
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import lombok.RequiredArgsConstructor;

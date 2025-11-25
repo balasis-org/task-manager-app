@@ -1,6 +1,7 @@
-package io.github.balasis.taskmanager.engine.infrastructure.auth.jwt;
+package io.github.balasis.taskmanager.context.web.jwt;
 
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.CurrentUser;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;

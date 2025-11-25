@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.engine.core.mapper.outbound;
+package io.github.balasis.taskmanager.context.web.mapper.outbound;
 
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.mapper.BaseOutboundMapper;

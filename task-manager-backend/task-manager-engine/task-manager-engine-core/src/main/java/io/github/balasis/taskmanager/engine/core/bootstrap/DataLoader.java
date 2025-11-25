@@ -6,8 +6,7 @@ import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
-import io.github.balasis.taskmanager.engine.infrastructure.auth.jwt.UserContext;
-import lombok.AllArgsConstructor;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +14,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Profile({"DataLoader"})

@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.engine.infrastructure.auth.jwt;
+package io.github.balasis.taskmanager.context.web.jwt;
 
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;

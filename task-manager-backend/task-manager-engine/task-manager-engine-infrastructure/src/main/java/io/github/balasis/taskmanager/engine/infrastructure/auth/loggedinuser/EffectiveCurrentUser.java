@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.engine.infrastructure.auth.jwt;
+package io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser;
 
 
 import lombok.RequiredArgsConstructor;
