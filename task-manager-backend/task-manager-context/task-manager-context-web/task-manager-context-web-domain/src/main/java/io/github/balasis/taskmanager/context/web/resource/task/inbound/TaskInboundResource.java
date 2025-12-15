@@ -23,8 +23,6 @@ public class TaskInboundResource extends BaseInboundResource {
     @NotNull(message = "taskState is mandatory")
     private String taskState;
 
-    private Long assignedId;   // references User
-    private Long reviewerId;   // references User
-
-    private String fileUrl;
+    private Long assignedId;
+    private Long reviewerId;
 }

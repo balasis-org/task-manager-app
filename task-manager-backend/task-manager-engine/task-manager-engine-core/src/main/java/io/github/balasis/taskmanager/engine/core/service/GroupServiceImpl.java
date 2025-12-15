@@ -6,10 +6,8 @@ import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoun
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
-import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
-import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
-import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.context.base.model.TaskFile;
+import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
@@ -33,6 +31,7 @@ public class GroupServiceImpl implements GroupService{
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final TaskFileRepository taskFileRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
     private final EmailClient emailClient;
@@ -82,7 +81,7 @@ public class GroupServiceImpl implements GroupService{
 
 
     @Override
-    public Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file) {
+    public Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId,List<MultipartFile> files) {
         groupValidator.validateForCreateTask(groupId, assignedId, reviewerId);
 
         task.setGroup(groupRepository.getReferenceById(groupId));
@@ -94,10 +93,19 @@ public class GroupServiceImpl implements GroupService{
         if (reviewerId != null)
             task.setReviewer(userRepository.getReferenceById(reviewerId));
 
-        if (file != null && !file.isEmpty()) {
+        var savedTask =  taskRepository.save(task);
+
+        if (files != null && !files.isEmpty()) {
             try {
-                String url = blobStorageService.upload(file);
-                task.setFileUrl(url);
+                for (MultipartFile file : files){
+                    String url = blobStorageService.upload(file);
+                    var taskFile = TaskFile.builder()
+                            .fileUrl(url)
+                            .name(file.getOriginalFilename())
+                            .task(savedTask)
+                            .build();
+                    savedTask.getFiles().add(taskFile);
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
