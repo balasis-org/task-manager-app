@@ -34,7 +34,7 @@
 </form>
 <br><br>
 
-<h2>Update Group</h2>
+<h2>Patch Group</h2>
 <form id="updateGroupForm">
     <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Group ID: <input type="number" name="groupId" required></label><br><br>
@@ -42,7 +42,7 @@
     <label>New Description: <input type="text" name="description"></label><br><br>
     </div>
     <br><br>
-    <button type="submit">Update Group</button>
+    <button type="submit">Patch Group</button>
 </form>
 <br><br>
 
@@ -154,7 +154,7 @@
         }
     });
 
-    // UPDATE GROUP
+    // PATCH GROUP
     const updateGroupForm = document.getElementById("updateGroupForm");
     updateGroupForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -171,9 +171,9 @@
 
             if (res.ok) {
                 const result = await res.json();
-                alert("Group updated: " + JSON.stringify(result, null, 2));
+                alert("Group patched: " + JSON.stringify(result, null, 2));
             } else {
-                alert("Failed to update group: " + res.status);
+                alert("Failed to patch group: " + res.status);
             }
         } catch (err) {
             alert("Error: " + err.message);
