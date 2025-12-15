@@ -4,6 +4,8 @@ import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
@@ -16,5 +18,5 @@ public class TaskOutboundResource extends BaseOutboundResource {
     private UserOutboundResource creator;
     private UserOutboundResource assigned;
     private UserOutboundResource reviewer;
-    private String fileUrl;
+    private List<TaskOutboundResource> files;
 }

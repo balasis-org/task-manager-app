@@ -83,13 +83,13 @@ public class GroupController{
     public ResponseEntity<TaskOutboundResource> createTask(
             @PathVariable Long groupId,
             @RequestPart("data") TaskInboundResource inbound,
-            @RequestPart(value = "file", required = false) MultipartFile file
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
         authorizationService.requireRoleIn(groupId, Set.of(
                 Role.GROUP_LEADER,Role.TASK_MANAGER));
         var partialTask = taskInboundMapper.toDomain(inbound);
         return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.createTask(groupId, partialTask, inbound.getAssignedId(),inbound.getReviewerId(),file)));
+                groupService.createTask(groupId, partialTask, inbound.getAssignedId(),inbound.getReviewerId(),files)));
     }
 
 }

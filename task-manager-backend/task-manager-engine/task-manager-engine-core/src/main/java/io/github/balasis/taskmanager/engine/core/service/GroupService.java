@@ -13,7 +13,7 @@ public interface GroupService extends BaseService{
     Group patch(Long groupId, Group group);
     void delete(Long groupId);
     List<Group> findAllByCurrentUser();
-    Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, MultipartFile file);
+    Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId, List<MultipartFile> files);
 
 //    Task getTask(Long groupID,final Long id);
 //    void updateTask(Long groupID,final Task item);

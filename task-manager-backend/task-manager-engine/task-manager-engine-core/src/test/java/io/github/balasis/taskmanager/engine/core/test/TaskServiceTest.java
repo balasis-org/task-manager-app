@@ -3,10 +3,7 @@ package io.github.balasis.taskmanager.engine.core.test;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
-import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
-import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
-import io.github.balasis.taskmanager.engine.core.repository.TaskRepository;
-import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
@@ -25,6 +22,7 @@ class GroupServiceTest {
     private GroupValidator groupValidator;
     private UserRepository userRepository;
     private TaskRepository taskRepository;
+    private TaskFileRepository taskFileRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
     private EmailClient emailClient;
@@ -37,6 +35,7 @@ class GroupServiceTest {
         groupValidator = mock(GroupValidator.class);
         userRepository = mock(UserRepository.class);
         taskRepository = mock(TaskRepository.class);
+        taskFileRepository = mock(TaskFileRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
         emailClient = mock(EmailClient.class);
@@ -47,6 +46,7 @@ class GroupServiceTest {
                 groupValidator,
                 userRepository,
                 taskRepository,
+                taskFileRepository,
                 groupMembershipRepository,
                 effectiveCurrentUser,
                 emailClient,
