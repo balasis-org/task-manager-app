@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
@@ -37,8 +40,8 @@ public class Task extends BaseModel{
     @JoinColumn(name = "reviewer_id")
     private User reviewer;
 
-    @Column
-    private String fileUrl;
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<TaskFile> files = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
