@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
@@ -14,7 +17,6 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Table(name = "Tasks")
 public class Task extends BaseModel{
-
     @Column(nullable = false)
     private String title;
 
@@ -26,7 +28,22 @@ public class Task extends BaseModel{
     @Column(nullable = false)
     private TaskState taskState;
 
-    @Column
-    private String fileUrl;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_id")
+    private User assigned;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewer_id")
+    private User reviewer;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<TaskFile> files = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Group group;
 }

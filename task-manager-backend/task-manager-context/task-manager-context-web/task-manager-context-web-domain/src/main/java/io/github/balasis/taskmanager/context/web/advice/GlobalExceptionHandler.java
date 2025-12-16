@@ -1,6 +1,8 @@
 package io.github.balasis.taskmanager.context.web.advice;
 
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
+import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
+import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +15,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(TaskManagerException.class)
-    public ResponseEntity<String> handleHotelException(TaskManagerException e) {
+    public ResponseEntity<String> handleTaskManagerException(TaskManagerException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
@@ -33,6 +35,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMultipartException(MultipartException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Invalid multipart request: " + e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<String> handleUnauthenticated(UnauthenticatedException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
     }
 
 }
