@@ -5,10 +5,10 @@
 .idea/
 *.iml
 *.log
-structure.txt
+*.txt
 backcicd.bat
 frontendcicd.bat
-
+azurite-data
 # =========================
 # Documentation / temp
 # =========================

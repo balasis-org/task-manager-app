@@ -1,7 +1,7 @@
 package io.github.balasis.taskmanager.context.web.validation;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.context.web.resource.BaseResource;
+import io.github.balasis.taskmanager.context.web.resource.BaseInboundResource;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -13,7 +13,7 @@ public class ResourceDataValidator extends BaseComponent {
     private final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
     private final Validator validator = validatorFactory.getValidator();
 
-    public <T extends BaseResource> void validateResourceData(T resourceToBeValidated) {
+    public <T extends BaseInboundResource> void validateResourceData(T resourceToBeValidated) {
         var constraintViolations = validator.validate(resourceToBeValidated);
         if (!constraintViolations.isEmpty()) {
             throw new ConstraintViolationException(constraintViolations);
