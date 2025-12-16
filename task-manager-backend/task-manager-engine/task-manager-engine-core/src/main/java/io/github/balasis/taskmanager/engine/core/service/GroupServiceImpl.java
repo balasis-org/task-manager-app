@@ -1,12 +1,11 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.exception.notfound.GroupNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
-import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.GroupMembership;
-import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.model.TaskFile;
+import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
@@ -21,12 +20,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
-public class GroupServiceImpl implements GroupService{
+public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final GroupRepository groupRepository;
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
@@ -49,12 +50,12 @@ public class GroupServiceImpl implements GroupService{
     }
 
     @Override
-    public List<Group> findAllByCurrentUser() {
+    public Set<Group> findAllByCurrentUser() {
         Long userId = effectiveCurrentUser.getUserId();
         return groupMembershipRepository.findByUserIdWithGroup(userId)
                 .stream()
                 .map(GroupMembership::getGroup)
-                .toList();
+                .collect(Collectors.toSet());
     }
 
 
@@ -81,23 +82,43 @@ public class GroupServiceImpl implements GroupService{
 
 
     @Override
-    public Task createTask(Long groupId, Task task, Long assignedId, Long reviewerId,List<MultipartFile> files) {
-        groupValidator.validateForCreateTask(groupId, assignedId, reviewerId);
+    public Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files) {
 
-        task.setGroup(groupRepository.getReferenceById(groupId));
+        groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
+
         task.setCreator(userRepository.getReferenceById(effectiveCurrentUser.getUserId()));
-
-        if (assignedId != null)
-            task.setAssigned(userRepository.getReferenceById(assignedId));
-
-        if (reviewerId != null)
-            task.setReviewer(userRepository.getReferenceById(reviewerId));
+        task.setGroup(groupRepository.getReferenceById(groupId));
 
         var savedTask =  taskRepository.save(task);
+
+        if (assignedIds != null && !assignedIds.isEmpty()){
+            for(Long assignedId:assignedIds){
+
+                var taskParticipant = TaskParticipant.builder()
+                        .taskParticipantRole(TaskParticipantRole.ASSIGNEE)
+                        .user(userRepository.getReferenceById(assignedId))
+                        .task(savedTask)
+                        .build();
+                savedTask.getTaskParticipants().add(taskParticipant);
+            }
+        }
+
+        if (reviewerIds != null && !reviewerIds.isEmpty()){
+            for(Long reviewerId:reviewerIds){
+
+                var taskParticipant = TaskParticipant.builder()
+                        .taskParticipantRole(TaskParticipantRole.REVIEWER)
+                        .user(userRepository.getReferenceById(reviewerId))
+                        .task(savedTask)
+                        .build();
+                savedTask.getTaskParticipants().add(taskParticipant);
+            }
+        }
 
         if (files != null && !files.isEmpty()) {
             try {
                 for (MultipartFile file : files){
+                    System.out.println("Loop Of " + file.getOriginalFilename());
                     String url = blobStorageService.upload(file);
                     var taskFile = TaskFile.builder()
                             .fileUrl(url)
@@ -110,8 +131,31 @@ public class GroupServiceImpl implements GroupService{
                 throw new RuntimeException(e);
             }
         }
+        taskRepository.save(savedTask);
 //        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
-        return taskRepository.save(task);
+        //ToDO: email development to be added later. Message unified for all roles but one per id
+        // included, email message example to be added:
+        // New task created: “Fix invoice bug”
+        // You were added to this task.
+        // [Open task link]
+        var thefetchedOne = taskRepository.findByIdWithParticipantsAndFiles(savedTask.getId());
+        logger.info(
+                "Task id={} participantsCount={}",
+                thefetchedOne.getId(),
+                thefetchedOne.getTaskParticipants() == null
+                        ? 0
+                        : thefetchedOne.getTaskParticipants().size()
+        );
+
+        thefetchedOne.getTaskParticipants().forEach(p ->
+                logger.info(
+                        "participantId={} userId={} role={}",
+                        p.getId(),
+                        p.getUser() != null ? p.getUser().getId() : null,
+                        p.getTaskParticipantRole()
+                )
+        );
+        return thefetchedOne;
     }
 
     public String getModelName() {

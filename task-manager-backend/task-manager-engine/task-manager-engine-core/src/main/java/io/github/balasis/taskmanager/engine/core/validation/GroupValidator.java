@@ -1,9 +1,9 @@
 package io.github.balasis.taskmanager.engine.core.validation;
 
 import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.Task;
-import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Set;
 
 public interface GroupValidator extends BaseValidator<Group>{
-    void validateForCreateTask(Long groupId, Long assignedId, Long reviewerId);
+    void validateForCreateTask(Long groupId, Set<Long> assignedIds, Set<Long> reviewerIds);
 }

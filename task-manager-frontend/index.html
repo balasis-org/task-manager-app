@@ -55,30 +55,70 @@
 
 <br><br>
 <h2>Create a Task</h2>
+
 <form id="createTaskForm">
-    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
-    <label>Group ID: <input type="number" id="groupIdInput" value="1" required></label><br><br>
-    <label>Title: <input type="text" name="title" required></label><br><br>
-    <label>Description: <input type="text" name="description" required></label>
+
+    <div style="display:flex; gap:1.5em;">
+        <label>
+            Group ID:
+            <input type="number" id="groupIdInput" value="1" required>
+        </label>
+
+        <label>
+            Title:
+            <input type="text" name="title" required>
+        </label>
+
+        <label>
+            Description:
+            <input type="text" name="description" required>
+        </label>
     </div>
-    <br><br>
-    <div style="display:flex;justify-content: flex-start;gap:1.5em;">
-    <label>Task State:
-        <select name="taskState">
-            <option value="TODO">TODO</option>
-            <option value="IN_PROGRESS">IN_PROGRESS</option>
-            <option value="DONE">DONE</option>
-        </select>
+
+    <br>
+
+    <div style="display:flex; gap:1.5em;">
+        <label>
+            Task State:
+            <select name="taskState">
+                <option value="TODO">TODO</option>
+                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                <option value="DONE">DONE</option>
+            </select>
+        </label>
+    </div>
+
+    <br>
+
+    <div>
+        <strong>Assignees</strong>
+        <div id="assignees">
+            <input type="number" name="assignedIds" placeholder="User ID">
+        </div>
+        <button type="button" id="addAssignee">+</button>
+    </div>
+
+    <br>
+
+    <div>
+        <strong>Reviewers</strong>
+        <div id="reviewers">
+            <input type="number" name="reviewerIds" placeholder="User ID">
+        </div>
+        <button type="button" id="addReviewer">+</button>
+    </div>
+
+    <br>
+
+    <label>
+        Files:
+        <input type="file" name="files" multiple>
     </label>
-    <label>Assigned User ID: <input type="number" name="assignedId"></label><br><br>
-    <label>Reviewer User ID: <input type="number" name="reviewerId"></label><br><br>
-    </div>
+
     <br><br>
-    <label>File: <input type="file" name="file"></label>
-    <br><br>
+
     <button type="submit">Create Task</button>
 </form>
-
 
 <script>
 
@@ -199,24 +239,58 @@
         }
     });
 
-    //CREATE TASK
+
+
     const createTaskForm = document.getElementById("createTaskForm");
+
+
+    document.getElementById("addAssignee").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.name = "assignedIds";
+        input.placeholder = "User ID";
+        document.getElementById("assignees").appendChild(input);
+    });
+
+
+    document.getElementById("addReviewer").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.name = "reviewerIds";
+        input.placeholder = "User ID";
+        document.getElementById("reviewers").appendChild(input);
+    });
+
     createTaskForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const groupId = document.getElementById("groupIdInput").value; // dynamically fetch groupId
+        const groupId = document.getElementById("groupIdInput").value;
         const formData = new FormData();
-        const taskJson = {};
+        const taskJson = {
+            assignedIds: [],
+            reviewerIds: []
+        };
 
         for (const [key, value] of new FormData(createTaskForm).entries()) {
-            if (key !== "file" && key !== "groupId") taskJson[key] = value;
+            if (!value) continue;
+
+            if (key === "assignedIds") {
+                taskJson.assignedIds.push(Number(value));
+            } else if (key === "reviewerIds") {
+                taskJson.reviewerIds.push(Number(value));
+            } else if (key !== "files") {
+                taskJson[key] = value;
+            }
         }
 
-        formData.append("data", new Blob([JSON.stringify(taskJson)], { type: "application/json" }));
+        formData.append(
+            "data",
+            new Blob([JSON.stringify(taskJson)], { type: "application/json" })
+        );
 
-        const fileInput = createTaskForm.querySelector('input[name="file"]');
-        if (fileInput.files.length > 0) {
-            formData.append("file", fileInput.files[0]);
+        const fileInput = createTaskForm.querySelector('input[name="files"]');
+        for (const file of fileInput.files) {
+            formData.append("files", file, file.name);
         }
 
         try {
@@ -227,8 +301,7 @@
 
             if (res.ok) {
                 const result = await res.json();
-                console.log("Task created:", result);
-                alert("Task created: " + JSON.stringify(result, null, 2));
+                alert("Task created:" + JSON.stringify(result));
             } else {
                 console.error("Failed to create task", res.status);
             }
@@ -236,6 +309,7 @@
             console.error("Error:", err);
         }
     });
+
 
 
 
