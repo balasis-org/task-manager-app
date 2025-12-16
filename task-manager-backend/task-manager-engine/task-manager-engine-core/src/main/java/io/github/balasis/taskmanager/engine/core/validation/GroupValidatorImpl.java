@@ -14,6 +14,9 @@ import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.Eff
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Set;
+
 @Component
 @RequiredArgsConstructor
 public class GroupValidatorImpl implements GroupValidator{
@@ -47,30 +50,36 @@ public class GroupValidatorImpl implements GroupValidator{
 
 
     @Override
-    public void validateForCreateTask(Long groupId, Long assignedId, Long reviewerId) {
-        if (assignedId != null) {
-            GroupMembership assignedMembership = groupMembershipRepository
-                    .findByGroupIdAndUserId(groupId, assignedId)
-                    .orElseThrow(() -> new NotAGroupMemberException("Assigned user is not a member of the group"));
+    public void validateForCreateTask(Long groupId, Set<Long> assignedIds, Set<Long> reviewerIds) {
+        if (assignedIds != null && !assignedIds.isEmpty()) {
 
-            if (!rolePolicyService.canBeAssignee(assignedMembership.getRole())) {
-                throw new InvalidRoleException(
-                        "Assigned user must have one of the roles: " + rolePolicyService.getAllowedAssigneeRoles()
-                );
+            for (Long assignedId : assignedIds){
+                GroupMembership assignedMembership = groupMembershipRepository
+                        .findByGroupIdAndUserId(groupId, assignedId)
+                        .orElseThrow(() -> new NotAGroupMemberException("Some of the Assigned users are no longer part of the group"));
+
+                if (!rolePolicyService.canBeAssignee(assignedMembership.getRole())) {
+                    throw new InvalidRoleException(
+                            "Assigned user must have one of the roles: " + rolePolicyService.getAllowedAssigneeRoles()
+                    );
+                }
             }
         }
 
-        if (reviewerId != null) {
-            GroupMembership reviewerMembership = groupMembershipRepository
-                    .findByGroupIdAndUserId(groupId, reviewerId)
-                    .orElseThrow(() -> new NotAGroupMemberException("Reviewer is not a member of the group"));
+        if (reviewerIds != null && !reviewerIds.isEmpty()) {
+            for (Long reviewerId : reviewerIds){
+                GroupMembership reviewerMembership = groupMembershipRepository
+                        .findByGroupIdAndUserId(groupId, reviewerId)
+                        .orElseThrow(() -> new NotAGroupMemberException("Some of the Reviewers are no longer part of the group"));
 
-            if (!rolePolicyService.canBeReviewer(reviewerMembership.getRole())) {
-                throw new InvalidRoleException(
-                        "Reviewer user must have one of the roles: " + rolePolicyService.getAllowedReviewerRoles()
-                );
+                if (!rolePolicyService.canBeReviewer(reviewerMembership.getRole())) {
+                    throw new InvalidRoleException(
+                            "Reviewer user must have one of the roles: " + rolePolicyService.getAllowedReviewerRoles()
+                    );
+                }
             }
         }
+
     }
 
 }

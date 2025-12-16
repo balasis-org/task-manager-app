@@ -13,12 +13,18 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutb
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -45,7 +51,7 @@ public class GroupController{
     }
 
     @GetMapping
-    public ResponseEntity<List<GroupOutboundResource>> findAllByCurrentUser() {
+    public ResponseEntity<Set<GroupOutboundResource>> findAllByCurrentUser() {
         return ResponseEntity.ok(
                 groupOutboundMapper.toResources(
                         groupService.findAllByCurrentUser()
@@ -79,17 +85,21 @@ public class GroupController{
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(path = "/{groupId}/tasks",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskOutboundResource> createTask(
             @PathVariable Long groupId,
             @RequestPart("data") TaskInboundResource inbound,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        authorizationService.requireRoleIn(groupId, Set.of(
-                Role.GROUP_LEADER,Role.TASK_MANAGER));
+        Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
+
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+
         var partialTask = taskInboundMapper.toDomain(inbound);
+
         return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.createTask(groupId, partialTask, inbound.getAssignedId(),inbound.getReviewerId(),files)));
+                groupService.createTask(groupId, partialTask, inbound.getAssignedIds(), inbound.getReviewerIds(), filesSet)
+        ));
     }
 
 }
