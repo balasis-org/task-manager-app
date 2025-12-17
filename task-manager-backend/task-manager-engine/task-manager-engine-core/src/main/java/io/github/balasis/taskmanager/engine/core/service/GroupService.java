@@ -14,7 +14,7 @@ public interface GroupService extends BaseService{
     void delete(Long groupId);
     Set<Group> findAllByCurrentUser();
     Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files);
-
+    Task patchTask(Long groupId ,Long taskId, Task task);
 //    Task getTask(Long groupID,final Long id);
 //    void updateTask(Long groupID,final Task item);
 //    void deleteTask(Long groupID,final Long id);

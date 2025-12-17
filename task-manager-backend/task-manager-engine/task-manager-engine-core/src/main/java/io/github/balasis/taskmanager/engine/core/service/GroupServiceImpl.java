@@ -139,24 +139,22 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         // You were added to this task.
         // [Open task link]
         var thefetchedOne = taskRepository.findByIdWithParticipantsAndFiles(savedTask.getId());
-        logger.info(
-                "Task id={} participantsCount={}",
-                thefetchedOne.getId(),
-                thefetchedOne.getTaskParticipants() == null
-                        ? 0
-                        : thefetchedOne.getTaskParticipants().size()
-        );
-
-        thefetchedOne.getTaskParticipants().forEach(p ->
-                logger.info(
-                        "participantId={} userId={} role={}",
-                        p.getId(),
-                        p.getUser() != null ? p.getUser().getId() : null,
-                        p.getTaskParticipantRole()
-                )
-        );
         return thefetchedOne;
     }
+
+    @Override
+    public Task patchTask(Long groupId, Long taskId, Task task) {
+        groupValidator.validateForPatchTask(groupId, taskId, task);
+        var fetchedTask = taskRepository.findByIdWithParticipantsAndFiles(taskId);
+        if (task.getTitle()!= null)
+            fetchedTask.setTitle(task.getTitle());
+        if (task.getDescription()!= null)
+            fetchedTask.setDescription(task.getDescription());
+        if (task.getTaskState()!= null)
+            fetchedTask.setTaskState(task.getTaskState());
+        return taskRepository.save(fetchedTask);
+    }
+
 
     public String getModelName() {
         return "Group";

@@ -120,6 +120,39 @@
     <button type="submit">Create Task</button>
 </form>
 
+
+<br><br>
+<h2>Patch a Task</h2>
+<form id="patchTaskForm">
+    <label>
+        GroupId:
+        <input type="number" name="groupId">
+    </label>
+    <label>
+        TaskId:
+        <input type="number" name="taskId">
+    </label>
+    <label>
+        Title:
+    <input type="text" name="title">
+    </label>
+    <label>
+        Description:
+        <input type="text" name="description">
+    </label>
+    <label>
+        TaskState:
+        <select name="taskState">
+            <option value="" selected>Empty</option>
+            <option value="TODO">TODO</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="TO_BE_REVIEWED">TO_BE_REVIEWED</option>
+            <option value="DONE">DONE</option>
+
+        </select>
+    </label>
+    <button type="submit" id="patchTaskBtn">PatchTask</button>
+</form>
 <script>
 
     // LOGIN
@@ -310,7 +343,39 @@
         }
     });
 
+    //Patch Task
+    const patchForm = document.getElementById("patchTaskForm");
+    const formDataToBeSend = new FormData();
+    document.getElementById("patchTaskBtn").addEventListener("click",
+       async (e) =>{
+        e.preventDefault();
+            for ( [key,value] of new FormData(patchForm).entries() ){
+                if(value && value.trim() !== ""){
+                    formDataToBeSend.append(key,value);
+                }
+            }
+            if (!(formDataToBeSend.has("groupId") && formDataToBeSend.has("taskId"))){
+                return alert("requires group and task id");
+            }
+            let groupId = formDataToBeSend.get("groupId");
+            let taskId = formDataToBeSend.get("taskId");
 
+            const res = await fetch(`api/groups/${groupId}/task/${taskId}`,
+                {
+                    method :"PATCH",
+                    headers: { "Content-Type":"application/json"},
+                    body :JSON.stringify( Object.fromEntries(formDataToBeSend.entries()))
+                }
+            )
+
+           if (res.ok) {
+               const result = await res.json();
+               alert("Task patched:" + JSON.stringify(result));
+           } else {
+               console.error("Failed to patch task", res.status);
+           }
+
+        } ) ;
 
 
 </script>

@@ -8,6 +8,7 @@ import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMap
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
@@ -100,6 +101,21 @@ public class GroupController{
         return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.createTask(groupId, partialTask, inbound.getAssignedIds(), inbound.getReviewerIds(), filesSet)
         ));
+    }
+
+    @PatchMapping(path="/{groupId}/task/{taskId}")
+    public ResponseEntity<TaskOutboundResource> patchTask(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestBody TaskInboundPatchResource taskInboundPatchResource
+            ){
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        return ResponseEntity.ok(
+                taskOutboundMapper.toResource(
+                        groupService.patchTask(groupId,taskId,
+                                taskInboundMapper.toDomain(taskInboundPatchResource))
+                )
+        );
     }
 
 }
