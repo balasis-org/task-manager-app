@@ -1,15 +1,19 @@
 package io.github.balasis.taskmanager.context.web.advice;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -45,6 +49,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidEnum(HttpMessageNotReadableException ex) {
+        String message = ex.getCause() instanceof InvalidFormatException
+                ? "Invalid value for enum field: " + ((InvalidFormatException) ex.getCause()).getValue()
+                : "Malformed request";
+
+        Map<String, String> error = Map.of("error", message);
+        return ResponseEntity.badRequest().body(error);
     }
 
 }

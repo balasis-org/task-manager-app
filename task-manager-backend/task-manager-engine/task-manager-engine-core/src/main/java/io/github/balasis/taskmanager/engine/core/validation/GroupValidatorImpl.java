@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDupli
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupMembership;
+import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.engine.core.repository.GroupMembershipRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
@@ -14,7 +15,6 @@ import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.Eff
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Set;
 
 @Component
@@ -81,5 +81,16 @@ public class GroupValidatorImpl implements GroupValidator{
         }
 
     }
+
+    @Override
+    public void validateForPatchTask(Long groupId, Long taskId, Task task) {
+        if (task.getTitle() != null && task.getTitle().isBlank()){
+            throw new InvalidFieldValueException("Task title cannot be empty");
+        }
+        if (task.getDescription() != null && task.getDescription().isBlank()){
+            throw new InvalidFieldValueException("A minimum description is required");
+        }
+    }
+
 
 }
