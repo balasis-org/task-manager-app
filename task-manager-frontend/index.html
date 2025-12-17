@@ -170,6 +170,35 @@
 </form>
 
 <pre id="taskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+<br><br><br><br>
+
+<h2>Fetch My Tasks (Preview)</h2>
+<form id="fetchMyTasksForm">
+    <label>
+        Group ID:
+        <input type="number" name="groupId" required>
+    </label>
+    <label>
+        Reviewer:
+        <input type="checkbox" name="reviewer">
+    </label>
+    <label>
+        Assigned:
+        <input type="checkbox" name="assigned">
+    </label>
+    <label>
+        Task State:
+        <select name="taskState">
+            <option value="">Any</option>
+            <option value="TODO">TODO</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="TO_BE_REVIEWED">TO_BE_REVIEWED</option>
+            <option value="DONE">DONE</option>
+        </select>
+    </label>
+    <button type="submit">Fetch My Tasks</button>
+</form>
+<pre id="myTasksOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 <script>
 
@@ -415,6 +444,35 @@
             taskOutput.textContent = JSON.stringify(task, null, 2);
         } catch (err) {
             taskOutput.textContent = `Failed to fetch task: ${err.message}`;
+        }
+    });
+
+    //findMyTasks api
+    const fetchMyTasksForm = document.getElementById("fetchMyTasksForm");
+    const myTasksOutput = document.getElementById("myTasksOutput");
+
+    fetchMyTasksForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(fetchMyTasksForm);
+        const groupId = formData.get("groupId");
+        const reviewer = formData.get("reviewer") === "on" ? "true" : null;
+        const assigned = formData.get("assigned") === "on" ? "true" : null;
+        const taskState = formData.get("taskState") || null;
+
+        const params = new URLSearchParams();
+        if (reviewer) params.append("reviewer", reviewer);
+        if (assigned) params.append("assigned", assigned);
+        if (taskState) params.append("taskState", taskState);
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task?${params.toString()}`);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+
+            const tasks = await res.json();
+            myTasksOutput.textContent = JSON.stringify(tasks, null, 2);
+        } catch (err) {
+            myTasksOutput.textContent = `Failed to fetch tasks: ${err.message}`;
         }
     });
 

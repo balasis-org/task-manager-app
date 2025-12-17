@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.notfound.GroupNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
@@ -156,6 +157,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskRepository.findByIdWithParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException("" +
                 "Task with id " + taskId + "is not found"));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Task> findMyTasks(Long groupId, Boolean reviewer, Boolean assigned, TaskState taskState) {
+        return taskRepository.searchBy(groupId, effectiveCurrentUser.getUserId(), reviewer, assigned, taskState);
+    }
+
 
     @Override
     public Task patchTask(Long groupId, Long taskId, Task task) {
