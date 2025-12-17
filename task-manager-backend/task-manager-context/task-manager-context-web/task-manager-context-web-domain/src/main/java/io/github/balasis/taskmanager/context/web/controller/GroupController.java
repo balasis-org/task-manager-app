@@ -14,9 +14,6 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutb
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -102,6 +99,19 @@ public class GroupController{
                 groupService.createTask(groupId, partialTask, inbound.getAssignedIds(), inbound.getReviewerIds(), filesSet)
         ));
     }
+
+
+
+    @GetMapping(path = "/{groupId}/task/{taskId}")
+    public ResponseEntity<TaskOutboundResource> getTask(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId
+    ){
+        return ResponseEntity.ok(
+                taskOutboundMapper.toResource(groupService.getTask(groupId,taskId))
+        );
+    }
+
 
     @PatchMapping(path="/{groupId}/task/{taskId}")
     public ResponseEntity<TaskOutboundResource> patchTask(

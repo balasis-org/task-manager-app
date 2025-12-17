@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.exception.notfound.GroupNotFoundException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
@@ -50,6 +51,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Set<Group> findAllByCurrentUser() {
         Long userId = effectiveCurrentUser.getUserId();
         return groupMembershipRepository.findByUserIdWithGroup(userId)
@@ -138,14 +140,28 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         // New task created: “Fix invoice bug”
         // You were added to this task.
         // [Open task link]
-        var thefetchedOne = taskRepository.findByIdWithParticipantsAndFiles(savedTask.getId());
+        var thefetchedOne = taskRepository.findByIdWithParticipantsAndFiles(savedTask.getId()).orElseThrow(
+                () -> new TaskNotFoundException("Something went wrong with the create process of task." +
+                "If the problem insist during creation conduct us and provide one of the tasks ID. Current taskId:"
+                                                + savedTask.getId())
+        );
         return thefetchedOne;
+    }
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public Task getTask(Long groupId, Long taskId){
+        return taskRepository.findByIdWithParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException("" +
+                "Task with id " + taskId + "is not found"));
     }
 
     @Override
     public Task patchTask(Long groupId, Long taskId, Task task) {
         groupValidator.validateForPatchTask(groupId, taskId, task);
-        var fetchedTask = taskRepository.findByIdWithParticipantsAndFiles(taskId);
+        var fetchedTask = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + "is not found"));
         if (task.getTitle()!= null)
             fetchedTask.setTitle(task.getTitle());
         if (task.getDescription()!= null)
@@ -154,6 +170,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             fetchedTask.setTaskState(task.getTaskState());
         return taskRepository.save(fetchedTask);
     }
+
+
 
 
     public String getModelName() {

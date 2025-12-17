@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface TaskRepository extends JpaRepository<Task,Long> {
     @Modifying
@@ -23,5 +25,5 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     LEFT JOIN FETCH t.files
     WHERE t.id = :taskId
     """)
-    Task findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);
+    Optional<Task> findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);
 }
