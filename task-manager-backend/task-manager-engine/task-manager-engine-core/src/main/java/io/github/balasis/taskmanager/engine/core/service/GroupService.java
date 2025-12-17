@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 
+import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.service.BaseService;
@@ -16,9 +17,7 @@ public interface GroupService extends BaseService{
     Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files);
     Task patchTask(Long groupId ,Long taskId, Task task);
     Task getTask(Long groupId, Long taskId);
-//    Task getTask(Long groupID,final Long id);
-//    void updateTask(Long groupID,final Task item);
-//    void deleteTask(Long groupID,final Long id);
-//    List<Task> findAllTasks();
+    Set<Task> findMyTasks(Long groupId, Boolean reviewer, Boolean assigned, TaskState taskState);
+
 
 }

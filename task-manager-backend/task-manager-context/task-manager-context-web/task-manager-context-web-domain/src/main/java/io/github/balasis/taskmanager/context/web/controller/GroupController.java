@@ -1,16 +1,19 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskPreviewOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
@@ -34,6 +37,7 @@ public class GroupController{
     private final GroupOutboundMapper groupOutboundMapper;
     private final GroupInboundMapper groupInboundMapper;
     private final TaskOutboundMapper taskOutboundMapper;
+    private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
     private final AuthorizationService authorizationService;
@@ -101,6 +105,20 @@ public class GroupController{
     }
 
 
+    @GetMapping(path="/{groupId}/task")
+    public ResponseEntity<Set<TaskPreviewOutboundResource>> findMyTasks(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) Boolean reviewer,
+            @RequestParam(required = false) Boolean assigned,
+            @RequestParam(required = false) TaskState taskState
+    ){
+        authorizationService.requireAnyRoleIn(groupId);
+       return ResponseEntity.ok(
+               taskPreviewOutboundMapper.toResources(
+               groupService.findMyTasks(groupId,reviewer,assigned,taskState)
+            )
+       );
+    }
 
     @GetMapping(path = "/{groupId}/task/{taskId}")
     public ResponseEntity<TaskOutboundResource> getTask(
