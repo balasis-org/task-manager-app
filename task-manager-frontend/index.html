@@ -151,8 +151,26 @@
 
         </select>
     </label>
+    <br><br>
     <button type="submit" id="patchTaskBtn">PatchTask</button>
 </form>
+
+<br><br><br>
+<h2>Fetch Task</h2>
+<form id="fetchTaskForm">
+    <label>
+        Group ID:
+        <input type="number" name="groupId" required>
+    </label>
+    <label>
+        Task ID:
+        <input type="number" name="taskId" required>
+    </label>
+    <button type="submit">Fetch Task</button>
+</form>
+
+<pre id="taskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <script>
 
     // LOGIN
@@ -377,6 +395,28 @@
 
         } ) ;
 
+
+    //get task
+    const fetchTaskForm = document.getElementById("fetchTaskForm");
+    const taskOutput = document.getElementById("taskOutput");
+
+    fetchTaskForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(fetchTaskForm);
+        const groupId = formData.get("groupId");
+        const taskId = formData.get("taskId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}`);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+
+            const task = await res.json();
+            taskOutput.textContent = JSON.stringify(task, null, 2);
+        } catch (err) {
+            taskOutput.textContent = `Failed to fetch task: ${err.message}`;
+        }
+    });
 
 </script>
 </body>
