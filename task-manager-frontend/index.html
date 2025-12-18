@@ -93,7 +93,10 @@
     <div>
         <strong>Assignees</strong>
         <div id="assignees">
+            <label>
+                Assignee ID
             <input type="number" name="assignedIds" placeholder="User ID">
+            </label>
         </div>
         <button type="button" id="addAssignee">+</button>
     </div>
@@ -103,7 +106,9 @@
     <div>
         <strong>Reviewers</strong>
         <div id="reviewers">
+            <label>reviewer Id
             <input type="number" name="reviewerIds" placeholder="User ID">
+            </label>
         </div>
         <button type="button" id="addReviewer">+</button>
     </div>
@@ -199,6 +204,62 @@
     <button type="submit">Fetch My Tasks</button>
 </form>
 <pre id="myTasksOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+
+<br><br>
+<h2>Assignees / Reviewers / Files Management</h2>
+
+<h3>Add Assignee</h3>
+<form id="addAssigneeForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>User ID: <input type="number" name="userId" required></label>
+    <button type="submit">Add Assignee</button>
+</form>
+
+<h3>Remove Assignee</h3>
+<form id="removeAssigneeForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>User ID: <input type="number" name="userId" required></label>
+    <button type="submit">Remove Assignee</button>
+</form>
+
+<h3>Add Reviewer</h3>
+<form id="addReviewerForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>User ID: <input type="number" name="userId" required></label>
+    <button type="submit">Add Reviewer</button>
+</form>
+
+<h3>Remove Reviewer</h3>
+<form id="removeReviewerForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>User ID: <input type="number" name="userId" required></label>
+    <button type="submit">Remove Reviewer</button>
+</form>
+
+<h3>Add Task File</h3>
+<form id="addTaskFileForm" enctype="multipart/form-data">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File: <input type="file" name="file" required></label>
+    <button type="submit">Add File</button>
+</form>
+
+<h3>Remove Task File</h3>
+<form id="removeTaskFileForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File ID: <input type="number" name="fileId" required></label>
+    <button type="submit">Remove File</button>
+</form>
+
+<pre id="managementOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+
 
 <script>
 
@@ -473,6 +534,107 @@
             myTasksOutput.textContent = JSON.stringify(tasks, null, 2);
         } catch (err) {
             myTasksOutput.textContent = `Failed to fetch tasks: ${err.message}`;
+        }
+    });
+
+
+    const managementOutput = document.getElementById("managementOutput");
+
+    // ADD ASSIGNEE apu
+    document.getElementById("addAssigneeForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+        const userId = data.get("userId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "POST" });
+            managementOutput.textContent = res.ok ? `Assignee ${userId} added.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+    // remove assignee api
+    document.getElementById("removeAssigneeForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+        const userId = data.get("userId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "DELETE" });
+            managementOutput.textContent = res.ok ? `Assignee ${userId} removed.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+    // add reviewer api
+    document.getElementById("addReviewerForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+        const userId = data.get("userId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "POST" });
+            managementOutput.textContent = res.ok ? `Reviewer ${userId} added.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+    // REMOVE REVIEWER API
+    document.getElementById("removeReviewerForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+        const userId = data.get("userId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "DELETE" });
+            managementOutput.textContent = res.ok ? `Reviewer ${userId} removed.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+    // ADD TASK FILE API
+    document.getElementById("addTaskFileForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/files`, {
+                method: "POST",
+                body: data
+            });
+            managementOutput.textContent = res.ok ? `File uploaded.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+    // remove task file api
+    document.getElementById("removeTaskFileForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const taskId = data.get("taskId");
+        const fileId = data.get("fileId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}/files/${fileId}`, { method: "DELETE" });
+            managementOutput.textContent = res.ok ? `File ${fileId} removed.` : `Failed: ${res.status}`;
+        } catch (err) {
+            managementOutput.textContent = `Error: ${err.message}`;
         }
     });
 

@@ -5,6 +5,7 @@ import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
+import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
@@ -23,11 +24,13 @@ class GroupServiceTest {
     private UserRepository userRepository;
     private TaskRepository taskRepository;
     private TaskFileRepository taskFileRepository;
+    private TaskFileDeletedRepository taskFileDeletedRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
-    private EmailClient emailClient;
+//    private EmailClient emailClient;
     private BlobStorageService blobStorageService;
     private GroupServiceImpl groupService;
+    private AuthorizationService authorizationService;
 
     @BeforeEach
     void setUp() {
@@ -36,21 +39,25 @@ class GroupServiceTest {
         userRepository = mock(UserRepository.class);
         taskRepository = mock(TaskRepository.class);
         taskFileRepository = mock(TaskFileRepository.class);
+        taskFileDeletedRepository =mock(TaskFileDeletedRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
-        emailClient = mock(EmailClient.class);
+//        emailClient = mock(EmailClient.class);
         blobStorageService = mock(BlobStorageService.class);
+        authorizationService = mock(AuthorizationService.class);
 
         groupService = new GroupServiceImpl(
                 groupRepository,
                 groupValidator,
                 userRepository,
                 taskRepository,
+                taskFileDeletedRepository,
                 taskFileRepository,
                 groupMembershipRepository,
                 effectiveCurrentUser,
-                emailClient,
-                blobStorageService
+//                emailClient,
+                blobStorageService,
+                authorizationService
         );
     }
 
