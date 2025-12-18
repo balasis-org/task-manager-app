@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,7 +24,6 @@ public class TaskInboundResource extends BaseInboundResource {
 
     @NotNull(message = "taskState is mandatory")
     private String taskState;
-
-    private Long assignedId;
-    private Long reviewerId;
+    private Set<Long> assignedIds;
+    private Set<Long> reviewerIds;
 }

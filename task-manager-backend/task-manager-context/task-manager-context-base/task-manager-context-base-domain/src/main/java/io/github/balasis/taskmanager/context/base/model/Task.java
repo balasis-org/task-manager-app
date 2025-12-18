@@ -1,16 +1,18 @@
 package io.github.balasis.taskmanager.context.base.model;
 
+import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
-@ToString
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,17 +35,15 @@ public class Task extends BaseModel{
     private User creator;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_id")
-    private User assigned;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewer_id")
-    private User reviewer;
-
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
-    private List<TaskFile> files = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskParticipant> taskParticipants = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskFile> files = new HashSet<>();
+
 }
