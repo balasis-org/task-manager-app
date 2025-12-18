@@ -4,7 +4,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.model.TaskParticipant;
 import io.github.balasis.taskmanager.context.base.model.User;
-import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -12,13 +12,12 @@ import org.mapstruct.Named;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring", uses = {TaskFileOutboundMapper.class,UserOutboundMapper.class})
-public interface TaskOutboundMapper extends BaseOutboundMapper<Task, TaskOutboundResource> {
-
+@Mapper(componentModel = "spring", uses = {UserOutboundMapper.class})
+public interface TaskPreviewOutboundMapper extends BaseOutboundMapper<Task, TaskPreviewOutboundResource>{
 
     @Mapping(source = "taskParticipants", target = "assignees", qualifiedByName = "assignees")
     @Mapping(source = "taskParticipants", target = "reviewers", qualifiedByName = "reviewers")
-    TaskOutboundResource toResource(Task task);
+    TaskPreviewOutboundResource toResource(Task task);
 
     @Named("assignees")
     default Set<User> assignees(Set<TaskParticipant> participants) {
@@ -37,6 +36,4 @@ public interface TaskOutboundMapper extends BaseOutboundMapper<Task, TaskOutboun
                         .map(TaskParticipant::getUser)
                         .collect(Collectors.toSet());
     }
-
 }
-

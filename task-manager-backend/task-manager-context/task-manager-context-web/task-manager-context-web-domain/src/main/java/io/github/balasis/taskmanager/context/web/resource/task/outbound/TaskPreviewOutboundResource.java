@@ -1,7 +1,5 @@
 package io.github.balasis.taskmanager.context.web.resource.task.outbound;
 
-import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
-import io.github.balasis.taskmanager.context.web.resource.taskfile.outbound.TaskFileOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import lombok.*;
 
@@ -12,12 +10,9 @@ import java.util.Set;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskOutboundResource extends BaseOutboundResource {
+public class TaskPreviewOutboundResource {
     private String title;
-    private String description;
     private String taskState;
-    private UserOutboundResource creator;
     private Set<UserOutboundResource> assignees;
     private Set<UserOutboundResource> reviewers;
-    private Set<TaskFileOutboundResource> files;
 }
