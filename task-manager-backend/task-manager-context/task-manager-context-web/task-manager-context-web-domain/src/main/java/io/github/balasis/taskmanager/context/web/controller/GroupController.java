@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
-import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
@@ -16,14 +15,12 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutb
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
-import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +37,7 @@ public class GroupController{
     private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
-    private final AuthorizationService authorizationService;
+
 
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
@@ -65,9 +62,7 @@ public class GroupController{
             @PathVariable Long groupId,
             @RequestBody GroupInboundPatchResource groupInboundPatchResource
     ) {
-        authorizationService.requireRoleIn(groupId,Set.of(
-                Role.GROUP_LEADER
-        ));
+
         resourceDataValidator.validateResourceData(groupInboundPatchResource);
 
         return ResponseEntity.ok(
@@ -82,7 +77,6 @@ public class GroupController{
 
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> delete(@PathVariable Long groupId) {
-        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER));
         groupService.delete(groupId);
         return ResponseEntity.noContent().build();
     }
@@ -94,9 +88,6 @@ public class GroupController{
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
-
-        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-
         var partialTask = taskInboundMapper.toDomain(inbound);
 
         return ResponseEntity.ok(taskOutboundMapper.toResource(
@@ -112,7 +103,6 @@ public class GroupController{
             @RequestParam(required = false) Boolean assigned,
             @RequestParam(required = false) TaskState taskState
     ){
-        authorizationService.requireAnyRoleIn(groupId);
        return ResponseEntity.ok(
                taskPreviewOutboundMapper.toResources(
                groupService.findMyTasks(groupId,reviewer,assigned,taskState)
@@ -137,13 +127,77 @@ public class GroupController{
             @PathVariable Long taskId,
             @RequestBody TaskInboundPatchResource taskInboundPatchResource
             ){
-        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         return ResponseEntity.ok(
                 taskOutboundMapper.toResource(
                         groupService.patchTask(groupId,taskId,
                                 taskInboundMapper.toDomain(taskInboundPatchResource))
                 )
         );
+    }
+
+
+    @PostMapping("/{groupId}/task/{taskId}/assignees/{userId}")
+    public ResponseEntity<TaskOutboundResource> addAssignee(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+       return ResponseEntity.ok(taskOutboundMapper.toResource(
+                groupService.addAssignee(groupId, taskId, userId)
+        ));
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/reviewers/{userId}")
+    public ResponseEntity<TaskOutboundResource> addReviewer(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+        return ResponseEntity.ok(taskOutboundMapper.toResource(
+                groupService.addReviewer(groupId, taskId, userId)
+        ));
+    }
+
+    @PostMapping(path = "/{groupId}/task/{taskId}/files",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskOutboundResource> addTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestPart("file") MultipartFile file
+    ) {
+           return ResponseEntity.ok(taskOutboundMapper.toResource(
+                groupService.addTaskFile(groupId, taskId, file)
+        ));
+    }
+
+    @DeleteMapping("/{groupId}/task/{taskId}/assignees/{userId}")
+    public ResponseEntity<Void> removeAssignee(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+        groupService.removeAssignee(groupId, taskId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{groupId}/task/{taskId}/reviewers/{userId}")
+    public ResponseEntity<Void> removeReviewer(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+        groupService.removeReviewer(groupId, taskId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{groupId}/task/{taskId}/files/{fileId}")
+    public ResponseEntity<Void> removeTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long fileId
+    ) {
+        groupService.removeTaskFile(groupId, taskId, fileId);
+        return ResponseEntity.noContent().build();
     }
 
 }

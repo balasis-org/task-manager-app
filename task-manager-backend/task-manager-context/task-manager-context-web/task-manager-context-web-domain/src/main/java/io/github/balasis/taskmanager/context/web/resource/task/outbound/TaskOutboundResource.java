@@ -2,7 +2,6 @@ package io.github.balasis.taskmanager.context.web.resource.task.outbound;
 
 import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.taskfile.outbound.TaskFileOutboundResource;
-import io.github.balasis.taskmanager.context.web.resource.taskparticipant.outbound.TaskParticipantOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import lombok.*;
 

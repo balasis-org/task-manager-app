@@ -31,9 +31,10 @@ public class AuthorizationService {
 
     public void requireAnyRoleIn(Long groupId){
         var userId = effectiveCurrentUser.getUserId();
-        var membership = membershipRepo
-                .findByUserIdAndGroupId(userId,groupId)
+        membershipRepo.findByUserIdAndGroupId(userId,groupId)
                 .orElseThrow(() -> new NotAGroupMemberException("Not a member of this group"));
     }
+
+
 }
 

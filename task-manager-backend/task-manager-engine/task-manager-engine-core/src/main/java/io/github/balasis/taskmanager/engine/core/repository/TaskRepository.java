@@ -29,6 +29,31 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     """)
     Optional<Task> findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);
 
+    @Query("""
+    SELECT t
+    FROM Task t
+    LEFT JOIN FETCH t.taskParticipants tp
+    LEFT JOIN FETCH tp.user
+    WHERE t.id=:taskId
+    """)
+    Optional<Task> findByIdWithTaskParticipants(@Param("taskId") Long taskId);
+
+    @Query("""
+    SELECT t
+    FROM Task t
+    LEFT JOIN FETCH t.files
+    WHERE t.id = :taskId
+""")
+    Optional<Task> findByIdWithFiles(@Param("taskId") Long taskId);
+
+    @Query("""
+    SELECT t
+    FROM Task t
+    LEFT JOIN FETCH t.files
+    LEFT JOIN FETCH t.group
+    WHERE t.id = :taskId
+""")
+    Optional<Task> findByIdWithFilesAndGroup(@Param("taskId") Long taskId);
 
     @Query("""
     SELECT DISTINCT t
@@ -39,14 +64,14 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
       AND (:taskState IS NULL OR t.taskState = :taskState)
       AND (
             (:reviewer IS TRUE AND t.id IN (
-                SELECT t2.id 
-                FROM Task t2 
+                SELECT t2.id
+                FROM Task t2
                 JOIN t2.taskParticipants tp2
                 WHERE tp2.taskParticipantRole = 'REVIEWER' AND tp2.user.id = :userId
             ))
          OR (:assigned IS TRUE AND t.id IN (
-                SELECT t2.id 
-                FROM Task t2 
+                SELECT t2.id
+                FROM Task t2
                 JOIN t2.taskParticipants tp2
                 WHERE tp2.taskParticipantRole = 'ASSIGNEE' AND tp2.user.id = :userId
             ))

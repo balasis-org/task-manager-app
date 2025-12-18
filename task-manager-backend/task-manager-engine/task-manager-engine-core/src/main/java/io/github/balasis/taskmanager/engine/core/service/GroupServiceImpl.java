@@ -9,6 +9,7 @@ import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoun
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
+import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,11 +34,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final TaskFileDeletedRepository taskFileDeletedRepository;
     private final TaskFileRepository taskFileRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
-    private final EmailClient emailClient;
+//    private final EmailClient emailClient;
     private final BlobStorageService blobStorageService;
+    private final AuthorizationService authorizationService;
 
     @Override
     public Group create(Group group){
@@ -64,6 +66,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Group patch(Long groupId, Group group) {
+        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER));
         groupValidator.validateForPatch(groupId, group);
         Group existingGroup = groupRepository.findById(groupId)
                 .orElseThrow(()->new GroupNotFoundException("Group with id:"+groupId +" doesn't exist"));
@@ -76,6 +79,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public void delete(Long groupId) {
+        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER));
         taskRepository.deleteAllByGroup_Id(groupId);
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
         groupRepository.deleteById(groupId);
@@ -86,7 +90,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files) {
-
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
 
         task.setCreator(userRepository.getReferenceById(effectiveCurrentUser.getUserId()));
@@ -154,7 +158,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     @Transactional(readOnly = true)
     public Task getTask(Long groupId, Long taskId){
-        return taskRepository.findByIdWithParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException("" +
+        authorizationService.requireAnyRoleIn(groupId);
+        return taskRepository.findByIdWithParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException(
                 "Task with id " + taskId + "is not found"));
     }
 
@@ -167,6 +172,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Task patchTask(Long groupId, Long taskId, Task task) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForPatchTask(groupId, taskId, task);
         var fetchedTask = taskRepository.findByIdWithParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + "is not found"));
@@ -181,6 +187,100 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
 
 
+    @Override
+    public Task addAssignee(Long groupId, Long taskId, Long userId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateAddAssigneeToTask(task, groupId, userId);
+        task.getTaskParticipants().add(TaskParticipant.builder()
+                .task(task)
+                .user(userRepository.getReferenceById(userId))
+                .taskParticipantRole(TaskParticipantRole.ASSIGNEE)
+                .build());
+        return taskRepository.save(task);
+    }
+
+    @Override
+    public Task addReviewer(Long groupId, Long taskId, Long userId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateAddReviewerToTask(task, groupId, userId);
+        task.getTaskParticipants().add(TaskParticipant.builder()
+                .task(task)
+                .user(userRepository.getReferenceById(userId))
+                .taskParticipantRole(TaskParticipantRole.REVIEWER)
+                .build());
+        return taskRepository.save(task);
+    }
+
+    @Override
+    public Task addTaskFile(Long groupId, Long taskId, MultipartFile file) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateAddTaskFile(task, groupId, file);
+
+        try {
+            String url = blobStorageService.upload(file);
+            task.getFiles().add(TaskFile.builder()
+                    .task(task)
+                    .name(file.getOriginalFilename())
+                    .fileUrl(url)
+                    .build());
+            return taskRepository.save(task);
+        } catch (IOException e) {
+            throw new RuntimeException("File upload failed", e);
+        }
+    }
+
+    @Override
+    public void removeAssignee(Long groupId, Long taskId, Long userId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateRemoveAssigneeFromTask(task, groupId, userId);
+        task.getTaskParticipants().removeIf(tp ->
+                tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE &&
+                        tp.getUser().getId().equals(userId));
+        taskRepository.save(task);
+    }
+
+    @Override
+    public void removeReviewer(Long groupId, Long taskId, Long userId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateRemoveReviewerFromTask(task, groupId, userId);
+        task.getTaskParticipants().removeIf(tp ->
+                tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER &&
+                        tp.getUser().getId().equals(userId));
+        taskRepository.save(task);
+    }
+
+    @Override
+    public void removeTaskFile(Long groupId, Long taskId, Long fileId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithFilesAndGroup(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateRemoveTaskFile(task, groupId, fileId);
+
+        TaskFile file = task.getFiles().stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElseThrow();
+
+        try {
+            blobStorageService.delete(file.getFileUrl());
+        } catch (Exception e) { //TODO:implement something to clear the storage at different time...
+            taskFileDeletedRepository.save(TaskFileDeleted.builder()
+                    .fileUrl(file.getFileUrl())
+                    .build());
+        }
+        task.getFiles().remove(file);
+        taskFileRepository.delete(file);
+    }
 
     public String getModelName() {
         return "Group";
