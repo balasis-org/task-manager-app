@@ -259,6 +259,21 @@
 
 <pre id="managementOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
+<br><br><br>
+<h2>Invite User to Group</h2>
+<form id="inviteUserForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>User ID: <input type="number" name="userId" required></label>
+    <button type="submit">Send Invitation</button>
+</form>
+<br><br>
+<h2>Accept Group Invitation</h2>
+<form id="acceptInvitationForm">
+    <label>Invitation ID: <input type="number" name="invitationId" required></label>
+    <button type="submit">Accept Invitation</button>
+</form>
+
+<pre id="invitationOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
 <script>
@@ -635,6 +650,50 @@
             managementOutput.textContent = res.ok ? `File ${fileId} removed.` : `Failed: ${res.status}`;
         } catch (err) {
             managementOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+
+    const invitationOutput = document.getElementById("invitationOutput");
+
+    // Invite user
+    document.getElementById("inviteUserForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const groupId = data.get("groupId");
+        const userId = data.get("userId");
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/invite`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: Number(userId) })
+            });
+            const result = await res.json();
+            invitationOutput.textContent = res.ok
+                ? `Invitation sent:\n${JSON.stringify(result, null, 2)}`
+                : `Failed: ${res.status}`;
+        } catch (err) {
+            invitationOutput.textContent = `Error: ${err.message}`;
+        }
+    });
+
+
+    // Accept invitation
+    document.getElementById("acceptInvitationForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const invitationId = e.target.invitationId.value;
+
+        try {
+            const res = await fetch(`/api/groups/invitations/${invitationId}/accept`, {
+                method: "POST"
+            });
+            const result = await res.json();
+            invitationOutput.textContent = res.ok
+                ? `Invitation accepted:\n${JSON.stringify(result, null, 2)}`
+                : `Failed: ${res.status}`;
+        } catch (err) {
+            invitationOutput.textContent = `Error: ${err.message}`;
         }
     });
 

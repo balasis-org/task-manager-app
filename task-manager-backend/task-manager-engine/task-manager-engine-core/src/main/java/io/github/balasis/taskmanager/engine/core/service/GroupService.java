@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
+import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.service.BaseService;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,10 @@ public interface GroupService extends BaseService{
     void delete(Long groupId);
 
     Set<Group> findAllByCurrentUser();
+
+    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited);
+
+    GroupInvitation acceptInvitation(Long invitationId);
 
     Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files);
 

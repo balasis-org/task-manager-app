@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.validation;
 
 import io.github.balasis.taskmanager.context.base.model.Group;
+import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,4 +23,8 @@ public interface GroupValidator extends BaseValidator<Group>{
     void validateAddTaskFile(Task task, Long groupId, MultipartFile file);
 
     void validateRemoveTaskFile(Task task, Long groupId, Long fileId);
+
+    void validateCreateGroupInvitation(GroupInvitation groupInvitation);
+
+    void validateAcceptGroupInvitation(GroupInvitation groupInvitation);
 }

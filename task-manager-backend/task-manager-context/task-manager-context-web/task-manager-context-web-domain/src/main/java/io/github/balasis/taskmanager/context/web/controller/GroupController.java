@@ -3,12 +3,15 @@ package io.github.balasis.taskmanager.context.web.controller;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskPreviewOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
+import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
@@ -33,6 +36,7 @@ public class GroupController{
     private final ResourceDataValidator resourceDataValidator;
     private final GroupOutboundMapper groupOutboundMapper;
     private final GroupInboundMapper groupInboundMapper;
+    private final GroupInvitationOutboundMapper groupInvitationOutboundMapper;
     private final TaskOutboundMapper taskOutboundMapper;
     private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
@@ -80,6 +84,29 @@ public class GroupController{
         groupService.delete(groupId);
         return ResponseEntity.noContent().build();
     }
+
+
+    @PostMapping(path="/{groupId}/invite")
+    public ResponseEntity<GroupInvitationOutboundResource> inviteToGroup(
+            @PathVariable(name = "groupId") Long groupId,
+            @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
+    ){
+        return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
+                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId())
+        ));
+    }
+
+    @PostMapping("/invitations/{invitationId}/accept")
+    public ResponseEntity<GroupInvitationOutboundResource> acceptInvitation(
+            @PathVariable Long invitationId
+    ) {
+        return ResponseEntity.ok(
+                groupInvitationOutboundMapper.toResource(
+                        groupService.acceptInvitation(invitationId)
+                )
+        );
+    }
+
 
     @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskOutboundResource> createTask(
