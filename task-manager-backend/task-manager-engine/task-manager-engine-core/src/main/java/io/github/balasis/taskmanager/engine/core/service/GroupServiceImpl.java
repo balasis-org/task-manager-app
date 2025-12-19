@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
@@ -41,6 +42,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 //    private final EmailClient emailClient;
     private final BlobStorageService blobStorageService;
     private final AuthorizationService authorizationService;
+    private final GroupInvitationRepository groupInvitationRepository;
 
     @Override
     public Group create(Group group){
@@ -85,6 +87,36 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupRepository.deleteById(groupId);
     }
 
+
+    @Override
+    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited){
+        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var groupInvitation = GroupInvitation.builder()
+                .user(userRepository.getReferenceById(userToBeInvited))
+                .invitationStatus(InvitationStatus.PENDING)
+                .invitedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
+                .group(groupRepository.findById(groupId).orElseThrow())
+                .build();
+        groupValidator.validateCreateGroupInvitation(groupInvitation);
+
+        return groupInvitationRepository.save(groupInvitation);
+    }
+
+    @Override
+    public GroupInvitation acceptInvitation(Long invitationId) {
+        GroupInvitation invitation = groupInvitationRepository.findByIdWithGroup(invitationId)
+                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+        groupValidator.validateAcceptGroupInvitation(invitation);
+        groupMembershipRepository.save(
+                new GroupMembership(
+                        invitation.getUser(),
+                        invitation.getGroup(),
+                        Role.MEMBER
+                )
+        );
+        invitation.setInvitationStatus(InvitationStatus.ACCEPTED);
+        return groupInvitationRepository.save(invitation);
+    }
 
 
 
