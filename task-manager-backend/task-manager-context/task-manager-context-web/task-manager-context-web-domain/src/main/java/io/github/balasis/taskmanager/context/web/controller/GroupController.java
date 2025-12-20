@@ -96,16 +96,8 @@ public class GroupController{
         ));
     }
 
-    @PostMapping("/invitations/{invitationId}/accept")
-    public ResponseEntity<GroupInvitationOutboundResource> acceptInvitation(
-            @PathVariable Long invitationId
-    ) {
-        return ResponseEntity.ok(
-                groupInvitationOutboundMapper.toResource(
-                        groupService.acceptInvitation(invitationId)
-                )
-        );
-    }
+
+
 
 
     @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
