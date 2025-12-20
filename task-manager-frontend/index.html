@@ -267,6 +267,12 @@
     <button type="submit">Send Invitation</button>
 </form>
 <br><br>
+<button id="findMyInvitesBtn"> Find my invites </button>
+<pre id="findMyInvitesOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;">
+
+</pre>
+
+<br><br>
 <h2>Accept Group Invitation</h2>
 <form id="acceptInvitationForm">
     <label>Invitation ID: <input type="number" name="invitationId" required></label>
@@ -678,6 +684,27 @@
         }
     });
 
+    //
+    // <button id="findMyInvitesBtn"> Find my invites </button>
+    // <div id="findMyInvitesOutput">
+    //
+    // </div>
+
+    // Find my invites
+    const findMyInvitesOutput = document.getElementById("findMyInvitesOutput");
+
+    document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
+        try{
+            const res = await fetch("api/group-invitations/me");
+            const result = await res.json();
+            findMyInvitesOutput.innerHTML = res.ok ? JSON.stringify(result,null,2) : "";
+        }catch (err) {
+            findMyInvitesOutput.innerHTML = `Error: ${err.message}`;
+        }
+    })
+
+
+
 
     // Accept invitation
     document.getElementById("acceptInvitationForm").addEventListener("submit", async e => {
@@ -685,7 +712,7 @@
         const invitationId = e.target.invitationId.value;
 
         try {
-            const res = await fetch(`/api/groups/invitations/${invitationId}/accept`, {
+            const res = await fetch(`/api/group-invitations/${invitationId}/accept`, {
                 method: "POST"
             });
             const result = await res.json();
@@ -696,6 +723,11 @@
             invitationOutput.textContent = `Error: ${err.message}`;
         }
     });
+
+
+
+
+
 
 </script>
 </body>

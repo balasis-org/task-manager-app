@@ -103,21 +103,25 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
     @Override
-    public GroupInvitation acceptInvitation(Long invitationId) {
-        GroupInvitation invitation = groupInvitationRepository.findByIdWithGroup(invitationId)
+    public GroupInvitation acceptInvitation(Long groupInvitationId) {
+        var groupInvitation = groupInvitationRepository.findByIdWithGroup(groupInvitationId)
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
-        groupValidator.validateAcceptGroupInvitation(invitation);
+        groupValidator.validateAcceptGroupInvitation(groupInvitation);
         groupMembershipRepository.save(
                 new GroupMembership(
-                        invitation.getUser(),
-                        invitation.getGroup(),
+                        groupInvitation.getUser(),
+                        groupInvitation.getGroup(),
                         Role.MEMBER
                 )
         );
-        invitation.setInvitationStatus(InvitationStatus.ACCEPTED);
-        return groupInvitationRepository.save(invitation);
+        groupInvitation.setInvitationStatus(InvitationStatus.ACCEPTED);
+        return groupInvitationRepository.save(groupInvitation);
     }
 
+    @Override
+    public Set<GroupInvitation> findMyGroupInvitations() {
+        return groupInvitationRepository.findByUser_Id(effectiveCurrentUser.getUserId());
+    }
 
 
     @Override
