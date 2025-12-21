@@ -31,6 +31,7 @@ class GroupServiceTest {
     private BlobStorageService blobStorageService;
     private GroupServiceImpl groupService;
     private AuthorizationService authorizationService;
+    private GroupInvitationRepository groupInvitationRepository;
 
     @BeforeEach
     void setUp() {
@@ -45,7 +46,7 @@ class GroupServiceTest {
 //        emailClient = mock(EmailClient.class);
         blobStorageService = mock(BlobStorageService.class);
         authorizationService = mock(AuthorizationService.class);
-
+        groupInvitationRepository= mock(GroupInvitationRepository.class);
         groupService = new GroupServiceImpl(
                 groupRepository,
                 groupValidator,
@@ -57,7 +58,8 @@ class GroupServiceTest {
                 effectiveCurrentUser,
 //                emailClient,
                 blobStorageService,
-                authorizationService
+                authorizationService,
+                groupInvitationRepository
         );
     }
 
