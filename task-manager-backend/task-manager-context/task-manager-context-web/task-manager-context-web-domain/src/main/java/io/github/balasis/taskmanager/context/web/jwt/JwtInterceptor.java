@@ -5,6 +5,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.Cur
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +35,17 @@ public class JwtInterceptor implements HandlerInterceptor{
         currentUser.setUserId(
                 ( (Number) claims.get("userId") ).longValue()
         );
+
+        ResponseCookie refreshedCookie = ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(true)
+                .maxAge(24 * 60 * 60)
+                .sameSite("Strict")
+                .path("/")
+                .build();
+
+        response.addHeader("Set-Cookie", refreshedCookie.toString());
+
         return true;
     }
 

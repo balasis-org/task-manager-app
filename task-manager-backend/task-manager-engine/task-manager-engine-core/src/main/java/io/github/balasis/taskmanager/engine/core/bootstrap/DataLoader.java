@@ -48,8 +48,9 @@ public class DataLoader implements ApplicationRunner {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> userRepository.save(
                         User.builder()
-                                .azureId("local-seed-user")  // fake ID for local run
+                                .azureKey("local-seed-user")
                                 .email(email)
+                                .isOrg(false)
                                 .name("System Seeder")
                                 .build()
                 ));

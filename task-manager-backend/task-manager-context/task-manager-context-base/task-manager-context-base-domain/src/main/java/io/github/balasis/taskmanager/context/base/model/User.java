@@ -16,9 +16,18 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "Users")
 public class User extends BaseModel{
     @Column(nullable = false)
-    private String azureId;
+    private String azureKey;
+
+    @Column
+    private String tenantId;
+
+    @Column
+    private boolean isOrg = false;
+
     @Column(nullable = false)
     private String email;
+
     @Column
     private String name;
+
 }
