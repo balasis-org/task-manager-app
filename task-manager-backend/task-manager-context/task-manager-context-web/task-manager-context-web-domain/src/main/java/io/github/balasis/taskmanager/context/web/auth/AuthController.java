@@ -1,6 +1,5 @@
-package io.github.balasis.taskmanager.context.web.controller.auth;
+package io.github.balasis.taskmanager.context.web.auth;
 
-import io.github.balasis.taskmanager.context.web.jwt.JwtService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +25,14 @@ public class AuthController {
     }
 
     @PostMapping("/exchange")
-    public ResponseEntity<?> exchangeCode(@RequestBody Map<String, String> body) {
-        Map<String,Object> toBeReturned = authService.authenticateThroughAzureCode(body.get("code"));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, toBeReturned.get("cookie").toString())
-                .body(toBeReturned.get("message") );
+    public ResponseEntity<?> exchangeCode(
+            @RequestBody Map<String, String> body,
+            HttpServletResponse response
+    ) {
+        Map<String, Object> toBeReturned = authService.authenticateThroughAzureCode(body.get("code"));
+        response.addHeader(HttpHeaders.SET_COOKIE, toBeReturned.get("cookie").toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, toBeReturned.get("refreshKey").toString());
+        return ResponseEntity.ok(toBeReturned.get("message"));
     }
 
     @PostMapping("/logout")
