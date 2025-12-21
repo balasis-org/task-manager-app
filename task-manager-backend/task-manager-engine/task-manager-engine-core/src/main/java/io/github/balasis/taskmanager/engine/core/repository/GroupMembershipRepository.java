@@ -24,7 +24,7 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
 """)
     List<GroupMembership> findByUserIdWithGroup(@Param("userId") Long userId);
 
-    boolean existsByGroupIdAndUserId(Long groupId, Long assignedId);
+    boolean existsByGroupIdAndUserId(Long groupId, Long userId);
 
     Optional<GroupMembership> findByGroupIdAndUserId(Long groupId, Long reviewerId);
 
