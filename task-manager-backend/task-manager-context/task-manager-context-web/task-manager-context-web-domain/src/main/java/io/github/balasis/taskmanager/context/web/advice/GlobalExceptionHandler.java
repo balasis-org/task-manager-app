@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.context.web.advice;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
+import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
@@ -59,6 +60,11 @@ public class GlobalExceptionHandler {
 
         Map<String, String> error = Map.of("error", message);
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(AuthenticationIntegrityException.class)
+    public ResponseEntity<String> AuthenticationIntegrityException(AuthenticationIntegrityException e){
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
 
 }
