@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.jwt;
 
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
@@ -15,7 +16,7 @@ import java.util.Date;
 
 @Service
 @AllArgsConstructor
-public class JwtService {
+public class JwtService extends BaseComponent {
     private final SecretClientProvider secretClientProvider;
     private static final long EXPIRATION_MS = 1000L * 60 * 60 * 24; // 24 hours
 

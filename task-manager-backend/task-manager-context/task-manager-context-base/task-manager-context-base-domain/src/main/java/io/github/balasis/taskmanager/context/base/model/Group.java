@@ -5,9 +5,11 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Getter
 @Setter
-@ToString
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,4 +29,11 @@ public class Group extends BaseModel{
     @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<GroupMembership> memberships = new HashSet<>();
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<Task> tasks = new HashSet<>();
 }

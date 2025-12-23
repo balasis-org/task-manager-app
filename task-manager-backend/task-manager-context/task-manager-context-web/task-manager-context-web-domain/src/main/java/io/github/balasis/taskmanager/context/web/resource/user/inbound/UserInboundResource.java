@@ -9,6 +9,5 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserInboundResource extends BaseInboundResource {
-    private String email;
     private String name;
 }
