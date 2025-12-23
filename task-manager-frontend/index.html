@@ -282,6 +282,19 @@
 <pre id="invitationOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
+<h2>My Profile</h2>
+
+<button id="fetchProfileBtn">Fetch My Profile</button>
+<pre id="profileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Edit Profile</h3>
+<form id="editProfileForm">
+    <label>Name: <input type="text" name="name" required></label>
+    <button type="submit">Update Profile</button>
+</form>
+<pre id="editProfileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+
 <script>
 
     // LOGIN
@@ -725,9 +738,44 @@
     });
 
 
+    // fetch my profile (user)
+    const fetchProfileBtn = document.getElementById("fetchProfileBtn");
+    const profileOutput = document.getElementById("profileOutput");
 
+    fetchProfileBtn.addEventListener("click", async () => {
+        try {
+            const res = await fetch("/api/users/me");
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            const profile = await res.json();
+            profileOutput.textContent = JSON.stringify(profile, null, 2);
+        } catch (err) {
+            profileOutput.textContent = `Failed to fetch profile: ${err.message}`;
+        }
+    });
 
+    // edit my profile (only name so far)
+    const editProfileForm = document.getElementById("editProfileForm");
+    const editProfileOutput = document.getElementById("editProfileOutput");
 
+    editProfileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(editProfileForm);
+        const payload = Object.fromEntries(formData.entries());
+
+        try {
+            const res = await fetch("/api/users/me", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            const updatedProfile = await res.json();
+            editProfileOutput.textContent = `Profile updated:\n${JSON.stringify(updatedProfile, null, 2)}`;
+        } catch (err) {
+            editProfileOutput.textContent = `Failed to update profile: ${err.message}`;
+        }
+    });
 
 </script>
 </body>

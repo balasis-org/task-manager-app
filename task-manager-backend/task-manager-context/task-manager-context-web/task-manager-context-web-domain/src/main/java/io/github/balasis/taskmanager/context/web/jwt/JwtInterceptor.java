@@ -23,6 +23,8 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
     private final CurrentUser currentUser;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
+    private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -106,7 +108,7 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(20)
+                .maxAge(JWT_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
                 .build();
     }
@@ -116,7 +118,7 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(24 * 60 * 60)
+                .maxAge(REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
                 .build();
     }
