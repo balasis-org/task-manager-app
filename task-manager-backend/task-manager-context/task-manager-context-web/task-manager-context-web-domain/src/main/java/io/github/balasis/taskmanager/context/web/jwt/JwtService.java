@@ -12,7 +12,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -26,17 +25,13 @@ public class JwtService {
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
-    public String generateToken(String subject, Map<String, Object> extraClaims) {
+    public String generateToken(String subject) {
         long now = System.currentTimeMillis();
-
         var builder = Jwts.builder()
                 .subject(subject)
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + EXPIRATION_MS))
                 .signWith(getSignInKey());
-
-        extraClaims.forEach(builder::claim);
-
         return builder.compact();
     }
 

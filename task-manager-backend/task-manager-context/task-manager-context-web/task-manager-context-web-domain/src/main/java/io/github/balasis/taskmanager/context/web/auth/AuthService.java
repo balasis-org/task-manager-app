@@ -1,9 +1,11 @@
-package io.github.balasis.taskmanager.context.web.controller.auth;
+package io.github.balasis.taskmanager.context.web.auth;
 
 import com.nimbusds.jwt.SignedJWT;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
+import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.jwt.JwtService;
+import io.github.balasis.taskmanager.engine.core.repository.RefreshTokenRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.config.AuthConfig;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,11 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +34,7 @@ public class AuthService {
     private final AuthConfig authConfig;
     private final WebClient webClient = WebClient.builder().build();
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
 
     public String getLoginUrl() {
@@ -52,9 +58,20 @@ public class AuthService {
         var email = extractEmail(claims);
         var azureId = (String) claims.get("oid");
         var user = findOrCreateUser(tenantId,email,azureId, (String) claims.get("name"));
-        claims.put("userId", user.getId());
-        ResponseCookie cookie = createJwtCookie(jwtService.generateToken(user.getAzureKey(), claims));
-        return generateResponse(cookie);
+        var refreshCode = generateRandomRefreshToken(32);
+        var refreshTokenId = refreshTokenRepository.save(
+                RefreshToken.builder().refreshCode(refreshCode).user(user).build()
+        ).getId();
+        var createRefreshCookieValue = refreshTokenId + ":" + refreshCode;
+        var cookie = createJwtCookie(jwtService.generateToken(user.getId().toString()));
+        var refreshCookie =  createRefreshCookie(createRefreshCookieValue);
+        return generateResponse(cookie, refreshCookie);
+    }
+
+    public String generateRandomRefreshToken(int byteLength) {
+        byte[] bytes = new byte[byteLength];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private void validateAuthorizationCode(String code) {
@@ -112,22 +129,29 @@ public class AuthService {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
+                .maxAge(20 )
+                .sameSite("Strict")
+                .build();
+    }
+
+    private ResponseCookie createRefreshCookie(String createRefreshCookieValue){
+        return ResponseCookie.from("RefreshKey" , createRefreshCookieValue)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
                 .build();
     }
 
-    private Map<String,Object> generateResponse(ResponseCookie cookie){
+    private Map<String,Object> generateResponse(ResponseCookie cookie, ResponseCookie refreshKey){
         Map<String,String> messageReturned = Map.of("message","Logged in successfully" );
         Map <String,Object> responseItem = new HashMap<>();
         responseItem.put("cookie",cookie);
+        responseItem.put("refreshKey", refreshKey);
         responseItem.put("message", messageReturned);
         return responseItem;
     }
-
-
-
-
 
     public Map<String, Object> exchangeCodeForToken(String code) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
