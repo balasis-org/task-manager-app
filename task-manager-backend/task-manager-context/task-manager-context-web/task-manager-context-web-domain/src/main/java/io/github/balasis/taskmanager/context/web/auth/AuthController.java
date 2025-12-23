@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
-public class AuthController {
+public class AuthController extends BaseComponent {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     private final AuthService authService;
 

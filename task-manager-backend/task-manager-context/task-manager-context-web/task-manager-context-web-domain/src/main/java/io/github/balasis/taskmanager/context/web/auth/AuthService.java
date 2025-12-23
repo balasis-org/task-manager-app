@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
 import com.nimbusds.jwt.SignedJWT;
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
@@ -25,17 +26,18 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService extends BaseComponent {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     private final AuthConfig authConfig;
     private final WebClient webClient = WebClient.builder().build();
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
+    private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
+    private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
     public String getLoginUrl() {
         return UriComponentsBuilder.fromHttpUrl(authConfig.getAuthorizationEndpoint())
@@ -129,7 +131,7 @@ public class AuthService {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(20 )
+                .maxAge(JWT_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
                 .build();
     }
@@ -139,7 +141,7 @@ public class AuthService {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(24 * 60 * 60)
+                .maxAge(REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
                 .build();
     }

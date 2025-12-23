@@ -119,6 +119,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Set<GroupInvitation> findMyGroupInvitations() {
         return groupInvitationRepository.findByUser_Id(effectiveCurrentUser.getUserId());
     }
@@ -318,7 +319,4 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         taskFileRepository.delete(file);
     }
 
-    public String getModelName() {
-        return "Group";
-    }
 }

@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -12,7 +13,7 @@ import java.util.Set;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/group-invitations")
-public class GroupInvitationController {
+public class GroupInvitationController extends BaseComponent {
     private final GroupInvitationOutboundMapper groupInvitationOutboundMapper;
     private final GroupService groupService;
 
