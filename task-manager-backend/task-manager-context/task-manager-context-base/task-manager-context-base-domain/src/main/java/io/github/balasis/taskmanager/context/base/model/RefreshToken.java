@@ -20,7 +20,7 @@ import java.time.Instant;
 public class RefreshToken extends BaseModel{
     @Column(nullable = false)
     private String refreshCode;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn
     private User user;
     @Column(updatable = false)

@@ -13,7 +13,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "TaskFileDeleted")
+@Table(name = "TaskFilesDeleted")
 public class TaskFileDeleted extends BaseModel{
     private String fileUrl;
 }

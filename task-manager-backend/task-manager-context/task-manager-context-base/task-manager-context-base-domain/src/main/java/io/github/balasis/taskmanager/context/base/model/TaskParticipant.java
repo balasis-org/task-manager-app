@@ -12,7 +12,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "TaskParticipant")
+@Table(name = "TaskParticipants", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id","task_id","task_participant_role"})
+})
 public class TaskParticipant extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY, optional=false)
     @JoinColumn(name ="user_id")
@@ -23,6 +25,6 @@ public class TaskParticipant extends BaseModel{
     private Task task;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "task_participant_role",nullable = false)
     private TaskParticipantRole taskParticipantRole;
 }
