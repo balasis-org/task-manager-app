@@ -1,21 +1,21 @@
 package io.github.balasis.taskmanager.context.base.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Getter
 @Setter
-@ToString
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "Users")
 public class User extends BaseModel{
-    @Column(nullable = false)
+    @Column(nullable = false , unique = true)
     private String azureKey;
 
     @Column
@@ -27,7 +27,15 @@ public class User extends BaseModel{
     @Column(nullable = false)
     private String email;
 
-    @Column
+    @Column(nullable = false)
     private String name;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<GroupMembership> memberships = new HashSet<>();
+
+    @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<Task> tasks = new HashSet<>();
 
 }

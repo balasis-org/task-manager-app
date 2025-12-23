@@ -11,4 +11,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByAzureKey(String azureKey);
 
     Optional<User> findByEmail(String email);
+
+    boolean existsByAzureKey(String azureKey);
 }

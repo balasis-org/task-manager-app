@@ -5,12 +5,11 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.service.BaseService;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
 
-public interface GroupService extends BaseService{
+public interface GroupService{
     //Group
     Group create(Group group);
     Group patch(Long groupId, Group group);

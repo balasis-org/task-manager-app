@@ -1,14 +1,10 @@
 package io.github.balasis.taskmanager.context.base.model;
 
-import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Getter

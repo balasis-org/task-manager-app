@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
+import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
@@ -32,7 +33,7 @@ import java.util.Set;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/groups")
-public class GroupController{
+public class GroupController extends BaseComponent {
     private final ResourceDataValidator resourceDataValidator;
     private final GroupOutboundMapper groupOutboundMapper;
     private final GroupInboundMapper groupInboundMapper;
