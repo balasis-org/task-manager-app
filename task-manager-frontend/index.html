@@ -294,6 +294,24 @@
 </form>
 <pre id="editProfileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
+<br><br>
+<h2>Fetch Task (Files as Download Links)</h2>
+
+<form id="fetchTaskWithFilesForm">
+    <label>
+        Group ID:
+        <input type="number" name="groupId" required>
+    </label>
+    <label>
+        Task ID:
+        <input type="number" name="taskId" required>
+    </label>
+    <button type="submit">Fetch Task</button>
+</form>
+
+<div id="taskWithFilesOutput"
+     style="border:1px solid #ccc; padding:10px; margin-top:10px;">
+</div>
 
 <script>
 
@@ -776,6 +794,55 @@
             editProfileOutput.textContent = `Failed to update profile: ${err.message}`;
         }
     });
+
+    //fetch task and show its taskfiles with viewable linkable files
+    const fetchTaskWithFilesForm = document.getElementById("fetchTaskWithFilesForm");
+    const taskWithFilesOutput = document.getElementById("taskWithFilesOutput");
+
+    fetchTaskWithFilesForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(fetchTaskWithFilesForm);
+        const groupId = formData.get("groupId");
+        const taskId = formData.get("taskId");
+
+        taskWithFilesOutput.innerHTML = "Loading...";
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/task/${taskId}`);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+
+            const task = await res.json();
+
+            let html = `
+            <h4>Files</h4>
+        `;
+
+            if (!task.files || task.files.length === 0) {
+                html += `<p>No files attached.</p>`;
+            } else {
+                html += `<ul>`;
+                task.files.forEach(file => {
+                    html += `
+                    <li>
+                        ${file.name}
+                        —
+                        <a href="/api/groups/${groupId}/task/${taskId}/files/${file.id}/download">
+                            Download
+                        </a>
+                    </li>
+                `;
+                });
+                html += `</ul>`;
+            }
+
+            taskWithFilesOutput.innerHTML = html;
+
+        } catch (err) {
+            taskWithFilesOutput.innerHTML = `Failed: ${err.message}`;
+        }
+    });
+
 
 </script>
 </body>

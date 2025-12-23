@@ -5,6 +5,9 @@ import io.github.balasis.taskmanager.context.base.exception.TaskManagerException
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
+import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.TaskFileBlobNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,4 +70,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
 
+    @ExceptionHandler(BlobUploadException.class)
+    public ResponseEntity<String> handleBlobUpload(BlobUploadException ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(BlobDownloadTaskFileException.class)
+    public ResponseEntity<String> handleTaskFileDownload(BlobDownloadTaskFileException ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(TaskFileBlobNotFoundException.class)
+    public ResponseEntity<String> handleMissingBlob(TaskFileBlobNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.GONE)
+                .body(ex.getMessage());
+    }
 }

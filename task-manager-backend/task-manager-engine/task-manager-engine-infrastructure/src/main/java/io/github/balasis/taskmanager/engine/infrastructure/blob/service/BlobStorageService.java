@@ -32,6 +32,16 @@ public class BlobStorageService {//TODO: change await to response time? to avoid
                 + containerClient.getBlobContainerName().length() + 1);
     }
 
+    public byte[] download(String blobName) throws IOException {
+        BlobClient blobClient = containerClient.getBlobClient(blobName);
+        if (!blobClient.exists()) {
+            throw new RuntimeException("Blob not found: " + blobName);
+        }
+        try (var inputStream = blobClient.openInputStream()) {
+            return inputStream.readAllBytes();
+        }
+    }
+
     public void delete(String blobName) {
         BlobClient blobClient = containerClient.getBlobClient(blobName);
         if (blobClient.exists()) {

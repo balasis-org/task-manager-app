@@ -10,6 +10,5 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TaskFileOutboundResource extends BaseOutboundResource {
-    private String fileUrl;
     private String name;
 }

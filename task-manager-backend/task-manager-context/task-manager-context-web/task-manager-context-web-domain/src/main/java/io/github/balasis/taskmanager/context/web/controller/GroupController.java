@@ -19,7 +19,9 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutb
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
+import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -189,6 +191,22 @@ public class GroupController extends BaseComponent {
                 groupService.addTaskFile(groupId, taskId, file)
         ));
     }
+
+    @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")
+    public ResponseEntity<byte[]> downloadTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long fileId
+    ) {
+        TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + download.filename() + "\"")
+                .body(download.content());
+    }
+
+
 
     @DeleteMapping("/{groupId}/task/{taskId}/assignees/{userId}")
     public ResponseEntity<Void> removeAssignee(

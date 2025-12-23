@@ -27,6 +27,18 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     LEFT JOIN FETCH t.files
     WHERE t.id = :taskId
     """)
+    Optional<Task> findByIdWithFullFetchParticipantsAndFiles(@Param("taskId") Long taskId);
+
+    @Query("""
+
+    SELECT t
+    FROM Task t
+    LEFT JOIN FETCH t.creator
+    LEFT JOIN FETCH t.group
+    LEFT JOIN FETCH t.taskParticipants tp
+    LEFT JOIN FETCH t.files
+    WHERE t.id = :taskId
+    """)
     Optional<Task> findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);
 
     @Query("""

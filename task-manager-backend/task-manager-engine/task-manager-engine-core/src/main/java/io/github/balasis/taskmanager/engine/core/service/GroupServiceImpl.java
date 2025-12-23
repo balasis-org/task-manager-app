@@ -5,16 +5,16 @@ import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
-import io.github.balasis.taskmanager.context.base.exception.notfound.GroupNotFoundException;
-import io.github.balasis.taskmanager.context.base.exception.notfound.TaskNotFoundException;
-import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
+import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
+import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
+import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
-import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -182,7 +182,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         // New task created: “Fix invoice bug”
         // You were added to this task.
         // [Open task link]
-        var thefetchedOne = taskRepository.findByIdWithParticipantsAndFiles(savedTask.getId()).orElseThrow(
+        var thefetchedOne = taskRepository.findByIdWithFullFetchParticipantsAndFiles(savedTask.getId()).orElseThrow(
                 () -> new TaskNotFoundException("Something went wrong with the create process of task." +
                 "If the problem insist during creation conduct us and provide one of the tasks ID. Current taskId:"
                                                 + savedTask.getId())
@@ -196,7 +196,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Transactional(readOnly = true)
     public Task getTask(Long groupId, Long taskId){
         authorizationService.requireAnyRoleIn(groupId);
-        return taskRepository.findByIdWithParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException(
+        return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException(
                 "Task with id " + taskId + "is not found"));
     }
 
@@ -211,7 +211,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Task patchTask(Long groupId, Long taskId, Task task) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForPatchTask(groupId, taskId, task);
-        var fetchedTask = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var fetchedTask = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + "is not found"));
         if (task.getTitle()!= null)
             fetchedTask.setTitle(task.getTitle());
@@ -227,7 +227,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     public Task addAssignee(Long groupId, Long taskId, Long userId) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateAddAssigneeToTask(task, groupId, userId);
         task.getTaskParticipants().add(TaskParticipant.builder()
@@ -241,7 +241,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     public Task addReviewer(Long groupId, Long taskId, Long userId) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateAddReviewerToTask(task, groupId, userId);
         task.getTaskParticipants().add(TaskParticipant.builder()
@@ -255,7 +255,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     public Task addTaskFile(Long groupId, Long taskId, MultipartFile file) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateAddTaskFile(task, groupId, file);
 
@@ -268,14 +268,38 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .build());
             return taskRepository.save(task);
         } catch (IOException e) {
-            throw new RuntimeException("File upload failed", e);
+            throw new BlobUploadTaskFileException(e.getMessage());
         }
     }
+
+    @Transactional(readOnly = true)
+    public TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateDownloadTaskFile(task, groupId);
+
+        TaskFile file = task.getFiles().stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+
+        try {
+            byte[] data = blobStorageService.download(file.getFileUrl());
+            return new TaskFileDownload(data, file.getName());
+        } catch (IOException e) {
+            throw new BlobDownloadTaskFileException(e.getMessage());
+        }
+    }
+
+
 
     @Override
     public void removeAssignee(Long groupId, Long taskId, Long userId) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateRemoveAssigneeFromTask(task, groupId, userId);
         task.getTaskParticipants().removeIf(tp ->
@@ -287,7 +311,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     public void removeReviewer(Long groupId, Long taskId, Long userId) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateRemoveReviewerFromTask(task, groupId, userId);
         task.getTaskParticipants().removeIf(tp ->
