@@ -11,7 +11,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "GroupInvitation", uniqueConstraints = {
+@Table(name = "GroupInvitations", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"group_id","user_id"})
 })
 public class GroupInvitation extends BaseModel{
