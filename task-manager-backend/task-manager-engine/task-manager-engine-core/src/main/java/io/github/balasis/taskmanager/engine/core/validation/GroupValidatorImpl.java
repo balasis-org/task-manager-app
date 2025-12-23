@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.validation;
 
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
@@ -80,8 +81,33 @@ public class GroupValidatorImpl implements GroupValidator{
     @Override
     public void validateAddTaskFile(Task task, Long groupId, MultipartFile file) {
         doesTaskBelongToGroup(task,groupId);
+        var membership = groupMembershipRepository
+                .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
+        boolean allowed = membership.getRole() == Role.GROUP_LEADER ||membership.getRole() == Role.TASK_MANAGER;
+        if (!allowed) {
+            throw new UnauthorizedException("You do not have the rights to upload in this task");
+        }
         isFileEmpty(file);
     }
+
+    @Override
+    public void validateDownloadTaskFile(Task task, Long groupId) {
+        doesTaskBelongToGroup(task,groupId);
+        var membership = groupMembershipRepository
+                .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
+        boolean allowed =
+                membership.getRole() == Role.GROUP_LEADER ||
+                membership.getRole() == Role.TASK_MANAGER ||
+                task.getTaskParticipants().stream()
+                            .anyMatch(tp -> tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
+
+        if (!allowed) {
+            throw new UnauthorizedException("You are not allowed to download this file");
+        }
+    }
+
 
     @Override
     public void validateRemoveAssigneeFromTask(Task task, Long groupId, Long userId) {
@@ -112,6 +138,13 @@ public class GroupValidatorImpl implements GroupValidator{
     public void validateAcceptGroupInvitation(GroupInvitation invitation) {
         isUserTheReceiverOfTheInvitation(invitation);
         isTheInvitationOnPendingStatus(invitation);
+    }
+
+
+    private void doesTaskBelongToGroup(Task task, Long groupId){
+        if (!Objects.equals(task.getGroup().getId(), groupId)) {
+            throw new UnauthorizedException("Task does not belong to the group given");
+        }
     }
 
     private void isUserTheReceiverOfTheInvitation(GroupInvitation invitation){
@@ -242,11 +275,7 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
-    private void doesTaskBelongToGroup(Task task, Long groupId){
-        if (!Objects.equals(task.getGroup().getId(), groupId)) {
-            throw new UnauthorizedException("Task does not belong to the group given");
-        }
-    }
+
 
 
     private void isToBeInvitedUserExists(GroupInvitation groupInvitation){

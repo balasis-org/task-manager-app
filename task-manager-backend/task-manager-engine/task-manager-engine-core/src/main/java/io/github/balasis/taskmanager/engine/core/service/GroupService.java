@@ -5,6 +5,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
+import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
@@ -34,4 +35,5 @@ public interface GroupService{
     void removeReviewer(Long groupId, Long taskId, Long userId);
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
     void removeTaskFile(Long groupId, Long taskId, Long fileId);
+    TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId);
 }
