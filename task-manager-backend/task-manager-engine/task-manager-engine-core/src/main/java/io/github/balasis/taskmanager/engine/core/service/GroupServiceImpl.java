@@ -161,7 +161,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             try {
                 for (MultipartFile file : files){
                     System.out.println("Loop Of " + file.getOriginalFilename());
-                    String url = blobStorageService.uploadTaskFile(file);
+                    String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
                     var taskFile = TaskFile.builder()
                             .fileUrl(url)
                             .name(file.getOriginalFilename())
@@ -258,7 +258,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupValidator.validateAddTaskFile(task, groupId, file);
 
         try {
-            String url = blobStorageService.uploadTaskFile(file);
+            String url = blobStorageService.uploadTaskFile(file,taskId);
             task.getFiles().add(TaskFile.builder()
                     .task(task)
                     .name(file.getOriginalFilename())
