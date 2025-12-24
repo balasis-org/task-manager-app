@@ -35,7 +35,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
-    private final TaskFileDeletedRepository taskFileDeletedRepository;
     private final TaskFileRepository taskFileRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
@@ -149,7 +148,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         if (reviewerIds != null && !reviewerIds.isEmpty()){
             for(Long reviewerId:reviewerIds){
-
                 var taskParticipant = TaskParticipant.builder()
                         .taskParticipantRole(TaskParticipantRole.REVIEWER)
                         .user(userRepository.getReferenceById(reviewerId))
@@ -163,7 +161,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             try {
                 for (MultipartFile file : files){
                     System.out.println("Loop Of " + file.getOriginalFilename());
-                    String url = blobStorageService.upload(file);
+                    String url = blobStorageService.uploadTaskFile(file);
                     var taskFile = TaskFile.builder()
                             .fileUrl(url)
                             .name(file.getOriginalFilename())
@@ -260,7 +258,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupValidator.validateAddTaskFile(task, groupId, file);
 
         try {
-            String url = blobStorageService.upload(file);
+            String url = blobStorageService.uploadTaskFile(file);
             task.getFiles().add(TaskFile.builder()
                     .task(task)
                     .name(file.getOriginalFilename())
@@ -287,7 +285,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
 
         try {
-            byte[] data = blobStorageService.download(file.getFileUrl());
+            byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
             return new TaskFileDownload(data, file.getName());
         } catch (IOException e) {
             throw new BlobDownloadTaskFileException(e.getMessage());
@@ -332,13 +330,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .findFirst()
                 .orElseThrow();
 
-        try {
-            blobStorageService.delete(file.getFileUrl());
-        } catch (Exception e) { //TODO:implement something to clear the storage at different time...
-            taskFileDeletedRepository.save(TaskFileDeleted.builder()
-                    .fileUrl(file.getFileUrl())
-                    .build());
-        }
+        blobStorageService.deleteTaskFile(file.getFileUrl());
         task.getFiles().remove(file);
         taskFileRepository.delete(file);
     }
