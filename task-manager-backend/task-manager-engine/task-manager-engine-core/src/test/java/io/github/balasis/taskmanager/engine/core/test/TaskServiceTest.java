@@ -24,7 +24,6 @@ class GroupServiceTest {
     private UserRepository userRepository;
     private TaskRepository taskRepository;
     private TaskFileRepository taskFileRepository;
-    private TaskFileDeletedRepository taskFileDeletedRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
 //    private EmailClient emailClient;
@@ -40,7 +39,6 @@ class GroupServiceTest {
         userRepository = mock(UserRepository.class);
         taskRepository = mock(TaskRepository.class);
         taskFileRepository = mock(TaskFileRepository.class);
-        taskFileDeletedRepository =mock(TaskFileDeletedRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
 //        emailClient = mock(EmailClient.class);
@@ -52,7 +50,6 @@ class GroupServiceTest {
                 groupValidator,
                 userRepository,
                 taskRepository,
-                taskFileDeletedRepository,
                 taskFileRepository,
                 groupMembershipRepository,
                 effectiveCurrentUser,
