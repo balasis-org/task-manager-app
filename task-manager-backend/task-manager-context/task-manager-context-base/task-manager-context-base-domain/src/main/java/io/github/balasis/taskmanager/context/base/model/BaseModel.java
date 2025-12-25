@@ -19,5 +19,5 @@ import java.io.Serializable;
 public class BaseModel implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id;//t
 }
