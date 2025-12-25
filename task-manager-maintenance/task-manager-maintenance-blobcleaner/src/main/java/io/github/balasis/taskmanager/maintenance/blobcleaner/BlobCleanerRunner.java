@@ -22,7 +22,7 @@ public class BlobCleanerRunner implements CommandLineRunner {
         System.out.println("Test run finished.");
     }
 
-    @Scheduled(cron = "0 0 3 * * ?")
+    @Scheduled(cron = "0 0 3 * * ?", zone = "UTC")
     public void scheduledRun() {
         System.out.println("Blob Cleaner scheduled run starting...");
         cleanAllContainers();
