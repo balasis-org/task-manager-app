@@ -4,14 +4,13 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.PublicAccessType;
-import io.github.balasis.taskmanager.engine.infrastructure.blob.enumeration.BlobContainerType;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class BlobStorageService {

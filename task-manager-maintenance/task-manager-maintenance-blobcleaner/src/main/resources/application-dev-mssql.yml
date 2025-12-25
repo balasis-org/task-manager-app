@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 2
+      idle-timeout: 500000
+      max-lifetime: 1200000
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        generate_statistics: false
+        dialect: org.hibernate.dialect.SQLServerDialect
+    show-sql: true
+
+logging:
+  level:
+    root: info
+    io.github.balasis.taskmanager: TRACE
+    org.springframework.transaction.interceptor: TRACE
+    io.opentelemetry.exporter.otlp=DEBUG: DEBUG
