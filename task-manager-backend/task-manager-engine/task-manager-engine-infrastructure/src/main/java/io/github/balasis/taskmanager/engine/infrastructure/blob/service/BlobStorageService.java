@@ -48,10 +48,6 @@ public class BlobStorageService {
         return uploadInternal(BlobContainerType.PROFILE_IMAGES, file, prefixId);
     }
 
-    public String uploadTaskImage(MultipartFile file, Long prefixId) throws IOException {
-        return uploadInternal(BlobContainerType.TASK_IMAGES, file, prefixId);
-    }
-
     public String uploadGroupImage(MultipartFile file, Long prefixId) throws IOException {
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
     }
@@ -66,10 +62,6 @@ public class BlobStorageService {
 
     public void deleteProfileImage(String blobName) {
         deleteInternal(BlobContainerType.PROFILE_IMAGES, blobName);
-    }
-
-    public void deleteTaskImage(String blobName) {
-        deleteInternal(BlobContainerType.TASK_IMAGES, blobName);
     }
 
     private String uploadInternal(BlobContainerType type, MultipartFile file, Long prefixId) throws IOException {

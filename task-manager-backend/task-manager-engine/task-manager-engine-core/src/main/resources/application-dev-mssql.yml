@@ -17,8 +17,7 @@ spring:
     properties:
       hibernate:
         generate_statistics: false
-        dialect: org.hibernate.dialect.SQLServerDialect
-    show-sql: true
+    show-sql: false
 
 logging:
   level:

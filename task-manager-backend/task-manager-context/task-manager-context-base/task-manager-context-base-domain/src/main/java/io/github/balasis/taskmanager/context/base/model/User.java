@@ -22,6 +22,9 @@ public class User extends BaseModel{
     private String tenantId;
 
     @Column
+    private String imgUrl;
+
+    @Column
     private boolean isOrg = false;
 
     @Column(nullable = false)
