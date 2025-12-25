@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.maintenance.blobcleaner.service;
 
 import com.azure.storage.blob.models.BlobItem;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.maintenance.blobcleaner.base.BaseComponent;
 import io.github.balasis.taskmanager.maintenance.blobcleaner.repository.BlobCleanerRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class BlobCleanerService {
+public class BlobCleanerService extends BaseComponent {
 
     private final BlobCleanerRepository repository;
     private final BlobAccessService blobAccessService;
@@ -25,7 +26,7 @@ public class BlobCleanerService {
         List<BlobItem> allBlobs = new ArrayList<>();
         iterable.forEach(allBlobs::add);
 
-        System.out.printf("Scanning %d blobs in container %s%n", allBlobs.size(), type.getContainerName());
+       logger.trace("Scanning {} blobs in container {}", allBlobs.size(), type.getContainerName());
 
         for (int i = 0; i < allBlobs.size(); i += batchSize) {
             int end = Math.min(i + batchSize, allBlobs.size());
@@ -35,7 +36,7 @@ public class BlobCleanerService {
                 long id = extractId(blob.getName());
                 if (id <= 0 || !repository.existsById(type, id)) {
                     blobAccessService.deleteBlob(type, blob.getName());
-                    System.out.println("Deleted orphan blob: " + blob.getName());
+                    logger.trace("Deleted orphan blob: {}" , blob.getName());
                 }
             }
 

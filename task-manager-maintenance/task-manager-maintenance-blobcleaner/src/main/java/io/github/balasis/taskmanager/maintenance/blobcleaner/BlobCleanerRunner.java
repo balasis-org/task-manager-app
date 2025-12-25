@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.maintenance.blobcleaner;
 
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.maintenance.blobcleaner.base.BaseComponent;
 import io.github.balasis.taskmanager.maintenance.blobcleaner.service.BlobCleanerService;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -11,22 +12,22 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 @EnableScheduling
-public class BlobCleanerRunner implements CommandLineRunner {
+public class BlobCleanerRunner extends BaseComponent implements CommandLineRunner {
 
     private final BlobCleanerService blobCleanerService;
 
     @Override
     public void run(String... args) {
-        System.out.println("Blob Cleaner test run starting...");
+        logger.trace("Blob Cleaner test run starting...");
         cleanAllContainers();
-        System.out.println("Test run finished.");
+        logger.trace("Test run finished.");
     }
 
     @Scheduled(cron = "0 0 3 * * ?", zone = "UTC")
     public void scheduledRun() {
-        System.out.println("Blob Cleaner scheduled run starting...");
+        logger.trace("Blob Cleaner scheduled run starting...");
         cleanAllContainers();
-        System.out.println("Scheduled run finished.");
+        logger.trace("Scheduled run finished.");
     }
 
     private void cleanAllContainers() {

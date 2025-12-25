@@ -6,9 +6,8 @@ import lombok.Getter;
 public enum BlobContainerType {
 
     TASK_FILES("task-files", "TaskFiles", "fileUrl", false),
-    PROFILE_IMAGES("profile-images", "Users", "profileImageUrl", true),
-    GROUP_IMAGES("group-images", "Groups", "groupImageUrl", true),
-    TASK_IMAGES("task-images", "Tasks", "taskImageUrl", true);
+    PROFILE_IMAGES("profile-images", "Users", "imgUrl", true),
+    GROUP_IMAGES("group-images", "Groups", "imgUrl", true);
 
     private final String containerName;
     private final String tableName;
