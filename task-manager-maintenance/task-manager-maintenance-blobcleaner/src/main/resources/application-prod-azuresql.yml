@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+logging:
+  level:
+    root: info
+    io.github.balasis.taskmanager: TRACE
+    org.springframework.transaction.interceptor: TRACE
+    com.azure.identity: DEBUG
