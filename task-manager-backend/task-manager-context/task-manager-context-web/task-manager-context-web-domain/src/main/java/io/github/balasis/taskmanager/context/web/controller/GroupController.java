@@ -56,6 +56,15 @@ public class GroupController extends BaseComponent {
         ));
     }
 
+    @PostMapping("/{groupId}/image")
+    public ResponseEntity<GroupOutboundResource> updateGroupImage(
+            @PathVariable Long groupId,
+            @RequestParam("file") MultipartFile file) {
+
+        return ResponseEntity.ok(groupOutboundMapper.toResource(
+                groupService.updateGroupImage(groupId, file)));
+    }
+
     @GetMapping
     public ResponseEntity<Set<GroupOutboundResource>> findAllByCurrentUser() {
         return ResponseEntity.ok(

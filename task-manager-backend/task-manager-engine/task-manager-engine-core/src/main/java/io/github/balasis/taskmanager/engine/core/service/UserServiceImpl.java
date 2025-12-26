@@ -7,11 +7,13 @@ import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.validation.UserValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 
+import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -21,6 +23,7 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private final UserRepository userRepository;
     private final UserValidator userValidator;
     private final EffectiveCurrentUser effectiveCurrentUser;
+    private final BlobStorageService blobStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,6 +41,16 @@ public class UserServiceImpl extends BaseComponent implements UserService {
             fetchedUser.setName(user.getName());
         }
         return fetchedUser;
+    }
+
+
+    @Override
+    public User updateProfileImage(MultipartFile file){
+        var user = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+        String blobName = blobStorageService.uploadProfileImage(file, user.getId());
+        user.setImgUrl(blobName);
+        return user;
     }
 
 }

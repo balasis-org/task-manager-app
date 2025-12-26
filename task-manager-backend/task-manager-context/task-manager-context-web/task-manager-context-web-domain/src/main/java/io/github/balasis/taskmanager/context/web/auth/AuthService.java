@@ -6,8 +6,10 @@ import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationI
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.jwt.JwtService;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.RefreshTokenRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.config.AuthConfig;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ public class AuthService extends BaseComponent {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
+    private final DefaultImageService defaultImageService;
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
@@ -113,11 +116,13 @@ public class AuthService extends BaseComponent {
         boolean isOrg = azureId != null;
         var azureKey = isOrg ? tenantId.concat(azureId) : tenantId;
         var finalName = (name!=null) ? name : email.substring(0,email.indexOf("@"));
+
         return  userRepository.findByAzureKey(azureKey)
                 .orElseGet(() -> {
                     User u = new User();
                     u.setAzureKey(azureKey);
                     u.setTenantId(tenantId);
+                    u.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES));
                     u.setOrg(isOrg);
                     u.setEmail(email);
                     u.setName(finalName);

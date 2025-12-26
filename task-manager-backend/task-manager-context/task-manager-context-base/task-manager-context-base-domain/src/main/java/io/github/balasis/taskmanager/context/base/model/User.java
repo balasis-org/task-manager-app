@@ -22,6 +22,9 @@ public class User extends BaseModel{
     private String tenantId;
 
     @Column
+    private String defaultImgUrl;
+
+    @Column
     private String imgUrl;
 
     @Column

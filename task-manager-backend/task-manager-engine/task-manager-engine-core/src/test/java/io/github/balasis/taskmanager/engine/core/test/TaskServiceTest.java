@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.engine.core.repository.*;
+import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
@@ -31,6 +32,7 @@ class GroupServiceTest {
     private GroupServiceImpl groupService;
     private AuthorizationService authorizationService;
     private GroupInvitationRepository groupInvitationRepository;
+    private DefaultImageService defaultImageService;
 
     @BeforeEach
     void setUp() {
@@ -41,9 +43,11 @@ class GroupServiceTest {
         taskFileRepository = mock(TaskFileRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
+
 //        emailClient = mock(EmailClient.class);
         blobStorageService = mock(BlobStorageService.class);
         authorizationService = mock(AuthorizationService.class);
+        defaultImageService = mock(DefaultImageService.class);
         groupInvitationRepository= mock(GroupInvitationRepository.class);
         groupService = new GroupServiceImpl(
                 groupRepository,
@@ -56,7 +60,9 @@ class GroupServiceTest {
 //                emailClient,
                 blobStorageService,
                 authorizationService,
+                defaultImageService,
                 groupInvitationRepository
+
         );
     }
 
