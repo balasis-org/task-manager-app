@@ -5,8 +5,6 @@ import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
-import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
-import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
@@ -23,7 +21,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
