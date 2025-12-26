@@ -103,6 +103,12 @@
 				<version>13.2.1.jre11</version>
 			</dependency>
 
+			<!--Content safety to check blob images -->
+			<dependency>
+				<groupId>com.azure</groupId>
+				<artifactId>azure-ai-contentsafety</artifactId>
+				<version>1.0.16</version>
+			</dependency>
 
 			<!-- AspectJ -->
 			<dependency>
@@ -160,7 +166,6 @@
 				<artifactId>jjwt-jackson</artifactId>
 				<version>0.12.5</version>
 			</dependency>
-
 
 
 
