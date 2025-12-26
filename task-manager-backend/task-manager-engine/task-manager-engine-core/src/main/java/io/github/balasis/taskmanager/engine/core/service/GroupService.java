@@ -16,6 +16,7 @@ public interface GroupService{
     Group patch(Long groupId, Group group);
     void delete(Long groupId);
     Set<Group> findAllByCurrentUser();
+    Group updateGroupImage(Long groupId, MultipartFile file);
 
     //GroupInvitations
     GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited);
