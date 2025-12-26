@@ -21,7 +21,7 @@ public interface GroupOutboundMapper extends BaseOutboundMapper<Group, GroupOutb
             return null;
         }
 
-        return "/blob/" + BlobContainerType.GROUP_IMAGES.getContainerName() + "/" + imgUrl;
+        return BlobContainerType.GROUP_IMAGES.getContainerName() + "/" + imgUrl;
     }
 
     @Named("convertGroupDefaultImgUrl")
@@ -30,6 +30,6 @@ public interface GroupOutboundMapper extends BaseOutboundMapper<Group, GroupOutb
             return null;
         }
 
-        return "/blob/"+ BlobDefaultImageContainer.GROUP_IMAGES.getContainerName()+"/"+defaultImgUrl;
+        return BlobDefaultImageContainer.GROUP_IMAGES.getContainerName()+"/"+defaultImgUrl;
     }
 }

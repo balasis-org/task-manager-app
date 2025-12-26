@@ -22,7 +22,7 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
             return null;
         }
 
-        return "/blob/"+ BlobContainerType.PROFILE_IMAGES.getContainerName()+"/"+imgUrl;
+        return BlobContainerType.PROFILE_IMAGES.getContainerName()+"/"+imgUrl;
     }
 
     @Named("convertUserDefaultImgUrl")
@@ -31,7 +31,7 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
             return null;
         }
 
-        return "/blob/"+ BlobDefaultImageContainer.PROFILE_IMAGES.getContainerName()+"/"+defaultImgUrl;
+        return BlobDefaultImageContainer.PROFILE_IMAGES.getContainerName()+"/"+defaultImgUrl;
     }
 
 }
