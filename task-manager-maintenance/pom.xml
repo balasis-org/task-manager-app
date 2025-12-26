@@ -10,7 +10,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>task-manager-maintenance-blobcleaner</module>
-        <module>task-manager-maintenance-blobuploader</module>
     </modules>
 
     <properties>
