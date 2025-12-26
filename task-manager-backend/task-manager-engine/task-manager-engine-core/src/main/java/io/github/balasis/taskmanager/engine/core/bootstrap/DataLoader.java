@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Profile({"DataLoader"})
-@RequiredArgsConstructor
+@RequiredArgsConstructor //TODO:make it run after defaultImageBootstrap
 public class DataLoader extends BaseComponent implements ApplicationRunner {
 
     private static final Lorem lorem = LoremIpsum.getInstance();
