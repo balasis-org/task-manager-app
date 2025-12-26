@@ -26,6 +26,9 @@ public class Group extends BaseModel{
     private String description;
 
     @Column
+    private String defaultImgUrl;
+
+    @Column
     private String imgUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)

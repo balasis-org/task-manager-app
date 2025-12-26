@@ -1,14 +1,17 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.UserInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.user.inbound.UserInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
+import io.jsonwebtoken.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,4 +37,13 @@ public class UserController extends BaseComponent {
                 )
         ));
     }
+
+    @PostMapping("/me/profile-image")
+    public ResponseEntity<UserOutboundResource> updateProfileImage(
+            @RequestParam("file") MultipartFile file){
+        return ResponseEntity.ok(userOutboundMapper.toResource(
+                userService.updateProfileImage(file)
+        ));
+    }
+
 }

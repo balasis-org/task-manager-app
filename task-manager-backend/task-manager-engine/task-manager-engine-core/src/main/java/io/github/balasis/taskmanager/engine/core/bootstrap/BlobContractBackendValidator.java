@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.bootstrap;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.EntityType;
@@ -34,6 +35,7 @@ public class BlobContractBackendValidator extends BaseComponent {
             validateEntity(type);
             validateColumn(type);
         }
+        validateDefaults();
     }
 
     private void validateEntity(BlobContainerType type) {
@@ -86,5 +88,40 @@ public class BlobContractBackendValidator extends BaseComponent {
             );
         }
     }
+
+    private void validateDefaults() {
+        EntityType<?> entity = entityManager.getMetamodel()
+                .getEntities()
+                .stream()
+                .map(EntityType::getJavaType)
+                .filter(clazz -> {
+                    Table table = clazz.getAnnotation(Table.class);
+                    return table != null
+                            && table.name().equalsIgnoreCase("default_images");
+                })
+                .findFirst()
+                .map(entityManager.getMetamodel()::entity)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Default blob contract invalid: no entity mapped to table default_images"
+                        )
+                );
+
+        boolean hasTypeColumn = entity.getAttributes()
+                .stream()
+                .anyMatch(a -> a.getName().equals("type"));
+
+        boolean hasFileNameColumn = entity.getAttributes()
+                .stream()
+                .anyMatch(a -> a.getName().equals("fileName"));
+
+        if (!hasTypeColumn || !hasFileNameColumn) {
+            throw new IllegalStateException(
+                    "Default blob contract invalid: table default_images must contain columns [type, fileName]"
+            );
+        }
+    }
+
+
 
 }
