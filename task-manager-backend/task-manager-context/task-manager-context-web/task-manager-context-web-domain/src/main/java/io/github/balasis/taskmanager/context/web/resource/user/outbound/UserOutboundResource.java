@@ -11,4 +11,6 @@ import lombok.*;
 public class UserOutboundResource extends BaseOutboundResource {
     private String email;
     private String name;
+    private String defaultImgUrl;
+    private String imgUrl;
 }

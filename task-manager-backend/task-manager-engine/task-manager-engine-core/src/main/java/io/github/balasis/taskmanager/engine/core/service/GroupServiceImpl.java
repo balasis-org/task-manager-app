@@ -9,6 +9,7 @@ import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDo
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.model.*;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
@@ -41,7 +42,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 //    private final EmailClient emailClient;
     private final BlobStorageService blobStorageService;
     private final AuthorizationService authorizationService;
+    private final DefaultImageService defaultImageService;
     private final GroupInvitationRepository groupInvitationRepository;
+
 
     @Override
     public Group create(Group group){
@@ -49,6 +52,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(()->new UserNotFoundException("User not found"));
         groupValidator.validate(group);
         group.setOwner(user);
+        group.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.GROUP_IMAGES));
         Group savedGroup = groupRepository.save(group);
         groupMembershipRepository.save(new GroupMembership(user,savedGroup, Role.GROUP_LEADER));
         return savedGroup;
@@ -84,6 +88,21 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         taskRepository.deleteAllByGroup_Id(groupId);
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
         groupRepository.deleteById(groupId);
+    }
+
+
+
+    @Override
+    public Group updateGroupImage(Long groupId, MultipartFile file) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER));
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
+
+        String blobName = blobStorageService.uploadGroupImage(file, groupId);
+        group.setImgUrl(blobName);
+
+        return groupRepository.save(group);
     }
 
 
@@ -158,7 +177,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         if (files != null && !files.isEmpty()) {
-            try {
+
                 for (MultipartFile file : files){
                     System.out.println("Loop Of " + file.getOriginalFilename());
                     String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
@@ -169,9 +188,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                             .build();
                     savedTask.getFiles().add(taskFile);
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
         taskRepository.save(savedTask);
 //        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
@@ -256,18 +272,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateAddTaskFile(task, groupId, file);
+        String url = blobStorageService.uploadTaskFile(file,taskId);
+        task.getFiles().add(TaskFile.builder()
+                .task(task)
+                .name(file.getOriginalFilename())
+                .fileUrl(url)
+                .build());
+        return taskRepository.save(task);
 
-        try {
-            String url = blobStorageService.uploadTaskFile(file,taskId);
-            task.getFiles().add(TaskFile.builder()
-                    .task(task)
-                    .name(file.getOriginalFilename())
-                    .fileUrl(url)
-                    .build());
-            return taskRepository.save(task);
-        } catch (IOException e) {
-            throw new BlobUploadTaskFileException(e.getMessage());
-        }
     }
 
     @Transactional(readOnly = true)
@@ -283,13 +295,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+        byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
+        return new TaskFileDownload(data, file.getName());
 
-        try {
-            byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
-            return new TaskFileDownload(data, file.getName());
-        } catch (IOException e) {
-            throw new BlobDownloadTaskFileException(e.getMessage());
-        }
     }
 
 

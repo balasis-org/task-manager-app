@@ -12,5 +12,7 @@ import lombok.*;
 public class GroupOutboundResource extends BaseOutboundResource {
     private String name;
     private String description;
+    private String defaultImgUrl;
+    private String imgUrl;
     private UserOutboundResource owner;
 }
