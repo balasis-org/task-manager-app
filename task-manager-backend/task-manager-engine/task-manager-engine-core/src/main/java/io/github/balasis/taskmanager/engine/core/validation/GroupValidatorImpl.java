@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignment;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupInviteDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupMemberDuplicateException;
@@ -131,6 +132,7 @@ public class GroupValidatorImpl implements GroupValidator{
     public void validateCreateGroupInvitation(GroupInvitation groupInvitation) {
         isToBeInvitedUserExists(groupInvitation);
         isToBeInvitedUserAlreadyInGroup(groupInvitation);
+        isTheRoleChosenValidAccordingToAppLogic(groupInvitation);
         doesInvitationAlreadyExists(groupInvitation);
     }
 
@@ -289,6 +291,28 @@ public class GroupValidatorImpl implements GroupValidator{
         if (groupMembershipRepository.existsByGroupIdAndUserId(
                 groupInvitation.getUser().getId(),groupInvitation.getGroup().getId()
         )){throw new GroupMemberDuplicateException("User is already in group");}
+    }
+
+    private void isTheRoleChosenValidAccordingToAppLogic(GroupInvitation groupInvitation){
+        Role roleOfInviter = groupMembershipRepository.findByGroupIdAndUserId(
+                groupInvitation.getGroup().getId(),
+                effectiveCurrentUser.getUserId()
+        ).orElseThrow(() -> new NotAGroupMemberException("")).getRole();
+
+        if (groupInvitation.getUserToBeInvitedRole() == null){
+            throw new InvalidRoleAssignment("You should assign a role in the invitation");
+        }
+
+        if (groupInvitation.getUserToBeInvitedRole() == Role.GROUP_LEADER){
+            throw new InvalidRoleAssignment("You may not assign a group leader through an invitation");
+        }
+
+        if ( !(groupInvitation.getUserToBeInvitedRole() == Role.MEMBER || groupInvitation.getUserToBeInvitedRole() == Role.GUEST)
+            && ( !roleOfInviter.equals(Role.GROUP_LEADER) )
+        ){
+            throw new InvalidRoleAssignment("Only group leader can invite with any other role than member or guest");
+        }
+
     }
 
     private void doesInvitationAlreadyExists(GroupInvitation groupInvitation){

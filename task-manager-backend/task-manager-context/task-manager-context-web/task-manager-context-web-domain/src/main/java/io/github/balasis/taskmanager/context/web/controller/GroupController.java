@@ -103,8 +103,10 @@ public class GroupController extends BaseComponent {
             @PathVariable(name = "groupId") Long groupId,
             @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
     ){
+        System.out.println(groupInvitationInboundResource.getUserToBeInvitedRole());
         return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
-                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId())
+                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
+                        groupInvitationInboundResource.getUserToBeInvitedRole())
         ));
     }
 
