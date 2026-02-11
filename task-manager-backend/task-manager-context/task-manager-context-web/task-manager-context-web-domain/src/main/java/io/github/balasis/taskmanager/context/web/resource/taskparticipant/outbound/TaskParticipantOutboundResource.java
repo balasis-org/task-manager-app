@@ -14,4 +14,5 @@ import lombok.*;
 public class TaskParticipantOutboundResource extends BaseOutboundResource {
   private UserOutboundResource user;
   private TaskParticipantRole taskParticipantRole;
+
 }

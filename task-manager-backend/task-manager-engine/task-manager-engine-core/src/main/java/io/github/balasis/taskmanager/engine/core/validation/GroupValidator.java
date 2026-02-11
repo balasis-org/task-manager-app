@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.validation;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
+import io.github.balasis.taskmanager.context.base.model.TaskParticipant;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
@@ -14,11 +15,9 @@ public interface GroupValidator extends BaseValidator<Group>{
 
     void validateAddAssigneeToTask(Task task, Long groupId, Long userId);
 
-    void validateRemoveAssigneeFromTask(Task task, Long groupId, Long userId);
-
     void validateAddReviewerToTask(Task task, Long groupId, Long userId);
 
-    void validateRemoveReviewerFromTask(Task task, Long groupId, Long userId);
+    void validateRemoveTaskParticipant(Task task, Long groupId ,Long taskParticipantId);
 
     void validateAddTaskFile(Task task, Long groupId, MultipartFile file);
     void validateDownloadTaskFile(Task task, Long groupId);

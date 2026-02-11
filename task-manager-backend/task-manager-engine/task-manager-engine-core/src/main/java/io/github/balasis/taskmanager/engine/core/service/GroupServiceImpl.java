@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
+import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.*;
@@ -219,6 +220,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
 
+
+
     @Override
     public Task patchTask(Long groupId, Long taskId, Task task) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
@@ -237,32 +240,38 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
 
     @Override
-    public Task addAssignee(Long groupId, Long taskId, Long userId) {
+    public Task addTaskParticipant(Long groupId, Long taskId, Long userId, TaskParticipantRole taskParticipantRole) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
-        groupValidator.validateAddAssigneeToTask(task, groupId, userId);
+        .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        if (taskParticipantRole == TaskParticipantRole.ASSIGNEE){
+            groupValidator.validateAddAssigneeToTask(task, groupId, userId);
+        }else if (taskParticipantRole == TaskParticipantRole.REVIEWER){
+            groupValidator.validateAddReviewerToTask(task, groupId, userId);
+        }else{
+            throw new InvalidFieldValueException("Currently you may not other roles than assignee or reviewer");
+        }
+
         task.getTaskParticipants().add(TaskParticipant.builder()
-                .task(task)
-                .user(userRepository.getReferenceById(userId))
-                .taskParticipantRole(TaskParticipantRole.ASSIGNEE)
-                .build());
+        .task(task)
+        .user(userRepository.getReferenceById(userId))
+        .taskParticipantRole(taskParticipantRole)
+        .build());
         return taskRepository.save(task);
     }
 
     @Override
-    public Task addReviewer(Long groupId, Long taskId, Long userId) {
+    public void removeTaskParticipant(Long groupId, Long taskId, Long taskParticipantId) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
-        groupValidator.validateAddReviewerToTask(task, groupId, userId);
-        task.getTaskParticipants().add(TaskParticipant.builder()
-                .task(task)
-                .user(userRepository.getReferenceById(userId))
-                .taskParticipantRole(TaskParticipantRole.REVIEWER)
-                .build());
-        return taskRepository.save(task);
+        .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        groupValidator.validateRemoveTaskParticipant(task, groupId, taskParticipantId);
+
+        task.getTaskParticipants().removeIf(tp ->
+        tp.getId().equals(taskParticipantId));
     }
+
 
     @Override
     public Task addTaskFile(Long groupId, Long taskId, MultipartFile file) {
@@ -300,29 +309,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
 
 
-    @Override
-    public void removeAssignee(Long groupId, Long taskId, Long userId) {
-        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
-        groupValidator.validateRemoveAssigneeFromTask(task, groupId, userId);
-        task.getTaskParticipants().removeIf(tp ->
-                tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE &&
-                        tp.getUser().getId().equals(userId));
-        taskRepository.save(task);
-    }
 
-    @Override
-    public void removeReviewer(Long groupId, Long taskId, Long userId) {
-        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
-        groupValidator.validateRemoveReviewerFromTask(task, groupId, userId);
-        task.getTaskParticipants().removeIf(tp ->
-                tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER &&
-                        tp.getUser().getId().equals(userId));
-        taskRepository.save(task);
-    }
 
     @Override
     public void removeTaskFile(Long groupId, Long taskId, Long fileId) {

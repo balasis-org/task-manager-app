@@ -129,14 +129,6 @@ document.getElementById("addAssignee").addEventListener("click", () => {
 });
 
 
-document.getElementById("addReviewer").addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "number";
-    input.name = "reviewerIds";
-    input.placeholder = "User ID";
-    document.getElementById("reviewers").appendChild(input);
-});
-
 createTaskForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -275,69 +267,47 @@ fetchMyTasksForm.addEventListener("submit", async (e) => {
 
 const managementOutput = document.getElementById("managementOutput");
 
-// ADD ASSIGNEE apu
-document.getElementById("addAssigneeForm").addEventListener("submit", async e => {
+// ADD Participant
+document.getElementById("addParticipantForm").addEventListener("submit", async e => {
     e.preventDefault();
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const taskId = data.get("taskId");
     const userId = data.get("userId");
+    const taskParticipantRole = data.get("taskParticipantRole")
 
     try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "POST" });
-        managementOutput.textContent = res.ok ? `Assignee ${userId} added.` : `Failed: ${res.status}`;
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/taskParticipants`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: userId,
+                taskParticipantRole: taskParticipantRole
+            })
+        });
+        managementOutput.textContent = res.ok ? `TaskParticipant with userId: ${userId} added.` :
+            `Failed: ${res.status}`;
     } catch (err) {
         managementOutput.textContent = `Error: ${err.message}`;
     }
 });
 
-// remove assignee api
-document.getElementById("removeAssigneeForm").addEventListener("submit", async e => {
+// remove Participant
+document.getElementById("removeParticipantForm").addEventListener("submit", async e => {
     e.preventDefault();
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const taskId = data.get("taskId");
-    const userId = data.get("userId");
+    const taskParticipantId = data.get("taskParticipantId");
 
     try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "DELETE" });
-        managementOutput.textContent = res.ok ? `Assignee ${userId} removed.` : `Failed: ${res.status}`;
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/taskParticipant/${taskParticipantId}`, { method: "DELETE" });
+        managementOutput.textContent = res.ok ? `Participant ${taskParticipantId} removed.` : `Failed: ${res.status}`;
     } catch (err) {
         managementOutput.textContent = `Error: ${err.message}`;
     }
 });
 
-// add reviewer api
-document.getElementById("addReviewerForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    const groupId = data.get("groupId");
-    const taskId = data.get("taskId");
-    const userId = data.get("userId");
-
-    try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "POST" });
-        managementOutput.textContent = res.ok ? `Reviewer ${userId} added.` : `Failed: ${res.status}`;
-    } catch (err) {
-        managementOutput.textContent = `Error: ${err.message}`;
-    }
-});
-
-// REMOVE REVIEWER API
-document.getElementById("removeReviewerForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    const groupId = data.get("groupId");
-    const taskId = data.get("taskId");
-    const userId = data.get("userId");
-
-    try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "DELETE" });
-        managementOutput.textContent = res.ok ? `Reviewer ${userId} removed.` : `Failed: ${res.status}`;
-    } catch (err) {
-        managementOutput.textContent = `Error: ${err.message}`;
-    }
-});
 
 // ADD TASK FILE API
 document.getElementById("addTaskFileForm").addEventListener("submit", async e => {
@@ -401,11 +371,6 @@ document.getElementById("inviteUserForm").addEventListener("submit", async e => 
     }
 });
 
-//
-// <button id="findMyInvitesBtn"> Find my invites </button>
-// <div id="findMyInvitesOutput">
-//
-// </div>
 
 // Find my invites
 const findMyInvitesOutput = document.getElementById("findMyInvitesOutput");
