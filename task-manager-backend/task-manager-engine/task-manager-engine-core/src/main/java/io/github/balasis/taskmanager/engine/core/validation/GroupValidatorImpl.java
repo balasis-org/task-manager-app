@@ -6,10 +6,11 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
-import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignment;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignmentException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupInviteDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupMemberDuplicateException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.TaskParticipantNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.Group;
@@ -111,15 +112,9 @@ public class GroupValidatorImpl implements GroupValidator{
 
 
     @Override
-    public void validateRemoveAssigneeFromTask(Task task, Long groupId, Long userId) {
+    public void validateRemoveTaskParticipant(Task task, Long groupId, Long taskParticipantId) {
         doesTaskBelongToGroup(task,groupId);
-        isUserAnAssigneeOfTask(task, userId);
-    }
-
-    @Override
-    public void validateRemoveReviewerFromTask(Task task, Long groupId, Long userId) {
-        doesTaskBelongToGroup(task,groupId);
-        isUserAReviewerOfTask(task,userId);
+        doesTaskParticipantBelongsToTask(taskParticipantId,task);
     }
 
     @Override
@@ -253,20 +248,11 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
-    private void isUserAnAssigneeOfTask(Task task, Long userId){
-        boolean assigned = task.getTaskParticipants().stream()
-                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE && tp.getUser().getId().equals(userId));
-        if (!assigned) {
-            throw new InvalidFieldValueException("User is not an assignee of this task");
-        }
-    }
-
-    private void isUserAReviewerOfTask(Task task, Long userId){
-        boolean reviewer = task.getTaskParticipants().stream()
-                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER && tp.getUser().getId().equals(userId));
-        if (!reviewer) {
-            throw new InvalidFieldValueException("User is not a reviewer of this task");
-        }
+    private void doesTaskParticipantBelongsToTask(Long taskParticipantId , Task task ){
+       if ( task.getTaskParticipants().stream().
+                noneMatch(tp -> tp.getId().equals(taskParticipantId))){
+           throw new TaskParticipantNotFoundException("TaskParticipant doesn't exist in the task");
+       }
     }
 
 
@@ -300,17 +286,17 @@ public class GroupValidatorImpl implements GroupValidator{
         ).orElseThrow(() -> new NotAGroupMemberException("")).getRole();
 
         if (groupInvitation.getUserToBeInvitedRole() == null){
-            throw new InvalidRoleAssignment("You should assign a role in the invitation");
+            throw new InvalidRoleAssignmentException("You should assign a role in the invitation");
         }
 
         if (groupInvitation.getUserToBeInvitedRole() == Role.GROUP_LEADER){
-            throw new InvalidRoleAssignment("You may not assign a group leader through an invitation");
+            throw new InvalidRoleAssignmentException("You may not assign a group leader through an invitation");
         }
 
         if ( !(groupInvitation.getUserToBeInvitedRole() == Role.MEMBER || groupInvitation.getUserToBeInvitedRole() == Role.GUEST)
             && ( !roleOfInviter.equals(Role.GROUP_LEADER) )
         ){
-            throw new InvalidRoleAssignment("Only group leader can invite with any other role than member or guest");
+            throw new InvalidRoleAssignmentException("Only group leader can invite with any other role than member or guest");
         }
 
     }

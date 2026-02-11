@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
@@ -31,10 +32,13 @@ public interface GroupService{
     Set<Task> findMyTasks(Long groupId, Boolean reviewer, Boolean assigned, TaskState taskState);
 
     //Group Tasks Content
-    Task addAssignee(Long groupId, Long taskId, Long userId);
-    void removeAssignee(Long groupId, Long taskId, Long userId);
-    Task addReviewer(Long groupId, Long taskId, Long userId);
-    void removeReviewer(Long groupId, Long taskId, Long userId);
+//    Task addAssignee(Long groupId, Long taskId, Long userId);
+//    void removeAssignee(Long groupId, Long taskId, Long userId);
+//    Task addReviewer(Long groupId, Long taskId, Long userId);
+//    void removeReviewer(Long groupId, Long taskId, Long userId);
+    Task addTaskParticipant(Long groupId, Long taskId , Long userId, TaskParticipantRole taskParticipantRole);
+    void removeTaskParticipant(Long groupId, Long taskId, Long taskParticipantId);
+
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
     void removeTaskFile(Long groupId, Long taskId, Long fileId);
     TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId);

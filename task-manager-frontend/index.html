@@ -207,38 +207,28 @@
 
 
 <br><br>
-<h2>Assignees / Reviewers / Files Management</h2>
+<h2>TaskParticipants / Files Management</h2>
 
-<h3>Add Assignee</h3>
-<form id="addAssigneeForm">
+<h3>Add Participant</h3>
+<form id="addParticipantForm">
     <label>Group ID: <input type="number" name="groupId" required></label>
     <label>Task ID: <input type="number" name="taskId" required></label>
     <label>User ID: <input type="number" name="userId" required></label>
+    <label>TaskParticipant Role:
+        <select name="taskParticipantRole">
+            <option value="" selected>None</option>
+            <option value="ASSIGNEE">ASSIGNEE</option>
+            <option value="REVIEWER">REVIEWER</option>
+         </select></label>
     <button type="submit">Add Assignee</button>
 </form>
 
-<h3>Remove Assignee</h3>
-<form id="removeAssigneeForm">
+<h3>Remove Participant</h3>
+<form id="removeParticipantForm">
     <label>Group ID: <input type="number" name="groupId" required></label>
     <label>Task ID: <input type="number" name="taskId" required></label>
-    <label>User ID: <input type="number" name="userId" required></label>
-    <button type="submit">Remove Assignee</button>
-</form>
-
-<h3>Add Reviewer</h3>
-<form id="addReviewerForm">
-    <label>Group ID: <input type="number" name="groupId" required></label>
-    <label>Task ID: <input type="number" name="taskId" required></label>
-    <label>User ID: <input type="number" name="userId" required></label>
-    <button type="submit">Add Reviewer</button>
-</form>
-
-<h3>Remove Reviewer</h3>
-<form id="removeReviewerForm">
-    <label>Group ID: <input type="number" name="groupId" required></label>
-    <label>Task ID: <input type="number" name="taskId" required></label>
-    <label>User ID: <input type="number" name="userId" required></label>
-    <button type="submit">Remove Reviewer</button>
+    <label>TaskParticipantId ID: <input type="number" name="taskParticipantId" required></label>
+    <button type="submit">Remove Participant</button>
 </form>
 
 <h3>Add Task File</h3>
