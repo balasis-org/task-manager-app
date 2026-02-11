@@ -104,13 +104,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
 
     @Override
-    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited){
+    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole){
         authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         var groupInvitation = GroupInvitation.builder()
                 .user(userRepository.getReferenceById(userToBeInvited))
                 .invitationStatus(InvitationStatus.PENDING)
                 .invitedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
                 .group(groupRepository.findById(groupId).orElseThrow())
+                .userToBeInvitedRole( (userToBeInvitedRole == null) ? Role.MEMBER : userToBeInvitedRole)
                 .build();
         groupValidator.validateCreateGroupInvitation(groupInvitation);
 
@@ -126,7 +127,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 new GroupMembership(
                         groupInvitation.getUser(),
                         groupInvitation.getGroup(),
-                        Role.MEMBER
+                        groupInvitation.getUserToBeInvitedRole()
                 )
         );
         groupInvitation.setInvitationStatus(InvitationStatus.ACCEPTED);

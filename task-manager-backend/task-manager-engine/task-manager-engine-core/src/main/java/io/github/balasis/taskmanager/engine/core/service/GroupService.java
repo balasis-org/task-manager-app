@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
@@ -19,7 +20,7 @@ public interface GroupService{
     Group updateGroupImage(Long groupId, MultipartFile file);
 
     //GroupInvitations
-    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited);
+    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited);
     GroupInvitation acceptInvitation(Long invitationId);
     Set<GroupInvitation> findMyGroupInvitations();
 

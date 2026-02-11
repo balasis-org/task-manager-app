@@ -382,17 +382,20 @@ document.getElementById("inviteUserForm").addEventListener("submit", async e => 
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const userId = data.get("userId");
+    const userToBeInvitedRole = data.get("userToBeInvitedRole")
+    console.log(userToBeInvitedRole);
 
     try {
         const res = await fetch(`/api/groups/${groupId}/invite`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: Number(userId) })
+            body: JSON.stringify({ userId: Number(userId) , userToBeInvitedRole:userToBeInvitedRole })
         });
+        if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
         invitationOutput.textContent = res.ok
             ? `Invitation sent:\n${JSON.stringify(result, null, 2)}`
-            : `Failed: ${res.status}`;
+            : ``;
     } catch (err) {
         invitationOutput.textContent = `Error: ${err.message}`;
     }
