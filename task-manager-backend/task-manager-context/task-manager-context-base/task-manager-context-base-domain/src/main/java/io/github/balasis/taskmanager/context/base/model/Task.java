@@ -27,8 +27,14 @@ public class Task extends BaseModel{
     private TaskState taskState;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id", nullable = false)
+    @JoinColumn(name = "creator_id", nullable = true)
     private User creator;
+
+    @Column(name = "creator_id_snapshot")
+    private Long creatorIdSnapshot;
+
+    @Column(name = "creator_name_snapshot")
+    private String creatorNameSnapshot;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)

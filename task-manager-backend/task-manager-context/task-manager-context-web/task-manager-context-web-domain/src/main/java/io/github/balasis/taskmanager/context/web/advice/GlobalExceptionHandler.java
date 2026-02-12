@@ -7,6 +7,7 @@ import io.github.balasis.taskmanager.context.base.exception.auth.Unauthenticated
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.TaskFileBlobNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<String> handleBusinessRuleException(BusinessRuleException e){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ResponseEntity<String> handleMissingPart(MissingServletRequestPartException e) {

@@ -6,9 +6,12 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignmentException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupInviteDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupMemberDuplicateException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.TaskParticipantNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.Group;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -110,15 +114,9 @@ public class GroupValidatorImpl implements GroupValidator{
 
 
     @Override
-    public void validateRemoveAssigneeFromTask(Task task, Long groupId, Long userId) {
+    public void validateRemoveTaskParticipant(Task task, Long groupId, Long taskParticipantId) {
         doesTaskBelongToGroup(task,groupId);
-        isUserAnAssigneeOfTask(task, userId);
-    }
-
-    @Override
-    public void validateRemoveReviewerFromTask(Task task, Long groupId, Long userId) {
-        doesTaskBelongToGroup(task,groupId);
-        isUserAReviewerOfTask(task,userId);
+        doesTaskParticipantBelongsToTask(taskParticipantId,task);
     }
 
     @Override
@@ -131,15 +129,57 @@ public class GroupValidatorImpl implements GroupValidator{
     public void validateCreateGroupInvitation(GroupInvitation groupInvitation) {
         isToBeInvitedUserExists(groupInvitation);
         isToBeInvitedUserAlreadyInGroup(groupInvitation);
+        isTheRoleChosenValidAccordingToAppLogic(groupInvitation);
         doesInvitationAlreadyExists(groupInvitation);
     }
 
     @Override
-    public void validateAcceptGroupInvitation(GroupInvitation invitation) {
+    public void validateRespondToGroupInvitation(GroupInvitation invitation) {
         isUserTheReceiverOfTheInvitation(invitation);
         isTheInvitationOnPendingStatus(invitation);
     }
 
+    @Override
+    public void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt) {
+        if (currentMembershipOpt.isEmpty()) {
+            throw new RuntimeException("Not a member of the group");
+        }
+
+        Role currentRole = currentMembershipOpt.get().getRole();
+
+        if (currentRole == Role.GROUP_LEADER && Objects.equals(currentUserId, memberUserId)) {
+            throw new InvalidMembershipRemovalException("Group leader cannot remove themselves");
+        }
+
+        if (currentRole != Role.GROUP_LEADER && !Objects.equals(currentUserId, memberUserId)) {
+            throw new InvalidMembershipRemovalException("Only group leader can remove other members");
+        }
+    }
+
+    
+    @Override
+    public void validateChangeGroupMembershipRole(Long groupId, Long targetUserId, Role newRole) {
+
+        var currentMembershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
+
+        if (currentMembershipOpt.isEmpty()) {
+            throw new RuntimeException("Not a member of the group");
+        }
+
+        if (currentMembershipOpt.get().getRole() != Role.GROUP_LEADER) {
+            throw new RuntimeException("Only group leader can change roles");
+        }
+
+        if (newRole == null) {
+            throw new IllegalArgumentException("Role must be provided");
+        }
+
+        var targetOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, targetUserId);
+        if (targetOpt.isEmpty()) {
+            throw new RuntimeException("Target user is not a member of the group");
+        }
+
+    }
 
     private void doesTaskBelongToGroup(Task task, Long groupId){
         if (!Objects.equals(task.getGroup().getId(), groupId)) {
@@ -251,20 +291,11 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
-    private void isUserAnAssigneeOfTask(Task task, Long userId){
-        boolean assigned = task.getTaskParticipants().stream()
-                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE && tp.getUser().getId().equals(userId));
-        if (!assigned) {
-            throw new InvalidFieldValueException("User is not an assignee of this task");
-        }
-    }
-
-    private void isUserAReviewerOfTask(Task task, Long userId){
-        boolean reviewer = task.getTaskParticipants().stream()
-                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER && tp.getUser().getId().equals(userId));
-        if (!reviewer) {
-            throw new InvalidFieldValueException("User is not a reviewer of this task");
-        }
+    private void doesTaskParticipantBelongsToTask(Long taskParticipantId , Task task ){
+       if ( task.getTaskParticipants().stream().
+                noneMatch(tp -> tp.getId().equals(taskParticipantId))){
+           throw new TaskParticipantNotFoundException("TaskParticipant doesn't exist in the task");
+       }
     }
 
 
@@ -291,10 +322,35 @@ public class GroupValidatorImpl implements GroupValidator{
         )){throw new GroupMemberDuplicateException("User is already in group");}
     }
 
+    private void isTheRoleChosenValidAccordingToAppLogic(GroupInvitation groupInvitation){
+        Role roleOfInviter = groupMembershipRepository.findByGroupIdAndUserId(
+                groupInvitation.getGroup().getId(),
+                effectiveCurrentUser.getUserId()
+        ).orElseThrow(() -> new NotAGroupMemberException("")).getRole();
+
+        if (groupInvitation.getUserToBeInvitedRole() == null){
+            throw new InvalidRoleAssignmentException("You should assign a role in the invitation");
+        }
+
+        if (groupInvitation.getUserToBeInvitedRole() == Role.GROUP_LEADER){
+            throw new InvalidRoleAssignmentException("You may not assign a group leader through an invitation");
+        }
+
+        if ( !(groupInvitation.getUserToBeInvitedRole() == Role.MEMBER || groupInvitation.getUserToBeInvitedRole() == Role.GUEST)
+            && ( !roleOfInviter.equals(Role.GROUP_LEADER) )
+        ){
+            throw new InvalidRoleAssignmentException("Only group leader can invite with any other role than member or guest");
+        }
+
+    }
+
     private void doesInvitationAlreadyExists(GroupInvitation groupInvitation){
-        if (groupInvitationRepository.existsByUser_IdAndGroup_Id(
-                groupInvitation.getUser().getId(),groupInvitation.getGroup().getId()
-        )){throw new GroupInviteDuplicateException("Group invitation already exists");}
+        // only consider a duplicate if there is already a PENDING invitation for same user+group
+        if (groupInvitationRepository.existsByUser_IdAndGroup_IdAndInvitationStatus(
+                groupInvitation.getUser().getId(), groupInvitation.getGroup().getId(), InvitationStatus.PENDING
+        )){
+            throw new GroupInviteDuplicateException("Group invitation already exists and is pending");
+        }
     }
 
 }

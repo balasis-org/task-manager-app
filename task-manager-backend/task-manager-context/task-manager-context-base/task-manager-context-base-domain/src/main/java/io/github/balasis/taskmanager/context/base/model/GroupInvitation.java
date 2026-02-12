@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.base.model;
 
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -11,9 +12,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "GroupInvitations", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"group_id","user_id"})
-})
+@Table(name = "GroupInvitations")
 public class GroupInvitation extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -27,6 +26,10 @@ public class GroupInvitation extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invited_by_id", nullable = false)
     private User invitedBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role userToBeInvitedRole;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

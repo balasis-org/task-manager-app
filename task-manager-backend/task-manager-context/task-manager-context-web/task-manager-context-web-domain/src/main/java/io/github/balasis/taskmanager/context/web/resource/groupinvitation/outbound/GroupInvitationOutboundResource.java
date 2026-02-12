@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound;
 
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import lombok.*;
@@ -15,5 +16,6 @@ public class GroupInvitationOutboundResource extends BaseOutboundResource {
     private UserOutboundResource user;
     private UserOutboundResource invitedBy;
     private InvitationStatus invitationStatus;
+    private Role userToBeInvitedRole;
 
 }

@@ -129,14 +129,6 @@ document.getElementById("addAssignee").addEventListener("click", () => {
 });
 
 
-document.getElementById("addReviewer").addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "number";
-    input.name = "reviewerIds";
-    input.placeholder = "User ID";
-    document.getElementById("reviewers").appendChild(input);
-});
-
 createTaskForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -275,69 +267,47 @@ fetchMyTasksForm.addEventListener("submit", async (e) => {
 
 const managementOutput = document.getElementById("managementOutput");
 
-// ADD ASSIGNEE apu
-document.getElementById("addAssigneeForm").addEventListener("submit", async e => {
+// ADD Participant
+document.getElementById("addParticipantForm").addEventListener("submit", async e => {
     e.preventDefault();
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const taskId = data.get("taskId");
     const userId = data.get("userId");
+    const taskParticipantRole = data.get("taskParticipantRole")
 
     try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "POST" });
-        managementOutput.textContent = res.ok ? `Assignee ${userId} added.` : `Failed: ${res.status}`;
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/taskParticipants`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: userId,
+                taskParticipantRole: taskParticipantRole
+            })
+        });
+        managementOutput.textContent = res.ok ? `TaskParticipant with userId: ${userId} added.` :
+            `Failed: ${res.status}`;
     } catch (err) {
         managementOutput.textContent = `Error: ${err.message}`;
     }
 });
 
-// remove assignee api
-document.getElementById("removeAssigneeForm").addEventListener("submit", async e => {
+// remove Participant
+document.getElementById("removeParticipantForm").addEventListener("submit", async e => {
     e.preventDefault();
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const taskId = data.get("taskId");
-    const userId = data.get("userId");
+    const taskParticipantId = data.get("taskParticipantId");
 
     try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignees/${userId}`, { method: "DELETE" });
-        managementOutput.textContent = res.ok ? `Assignee ${userId} removed.` : `Failed: ${res.status}`;
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/taskParticipant/${taskParticipantId}`, { method: "DELETE" });
+        managementOutput.textContent = res.ok ? `Participant ${taskParticipantId} removed.` : `Failed: ${res.status}`;
     } catch (err) {
         managementOutput.textContent = `Error: ${err.message}`;
     }
 });
 
-// add reviewer api
-document.getElementById("addReviewerForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    const groupId = data.get("groupId");
-    const taskId = data.get("taskId");
-    const userId = data.get("userId");
-
-    try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "POST" });
-        managementOutput.textContent = res.ok ? `Reviewer ${userId} added.` : `Failed: ${res.status}`;
-    } catch (err) {
-        managementOutput.textContent = `Error: ${err.message}`;
-    }
-});
-
-// REMOVE REVIEWER API
-document.getElementById("removeReviewerForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    const groupId = data.get("groupId");
-    const taskId = data.get("taskId");
-    const userId = data.get("userId");
-
-    try {
-        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/reviewers/${userId}`, { method: "DELETE" });
-        managementOutput.textContent = res.ok ? `Reviewer ${userId} removed.` : `Failed: ${res.status}`;
-    } catch (err) {
-        managementOutput.textContent = `Error: ${err.message}`;
-    }
-});
 
 // ADD TASK FILE API
 document.getElementById("addTaskFileForm").addEventListener("submit", async e => {
@@ -382,27 +352,25 @@ document.getElementById("inviteUserForm").addEventListener("submit", async e => 
     const data = new FormData(e.target);
     const groupId = data.get("groupId");
     const userId = data.get("userId");
+    const userToBeInvitedRole = data.get("userToBeInvitedRole")
+    console.log(userToBeInvitedRole);
 
     try {
         const res = await fetch(`/api/groups/${groupId}/invite`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: Number(userId) })
+            body: JSON.stringify({ userId: Number(userId) , userToBeInvitedRole:userToBeInvitedRole })
         });
+        if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
         invitationOutput.textContent = res.ok
             ? `Invitation sent:\n${JSON.stringify(result, null, 2)}`
-            : `Failed: ${res.status}`;
+            : ``;
     } catch (err) {
         invitationOutput.textContent = `Error: ${err.message}`;
     }
 });
 
-//
-// <button id="findMyInvitesBtn"> Find my invites </button>
-// <div id="findMyInvitesOutput">
-//
-// </div>
 
 // Find my invites
 const findMyInvitesOutput = document.getElementById("findMyInvitesOutput");
@@ -424,15 +392,16 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
 document.getElementById("acceptInvitationForm").addEventListener("submit", async e => {
     e.preventDefault();
     const invitationId = e.target.invitationId.value;
+    const decision = e.target.decision.value; // ACCEPTED or DECLINED
 
     try {
-        const res = await fetch(`/api/group-invitations/${invitationId}/accept`, {
-            method: "POST"
+        const res = await fetch(`/api/group-invitations/${invitationId}/status?status=${decision}`, {
+            method: "PATCH"
         });
         const result = await res.json();
         invitationOutput.textContent = res.ok
-            ? `Invitation accepted:\n${JSON.stringify(result, null, 2)}`
-            : `Failed: ${res.status}`;
+            ? `Invitation processed:\n${JSON.stringify(result, null, 2)}`
+            : `Failed: ${res.status} ${res.statusText}`;
     } catch (err) {
         invitationOutput.textContent = `Error: ${err.message}`;
     }
@@ -572,5 +541,82 @@ updateGroupImageForm.addEventListener("submit", async (e) => {
         groupImageOutput.textContent = `Group image updated:\n${JSON.stringify(updatedGroup, null, 2)}`;
     } catch (err) {
         groupImageOutput.textContent = `Failed to update group image: ${err.message}`;
+    }
+});
+
+// get group members
+const membershipsForm = document.getElementById("fetchMembershipsForm");
+const membershipsOutput = document.getElementById("membershipsOutput");
+
+membershipsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(membershipsForm);
+    const groupId = formData.get("groupId");
+    const page = formData.get("page") || 0;
+    const size = formData.get("size") || 10;
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMemberships?page=${page}&size=${size}`);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+
+        const data = await res.json();
+
+        // Pretty-print page info + content
+        const output = {
+            page: data.number,
+            size: data.size,
+            totalElements: data.totalElements,
+            totalPages: data.totalPages,
+            content: data.content
+        };
+
+        membershipsOutput.textContent = JSON.stringify(output, null, 2);
+    } catch (err) {
+        membershipsOutput.textContent = `Failed: ${err.message}`;
+    }
+});
+
+
+// remove group members
+document.getElementById("removeMembershipForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const groupMembershipId = data.get("groupMembershipId");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMembership/${groupMembershipId}`, {
+            method: "DELETE"
+        });
+
+        managementOutput.textContent = res.ok ?
+            `GroupMembership ${groupMembershipId} removed.` :
+            `Failed to remove: ${res.status} ${res.statusText}`;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message || err}`;
+    }
+});
+
+
+
+
+// change membership role
+document.getElementById("changeMembershipRoleForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const groupMembershipId = data.get("groupMembershipId");
+    const role = data.get("role");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMembership/${groupMembershipId}/role?role=${role}`, {
+            method: "PATCH"
+        });
+        const result = await res.json();
+        managementOutput.textContent = res.ok ? `Role updated:\n${JSON.stringify(result, null, 2)}`
+            : ``;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message || err}`;
     }
 });
