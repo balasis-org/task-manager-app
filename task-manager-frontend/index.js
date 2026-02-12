@@ -542,3 +542,57 @@ updateGroupImageForm.addEventListener("submit", async (e) => {
         groupImageOutput.textContent = `Failed to update group image: ${err.message}`;
     }
 });
+
+// get group members
+const membershipsForm = document.getElementById("fetchMembershipsForm");
+const membershipsOutput = document.getElementById("membershipsOutput");
+
+membershipsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(membershipsForm);
+    const groupId = formData.get("groupId");
+    const page = formData.get("page") || 0;
+    const size = formData.get("size") || 10;
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMemberships?page=${page}&size=${size}`);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+
+        const data = await res.json();
+
+        // Pretty-print page info + content
+        const output = {
+            page: data.number,
+            size: data.size,
+            totalElements: data.totalElements,
+            totalPages: data.totalPages,
+            content: data.content
+        };
+
+        membershipsOutput.textContent = JSON.stringify(output, null, 2);
+    } catch (err) {
+        membershipsOutput.textContent = `Failed: ${err.message}`;
+    }
+});
+
+
+// remove group members
+document.getElementById("removeMembershipForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const groupMembershipId = data.get("groupMembershipId");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMembership/${groupMembershipId}`, {
+            method: "DELETE"
+        });
+
+        managementOutput.textContent = res.ok ?
+            `GroupMembership ${groupMembershipId} removed.` :
+            `Failed to remove: ${res.status} ${res.statusText}`;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message || err}`;
+    }
+});

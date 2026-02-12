@@ -5,6 +5,5 @@ import io.github.balasis.taskmanager.context.web.resource.taskparticipant.outbou
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring" , uses = {UserOutboundMapper.class})
-public interface TaskParticipantOutboundMapper {
-    TaskParticipantOutboundResource toResource(TaskParticipant entity);
+public interface TaskParticipantOutboundMapper extends BaseOutboundMapper<TaskParticipant,TaskParticipantOutboundResource>{
 }
