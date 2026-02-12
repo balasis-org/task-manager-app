@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.engine.core.validation;
 
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.model.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,8 +25,10 @@ public interface GroupValidator extends BaseValidator<Group>{
 
     void validateCreateGroupInvitation(GroupInvitation groupInvitation);
 
-    void validateAcceptGroupInvitation(GroupInvitation groupInvitation);
+    void validateRespondToGroupInvitation(GroupInvitation groupInvitation);
 
     void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt);
+
+    void validateChangeGroupMembershipRole(Long groupId,  Long targetUserId, Role newRole);
 
 }

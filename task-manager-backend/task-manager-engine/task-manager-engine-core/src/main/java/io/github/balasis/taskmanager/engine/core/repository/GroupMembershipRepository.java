@@ -43,4 +43,6 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     @Query("delete from GroupMembership gm where gm.group.id = :groupId and gm.user.id = :userId")
     void deleteByGroupIdAndUserId(@Param("groupId") Long groupId, @Param("userId") Long userId);
 
+    Optional<GroupMembership> findByGroup_IdAndRole(Long groupId, Role role);
+
 }
