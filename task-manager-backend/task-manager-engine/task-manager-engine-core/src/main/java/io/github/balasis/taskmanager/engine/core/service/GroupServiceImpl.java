@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -142,6 +143,34 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
     }
 
+    @Override
+    public GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER));
+
+        var targetOpt = groupMembershipRepository.findById(groupMembershipId);
+        if (targetOpt.isEmpty()) {
+            throw new GroupMembershipNotFoundException("Target membership not found");
+        }
+        GroupMembership target = targetOpt.get();
+        groupValidator.validateChangeGroupMembershipRole(groupId, target.getUser().getId(), newRole);
+
+        if (newRole == Role.GROUP_LEADER) {
+            groupMembershipRepository.findByGroup_IdAndRole(groupId, Role.GROUP_LEADER)
+                    .ifPresent(existingLeader -> {
+                        if (!Objects.equals(existingLeader.getId(), target.getId())) {
+                            existingLeader.setRole(Role.TASK_MANAGER);
+                            groupMembershipRepository.save(existingLeader);
+                        }
+                    });
+        }
+
+        if (newRole != Role.GROUP_LEADER && newRole != Role.TASK_MANAGER && newRole != Role.REVIEWER) {
+            taskParticipantRepository.deleteReviewersByUserIdAndGroupId(target.getUser().getId(), groupId);
+        }
+        target.setRole(newRole);
+        return groupMembershipRepository.save(target);
+    }
+
 
     @Override
     public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole){
@@ -158,26 +187,31 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return groupInvitationRepository.save(groupInvitation);
     }
 
-    @Override
-    public GroupInvitation acceptInvitation(Long groupInvitationId) {
+        @Override
+        public GroupInvitation respondToInvitation(Long groupInvitationId, InvitationStatus status) {
         var groupInvitation = groupInvitationRepository.findByIdWithGroup(groupInvitationId)
-                .orElseThrow(() -> new RuntimeException("Invitation not found"));
-        groupValidator.validateAcceptGroupInvitation(groupInvitation);
-        groupMembershipRepository.save(
+            .orElseThrow(() -> new RuntimeException("Invitation not found"));
+        groupValidator.validateRespondToGroupInvitation(groupInvitation);
+
+        if (status == InvitationStatus.ACCEPTED) {
+            groupMembershipRepository.save(
                 new GroupMembership(
-                        groupInvitation.getUser(),
-                        groupInvitation.getGroup(),
-                        groupInvitation.getUserToBeInvitedRole()
+                    groupInvitation.getUser(),
+                    groupInvitation.getGroup(),
+                    groupInvitation.getUserToBeInvitedRole()
                 )
-        );
-        groupInvitation.setInvitationStatus(InvitationStatus.ACCEPTED);
+            );
+        }
+
+        groupInvitation.setInvitationStatus(status);
         return groupInvitationRepository.save(groupInvitation);
-    }
+        }
 
     @Override
     @Transactional(readOnly = true)
     public Set<GroupInvitation> findMyGroupInvitations() {
-        return groupInvitationRepository.findByUser_Id(effectiveCurrentUser.getUserId());
+        return groupInvitationRepository.findByUser_IdAndInvitationStatus(
+                effectiveCurrentUser.getUserId(),InvitationStatus.PENDING);
     }
 
 

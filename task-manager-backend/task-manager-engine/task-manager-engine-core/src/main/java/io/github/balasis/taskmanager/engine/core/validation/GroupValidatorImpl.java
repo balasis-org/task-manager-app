@@ -134,7 +134,7 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     @Override
-    public void validateAcceptGroupInvitation(GroupInvitation invitation) {
+    public void validateRespondToGroupInvitation(GroupInvitation invitation) {
         isUserTheReceiverOfTheInvitation(invitation);
         isTheInvitationOnPendingStatus(invitation);
     }
@@ -148,16 +148,38 @@ public class GroupValidatorImpl implements GroupValidator{
         Role currentRole = currentMembershipOpt.get().getRole();
 
         if (currentRole == Role.GROUP_LEADER && Objects.equals(currentUserId, memberUserId)) {
-            throw new IllegalArgumentException("Group leader cannot remove themselves");
+            throw new InvalidMembershipRemovalException("Group leader cannot remove themselves");
         }
 
         if (currentRole != Role.GROUP_LEADER && !Objects.equals(currentUserId, memberUserId)) {
-            throw new IllegalArgumentException("Only group leader can remove other members");
+            throw new InvalidMembershipRemovalException("Only group leader can remove other members");
         }
-
-
     }
 
+    
+    @Override
+    public void validateChangeGroupMembershipRole(Long groupId, Long targetUserId, Role newRole) {
+
+        var currentMembershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
+
+        if (currentMembershipOpt.isEmpty()) {
+            throw new RuntimeException("Not a member of the group");
+        }
+
+        if (currentMembershipOpt.get().getRole() != Role.GROUP_LEADER) {
+            throw new RuntimeException("Only group leader can change roles");
+        }
+
+        if (newRole == null) {
+            throw new IllegalArgumentException("Role must be provided");
+        }
+
+        var targetOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, targetUserId);
+        if (targetOpt.isEmpty()) {
+            throw new RuntimeException("Target user is not a member of the group");
+        }
+
+    }
 
     private void doesTaskBelongToGroup(Task task, Long groupId){
         if (!Objects.equals(task.getGroup().getId(), groupId)) {
@@ -323,9 +345,12 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     private void doesInvitationAlreadyExists(GroupInvitation groupInvitation){
-        if (groupInvitationRepository.existsByUser_IdAndGroup_Id(
-                groupInvitation.getUser().getId(),groupInvitation.getGroup().getId()
-        )){throw new GroupInviteDuplicateException("Group invitation already exists");}
+        // only consider a duplicate if there is already a PENDING invitation for same user+group
+        if (groupInvitationRepository.existsByUser_IdAndGroup_IdAndInvitationStatus(
+                groupInvitation.getUser().getId(), groupInvitation.getGroup().getId(), InvitationStatus.PENDING
+        )){
+            throw new GroupInviteDuplicateException("Group invitation already exists and is pending");
+        }
     }
 
 }

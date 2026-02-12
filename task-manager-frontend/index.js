@@ -392,15 +392,16 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
 document.getElementById("acceptInvitationForm").addEventListener("submit", async e => {
     e.preventDefault();
     const invitationId = e.target.invitationId.value;
+    const decision = e.target.decision.value; // ACCEPTED or DECLINED
 
     try {
-        const res = await fetch(`/api/group-invitations/${invitationId}/accept`, {
-            method: "POST"
+        const res = await fetch(`/api/group-invitations/${invitationId}/status?status=${decision}`, {
+            method: "PATCH"
         });
         const result = await res.json();
         invitationOutput.textContent = res.ok
-            ? `Invitation accepted:\n${JSON.stringify(result, null, 2)}`
-            : `Failed: ${res.status}`;
+            ? `Invitation processed:\n${JSON.stringify(result, null, 2)}`
+            : `Failed: ${res.status} ${res.statusText}`;
     } catch (err) {
         invitationOutput.textContent = `Error: ${err.message}`;
     }
@@ -592,6 +593,29 @@ document.getElementById("removeMembershipForm").addEventListener("submit", async
         managementOutput.textContent = res.ok ?
             `GroupMembership ${groupMembershipId} removed.` :
             `Failed to remove: ${res.status} ${res.statusText}`;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message || err}`;
+    }
+});
+
+
+
+
+// change membership role
+document.getElementById("changeMembershipRoleForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const groupMembershipId = data.get("groupMembershipId");
+    const role = data.get("role");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMembership/${groupMembershipId}/role?role=${role}`, {
+            method: "PATCH"
+        });
+        const result = await res.json();
+        managementOutput.textContent = res.ok ? `Role updated:\n${JSON.stringify(result, null, 2)}`
+            : ``;
     } catch (err) {
         managementOutput.textContent = `Error: ${err.message || err}`;
     }

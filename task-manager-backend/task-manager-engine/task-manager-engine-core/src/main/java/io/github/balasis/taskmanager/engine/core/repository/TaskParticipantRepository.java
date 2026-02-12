@@ -13,4 +13,13 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
     @Modifying
     @Query("delete from TaskParticipant tp where tp.user.id = :userId and tp.task.group.id = :groupId")
     void deleteByUserIdAndGroupId(@Param("userId") Long userId, @Param("groupId") Long groupId);
+
+    @Modifying
+    @Query("""
+        delete from TaskParticipant tp
+        where tp.user.id = :userId
+          and tp.task.group.id = :groupId
+          and tp.taskParticipantRole = io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole.REVIEWER
+    """)
+    void deleteReviewersByUserIdAndGroupId(@Param("userId") Long userId, @Param("groupId") Long groupId);
 }

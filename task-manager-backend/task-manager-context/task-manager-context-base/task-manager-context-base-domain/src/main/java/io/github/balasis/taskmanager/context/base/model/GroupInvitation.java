@@ -12,9 +12,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "GroupInvitations", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"group_id","user_id"})
-})
+@Table(name = "GroupInvitations")
 public class GroupInvitation extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)

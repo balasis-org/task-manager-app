@@ -177,7 +177,7 @@
 <pre id="taskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 <br><br><br><br>
 
-<h2>Fetch My Tasks (Preview)</h2>
+<h2>Fetch All group Tasks I participate(Preview)</h2>
 <form id="fetchMyTasksForm">
     <label>
         Group ID:
@@ -272,7 +272,13 @@
 <h2>Accept Group Invitation</h2>
 <form id="acceptInvitationForm">
     <label>Invitation ID: <input type="number" name="invitationId" required></label>
-    <button type="submit">Accept Invitation</button>
+    <label>Decision:
+        <select name="decision">
+            <option value="ACCEPTED">ACCEPT</option>
+            <option value="DECLINED">DECLINE</option>
+        </select>
+    </label>
+    <button type="submit">Submit Decision</button>
 </form>
 
 <br><br>
@@ -357,6 +363,22 @@
     <label>Group ID: <input type="number" name="groupId" required></label>
     <label>GroupMembership ID: <input type="number" name="groupMembershipId" required></label>
     <button type="submit">Remove Membership</button>
+</form>
+<br>
+<h3>Change Membership Role</h3>
+<form id="changeMembershipRoleForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>GroupMembership ID: <input type="number" name="groupMembershipId" required></label>
+    <label>New Role:
+        <select name="role">
+            <option value="GUEST">GUEST</option>
+            <option value="MEMBER">MEMBER</option>
+            <option value="REVIEWER">REVIEWER</option>
+            <option value="TASK_MANAGER">TASK_MANAGER</option>
+            <option value="GROUP_LEADER">GROUP_LEADER</option>
+        </select>
+    </label>
+    <button type="submit">Change Role</button>
 </form>
 <br><br><br>
 

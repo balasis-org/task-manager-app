@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
@@ -246,6 +247,19 @@ public class GroupController extends BaseComponent {
     ) {
         groupService.removeGroupMember(groupId, groupMembershipId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{groupId}/groupMembership/{groupMembershipId}/role")
+    public ResponseEntity<GroupMembershipOutboundResource> changeGroupMembershipRole(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMembershipId,
+            @RequestParam("role") Role role
+    ) {
+        return ResponseEntity.ok(
+                groupMembershipOutboundMapper.toResource(
+                        groupService.changeGroupMembershipRole(groupId, groupMembershipId, role)
+                )
+        );
     }
 
 }
