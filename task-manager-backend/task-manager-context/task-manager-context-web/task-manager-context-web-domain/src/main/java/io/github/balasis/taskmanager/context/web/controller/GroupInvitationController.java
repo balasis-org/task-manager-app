@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -18,13 +19,14 @@ public class GroupInvitationController extends BaseComponent {
     private final GroupService groupService;
 
 
-    @PostMapping("/{groupInvitationId}/accept")
-    public ResponseEntity<GroupInvitationOutboundResource> acceptInvitation(
-            @PathVariable("groupInvitationId") Long groupInvitationId
+    @PatchMapping("/{groupInvitationId}/status")
+    public ResponseEntity<GroupInvitationOutboundResource> respondToInvitation(
+            @PathVariable("groupInvitationId") Long groupInvitationId,
+            @RequestParam("status") InvitationStatus status
     ) {
         return ResponseEntity.ok(
                 groupInvitationOutboundMapper.toResource(
-                        groupService.acceptInvitation(groupInvitationId)
+                        groupService.respondToInvitation(groupInvitationId, status)
                 )
         );
     }

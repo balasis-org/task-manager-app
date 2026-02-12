@@ -1,11 +1,17 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 
+import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
+import io.github.balasis.taskmanager.context.base.model.GroupMembership;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
@@ -18,9 +24,15 @@ public interface GroupService{
     Set<Group> findAllByCurrentUser();
     Group updateGroupImage(Long groupId, MultipartFile file);
 
+    //GroupMemberships
+    Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable);
+    void removeGroupMember(Long groupId, Long groupMembershipId);
+
+    GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
+
     //GroupInvitations
-    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited);
-    GroupInvitation acceptInvitation(Long invitationId);
+    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited);
+    GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
     Set<GroupInvitation> findMyGroupInvitations();
 
     //GroupTasks
@@ -30,10 +42,8 @@ public interface GroupService{
     Set<Task> findMyTasks(Long groupId, Boolean reviewer, Boolean assigned, TaskState taskState);
 
     //Group Tasks Content
-    Task addAssignee(Long groupId, Long taskId, Long userId);
-    void removeAssignee(Long groupId, Long taskId, Long userId);
-    Task addReviewer(Long groupId, Long taskId, Long userId);
-    void removeReviewer(Long groupId, Long taskId, Long userId);
+    Task addTaskParticipant(Long groupId, Long taskId , Long userId, TaskParticipantRole taskParticipantRole);
+    void removeTaskParticipant(Long groupId, Long taskId, Long taskParticipantId);
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
     void removeTaskFile(Long groupId, Long taskId, Long fileId);
     TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId);

@@ -1,26 +1,28 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskPreviewOutboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.groupmembership.outbound.GroupMembershipOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.taskparticipant.inbound.TaskParticipantInboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,7 @@ public class GroupController extends BaseComponent {
     private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
+    private final GroupMembershipOutboundMapper groupMembershipOutboundMapper;
 
 
     @PostMapping
@@ -71,6 +74,18 @@ public class GroupController extends BaseComponent {
                 groupOutboundMapper.toResources(
                         groupService.findAllByCurrentUser()
                 ));
+    }
+
+    @GetMapping("/{groupId}/groupMemberships")
+    public ResponseEntity<Page<GroupMembershipOutboundResource>> getAllGroupMembers(
+            @PathVariable Long groupId,
+            Pageable pageable
+    ){
+        return ResponseEntity.ok(
+                groupService.getAllGroupMembers(groupId,pageable).map(
+                        groupMembershipOutboundMapper::toResource
+                )
+        );
     }
 
     @PatchMapping("/{groupId}")
@@ -103,13 +118,12 @@ public class GroupController extends BaseComponent {
             @PathVariable(name = "groupId") Long groupId,
             @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
     ){
+        System.out.println(groupInvitationInboundResource.getUserToBeInvitedRole());
         return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
-                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId())
+                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
+                        groupInvitationInboundResource.getUserToBeInvitedRole())
         ));
     }
-
-
-
 
 
     @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -165,27 +179,18 @@ public class GroupController extends BaseComponent {
                 )
         );
     }
-
-
-    @PostMapping("/{groupId}/task/{taskId}/assignees/{userId}")
-    public ResponseEntity<TaskOutboundResource> addAssignee(
+    
+    @PostMapping(path="/{groupId}/task/{taskId}/taskParticipants")
+    public ResponseEntity<TaskOutboundResource> addParticipant(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
-            @PathVariable Long userId
-    ) {
-       return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.addAssignee(groupId, taskId, userId)
-        ));
-    }
-
-    @PostMapping("/{groupId}/task/{taskId}/reviewers/{userId}")
-    public ResponseEntity<TaskOutboundResource> addReviewer(
-            @PathVariable Long groupId,
-            @PathVariable Long taskId,
-            @PathVariable Long userId
-    ) {
-        return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.addReviewer(groupId, taskId, userId)
+            @RequestBody TaskParticipantInboundResource taskParticipantInboundResource
+            ) {
+       return ResponseEntity.ok(
+               taskOutboundMapper.toResource(
+                groupService.addTaskParticipant(groupId, taskId,
+                        taskParticipantInboundResource.getUserId(),
+                        taskParticipantInboundResource.getTaskParticipantRole() )
         ));
     }
 
@@ -215,25 +220,13 @@ public class GroupController extends BaseComponent {
                 .body(download.content());
     }
 
-
-
-    @DeleteMapping("/{groupId}/task/{taskId}/assignees/{userId}")
-    public ResponseEntity<Void> removeAssignee(
+    @DeleteMapping("/{groupId}/task/{taskId}/taskParticipant/{taskParticipantId}")
+    public ResponseEntity<Void> removeParticipant(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
-            @PathVariable Long userId
-    ) {
-        groupService.removeAssignee(groupId, taskId, userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{groupId}/task/{taskId}/reviewers/{userId}")
-    public ResponseEntity<Void> removeReviewer(
-            @PathVariable Long groupId,
-            @PathVariable Long taskId,
-            @PathVariable Long userId
-    ) {
-        groupService.removeReviewer(groupId, taskId, userId);
+            @PathVariable Long taskParticipantId
+    ){
+        groupService.removeTaskParticipant(groupId,taskId,taskParticipantId);
         return ResponseEntity.noContent().build();
     }
 
@@ -245,6 +238,28 @@ public class GroupController extends BaseComponent {
     ) {
         groupService.removeTaskFile(groupId, taskId, fileId);
         return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{groupId}/groupMembership/{groupMembershipId}")
+    public ResponseEntity<Void> removeGroupMember(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMembershipId
+    ) {
+        groupService.removeGroupMember(groupId, groupMembershipId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{groupId}/groupMembership/{groupMembershipId}/role")
+    public ResponseEntity<GroupMembershipOutboundResource> changeGroupMembershipRole(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMembershipId,
+            @RequestParam("role") Role role
+    ) {
+        return ResponseEntity.ok(
+                groupMembershipOutboundMapper.toResource(
+                        groupService.changeGroupMembershipRole(groupId, groupMembershipId, role)
+                )
+        );
     }
 
 }
