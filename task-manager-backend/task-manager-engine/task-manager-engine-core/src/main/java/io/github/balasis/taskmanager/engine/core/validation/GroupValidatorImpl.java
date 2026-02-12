@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignmentException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupInviteDuplicateException;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -135,6 +137,25 @@ public class GroupValidatorImpl implements GroupValidator{
     public void validateAcceptGroupInvitation(GroupInvitation invitation) {
         isUserTheReceiverOfTheInvitation(invitation);
         isTheInvitationOnPendingStatus(invitation);
+    }
+
+    @Override
+    public void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt) {
+        if (currentMembershipOpt.isEmpty()) {
+            throw new RuntimeException("Not a member of the group");
+        }
+
+        Role currentRole = currentMembershipOpt.get().getRole();
+
+        if (currentRole == Role.GROUP_LEADER && Objects.equals(currentUserId, memberUserId)) {
+            throw new IllegalArgumentException("Group leader cannot remove themselves");
+        }
+
+        if (currentRole != Role.GROUP_LEADER && !Objects.equals(currentUserId, memberUserId)) {
+            throw new IllegalArgumentException("Only group leader can remove other members");
+        }
+
+
     }
 
 

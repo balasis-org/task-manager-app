@@ -341,6 +341,25 @@
 </form>
 <pre id="groupImageOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
+<br><br><br>
+<h2>Group Memberships</h2>
+<form id="fetchMembershipsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Fetch Members</button>
+</form>
+
+<pre id="membershipsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+<br><br><br>
+<h3>Remove Membership (by ID)</h3>
+<form id="removeMembershipForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>GroupMembership ID: <input type="number" name="groupMembershipId" required></label>
+    <button type="submit">Remove Membership</button>
+</form>
+<br><br><br>
+
 <script src="index.js"></script>
 </body>
 </html>

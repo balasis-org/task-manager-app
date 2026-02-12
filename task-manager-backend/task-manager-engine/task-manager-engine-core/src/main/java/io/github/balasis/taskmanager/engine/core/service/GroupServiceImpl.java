@@ -5,6 +5,8 @@ import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
+import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
+import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.*;
@@ -15,13 +17,17 @@ import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,6 +40,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final GroupValidator groupValidator;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final TaskParticipantRepository taskParticipantRepository;
     private final TaskFileRepository taskFileRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
@@ -103,6 +110,38 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return groupRepository.save(group);
     }
 
+    @Override
+    public Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable) {
+        authorizationService.requireAnyRoleIn(groupId);
+        return groupMembershipRepository.findByGroup_Id(groupId, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void removeGroupMember(Long groupId, Long groupMembershipId) {
+        Long currentUserId = effectiveCurrentUser.getUserId();
+
+        var currentMembershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, currentUserId);
+        if (currentMembershipOpt.isEmpty()) {
+            throw new NotAGroupMemberException("Not a member of this group");
+        }
+        var targetMembershipOpt = groupMembershipRepository.findById(groupMembershipId);
+        if (targetMembershipOpt.isEmpty()) {
+            throw new InvalidMembershipRemovalException("Membership to remove not found");
+        }
+        Long targetsId = targetMembershipOpt.get().getUser().getId();
+
+        groupValidator.validateRemoveGroupMember(groupId,effectiveCurrentUser.getUserId(), targetsId
+                ,currentMembershipOpt);
+        List<Task> createdTasks = taskRepository.findByGroup_IdAndCreator_Id(groupId, targetsId);
+        for (Task t : createdTasks) {
+            t.setCreator(null);
+        }
+        taskRepository.saveAll(createdTasks);
+        taskParticipantRepository.deleteByUserIdAndGroupId(targetsId, groupId);
+        groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
+    }
+
 
     @Override
     public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole){
@@ -149,7 +188,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         task.setCreator(userRepository.getReferenceById(effectiveCurrentUser.getUserId()));
         task.setGroup(groupRepository.getReferenceById(groupId));
-
+        task.setCreatorIdSnapshot(effectiveCurrentUser.getUserId());
+        task.setCreatorNameSnapshot(
+                userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow(
+                        ()-> new EntityNotFoundException("Can not find logged in user Id ;")).getName()
+        );
         var savedTask =  taskRepository.save(task);
 
         if (assignedIds != null && !assignedIds.isEmpty()){
@@ -327,5 +370,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         task.getFiles().remove(file);
         taskFileRepository.delete(file);
     }
+
+
+
+
 
 }

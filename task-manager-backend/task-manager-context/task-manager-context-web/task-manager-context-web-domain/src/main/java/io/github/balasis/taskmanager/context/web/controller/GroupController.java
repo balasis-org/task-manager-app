@@ -4,15 +4,13 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskOutboundMapper;
-import io.github.balasis.taskmanager.context.web.mapper.outbound.TaskPreviewOutboundMapper;
+import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.groupmembership.outbound.GroupMembershipOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
@@ -22,6 +20,8 @@ import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidato
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +45,7 @@ public class GroupController extends BaseComponent {
     private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
+    private final GroupMembershipOutboundMapper groupMembershipOutboundMapper;
 
 
     @PostMapping
@@ -72,6 +73,18 @@ public class GroupController extends BaseComponent {
                 groupOutboundMapper.toResources(
                         groupService.findAllByCurrentUser()
                 ));
+    }
+
+    @GetMapping("/{groupId}/groupMemberships")
+    public ResponseEntity<Page<GroupMembershipOutboundResource>> getAllGroupMembers(
+            @PathVariable Long groupId,
+            Pageable pageable
+    ){
+        return ResponseEntity.ok(
+                groupService.getAllGroupMembers(groupId,pageable).map(
+                        groupMembershipOutboundMapper::toResource
+                )
+        );
     }
 
     @PatchMapping("/{groupId}")
@@ -223,6 +236,15 @@ public class GroupController extends BaseComponent {
             @PathVariable Long fileId
     ) {
         groupService.removeTaskFile(groupId, taskId, fileId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{groupId}/groupMembership/{groupMembershipId}")
+    public ResponseEntity<Void> removeGroupMember(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMembershipId
+    ) {
+        groupService.removeGroupMember(groupId, groupMembershipId);
         return ResponseEntity.noContent().build();
     }
 
