@@ -9,6 +9,9 @@ import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
+import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
+import io.github.balasis.taskmanager.context.web.resource.groupevent.outbound.GroupEventOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupmembership.outbound.GroupMembershipOutboundResource;
@@ -16,6 +19,8 @@ import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInbou
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPreviewOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.taskcomment.inbound.TaskCommentInboundResource;
+import io.github.balasis.taskmanager.context.web.resource.taskcomment.outbound.TaskCommentOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.taskparticipant.inbound.TaskParticipantInboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -29,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,9 +46,12 @@ import java.util.Set;
 public class GroupController extends BaseComponent {
     private final ResourceDataValidator resourceDataValidator;
     private final GroupOutboundMapper groupOutboundMapper;
+        private final GroupWithPreviewTaskOutboundMapper groupWithPreviewTaskOutboundMapper;
     private final GroupInboundMapper groupInboundMapper;
     private final GroupInvitationOutboundMapper groupInvitationOutboundMapper;
+    private final GroupEventOutboundMapper groupEventOutboundMapper;
     private final TaskOutboundMapper taskOutboundMapper;
+        private final TaskCommentOutboundMapper taskCommentOutboundMapper;
     private final TaskPreviewOutboundMapper taskPreviewOutboundMapper;
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
@@ -76,6 +85,13 @@ public class GroupController extends BaseComponent {
                 ));
     }
 
+    @GetMapping(path = "/{groupId}")
+    public ResponseEntity<GroupWithPreviewDto> getGroupWithPreviewTasks(
+            @PathVariable Long groupId
+    ){
+        return ResponseEntity.ok(groupService.findGroupWithPreviewTasks(groupId));
+    }
+
     @GetMapping("/{groupId}/groupMemberships")
     public ResponseEntity<Page<GroupMembershipOutboundResource>> getAllGroupMembers(
             @PathVariable Long groupId,
@@ -87,6 +103,8 @@ public class GroupController extends BaseComponent {
                 )
         );
     }
+
+
 
     @PatchMapping("/{groupId}")
     public ResponseEntity<GroupOutboundResource> patch(
@@ -118,7 +136,6 @@ public class GroupController extends BaseComponent {
             @PathVariable(name = "groupId") Long groupId,
             @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
     ){
-        System.out.println(groupInvitationInboundResource.getUserToBeInvitedRole());
         return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
                 groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
                         groupInvitationInboundResource.getUserToBeInvitedRole())
@@ -136,8 +153,35 @@ public class GroupController extends BaseComponent {
         var partialTask = taskInboundMapper.toDomain(inbound);
 
         return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.createTask(groupId, partialTask, inbound.getAssignedIds(), inbound.getReviewerIds(), filesSet)
+                groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
+                        inbound.getReviewerIds(), filesSet)
         ));
+    }
+
+
+    @GetMapping(path = "/{groupId}/tasks/search")
+    public ResponseEntity<Set<TaskPreviewDto>> findTasksWithFilters(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) Long creatorId,
+            @RequestParam(required = false) Boolean creatorIsMe,
+            @RequestParam(required = false) Long reviewerId,
+            @RequestParam(required = false) Boolean reviewerIsMe,
+            @RequestParam(required = false) Long assigneeId,
+            @RequestParam(required = false) Boolean assigneeIsMe,
+            @RequestParam(required = false) Instant dueDateBefore
+    ) {
+        return ResponseEntity.ok(
+                groupService.findTasksWithPreviewByFilters(
+                        groupId,
+                        creatorId,
+                        creatorIsMe,
+                        reviewerId,
+                        reviewerIsMe,
+                        assigneeId,
+                        assigneeIsMe,
+                        dueDateBefore
+                )
+        );
     }
 
 
@@ -153,6 +197,17 @@ public class GroupController extends BaseComponent {
                groupService.findMyTasks(groupId,reviewer,assigned,taskState)
             )
        );
+    }
+
+    @GetMapping("/{groupId}/events")
+    public ResponseEntity<Page<GroupEventOutboundResource>> findAllGroupEvents(
+            @PathVariable Long groupId,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                groupService.findAllGroupEvents(groupId, pageable)
+                        .map(groupEventOutboundMapper::toResource)
+        );
     }
 
     @GetMapping(path = "/{groupId}/task/{taskId}")
@@ -176,6 +231,20 @@ public class GroupController extends BaseComponent {
                 taskOutboundMapper.toResource(
                         groupService.patchTask(groupId,taskId,
                                 taskInboundMapper.toDomain(taskInboundPatchResource))
+                )
+        );
+    }
+
+    @PostMapping(path = "/{groupId}/task/{taskId}/review")
+    public ResponseEntity<TaskOutboundResource> reviewTask(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestBody TaskInboundPatchResource taskInboundPatchResource
+    ){
+        resourceDataValidator.validateResourceData(taskInboundPatchResource);
+        return ResponseEntity.ok(
+                taskOutboundMapper.toResource(
+                        groupService.reviewTask(groupId, taskId, taskInboundMapper.toDomain(taskInboundPatchResource))
                 )
         );
     }
@@ -204,6 +273,60 @@ public class GroupController extends BaseComponent {
            return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.addTaskFile(groupId, taskId, file)
         ));
+    }
+
+    @PostMapping(path = "/{groupId}/task/{taskId}/comments")
+    public ResponseEntity<TaskCommentOutboundResource> addTaskComment(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestBody TaskCommentInboundResource inbound
+    ) {
+        resourceDataValidator.validateResourceData(inbound);
+
+        return ResponseEntity.ok(
+                taskCommentOutboundMapper.toResource(
+                        groupService.addTaskComment(groupId, taskId, inbound.getComment())
+                )
+        );
+    }
+
+    @GetMapping(path = "/{groupId}/task/{taskId}/comments")
+    public ResponseEntity<Page<TaskCommentOutboundResource>> findAllTaskComments(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            Pageable pageable
+    ){
+
+        return ResponseEntity.ok(
+                groupService.findAllTaskComments(groupId,taskId,pageable).map(
+                        taskCommentOutboundMapper::toResource
+                )
+        );
+    }
+
+    @PatchMapping(path = "/{groupId}/task/{taskId}/comments/{commentId}")
+    public ResponseEntity<TaskCommentOutboundResource> patchTaskComment(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long commentId,
+            @RequestBody TaskCommentInboundResource inbound
+    ) {
+        resourceDataValidator.validateResourceData(inbound);
+        return ResponseEntity.ok(
+                taskCommentOutboundMapper.toResource(
+                        groupService.patchTaskComment(groupId, taskId, commentId, inbound.getComment())
+                )
+        );
+    }
+
+    @DeleteMapping(path = "/{groupId}/task/{taskId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteTaskComment(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long commentId
+    ) {
+        groupService.deleteTaskComment(groupId, taskId, commentId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")

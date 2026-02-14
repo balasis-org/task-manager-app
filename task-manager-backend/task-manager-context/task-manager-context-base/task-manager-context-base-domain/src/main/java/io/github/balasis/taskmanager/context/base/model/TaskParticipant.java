@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -27,4 +29,13 @@ public class TaskParticipant extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column(name = "task_participant_role",nullable = false)
     private TaskParticipantRole taskParticipantRole;
+
+    @Column
+    private Instant lastSeenTaskComments;
+
+    @PrePersist
+    protected void onCreate(){
+        lastSeenTaskComments = Instant.now();
+    }
+
 }

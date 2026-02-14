@@ -14,4 +14,5 @@ public class GroupInboundResource extends BaseInboundResource {
     @NotBlank(message = "name is mandatory")
     private String name;
     private String description;
+    private String Announcement;
 }

@@ -6,6 +6,8 @@ import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import lombok.*;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @ToString
@@ -14,5 +16,6 @@ import lombok.*;
 public class TaskParticipantOutboundResource extends BaseOutboundResource {
   private UserOutboundResource user;
   private TaskParticipantRole taskParticipantRole;
+  private Instant lastSeenTaskComments;
 
 }
