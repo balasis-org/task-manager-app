@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,6 +26,9 @@ public class Group extends BaseModel{
     @Column
     private String description;
 
+    @Column(length = 150)
+    private String Announcement;
+
     @Column
     private String defaultImgUrl;
 
@@ -42,4 +46,16 @@ public class Group extends BaseModel{
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<GroupEvent> groupEvent = new HashSet<>();
+
+    @Column
+    private Instant createdAt;
+
+    @PrePersist
+    protected void onCreate(){
+        createdAt = Instant.now();
+    }
 }

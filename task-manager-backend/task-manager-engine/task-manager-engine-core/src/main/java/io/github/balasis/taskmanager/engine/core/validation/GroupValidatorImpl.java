@@ -14,13 +14,11 @@ import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupMembe
 import io.github.balasis.taskmanager.context.base.exception.notfound.TaskParticipantNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
-import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
-import io.github.balasis.taskmanager.context.base.model.GroupMembership;
-import io.github.balasis.taskmanager.context.base.model.Task;
+import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.authorization.RolePolicyService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -126,6 +124,29 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     @Override
+    public void validateReviewTask(Task task, Long groupId, Long userId) {
+        doesTaskBelongToGroup(task, groupId);
+
+        boolean isReviewerOnTask = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER
+                        && tp.getUser().getId().equals(userId));
+
+        if (isReviewerOnTask) {
+            return;
+        }
+
+        var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, userId);
+        if (membershipOpt.isEmpty()) {
+            throw new NotAGroupMemberException("User is not part of the group and not a reviewer of the task");
+        }
+        var role = membershipOpt.get().getRole();
+        boolean allowed = role == Role.GROUP_LEADER || role == Role.TASK_MANAGER;
+        if (!allowed) {
+            throw new UnauthorizedException("You are not authorized to review this task");
+        }
+    }
+
+    @Override
     public void validateCreateGroupInvitation(GroupInvitation groupInvitation) {
         isToBeInvitedUserExists(groupInvitation);
         isToBeInvitedUserAlreadyInGroup(groupInvitation);
@@ -177,6 +198,53 @@ public class GroupValidatorImpl implements GroupValidator{
         var targetOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, targetUserId);
         if (targetOpt.isEmpty()) {
             throw new RuntimeException("Target user is not a member of the group");
+        }
+
+    }
+
+    @Override
+    public void validateTaskComment(Long groupId, Task task, String comment) {
+
+        if (!Objects.equals(task.getGroup().getId(), groupId)) {
+            throw new EntityNotFoundException("Task does not belong to the given group");
+        }
+        var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(()-> new NotAGroupMemberException("You are not a member of this group"));
+        boolean allowedByGroupRole = membershipOpt.getRole() == Role.GROUP_LEADER || membershipOpt.getRole() == Role.TASK_MANAGER;
+        boolean isParticipant = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
+        if (!allowedByGroupRole  && !isParticipant) {
+            throw new NotAGroupMemberException("Not allowed to comment on this task");
+        }
+    }
+
+    @Override
+    public void validateTaskPatchComment(Long groupId, TaskComment existing, Long taskId, String comment){
+        var task = existing.getTask();
+        if (!Objects.equals(task.getId(), taskId) || !Objects.equals(task.getGroup().getId(), groupId)) {
+            throw new UnauthorizedException("Comment does not belong to the given task/group");
+        }
+
+        if (!Objects.equals(existing.getCreator().getId(), effectiveCurrentUser.getUserId())) {
+            throw new UnauthorizedException("Only the creator can edit this comment");
+        }
+    }
+
+    @Override
+    public void validateDeleteTask(Long groupId,TaskComment existing , Task fromExisting ,Long taskId) {
+        if (!Objects.equals(fromExisting.getId(), taskId) || !Objects.equals(fromExisting.getGroup().getId(), groupId)) {
+            throw new UnauthorizedException("Comment does not belong to the given task/group");
+        }
+
+        var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
+        boolean isCreator = Objects.equals(existing.getCreator().getId(), effectiveCurrentUser.getUserId());
+        boolean isLeaderOrManager = membershipOpt.isPresent() && (
+                membershipOpt.get().getRole() == Role.GROUP_LEADER ||
+                        membershipOpt.get().getRole() == Role.TASK_MANAGER
+        );
+
+        if (!isCreator && !isLeaderOrManager) {
+            throw new UnauthorizedException("Not allowed to delete this comment");
         }
 
     }

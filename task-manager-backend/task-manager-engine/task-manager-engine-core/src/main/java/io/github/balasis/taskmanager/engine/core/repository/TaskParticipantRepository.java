@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Set;
+
 @Repository
 public interface TaskParticipantRepository extends JpaRepository<TaskParticipant, Long> {
 
@@ -22,4 +24,6 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
           and tp.taskParticipantRole = io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole.REVIEWER
     """)
     void deleteReviewersByUserIdAndGroupId(@Param("userId") Long userId, @Param("groupId") Long groupId);
+
+    TaskParticipant findAllByTask_idAndUser_id(Long taskId,Long userId);
 }
