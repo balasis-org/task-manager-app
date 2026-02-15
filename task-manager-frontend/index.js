@@ -8,6 +8,34 @@ loginBtn.addEventListener('click', () => {
         });
 });
 
+// FAKE LOGIN (dev)
+const fakeLoginBtn = document.getElementById('fakeLoginBtn');
+const fakeUserSelect = document.getElementById('fakeUserSelect');
+
+fakeLoginBtn.addEventListener('click', async () => {
+    const email = fakeUserSelect.value;
+    const name = fakeUserSelect.options[fakeUserSelect.selectedIndex]?.text || email;
+
+    try {
+        const res = await fetch('/api/auth/fake-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, name })
+        });
+
+        const text = await res.text();
+        outputDiv.innerHTML = res.ok ? text : `Fake login failed: ${res.status}\n${text}`;
+
+        if (res.ok) {
+            // Cookies are HttpOnly; reload so subsequent calls are authenticated.
+            window.location.reload();
+        }
+    } catch (err) {
+        outputDiv.innerHTML = 'Error: ' + err.message;
+    }
+});
+
 // LOGOUT
 const logoutBtn = document.getElementById('logoutBtn');
 logoutBtn.addEventListener('click', () => {

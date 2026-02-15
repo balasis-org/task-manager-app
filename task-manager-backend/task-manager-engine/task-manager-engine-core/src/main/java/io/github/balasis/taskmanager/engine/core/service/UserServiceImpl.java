@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+@Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
 public class UserServiceImpl extends BaseComponent implements UserService {
     private final UserRepository userRepository;
     private final UserValidator userValidator;
@@ -26,13 +26,13 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private final BlobStorageService blobStorageService;
 
     @Override
-    @Transactional(readOnly = true)
     public User getMyProfile() {
         return userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
     }
 
     @Override
+    @Transactional
     public User patchMyProfile(User user) {
         var fetchedUser = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
@@ -48,6 +48,7 @@ public class UserServiceImpl extends BaseComponent implements UserService {
 
 
     @Override
+    @Transactional
     public User updateProfileImage(MultipartFile file){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));

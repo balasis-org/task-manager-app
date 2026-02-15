@@ -47,6 +47,14 @@ public class AuthController extends BaseComponent {
 
         response.addCookie(cookie);
 
+        Cookie refreshCookie = new Cookie("RefreshKey", null);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(0);
+
+        response.addCookie(refreshCookie);
+
         return ResponseEntity.noContent().build();
     }
 
