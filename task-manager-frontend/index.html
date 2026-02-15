@@ -16,6 +16,64 @@
 <button id="loginBtn">Login</button>
 <button id="logoutBtn">Logout</button>
 </div>
+
+<br>
+<div style="display:flex;justify-content: flex-start;gap:1.5em; align-items: center;">
+    <label>
+        Fake User:
+        <select id="fakeUserSelect">
+            <option value="alice.dev@example.com" selected>Alice Dev</option>
+            <option value="bob.dev@example.com">Bob Dev</option>
+            <option value="carol.dev@example.com">Carol Dev</option>
+            <option value="dave.dev@example.com">Dave Dev</option>
+            <option value="erin.dev@example.com">Erin Dev</option>
+            <option value="frank.dev@example.com">Frank Dev</option>
+            <option value="grace.dev@example.com">Grace Dev</option>
+            <option value="heidi.dev@example.com">Heidi Dev</option>
+            <option value="ivan.dev@example.com">Ivan Dev</option>
+            <option value="judy.dev@example.com">Judy Dev</option>
+        </select>
+    </label>
+    <button id="fakeLoginBtn">Fake Login</button>
+</div>
+
+<br><br>
+<h2>Smoke button guns</h2>
+
+<h3>Smoke A — Auth + Profile + Groups</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>GET /api/groups</li>
+</ul>
+<button id="smokeAuthProfileGroupsBtn" type="button">Run Smoke A</button>
+<pre id="smokeAuthProfileGroupsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Smoke B — Create Group + Create Task</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>POST /api/groups</li>
+    <li>(delay 1.5s)</li>
+    <li>POST /api/groups/{groupId}/tasks</li>
+</ul>
+<button id="smokeCreateGroupAndTaskBtn" type="button">Run Smoke B</button>
+<pre id="smokeCreateGroupAndTaskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Smoke C — Comment + Review Flow + Events (uses last Smoke B IDs)</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/comments</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/to-be-reviewed</li>
+    <li>(delay 0.5s)</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/review</li>
+    <li>GET /api/groups/{groupId}/events?page=0&amp;size=5</li>
+    <li>GET /api/groups/{groupId}</li>
+</ul>
+<button id="smokeCommentReviewEventsBtn" type="button">Run Smoke C</button>
+<pre id="smokeCommentReviewEventsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <br><br>
 <h2>Find groups</h2>
 <div id="output"></div>
@@ -23,11 +81,37 @@
 <button id="fetchBtn">Fetch Groups</button>
 <button id="clearBtn">Clear</button>
 <br><br>
+
+<h2>Get Group (with preview tasks)</h2>
+<form id="getGroupPreviewForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <button type="submit">Fetch</button>
+</form>
+<pre id="groupPreviewOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br>
+<h2>Group Events</h2>
+<form id="getGroupEventsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Fetch Events</button>
+</form>
+<pre id="groupEventsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br>
 <h2>Create a group</h2>
 <form id="createGroupForm">
     <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Title: <input type="text" name="name" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
+    <label>Announcement: <input type="text" name="Announcement"></label><br><br>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+        </select>
+    </label><br><br>
     </div>
     <br><br>
     <button id="createGroupBtn" type="submit">Create</button>
@@ -40,6 +124,14 @@
     <label>Group ID: <input type="number" name="groupId" required></label><br><br>
     <label>New Name: <input type="text" name="name"></label><br><br>
     <label>New Description: <input type="text" name="description"></label><br><br>
+    <label>Announcement: <input type="text" name="Announcement"></label><br><br>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="" selected>Empty</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+    </label><br><br>
     </div>
     <br><br>
     <button type="submit">Patch Group</button>
@@ -160,6 +252,31 @@
     <button type="submit" id="patchTaskBtn">PatchTask</button>
 </form>
 
+<br><br>
+<h2>Mark Task To-Be-Reviewed</h2>
+<form id="markToBeReviewedForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <button type="submit">Mark</button>
+</form>
+<pre id="markToBeReviewedOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br>
+<h2>Review Task</h2>
+<form id="reviewTaskForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Decision:
+        <select name="reviewersDecision">
+            <option value="APPROVE">APPROVE</option>
+            <option value="REJECT">REJECT</option>
+        </select>
+    </label>
+    <label>Review Comment: <input type="text" name="reviewComment"></label>
+    <button type="submit">Submit Review</button>
+</form>
+<pre id="reviewTaskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <br><br><br>
 <h2>Fetch Task</h2>
 <form id="fetchTaskForm">
@@ -206,6 +323,22 @@
 <pre id="myTasksOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
+<br><br><br>
+<h2>Task Preview Search (filters)</h2>
+<form id="searchTasksWithFiltersForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Creator ID: <input type="number" name="creatorId"></label>
+    <label>Creator is me: <input type="checkbox" name="creatorIsMe"></label>
+    <label>Reviewer ID: <input type="number" name="reviewerId"></label>
+    <label>Reviewer is me: <input type="checkbox" name="reviewerIsMe"></label>
+    <label>Assignee ID: <input type="number" name="assigneeId"></label>
+    <label>Assignee is me: <input type="checkbox" name="assigneeIsMe"></label>
+    <label>Due date before: <input type="datetime-local" name="dueDateBefore"></label>
+    <button type="submit">Search</button>
+</form>
+<pre id="searchTasksWithFiltersOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+
 <br><br>
 <h2>TaskParticipants / Files Management</h2>
 
@@ -239,6 +372,14 @@
     <button type="submit">Add File</button>
 </form>
 
+<h3>Add Assignee Task File</h3>
+<form id="addAssigneeTaskFileForm" enctype="multipart/form-data">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File: <input type="file" name="file" required></label>
+    <button type="submit">Add Assignee File</button>
+</form>
+
 <h3>Remove Task File</h3>
 <form id="removeTaskFileForm">
     <label>Group ID: <input type="number" name="groupId" required></label>
@@ -247,7 +388,54 @@
     <button type="submit">Remove File</button>
 </form>
 
+<h3>Remove Assignee Task File</h3>
+<form id="removeAssigneeTaskFileForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File ID: <input type="number" name="fileId" required></label>
+    <button type="submit">Remove Assignee File</button>
+</form>
+
 <pre id="managementOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br><br>
+<h2>Task Comments</h2>
+
+<h3>Add Comment</h3>
+<form id="addTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment: <input type="text" name="comment" required></label>
+    <button type="submit">Add</button>
+</form>
+
+<h3>List Comments</h3>
+<form id="listTaskCommentsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Fetch</button>
+</form>
+
+<h3>Patch Comment</h3>
+<form id="patchTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment ID: <input type="number" name="commentId" required></label>
+    <label>Comment: <input type="text" name="comment" required></label>
+    <button type="submit">Patch</button>
+</form>
+
+<h3>Delete Comment</h3>
+<form id="deleteTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment ID: <input type="number" name="commentId" required></label>
+    <button type="submit">Delete</button>
+</form>
+
+<pre id="taskCommentsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 <br><br><br>
 <h2>Invite User to Group</h2>
@@ -264,6 +452,7 @@
         </select>
     </label>
     <label>User ID: <input type="number" name="userId" required></label>
+    <label>Comment: <input type="text" name="comment"></label>
     <button type="submit">Send Invitation</button>
 </form>
 <pre id="invitationOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
@@ -287,6 +476,16 @@
 
 </pre>
 
+<br><br>
+<button id="findMySentInvitesBtn"> Find invites I sent </button>
+<pre id="findMySentInvitesOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Cancel Sent Invitation</h3>
+<form id="cancelSentInvitationForm">
+    <label>Invitation ID: <input type="number" name="invitationId" required></label>
+    <button type="submit">Cancel</button>
+</form>
+
 
 
 <h2>My Profile</h2>
@@ -296,7 +495,14 @@
 
 <h3>Edit Profile</h3>
 <form id="editProfileForm">
-    <label>Name: <input type="text" name="name" required></label>
+    <label>Name: <input type="text" name="name"></label>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="" selected>Empty</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+    </label>
     <button type="submit">Update Profile</button>
 </form>
 <pre id="editProfileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
@@ -319,6 +525,26 @@
 <div id="taskWithFilesOutput"
      style="border:1px solid #ccc; padding:10px; margin-top:10px;">
 </div>
+
+
+<br>
+<h3>Download Assignee File (by ID)</h3>
+<form id="downloadAssigneeFileForm">
+    <label>
+        Group ID:
+        <input type="number" name="groupId" required>
+    </label>
+    <label>
+        Task ID:
+        <input type="number" name="taskId" required>
+    </label>
+    <label>
+        File ID:
+        <input type="number" name="fileId" required>
+    </label>
+    <button type="submit">Download</button>
+</form>
+<pre id="downloadAssigneeFileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
 <br><br><br>
@@ -355,6 +581,17 @@
     <label>Size: <input type="number" name="size" value="10" min="1"></label>
     <button type="submit">Fetch Members</button>
 </form>
+
+<h3>Search Members</h3>
+<form id="searchMembershipsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Query (q): <input type="text" name="q"></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Search</button>
+</form>
+
+<pre id="searchMembershipsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 <pre id="membershipsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 <br><br><br>

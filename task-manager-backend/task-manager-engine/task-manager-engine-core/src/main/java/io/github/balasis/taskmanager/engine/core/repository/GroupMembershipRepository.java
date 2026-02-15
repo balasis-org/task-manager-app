@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -37,6 +38,15 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     void deleteAllByGroup_Id(Long groupId);
 
     Page<GroupMembership> findByGroup_Id(Long groupId, Pageable pageable);
+
+        @EntityGraph(attributePaths = {"user"})
+        @Query("""
+        select gm
+        from GroupMembership gm
+        where gm.group.id = :groupId
+            and (:q IS NULL OR lower(gm.user.name) like lower(concat('%', :q, '%')) OR lower(gm.user.email) like lower(concat('%', :q, '%')))
+""")
+        Page<GroupMembership> searchByGroupIdAndUser(@Param("groupId") Long groupId, @Param("q") String q, Pageable pageable);
 
 
     @Modifying

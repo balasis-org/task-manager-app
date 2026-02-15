@@ -38,4 +38,19 @@ public class GroupInvitationController extends BaseComponent {
         ));
     }
 
+    @GetMapping("/sent")
+    public ResponseEntity<Set<GroupInvitationOutboundResource>> findInvitationsSentByMe() {
+            return ResponseEntity.ok(groupInvitationOutboundMapper.toResources(
+                            groupService.findInvitationsSentByMe()
+            ));
+    }
+
+    @DeleteMapping("/{groupInvitationId}")
+    public ResponseEntity<Void> cancelInvitation(
+                    @PathVariable("groupInvitationId") Long groupInvitationId
+    ) {
+            groupService.cancelInvitation(groupInvitationId);
+            return ResponseEntity.noContent().build();
+    }
+
 }

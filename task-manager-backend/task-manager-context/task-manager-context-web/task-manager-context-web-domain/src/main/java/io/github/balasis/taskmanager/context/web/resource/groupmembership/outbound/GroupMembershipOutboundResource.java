@@ -5,6 +5,8 @@ import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutb
 import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import lombok.*;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @ToString
@@ -13,4 +15,5 @@ import lombok.*;
 public class GroupMembershipOutboundResource extends BaseOutboundResource {
     private UserOutboundResource user;
     private Role role;
+    private Instant lastSeenGroupEvents;
 }

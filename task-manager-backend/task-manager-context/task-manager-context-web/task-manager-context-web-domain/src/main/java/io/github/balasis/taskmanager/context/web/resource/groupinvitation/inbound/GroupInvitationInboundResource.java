@@ -17,4 +17,6 @@ public class GroupInvitationInboundResource extends BaseInboundResource {
     private Long userId;
 
     private Role userToBeInvitedRole;
+
+    private String comment;
 }

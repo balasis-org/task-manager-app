@@ -19,9 +19,15 @@ public interface GroupValidator extends BaseValidator<Group>{
     void validateRemoveTaskParticipant(Task task, Long groupId ,Long taskParticipantId);
 
     void validateAddTaskFile(Task task, Long groupId, MultipartFile file);
+    void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file);
     void validateDownloadTaskFile(Task task, Long groupId);
 
     void validateRemoveTaskFile(Task task, Long groupId, Long fileId);
+    void validateRemoveAssigneeTaskFile(Task task, Long groupId, Long fileId);
+
+    void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId);
+
+    void validateReviewTask(Task task, Long groupId, Long userId);
 
     void validateCreateGroupInvitation(GroupInvitation groupInvitation);
 
@@ -30,5 +36,12 @@ public interface GroupValidator extends BaseValidator<Group>{
     void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt);
 
     void validateChangeGroupMembershipRole(Long groupId,  Long targetUserId, Role newRole);
+
+    void validateTaskComment(Long groupId, Task task, String comment);
+
+    void validateTaskPatchComment(Long groupId, TaskComment existing, Long taskId, String comment);
+
+    void validateDeleteTask(Long groupId,TaskComment existing , Task task ,Long taskId);
+
 
 }

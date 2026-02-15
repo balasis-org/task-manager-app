@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -34,4 +36,15 @@ public class GroupInvitation extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InvitationStatus invitationStatus;
+
+    @Column(length = 500)
+    private String comment;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+    }
 }
