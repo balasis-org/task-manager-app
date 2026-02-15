@@ -241,6 +241,22 @@
 <pre id="myTasksOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
+<br><br><br>
+<h2>Task Preview Search (filters)</h2>
+<form id="searchTasksWithFiltersForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Creator ID: <input type="number" name="creatorId"></label>
+    <label>Creator is me: <input type="checkbox" name="creatorIsMe"></label>
+    <label>Reviewer ID: <input type="number" name="reviewerId"></label>
+    <label>Reviewer is me: <input type="checkbox" name="reviewerIsMe"></label>
+    <label>Assignee ID: <input type="number" name="assigneeId"></label>
+    <label>Assignee is me: <input type="checkbox" name="assigneeIsMe"></label>
+    <label>Due date before: <input type="datetime-local" name="dueDateBefore"></label>
+    <button type="submit">Search</button>
+</form>
+<pre id="searchTasksWithFiltersOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+
 <br><br>
 <h2>TaskParticipants / Files Management</h2>
 
@@ -342,6 +358,12 @@
 <br><br>
 <button id="findMySentInvitesBtn"> Find invites I sent </button>
 <pre id="findMySentInvitesOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Cancel Sent Invitation</h3>
+<form id="cancelSentInvitationForm">
+    <label>Invitation ID: <input type="number" name="invitationId" required></label>
+    <button type="submit">Cancel</button>
+</form>
 
 
 

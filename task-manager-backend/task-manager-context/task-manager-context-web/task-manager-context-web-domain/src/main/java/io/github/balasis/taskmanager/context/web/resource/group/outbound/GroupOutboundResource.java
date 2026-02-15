@@ -19,5 +19,6 @@ public class GroupOutboundResource extends BaseOutboundResource {
     private UserOutboundResource owner;
     private String Announcement;
     private Instant createdAt;
+    private Instant lastGroupEventDate;
     private Boolean allowEmailNotification;
 }

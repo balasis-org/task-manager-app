@@ -293,6 +293,47 @@ fetchMyTasksForm.addEventListener("submit", async (e) => {
 });
 
 
+// Task preview search with filters
+const searchTasksWithFiltersForm = document.getElementById("searchTasksWithFiltersForm");
+const searchTasksWithFiltersOutput = document.getElementById("searchTasksWithFiltersOutput");
+
+searchTasksWithFiltersForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(searchTasksWithFiltersForm);
+    const groupId = data.get("groupId");
+
+    const params = new URLSearchParams();
+
+    const creatorId = data.get("creatorId");
+    const reviewerId = data.get("reviewerId");
+    const assigneeId = data.get("assigneeId");
+
+    if (creatorId) params.append("creatorId", creatorId);
+    if (data.get("creatorIsMe") === "on") params.append("creatorIsMe", "true");
+
+    if (reviewerId) params.append("reviewerId", reviewerId);
+    if (data.get("reviewerIsMe") === "on") params.append("reviewerIsMe", "true");
+
+    if (assigneeId) params.append("assigneeId", assigneeId);
+    if (data.get("assigneeIsMe") === "on") params.append("assigneeIsMe", "true");
+
+    const dueDateBeforeRaw = data.get("dueDateBefore");
+    if (dueDateBeforeRaw) {
+        const iso = new Date(dueDateBeforeRaw).toISOString();
+        params.append("dueDateBefore", iso);
+    }
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/tasks/search?${params.toString()}`);
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        searchTasksWithFiltersOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        searchTasksWithFiltersOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+
 const managementOutput = document.getElementById("managementOutput");
 
 // ADD Participant
@@ -443,11 +484,61 @@ document.getElementById("inviteUserForm").addEventListener("submit", async e => 
 const findMyInvitesOutput = document.getElementById("findMyInvitesOutput");
 
 document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
-    try{
+    try {
+        // Important: /group-invitations/me marks invites as seen (updates lastSeenInvites).
+        // To compute "unread" we need the value *before* fetching invites.
+        const profileRes = await fetch("/api/users/me");
+        if (!profileRes.ok) throw new Error(await profileRes.text());
+        const profile = await profileRes.json();
+        const lastSeenInvitesBeforeFetch = profile?.lastSeenInvites ? new Date(profile.lastSeenInvites) : null;
+
         const res = await fetch("api/group-invitations/me");
-        const result = await res.json();
-        findMyInvitesOutput.innerHTML = res.ok ? JSON.stringify(result,null,2) : "";
-    }catch (err) {
+        if (!res.ok) throw new Error(await res.text());
+        const invites = await res.json();
+
+        const escapeHtml = (s) => String(s)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+
+        if (!Array.isArray(invites) || invites.length === 0) {
+            findMyInvitesOutput.innerHTML = "(none)";
+            return;
+        }
+
+        findMyInvitesOutput.innerHTML = invites.map(inv => {
+            const id = inv?.id;
+            const groupName = inv?.groupName ?? "";
+            const invitedByName = inv?.invitedBy?.name ?? "";
+            const invitedByEmail = inv?.invitedBy?.email ?? "";
+            const role = inv?.userToBeInvitedRole ?? "";
+            const comment = inv?.comment ?? "";
+            const createdAt = inv?.createdAt ?? "";
+
+            let unread = false;
+            if (createdAt && lastSeenInvitesBeforeFetch instanceof Date && !isNaN(lastSeenInvitesBeforeFetch)) {
+                const createdAtDate = new Date(createdAt);
+                if (!isNaN(createdAtDate)) {
+                    unread = createdAtDate > lastSeenInvitesBeforeFetch;
+                }
+            }
+
+            return `
+<div style="border:1px solid #ddd; padding:8px; margin-bottom:8px;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div><strong>ID</strong>: ${escapeHtml(id)}</div>
+    ${unread ? '<div style="font-weight:bold;">UNREAD</div>' : ''}
+  </div>
+  <div><strong>Group</strong>: ${escapeHtml(groupName)}</div>
+  <div><strong>From</strong>: ${escapeHtml(invitedByName)} ${invitedByEmail ? `(${escapeHtml(invitedByEmail)})` : ""}</div>
+  <div><strong>Role</strong>: ${escapeHtml(role)}</div>
+  <div><strong>Created</strong>: ${escapeHtml(createdAt)}</div>
+  <div><strong>Comment</strong>: ${escapeHtml(comment)}</div>
+</div>`;
+        }).join("");
+    } catch (err) {
         findMyInvitesOutput.innerHTML = `Error: ${err.message}`;
     }
 })
@@ -456,13 +547,82 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
 // Find invites I sent
 const findMySentInvitesOutput = document.getElementById("findMySentInvitesOutput");
 
+async function cancelInvitationById(invitationId) {
+    const res = await fetch(`/api/group-invitations/${invitationId}`, { method: "DELETE" });
+    if (!res.ok) {
+        throw new Error(await res.text());
+    }
+}
+
+function renderSentInvites(invites) {
+    if (!Array.isArray(invites) || invites.length === 0) {
+        findMySentInvitesOutput.innerHTML = "(none)";
+        return;
+    }
+
+    const escapeHtml = (s) => String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+
+    findMySentInvitesOutput.innerHTML = invites.map(inv => {
+        const id = inv?.id;
+        const groupName = inv?.groupName ?? "";
+        const userName = inv?.user?.name ?? "";
+        const userEmail = inv?.user?.email ?? "";
+        const role = inv?.userToBeInvitedRole ?? "";
+        const comment = inv?.comment ?? "";
+        const createdAt = inv?.createdAt ?? "";
+        return `
+<div style="border:1px solid #ddd; padding:8px; margin-bottom:8px;">
+  <div><strong>ID</strong>: ${escapeHtml(id)}</div>
+  <div><strong>Group</strong>: ${escapeHtml(groupName)}</div>
+  <div><strong>To</strong>: ${escapeHtml(userName)} ${userEmail ? `(${escapeHtml(userEmail)})` : ""}</div>
+  <div><strong>Role</strong>: ${escapeHtml(role)}</div>
+  <div><strong>Created</strong>: ${escapeHtml(createdAt)}</div>
+  <div><strong>Comment</strong>: ${escapeHtml(comment)}</div>
+  <button type="button" data-cancel-invite-id="${escapeHtml(id)}">Cancel</button>
+</div>`;
+    }).join("");
+
+    // Attach handlers
+    findMySentInvitesOutput.querySelectorAll("button[data-cancel-invite-id]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-cancel-invite-id");
+            try {
+                await cancelInvitationById(id);
+                btn.textContent = "Canceled";
+                btn.disabled = true;
+            } catch (err) {
+                alert(`Cancel failed: ${err.message}`);
+            }
+        });
+    });
+}
+
 document.querySelector("#findMySentInvitesBtn").addEventListener("click", async () => {
     try {
         const res = await fetch("api/group-invitations/sent");
         const result = await res.json();
-        findMySentInvitesOutput.innerHTML = res.ok ? JSON.stringify(result, null, 2) : "";
+        if (!res.ok) throw new Error(JSON.stringify(result));
+        renderSentInvites(result);
     } catch (err) {
         findMySentInvitesOutput.innerHTML = `Error: ${err.message}`;
+    }
+});
+
+
+// Cancel invite (manual)
+document.getElementById("cancelSentInvitationForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const invitationId = e.target.invitationId.value;
+    try {
+        await cancelInvitationById(invitationId);
+        alert(`Invitation ${invitationId} canceled.`);
+    } catch (err) {
+        alert(`Cancel failed: ${err.message}`);
     }
 });
 
