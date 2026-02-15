@@ -16,13 +16,12 @@ spring:
       ddl-auto: create
     properties:
       hibernate:
-        generate_statistics: true
-        dialect: org.hibernate.dialect.SQLServerDialect
-    show-sql: true
+        generate_statistics: false
+    show-sql: false
 
 logging:
   level:
     root: info
     io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    org.springframework.transaction.interceptor: info
     io.opentelemetry.exporter.otlp=DEBUG: DEBUG

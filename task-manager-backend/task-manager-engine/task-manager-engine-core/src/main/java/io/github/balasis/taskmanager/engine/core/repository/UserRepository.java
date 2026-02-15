@@ -8,5 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
-    Optional<User> findByAzureId(String azureId);
+    Optional<User> findByAzureKey(String azureKey);
+
+    Optional<User> findByEmail(String email);
+
+    boolean existsByAzureKey(String azureKey);
 }
