@@ -48,4 +48,18 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
         WHERE gi.invitedBy.id = :invitedById
         """)
     Set<GroupInvitation> findAllSentByInvitedByIdWithFetch(@Param("invitedById") Long invitedById);
+
+    @Query("""
+        SELECT gi
+        FROM GroupInvitation gi
+        JOIN FETCH gi.group
+        JOIN FETCH gi.user
+        JOIN FETCH gi.invitedBy
+        WHERE gi.invitedBy.id = :invitedById
+          AND gi.invitationStatus = :status
+        """)
+    Set<GroupInvitation> findAllSentByInvitedByIdAndStatusWithFetch(
+        @Param("invitedById") Long invitedById,
+        @Param("status") InvitationStatus status
+    );
 }

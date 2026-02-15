@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
@@ -487,16 +488,42 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Set<GroupInvitation> findMyGroupInvitations() {
+        Long userId = effectiveCurrentUser.getUserId();
+        var me = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        me.setLastSeenInvites(Instant.now());
+        userRepository.save(me);
+
         return groupInvitationRepository.findIncomingByUserIdAndStatusWithFetch(
-                effectiveCurrentUser.getUserId(), InvitationStatus.PENDING);
+                userId, InvitationStatus.PENDING);
+    }
+
+    @Override
+    public void cancelInvitation(Long invitationId) {
+        var invitation = groupInvitationRepository.findById(invitationId)
+                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+
+        if (invitation.getInvitationStatus() != InvitationStatus.PENDING) {
+            throw new RuntimeException("Invitation is already processed");
+        }
+
+        Long currentUserId = effectiveCurrentUser.getUserId();
+        if (invitation.getInvitedBy() == null || !Objects.equals(invitation.getInvitedBy().getId(), currentUserId)) {
+            throw new UnauthorizedException("You are not allowed to cancel this invitation");
+        }
+
+        groupInvitationRepository.delete(invitation);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Set<GroupInvitation> findInvitationsSentByMe() {
-        return groupInvitationRepository.findAllSentByInvitedByIdWithFetch(effectiveCurrentUser.getUserId());
+        return groupInvitationRepository.findAllSentByInvitedByIdAndStatusWithFetch(
+                effectiveCurrentUser.getUserId(),
+                InvitationStatus.PENDING
+        );
     }
 
 
@@ -560,12 +587,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             }
         }
         taskRepository.save(savedTask);
-//        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
-        //ToDO: email development to be added later. Message unified for all roles but one per id
-        // included, email message example to be added:
-        // New task created: “Fix invoice bug”
-        // You were added to this task.
-        // [Open task link]
+
         var thefetchedOne = taskRepository.findByIdWithFullFetchParticipantsAndFiles(savedTask.getId()).orElseThrow(
                 () -> new TaskNotFoundException("Something went wrong with the create process of task." +
                 "If the problem insist during creation conduct us and provide one of the tasks ID. Current taskId:"

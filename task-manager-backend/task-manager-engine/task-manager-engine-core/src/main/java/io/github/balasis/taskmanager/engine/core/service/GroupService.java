@@ -35,6 +35,7 @@ public interface GroupService{
     //GroupInvitations
     GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited, String comment);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
+    void cancelInvitation(Long invitationId);
     Set<GroupInvitation> findMyGroupInvitations();
     Set<GroupInvitation> findInvitationsSentByMe();
 
