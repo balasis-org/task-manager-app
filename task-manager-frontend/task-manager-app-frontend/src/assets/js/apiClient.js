@@ -1,4 +1,4 @@
-import API_BASE from "@apiBbase";
+import API_BASE from "@apiBase";
 
 let authHandlers = {
     onUnauthorized: null,
