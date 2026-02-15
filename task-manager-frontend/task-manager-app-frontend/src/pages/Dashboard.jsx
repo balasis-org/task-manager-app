@@ -1,7 +1,7 @@
-import "@styles/pages/Home.css";
+import "@styles/pages/Dashboard.css";
 
 
-export default function Home() {
+export default function Dashboard() {
     return (
         <div
             style={{
