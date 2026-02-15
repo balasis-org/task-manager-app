@@ -28,6 +28,13 @@
     <div style="display:flex;justify-content: flex-start;gap:1.5em;">
     <label>Title: <input type="text" name="name" required></label><br><br>
     <label>Description: <input type="text" name="description" required></label><br><br>
+    <label>Announcement: <input type="text" name="Announcement"></label><br><br>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+        </select>
+    </label><br><br>
     </div>
     <br><br>
     <button id="createGroupBtn" type="submit">Create</button>
@@ -40,6 +47,14 @@
     <label>Group ID: <input type="number" name="groupId" required></label><br><br>
     <label>New Name: <input type="text" name="name"></label><br><br>
     <label>New Description: <input type="text" name="description"></label><br><br>
+    <label>Announcement: <input type="text" name="Announcement"></label><br><br>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="" selected>Empty</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+    </label><br><br>
     </div>
     <br><br>
     <button type="submit">Patch Group</button>
@@ -239,12 +254,28 @@
     <button type="submit">Add File</button>
 </form>
 
+<h3>Add Assignee Task File</h3>
+<form id="addAssigneeTaskFileForm" enctype="multipart/form-data">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File: <input type="file" name="file" required></label>
+    <button type="submit">Add Assignee File</button>
+</form>
+
 <h3>Remove Task File</h3>
 <form id="removeTaskFileForm">
     <label>Group ID: <input type="number" name="groupId" required></label>
     <label>Task ID: <input type="number" name="taskId" required></label>
     <label>File ID: <input type="number" name="fileId" required></label>
     <button type="submit">Remove File</button>
+</form>
+
+<h3>Remove Assignee Task File</h3>
+<form id="removeAssigneeTaskFileForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>File ID: <input type="number" name="fileId" required></label>
+    <button type="submit">Remove Assignee File</button>
 </form>
 
 <pre id="managementOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
@@ -264,6 +295,7 @@
         </select>
     </label>
     <label>User ID: <input type="number" name="userId" required></label>
+    <label>Comment: <input type="text" name="comment"></label>
     <button type="submit">Send Invitation</button>
 </form>
 <pre id="invitationOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
@@ -287,6 +319,10 @@
 
 </pre>
 
+<br><br>
+<button id="findMySentInvitesBtn"> Find invites I sent </button>
+<pre id="findMySentInvitesOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 
 
 <h2>My Profile</h2>
@@ -296,7 +332,14 @@
 
 <h3>Edit Profile</h3>
 <form id="editProfileForm">
-    <label>Name: <input type="text" name="name" required></label>
+    <label>Name: <input type="text" name="name"></label>
+    <label>Allow Email Notifications:
+        <select name="allowEmailNotification">
+            <option value="" selected>Empty</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+    </label>
     <button type="submit">Update Profile</button>
 </form>
 <pre id="editProfileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
@@ -319,6 +362,26 @@
 <div id="taskWithFilesOutput"
      style="border:1px solid #ccc; padding:10px; margin-top:10px;">
 </div>
+
+
+<br>
+<h3>Download Assignee File (by ID)</h3>
+<form id="downloadAssigneeFileForm">
+    <label>
+        Group ID:
+        <input type="number" name="groupId" required>
+    </label>
+    <label>
+        Task ID:
+        <input type="number" name="taskId" required>
+    </label>
+    <label>
+        File ID:
+        <input type="number" name="fileId" required>
+    </label>
+    <button type="submit">Download</button>
+</form>
+<pre id="downloadAssigneeFileOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 
 <br><br><br>
@@ -355,6 +418,17 @@
     <label>Size: <input type="number" name="size" value="10" min="1"></label>
     <button type="submit">Fetch Members</button>
 </form>
+
+<h3>Search Members</h3>
+<form id="searchMembershipsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Query (q): <input type="text" name="q"></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Search</button>
+</form>
+
+<pre id="searchMembershipsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 <pre id="membershipsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 <br><br><br>

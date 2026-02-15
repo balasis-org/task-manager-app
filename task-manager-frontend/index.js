@@ -327,6 +327,24 @@ document.getElementById("addTaskFileForm").addEventListener("submit", async e =>
     }
 });
 
+// ADD ASSIGNEE TASK FILE API
+document.getElementById("addAssigneeTaskFileForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignee-files`, {
+            method: "POST",
+            body: data
+        });
+        managementOutput.textContent = res.ok ? `Assignee file uploaded.` : `Failed: ${res.status}`;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
 // remove task file api
 document.getElementById("removeTaskFileForm").addEventListener("submit", async e => {
     e.preventDefault();
@@ -343,6 +361,22 @@ document.getElementById("removeTaskFileForm").addEventListener("submit", async e
     }
 });
 
+// remove assignee task file api
+document.getElementById("removeAssigneeTaskFileForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const fileId = data.get("fileId");
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}`, { method: "DELETE" });
+        managementOutput.textContent = res.ok ? `Assignee file ${fileId} removed.` : `Failed: ${res.status}`;
+    } catch (err) {
+        managementOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
 
 const invitationOutput = document.getElementById("invitationOutput");
 
@@ -353,13 +387,18 @@ document.getElementById("inviteUserForm").addEventListener("submit", async e => 
     const groupId = data.get("groupId");
     const userId = data.get("userId");
     const userToBeInvitedRole = data.get("userToBeInvitedRole")
+    const comment = data.get("comment");
     console.log(userToBeInvitedRole);
 
     try {
         const res = await fetch(`/api/groups/${groupId}/invite`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: Number(userId) , userToBeInvitedRole:userToBeInvitedRole })
+            body: JSON.stringify({
+                userId: Number(userId),
+                userToBeInvitedRole: userToBeInvitedRole,
+                comment: comment && comment.trim() !== "" ? comment.trim() : null
+            })
         });
         if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
@@ -384,6 +423,20 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
         findMyInvitesOutput.innerHTML = `Error: ${err.message}`;
     }
 })
+
+
+// Find invites I sent
+const findMySentInvitesOutput = document.getElementById("findMySentInvitesOutput");
+
+document.querySelector("#findMySentInvitesBtn").addEventListener("click", async () => {
+    try {
+        const res = await fetch("api/group-invitations/sent");
+        const result = await res.json();
+        findMySentInvitesOutput.innerHTML = res.ok ? JSON.stringify(result, null, 2) : "";
+    } catch (err) {
+        findMySentInvitesOutput.innerHTML = `Error: ${err.message}`;
+    }
+});
 
 
 
@@ -430,7 +483,12 @@ const editProfileOutput = document.getElementById("editProfileOutput");
 editProfileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(editProfileForm);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = {};
+    for (const [key, value] of formData.entries()) {
+        if (value === null || value === undefined) continue;
+        if (typeof value === "string" && value.trim() === "") continue;
+        payload[key] = value;
+    }
 
     try {
         const res = await fetch("/api/users/me", {
@@ -466,9 +524,7 @@ fetchTaskWithFilesForm.addEventListener("submit", async (e) => {
 
         const task = await res.json();
 
-        let html = `
-            <h4>Files</h4>
-        `;
+        let html = `<h4>Files</h4>`;
 
         if (!task.files || task.files.length === 0) {
             html += `<p>No files attached.</p>`;
@@ -488,11 +544,50 @@ fetchTaskWithFilesForm.addEventListener("submit", async (e) => {
             html += `</ul>`;
         }
 
+        html += `<h4>Assignee Files</h4>`;
+
+        if (!task.assigneeFiles || task.assigneeFiles.length === 0) {
+            html += `<p>No assignee files attached.</p>`;
+        } else {
+            html += `<ul>`;
+            task.assigneeFiles.forEach(file => {
+                html += `
+                    <li>
+                        ${file.name}
+                        —
+                        <a href="/api/groups/${groupId}/task/${taskId}/assignee-files/${file.id}/download">
+                            Download
+                        </a>
+                    </li>
+                `;
+            });
+            html += `</ul>`;
+        }
+
         taskWithFilesOutput.innerHTML = html;
 
     } catch (err) {
         taskWithFilesOutput.innerHTML = `Failed: ${err.message}`;
     }
+});
+
+
+// download assignee task file by id
+const downloadAssigneeFileForm = document.getElementById("downloadAssigneeFileForm");
+const downloadAssigneeFileOutput = document.getElementById("downloadAssigneeFileOutput");
+
+downloadAssigneeFileForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(downloadAssigneeFileForm);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const fileId = data.get("fileId");
+
+    const url = `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}/download`;
+    downloadAssigneeFileOutput.textContent = `Opening: ${url}`;
+
+    // Use a navigation-based download to preserve Content-Disposition filename.
+    window.open(url, "_blank");
 });
 
 
@@ -574,6 +669,45 @@ membershipsForm.addEventListener("submit", async (e) => {
         membershipsOutput.textContent = JSON.stringify(output, null, 2);
     } catch (err) {
         membershipsOutput.textContent = `Failed: ${err.message}`;
+    }
+});
+
+
+// search group members
+const searchMembershipsForm = document.getElementById("searchMembershipsForm");
+const searchMembershipsOutput = document.getElementById("searchMembershipsOutput");
+
+searchMembershipsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(searchMembershipsForm);
+    const groupId = formData.get("groupId");
+    const q = formData.get("q") || "";
+    const page = formData.get("page") || 0;
+    const size = formData.get("size") || 10;
+
+    const params = new URLSearchParams();
+    if (q && q.trim() !== "") params.append("q", q);
+    params.append("page", page);
+    params.append("size", size);
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/groupMemberships/search?${params.toString()}`);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+
+        const data = await res.json();
+
+        const output = {
+            page: data.number,
+            size: data.size,
+            totalElements: data.totalElements,
+            totalPages: data.totalPages,
+            content: data.content
+        };
+
+        searchMembershipsOutput.textContent = JSON.stringify(output, null, 2);
+    } catch (err) {
+        searchMembershipsOutput.textContent = `Failed: ${err.message}`;
     }
 });
 
