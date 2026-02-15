@@ -86,11 +86,33 @@ public class GroupValidatorImpl implements GroupValidator{
         var membership = groupMembershipRepository
                 .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
-        boolean allowed = membership.getRole() == Role.GROUP_LEADER ||membership.getRole() == Role.TASK_MANAGER;
-        if (!allowed) {
+        boolean isLeaderOrManager = membership.getRole() == Role.GROUP_LEADER || membership.getRole() == Role.TASK_MANAGER;
+        if (!isLeaderOrManager) {
             throw new UnauthorizedException("You do not have the rights to upload in this task");
         }
         isFileEmpty(file);
+        ensureMaxFiles(task.getCreatorFiles().size(), 3);
+    }
+
+    @Override
+    public void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file) {
+        doesTaskBelongToGroup(task, groupId);
+        var membership = groupMembershipRepository
+                .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
+
+        boolean isLeaderOrManager = membership.getRole() == Role.GROUP_LEADER || membership.getRole() == Role.TASK_MANAGER;
+        boolean isAssignee = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE
+                        && tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
+
+        boolean allowed = isLeaderOrManager || isAssignee;
+        if (!allowed) {
+            throw new UnauthorizedException("You do not have the rights to upload assignee files in this task");
+        }
+
+        isFileEmpty(file);
+        ensureMaxFiles(task.getAssigneeFiles().size(), 3);
     }
 
     @Override
@@ -121,6 +143,44 @@ public class GroupValidatorImpl implements GroupValidator{
     public void validateRemoveTaskFile(Task task, Long groupId, Long fileId) {
         doesTaskBelongToGroup(task,groupId);
         doesTheFileExistInGroup(task,fileId);
+
+        var membership = groupMembershipRepository
+                .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
+
+        boolean isLeaderOrManager = membership.getRole() == Role.GROUP_LEADER || membership.getRole() == Role.TASK_MANAGER;
+        if (!isLeaderOrManager) {
+            throw new UnauthorizedException("You do not have the rights to remove creator files from this task");
+        }
+    }
+
+    @Override
+    public void validateRemoveAssigneeTaskFile(Task task, Long groupId, Long fileId) {
+        doesTaskBelongToGroup(task, groupId);
+        doesAssigneeFileExistInTask(task, fileId);
+
+        var membership = groupMembershipRepository
+                .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("User not part of the group"));
+
+        boolean isLeaderOrManager = membership.getRole() == Role.GROUP_LEADER || membership.getRole() == Role.TASK_MANAGER;
+        boolean isAssignee = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE
+                        && tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
+        if (!(isLeaderOrManager || isAssignee)) {
+            throw new UnauthorizedException("You do not have the rights to remove assignee files from this task");
+        }
+    }
+
+    @Override
+    public void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId) {
+        doesTaskBelongToGroup(task, groupId);
+        boolean isAssignee = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE
+                        && tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
+        if (!isAssignee) {
+            throw new UnauthorizedException("Only assignees can move the task to TO_BE_REVIEWED");
+        }
     }
 
     @Override
@@ -368,9 +428,22 @@ public class GroupValidatorImpl implements GroupValidator{
 
 
     private void doesTheFileExistInGroup(Task task, Long fileId){
-        boolean fileExists = task.getFiles().stream().anyMatch(f -> f.getId().equals(fileId));
+        boolean fileExists = task.getCreatorFiles().stream().anyMatch(f -> f.getId().equals(fileId));
         if (!fileExists) {
             throw new InvalidFieldValueException("File does not exist in the task");
+        }
+    }
+
+    private void doesAssigneeFileExistInTask(Task task, Long fileId) {
+        boolean fileExists = task.getAssigneeFiles().stream().anyMatch(f -> f.getId().equals(fileId));
+        if (!fileExists) {
+            throw new InvalidFieldValueException("Assignee file does not exist in the task");
+        }
+    }
+
+    private void ensureMaxFiles(int currentCount, int max) {
+        if (currentCount >= max) {
+            throw new InvalidFieldValueException("Maximum " + max + " files allowed");
         }
     }
 

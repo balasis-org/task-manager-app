@@ -15,4 +15,5 @@ public class GroupInboundResource extends BaseInboundResource {
     private String name;
     private String description;
     private String Announcement;
+    private Boolean allowEmailNotification;
 }

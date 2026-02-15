@@ -16,4 +16,5 @@ public class UserOutboundResource extends BaseOutboundResource {
     private String defaultImgUrl;
     private String imgUrl;
     private Instant lastSeenInvites;
+    private Boolean allowEmailNotification;
 }

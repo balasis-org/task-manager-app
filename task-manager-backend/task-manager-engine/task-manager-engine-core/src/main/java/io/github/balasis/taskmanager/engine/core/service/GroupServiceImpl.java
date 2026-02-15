@@ -1,7 +1,6 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
@@ -21,8 +20,10 @@ import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,14 +49,22 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final TaskCommentRepository taskCommentRepository;
     private final TaskParticipantRepository taskParticipantRepository;
     private final TaskFileRepository taskFileRepository;
+    private final TaskAssigneeFileRepository taskAssigneeFileRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final GroupEventRepository groupEventRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
-//    private final EmailClient emailClient;
+    private final ObjectProvider<EmailClient> emailClientProvider;
     private final BlobStorageService blobStorageService;
     private final AuthorizationService authorizationService;
     private final DefaultImageService defaultImageService;
     private final GroupInvitationRepository groupInvitationRepository;
+
+
+    private Instant touchLastGroupEventDate(Group group) {
+        Instant now = Instant.now();
+        group.setLastGroupEventDate(now);
+        return now;
+    }
 
 
     @Override
@@ -98,6 +106,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (group.getName() != null) {
             String previousName = existingGroup.getName();
             existingGroup.setName(group.getName());
+            touchLastGroupEventDate(existingGroup);
             var gEvName = GroupEvent.builder().group(existingGroup)
                     .description("Group has been renamed from " + previousName +
                             " to " + group.getName()).build();
@@ -105,6 +114,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
         if (group.getDescription() != null) {
             existingGroup.setDescription(group.getDescription());
+            touchLastGroupEventDate(existingGroup);
             var gEvDesc =  GroupEvent.builder().group(existingGroup)
                     .description("Group Description has been changed")
                     .build();
@@ -112,11 +122,25 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
         if (group.getAnnouncement() != null) {
             existingGroup.setAnnouncement(group.getAnnouncement());
+            touchLastGroupEventDate(existingGroup);
             var gEvAnn =  GroupEvent.builder().group(existingGroup)
                     .description("Group Announcement has been changed")
                     .build();
             groupEventRepository.save(gEvAnn);
         }
+
+        if (group.getAllowEmailNotification() != null) {
+            existingGroup.setAllowEmailNotification(group.getAllowEmailNotification());
+            touchLastGroupEventDate(existingGroup);
+            var gEvAllowEmail =  GroupEvent.builder().group(existingGroup)
+                    .description(  (group.getAllowEmailNotification()
+                    ? "Group email notifications are enabled"
+                    : "Group email notifications are disabled"))
+                    .build();
+            groupEventRepository.save(gEvAllowEmail);
+        }
+
+
 
         return groupRepository.save(existingGroup);
     }
@@ -148,6 +172,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable) {
         authorizationService.requireAnyRoleIn(groupId);
         return groupMembershipRepository.findByGroup_Id(groupId, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<GroupMembership> searchGroupMembers(Long groupId, String q, Pageable pageable) {
+        authorizationService.requireAnyRoleIn(groupId);
+        String normalized = (q == null || q.isBlank()) ? null : q.trim();
+        return groupMembershipRepository.searchByGroupIdAndUser(groupId, normalized, pageable);
     }
 
     @Override
@@ -319,6 +351,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskCommentRepository.findAllByTask_id(taskId,pageable);
     }
 
+
     @Override
     @Transactional
     public void removeGroupMember(Long groupId, Long groupMembershipId) {
@@ -340,6 +373,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         var targetsName = userRepository.findById(targetsId).orElseThrow().getName();
         GroupEvent ge;
         Group gr = groupRepository.getReferenceById(groupId);
+        touchLastGroupEventDate(gr);
 
         ge = GroupEvent.builder()
                 .group(gr)
@@ -379,23 +413,51 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             taskParticipantRepository.deleteReviewersByUserIdAndGroupId(target.getUser().getId(), groupId);
         }
         target.setRole(newRole);
-        return groupMembershipRepository.save(target);
+        GroupMembership saved = groupMembershipRepository.save(target);
+        // evict cache for this group to keep member listings fresh
+        // Note: @CacheEvict on this method would be ideal; using CacheEvict annotation requires method-level placement.
+        return saved;
     }
 
 
     @Override
-    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole){
+    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole, String comment){
         authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+
+        var group = groupRepository.findById(groupId).orElseThrow();
+        var targetUser = userRepository.findById(userToBeInvited)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        var inviter = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Inviter not found"));
+
         var groupInvitation = GroupInvitation.builder()
                 .user(userRepository.getReferenceById(userToBeInvited))
                 .invitationStatus(InvitationStatus.PENDING)
                 .invitedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
-                .group(groupRepository.findById(groupId).orElseThrow())
+                .group(group)
                 .userToBeInvitedRole( (userToBeInvitedRole == null) ? Role.MEMBER : userToBeInvitedRole)
+            .comment((comment == null || comment.isBlank()) ? null : comment.trim())
                 .build();
         groupValidator.validateCreateGroupInvitation(groupInvitation);
 
-        return groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+
+        boolean groupAllows = Boolean.TRUE.equals(group.getAllowEmailNotification());
+        boolean userAllows = Boolean.TRUE.equals(targetUser.getAllowEmailNotification());
+
+        if (groupAllows && userAllows && targetUser.getEmail() != null && !targetUser.getEmail().isBlank()) {
+            EmailClient emailClient = emailClientProvider.getIfAvailable();
+            if (emailClient != null) {
+                String subject = "Group invitation: " + group.getName();
+                String body = "You have been invited to join the group '" + group.getName() + "' by " + inviter.getName() + ".";
+                if (saved.getComment() != null && !saved.getComment().isBlank()) {
+                    body += "\n\nInviters comment: " + saved.getComment();
+                }
+                emailClient.sendEmail(targetUser.getEmail(), subject, body);
+            }
+        }
+
+        return saved;
     }
 
         @Override
@@ -413,6 +475,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                             .build()
             );
         }
+
+        touchLastGroupEventDate(groupInvitation.getGroup());
         groupEventRepository.save(GroupEvent.builder()
                 .group(groupInvitation.getGroup())
                 .description(groupInvitation.getUser().getName() + " has been added to the group")
@@ -425,8 +489,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     @Transactional(readOnly = true)
     public Set<GroupInvitation> findMyGroupInvitations() {
-        return groupInvitationRepository.findByUser_IdAndInvitationStatus(
-                effectiveCurrentUser.getUserId(),InvitationStatus.PENDING);
+        return groupInvitationRepository.findIncomingByUserIdAndStatusWithFetch(
+                effectiveCurrentUser.getUserId(), InvitationStatus.PENDING);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<GroupInvitation> findInvitationsSentByMe() {
+        return groupInvitationRepository.findAllSentByInvitedByIdWithFetch(effectiveCurrentUser.getUserId());
     }
 
 
@@ -475,17 +545,19 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         if (files != null && !files.isEmpty()) {
+            if (files.size() > 3) {
+                throw new InvalidFieldValueException("Maximum 3 files allowed");
+            }
 
-                for (MultipartFile file : files){
-                    System.out.println("Loop Of " + file.getOriginalFilename());
-                    String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
-                    var taskFile = TaskFile.builder()
-                            .fileUrl(url)
-                            .name(file.getOriginalFilename())
-                            .task(savedTask)
-                            .build();
-                    savedTask.getFiles().add(taskFile);
-                }
+            for (MultipartFile file : files){
+                String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
+                var taskFile = TaskFile.builder()
+                        .fileUrl(url)
+                        .name(file.getOriginalFilename())
+                        .task(savedTask)
+                        .build();
+                savedTask.getCreatorFiles().add(taskFile);
+            }
         }
         taskRepository.save(savedTask);
 //        emailClient.sendEmail("giovani1994a@gmail.com","testSub","the body message");
@@ -614,7 +686,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateAddTaskFile(task, groupId, file);
         String url = blobStorageService.uploadTaskFile(file,taskId);
-        task.getFiles().add(TaskFile.builder()
+        task.getCreatorFiles().add(TaskFile.builder()
                 .task(task)
                 .name(file.getOriginalFilename())
                 .fileUrl(url)
@@ -632,7 +704,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupValidator.validateDownloadTaskFile(task, groupId);
 
-        TaskFile file = task.getFiles().stream()
+        TaskFile file = task.getCreatorFiles().stream()
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
@@ -647,20 +719,88 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public void removeTaskFile(Long groupId, Long taskId, Long fileId) {
-        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
-        var task = taskRepository.findByIdWithFilesAndGroup(taskId)
+    authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
         groupValidator.validateRemoveTaskFile(task, groupId, fileId);
 
-        TaskFile file = task.getFiles().stream()
+        TaskFile file = task.getCreatorFiles().stream()
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow();
 
-        blobStorageService.deleteTaskFile(file.getFileUrl());
-        task.getFiles().remove(file);
+        task.getCreatorFiles().remove(file);
         taskFileRepository.delete(file);
     }
+
+        @Override
+        public Task addAssigneeTaskFile(Long groupId, Long taskId, MultipartFile file) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+            .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateAddAssigneeTaskFile(task, groupId, file);
+
+        String url = blobStorageService.uploadTaskFile(file, taskId);
+        task.getAssigneeFiles().add(TaskAssigneeFile.builder()
+            .task(task)
+            .name(file.getOriginalFilename())
+            .fileUrl(url)
+            .build());
+        return taskRepository.save(task);
+        }
+
+        @Override
+        public void removeAssigneeTaskFile(Long groupId, Long taskId, Long fileId) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+            var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+            .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateRemoveAssigneeTaskFile(task, groupId, fileId);
+
+        TaskAssigneeFile file = task.getAssigneeFiles().stream()
+            .filter(f -> f.getId().equals(fileId))
+            .findFirst()
+            .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+
+        task.getAssigneeFiles().remove(file);
+        taskAssigneeFileRepository.delete(file);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public TaskFileDownload downloadAssigneeTaskFile(Long groupId, Long taskId, Long fileId) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+            .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateDownloadTaskFile(task, groupId);
+
+        TaskAssigneeFile file = task.getAssigneeFiles().stream()
+            .filter(f -> f.getId().equals(fileId))
+            .findFirst()
+            .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+        byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
+        return new TaskFileDownload(data, file.getName());
+        }
+
+        @Override
+        public Task markTaskToBeReviewed(Long groupId, Long taskId) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findByIdWithTaskParticipants(taskId)
+            .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateAssigneeMarkTaskToBeReviewed(task, groupId);
+        task.setTaskState(TaskState.TO_BE_REVIEWED);
+        taskRepository.save(task);
+
+        return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+            .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        }
 
     @Override
     @Transactional

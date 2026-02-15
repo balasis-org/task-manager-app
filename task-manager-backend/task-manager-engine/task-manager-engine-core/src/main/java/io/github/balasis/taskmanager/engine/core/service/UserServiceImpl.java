@@ -40,6 +40,9 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         if (user.getName()!=null){
             fetchedUser.setName(user.getName());
         }
+        if (user.getAllowEmailNotification() != null) {
+            fetchedUser.setAllowEmailNotification(user.getAllowEmailNotification());
+        }
         return fetchedUser;
     }
 

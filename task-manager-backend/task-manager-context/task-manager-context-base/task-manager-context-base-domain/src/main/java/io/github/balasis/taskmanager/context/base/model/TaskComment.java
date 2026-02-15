@@ -17,6 +17,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "TaskComments")
 public class TaskComment extends BaseModel{
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn
     private Task task;

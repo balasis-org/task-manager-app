@@ -13,6 +13,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Optional;
 
@@ -27,10 +28,11 @@ class GroupServiceTest {
     private TaskCommentRepository taskCommentRepository;
     private TaskParticipantRepository taskParticipantRepository;
     private TaskFileRepository taskFileRepository;
+    private TaskAssigneeFileRepository taskAssigneeFileRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private GroupEventRepository groupEventRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
-//    private EmailClient emailClient;
+    private ObjectProvider<EmailClient> emailClientProvider;
     private BlobStorageService blobStorageService;
     private GroupServiceImpl groupService;
     private AuthorizationService authorizationService;
@@ -47,11 +49,12 @@ class GroupServiceTest {
         taskParticipantRepository = mock(TaskParticipantRepository.class);
 
         taskFileRepository = mock(TaskFileRepository.class);
+        taskAssigneeFileRepository = mock(TaskAssigneeFileRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         groupEventRepository = mock (GroupEventRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
 
-//        emailClient = mock(EmailClient.class);
+        emailClientProvider = mock(ObjectProvider.class);
         blobStorageService = mock(BlobStorageService.class);
         authorizationService = mock(AuthorizationService.class);
         defaultImageService = mock(DefaultImageService.class);
@@ -64,10 +67,11 @@ class GroupServiceTest {
             taskCommentRepository,
                 taskParticipantRepository,
                 taskFileRepository,
+                taskAssigneeFileRepository,
                 groupMembershipRepository,
                 groupEventRepository,
                 effectiveCurrentUser,
-//                emailClient,
+                emailClientProvider,
                 blobStorageService,
                 authorizationService,
                 defaultImageService,

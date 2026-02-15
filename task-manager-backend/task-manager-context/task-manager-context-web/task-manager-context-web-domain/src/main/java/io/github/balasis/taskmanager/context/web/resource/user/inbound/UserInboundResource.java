@@ -10,4 +10,5 @@ import lombok.*;
 @NoArgsConstructor
 public class UserInboundResource extends BaseInboundResource {
     private String name;
+    private Boolean allowEmailNotification;
 }
