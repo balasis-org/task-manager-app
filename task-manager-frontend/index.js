@@ -54,6 +54,251 @@ logoutBtn.addEventListener('click', () => {
         });
 });
 
+
+// ---- Smoke button guns (small chained automations) ----
+const smokeCtx = {
+    userId: null,
+    groupId: null,
+    taskId: null
+};
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function setPre(preEl, text) {
+    preEl.textContent = String(text ?? "");
+}
+
+function appendPre(preEl, line) {
+    preEl.textContent = (preEl.textContent ? preEl.textContent + "\n" : "") + String(line);
+}
+
+async function fetchTextOrThrow(url, options) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!res.ok) {
+        const err = new Error(text || `HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+    }
+    return text;
+}
+
+async function fetchJsonOrThrow(url, options) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!res.ok) {
+        const err = new Error(text || `HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+    }
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
+
+async function getMyProfile() {
+    return await fetchJsonOrThrow("/api/users/me");
+}
+
+async function fakeLoginSilently() {
+    const email = fakeUserSelect.value;
+    const name = fakeUserSelect.options[fakeUserSelect.selectedIndex]?.text || email;
+
+    await fetchTextOrThrow("/api/auth/fake-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, name })
+    });
+}
+
+async function ensureLoggedIn(preEl) {
+    try {
+        const profile = await getMyProfile();
+        smokeCtx.userId = profile?.id ?? smokeCtx.userId;
+        return profile;
+    } catch (err) {
+        if (err && (err.status === 401 || err.status === 403)) {
+            appendPre(preEl, "Not logged in; attempting dev fake-login...");
+            await fakeLoginSilently();
+            await sleep(300);
+            const profile = await getMyProfile();
+            smokeCtx.userId = profile?.id ?? smokeCtx.userId;
+            return profile;
+        }
+        throw err;
+    }
+}
+
+async function createSmokeGroup() {
+    const payload = {
+        name: `Smoke group ${new Date().toISOString()}`,
+        description: "Smoke test group",
+        Announcement: "",
+        allowEmailNotification: true
+    };
+    return await fetchJsonOrThrow("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+}
+
+async function createSmokeTask(groupId, userId) {
+    const task = {
+        title: `Smoke task ${new Date().toISOString()}`,
+        description: "Smoke test task",
+        taskState: "TODO",
+        assignedIds: [Number(userId)],
+        reviewerIds: [Number(userId)]
+    };
+
+    const form = new FormData();
+    form.append(
+        "data",
+        new Blob([JSON.stringify(task)], { type: "application/json" })
+    );
+
+    return await fetchJsonOrThrow(`/api/groups/${groupId}/tasks`, {
+        method: "POST",
+        body: form
+    });
+}
+
+async function addSmokeComment(groupId, taskId) {
+    return await fetchJsonOrThrow(`/api/groups/${groupId}/task/${taskId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: `Smoke comment ${new Date().toISOString()}` })
+    });
+}
+
+async function markToBeReviewed(groupId, taskId) {
+    return await fetchJsonOrThrow(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`, {
+        method: "POST"
+    });
+}
+
+async function reviewTask(groupId, taskId) {
+    return await fetchJsonOrThrow(`/api/groups/${groupId}/task/${taskId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewersDecision: "APPROVE", reviewComment: "Smoke approve" })
+    });
+}
+
+async function fetchEvents(groupId) {
+    return await fetchJsonOrThrow(`/api/groups/${groupId}/events?page=0&size=5`);
+}
+
+async function fetchGroupPreview(groupId) {
+    return await fetchJsonOrThrow(`/api/groups/${groupId}`);
+}
+
+// Smoke A
+const smokeAuthProfileGroupsBtn = document.getElementById("smokeAuthProfileGroupsBtn");
+const smokeAuthProfileGroupsOutput = document.getElementById("smokeAuthProfileGroupsOutput");
+
+smokeAuthProfileGroupsBtn.addEventListener("click", async () => {
+    setPre(smokeAuthProfileGroupsOutput, "Running Smoke A...");
+    try {
+        const profile = await ensureLoggedIn(smokeAuthProfileGroupsOutput);
+        appendPre(smokeAuthProfileGroupsOutput, `Profile OK (id=${profile?.id ?? "?"}).`);
+
+        const groups = await fetchJsonOrThrow("/api/groups");
+        appendPre(smokeAuthProfileGroupsOutput, `Groups: ${Array.isArray(groups) ? groups.length : "(non-array)"}`);
+        appendPre(smokeAuthProfileGroupsOutput, JSON.stringify(groups, null, 2));
+    } catch (err) {
+        appendPre(smokeAuthProfileGroupsOutput, `Error: ${err.message}`);
+    }
+});
+
+// Smoke B
+const smokeCreateGroupAndTaskBtn = document.getElementById("smokeCreateGroupAndTaskBtn");
+const smokeCreateGroupAndTaskOutput = document.getElementById("smokeCreateGroupAndTaskOutput");
+
+smokeCreateGroupAndTaskBtn.addEventListener("click", async () => {
+    setPre(smokeCreateGroupAndTaskOutput, "Running Smoke B...");
+    try {
+        const profile = await ensureLoggedIn(smokeCreateGroupAndTaskOutput);
+        const userId = profile?.id;
+        if (!userId && userId !== 0) throw new Error("/api/users/me did not return an id");
+
+        appendPre(smokeCreateGroupAndTaskOutput, "Creating group...");
+        const group = await createSmokeGroup();
+        const groupId = group?.id;
+        smokeCtx.groupId = groupId ?? smokeCtx.groupId;
+
+        appendPre(smokeCreateGroupAndTaskOutput, `Group created (id=${groupId ?? "?"}).`);
+        appendPre(smokeCreateGroupAndTaskOutput, JSON.stringify(group, null, 2));
+
+        appendPre(smokeCreateGroupAndTaskOutput, "Waiting 1.5s...");
+        await sleep(1500);
+
+        if (!groupId && groupId !== 0) throw new Error("Create group response did not include id; cannot create task");
+
+        appendPre(smokeCreateGroupAndTaskOutput, "Creating task (assigned+reviewer = me)...");
+        const task = await createSmokeTask(groupId, userId);
+        const taskId = task?.id;
+        smokeCtx.taskId = taskId ?? smokeCtx.taskId;
+        smokeCtx.userId = userId;
+
+        appendPre(smokeCreateGroupAndTaskOutput, `Task created (id=${taskId ?? "?"}).`);
+        appendPre(smokeCreateGroupAndTaskOutput, JSON.stringify(task, null, 2));
+        appendPre(smokeCreateGroupAndTaskOutput, `Saved smokeCtx: groupId=${smokeCtx.groupId}, taskId=${smokeCtx.taskId}`);
+    } catch (err) {
+        appendPre(smokeCreateGroupAndTaskOutput, `Error: ${err.message}`);
+    }
+});
+
+// Smoke C
+const smokeCommentReviewEventsBtn = document.getElementById("smokeCommentReviewEventsBtn");
+const smokeCommentReviewEventsOutput = document.getElementById("smokeCommentReviewEventsOutput");
+
+smokeCommentReviewEventsBtn.addEventListener("click", async () => {
+    setPre(smokeCommentReviewEventsOutput, "Running Smoke C...");
+    try {
+        await ensureLoggedIn(smokeCommentReviewEventsOutput);
+
+        const groupId = smokeCtx.groupId;
+        const taskId = smokeCtx.taskId;
+        if (!groupId && groupId !== 0) throw new Error("No smokeCtx.groupId yet. Run Smoke B first.");
+        if (!taskId && taskId !== 0) throw new Error("No smokeCtx.taskId yet. Run Smoke B first.");
+
+        appendPre(smokeCommentReviewEventsOutput, `Using groupId=${groupId}, taskId=${taskId}`);
+
+        appendPre(smokeCommentReviewEventsOutput, "Adding comment...");
+        const comment = await addSmokeComment(groupId, taskId);
+        appendPre(smokeCommentReviewEventsOutput, JSON.stringify(comment, null, 2));
+
+        appendPre(smokeCommentReviewEventsOutput, "Marking TO_BE_REVIEWED...");
+        const toBeReviewed = await markToBeReviewed(groupId, taskId);
+        appendPre(smokeCommentReviewEventsOutput, JSON.stringify(toBeReviewed, null, 2));
+
+        appendPre(smokeCommentReviewEventsOutput, "Waiting 0.5s...");
+        await sleep(500);
+
+        appendPre(smokeCommentReviewEventsOutput, "Reviewing (APPROVE)...");
+        const reviewed = await reviewTask(groupId, taskId);
+        appendPre(smokeCommentReviewEventsOutput, JSON.stringify(reviewed, null, 2));
+
+        appendPre(smokeCommentReviewEventsOutput, "Fetching events (page=0,size=5)...");
+        const events = await fetchEvents(groupId);
+        appendPre(smokeCommentReviewEventsOutput, JSON.stringify(events, null, 2));
+
+        appendPre(smokeCommentReviewEventsOutput, "Fetching group preview...");
+        const preview = await fetchGroupPreview(groupId);
+        appendPre(smokeCommentReviewEventsOutput, JSON.stringify(preview, null, 2));
+    } catch (err) {
+        appendPre(smokeCommentReviewEventsOutput, `Error: ${err.message}`);
+    }
+});
+
 //FIND GROUPS OF LOGGED IN USER
 const fetchBtn = document.getElementById('fetchBtn');
 const outputDiv = document.getElementById('output');
@@ -75,6 +320,52 @@ fetchBtn.addEventListener('click', () => {
 const clearBtn = document.getElementById('clearBtn');
 clearBtn.addEventListener('click', () => {
     outputDiv.innerHTML = '';
+});
+
+// Get group (with preview tasks)
+const getGroupPreviewForm = document.getElementById("getGroupPreviewForm");
+const groupPreviewOutput = document.getElementById("groupPreviewOutput");
+
+getGroupPreviewForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(getGroupPreviewForm);
+    const groupId = data.get("groupId");
+
+    groupPreviewOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}`);
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        groupPreviewOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        groupPreviewOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+// Group events
+const getGroupEventsForm = document.getElementById("getGroupEventsForm");
+const groupEventsOutput = document.getElementById("groupEventsOutput");
+
+getGroupEventsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(getGroupEventsForm);
+    const groupId = data.get("groupId");
+    const page = data.get("page") ?? "0";
+    const size = data.get("size") ?? "10";
+
+    const params = new URLSearchParams();
+    if (page !== null && page !== "") params.append("page", String(page));
+    if (size !== null && size !== "") params.append("size", String(size));
+
+    groupEventsOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/events?${params.toString()}`);
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        groupEventsOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        groupEventsOutput.textContent = `Error: ${err.message}`;
+    }
 });
 
 //CREATE GROUP
@@ -223,7 +514,7 @@ document.getElementById("patchTaskBtn").addEventListener("click",
         let groupId = formDataToBeSend.get("groupId");
         let taskId = formDataToBeSend.get("taskId");
 
-        const res = await fetch(`api/groups/${groupId}/task/${taskId}`,
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}`,
             {
                 method :"PATCH",
                 headers: { "Content-Type":"application/json"},
@@ -260,6 +551,61 @@ fetchTaskForm.addEventListener("submit", async (e) => {
         taskOutput.textContent = JSON.stringify(task, null, 2);
     } catch (err) {
         taskOutput.textContent = `Failed to fetch task: ${err.message}`;
+    }
+});
+
+// Mark task to-be-reviewed
+const markToBeReviewedForm = document.getElementById("markToBeReviewedForm");
+const markToBeReviewedOutput = document.getElementById("markToBeReviewedOutput");
+
+markToBeReviewedForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(markToBeReviewedForm);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+
+    markToBeReviewedOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`, {
+            method: "POST"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        markToBeReviewedOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        markToBeReviewedOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+// Review task
+const reviewTaskForm = document.getElementById("reviewTaskForm");
+const reviewTaskOutput = document.getElementById("reviewTaskOutput");
+
+reviewTaskForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(reviewTaskForm);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const reviewersDecision = data.get("reviewersDecision");
+    const reviewComment = data.get("reviewComment");
+
+    const payload = {
+        reviewersDecision,
+        reviewComment: reviewComment && String(reviewComment).trim() !== "" ? String(reviewComment).trim() : null
+    };
+
+    reviewTaskOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/review`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        reviewTaskOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        reviewTaskOutput.textContent = `Error: ${err.message}`;
     }
 });
 
@@ -447,6 +793,97 @@ document.getElementById("removeAssigneeTaskFileForm").addEventListener("submit",
 });
 
 
+// Task comments
+const taskCommentsOutput = document.getElementById("taskCommentsOutput");
+
+document.getElementById("addTaskCommentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const comment = data.get("comment");
+
+    taskCommentsOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment: String(comment) })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        taskCommentsOutput.textContent = `Comment added:\n${JSON.stringify(result, null, 2)}`;
+    } catch (err) {
+        taskCommentsOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+document.getElementById("listTaskCommentsForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const page = data.get("page") ?? "0";
+    const size = data.get("size") ?? "10";
+
+    const params = new URLSearchParams();
+    if (page !== null && page !== "") params.append("page", String(page));
+    if (size !== null && size !== "") params.append("size", String(size));
+
+    taskCommentsOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/comments?${params.toString()}`);
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        taskCommentsOutput.textContent = JSON.stringify(result, null, 2);
+    } catch (err) {
+        taskCommentsOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+document.getElementById("patchTaskCommentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const commentId = data.get("commentId");
+    const comment = data.get("comment");
+
+    taskCommentsOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/comments/${commentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment: String(comment) })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+        taskCommentsOutput.textContent = `Comment patched:\n${JSON.stringify(result, null, 2)}`;
+    } catch (err) {
+        taskCommentsOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+document.getElementById("deleteTaskCommentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const groupId = data.get("groupId");
+    const taskId = data.get("taskId");
+    const commentId = data.get("commentId");
+
+    taskCommentsOutput.textContent = "Loading...";
+    try {
+        const res = await fetch(`/api/groups/${groupId}/task/${taskId}/comments/${commentId}`, {
+            method: "DELETE"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        taskCommentsOutput.textContent = `Comment ${commentId} deleted.`;
+    } catch (err) {
+        taskCommentsOutput.textContent = `Error: ${err.message}`;
+    }
+});
+
+
 const invitationOutput = document.getElementById("invitationOutput");
 
 // Invite user
@@ -492,7 +929,7 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
         const profile = await profileRes.json();
         const lastSeenInvitesBeforeFetch = profile?.lastSeenInvites ? new Date(profile.lastSeenInvites) : null;
 
-        const res = await fetch("api/group-invitations/me");
+        const res = await fetch("/api/group-invitations/me");
         if (!res.ok) throw new Error(await res.text());
         const invites = await res.json();
 
@@ -604,7 +1041,7 @@ function renderSentInvites(invites) {
 
 document.querySelector("#findMySentInvitesBtn").addEventListener("click", async () => {
     try {
-        const res = await fetch("api/group-invitations/sent");
+        const res = await fetch("/api/group-invitations/sent");
         const result = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(result));
         renderSentInvites(result);
