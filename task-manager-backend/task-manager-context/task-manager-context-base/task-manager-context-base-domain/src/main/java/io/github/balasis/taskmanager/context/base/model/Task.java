@@ -1,20 +1,23 @@
 package io.github.balasis.taskmanager.context.base.model;
 
+import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+
 @Getter
 @Setter
-@ToString
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "Tasks")
 public class Task extends BaseModel{
-
     @Column(nullable = false)
     private String title;
 
@@ -26,7 +29,64 @@ public class Task extends BaseModel{
     @Column(nullable = false)
     private TaskState taskState;
 
-    @Column
-    private String fileUrl;
+    @Column(name = "creator_id_snapshot")
+    private Long creatorIdSnapshot;
 
+    @Column(name = "creator_name_snapshot")
+    private String creatorNameSnapshot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Group group;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskParticipant> taskParticipants = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskFile> creatorFiles = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskAssigneeFile> assigneeFiles = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private ReviewersDecision reviewersDecision;
+
+    @ManyToOne
+    @JoinColumn
+    private User reviewedBy;
+
+    @Lob
+    @Column
+    private String reviewComment;
+
+    @ManyToOne
+    @JoinColumn
+    private User lastEditBy;
+
+    @Column
+    private Instant lastEditDate;
+    
+    @Column
+    private Instant createdAt;
+
+    @Column
+    private Instant dueDate;
+
+    @Column
+    private Long commentCount;
+
+    @Column
+    private Instant lastCommentDate;
+
+    @PrePersist
+    protected void onCreate(){
+        createdAt = Instant.now();
+        if (commentCount == null) {
+            commentCount = 0L;
+        }
+    }
 }
