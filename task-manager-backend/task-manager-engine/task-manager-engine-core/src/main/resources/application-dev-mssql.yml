@@ -23,5 +23,5 @@ logging:
   level:
     root: info
     io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    org.springframework.transaction.interceptor: info
     io.opentelemetry.exporter.otlp=DEBUG: DEBUG
