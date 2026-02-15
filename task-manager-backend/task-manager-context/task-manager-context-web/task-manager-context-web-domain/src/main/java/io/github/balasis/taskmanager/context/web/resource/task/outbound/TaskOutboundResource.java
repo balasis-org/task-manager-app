@@ -22,6 +22,7 @@ public class TaskOutboundResource extends BaseOutboundResource {
     private String taskState;
     private Set<TaskParticipantOutboundResource> taskParticipants;
     private Set<TaskFileOutboundResource> files;
+    private Set<TaskFileOutboundResource> assigneeFiles;
     private ReviewersDecision reviewersDecision;
     private UserOutboundResource reviewedBy;
     private String reviewComment;

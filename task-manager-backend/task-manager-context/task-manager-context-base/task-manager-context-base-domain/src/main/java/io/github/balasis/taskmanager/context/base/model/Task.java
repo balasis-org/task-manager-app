@@ -45,7 +45,11 @@ public class Task extends BaseModel{
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
     @Builder.Default
-    private Set<TaskFile> files = new HashSet<>();
+    private Set<TaskFile> creatorFiles = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskAssigneeFile> assigneeFiles = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column

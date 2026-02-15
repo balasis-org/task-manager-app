@@ -46,7 +46,6 @@ import java.util.Set;
 public class GroupController extends BaseComponent {
     private final ResourceDataValidator resourceDataValidator;
     private final GroupOutboundMapper groupOutboundMapper;
-        private final GroupWithPreviewTaskOutboundMapper groupWithPreviewTaskOutboundMapper;
     private final GroupInboundMapper groupInboundMapper;
     private final GroupInvitationOutboundMapper groupInvitationOutboundMapper;
     private final GroupEventOutboundMapper groupEventOutboundMapper;
@@ -61,11 +60,11 @@ public class GroupController extends BaseComponent {
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
         resourceDataValidator.validateResourceData(groupInboundResource);
-        return ResponseEntity.ok(
-                groupOutboundMapper.toResource(
-                groupService.create(groupInboundMapper.toDomain(groupInboundResource)
-                )
-        ));
+                return ResponseEntity.ok(
+                                groupOutboundMapper.toResource(
+                                groupService.create(groupInboundMapper.toDomain(groupInboundResource)
+                                )
+                ));
     }
 
     @PostMapping("/{groupId}/image")
@@ -99,6 +98,19 @@ public class GroupController extends BaseComponent {
     ){
         return ResponseEntity.ok(
                 groupService.getAllGroupMembers(groupId,pageable).map(
+                        groupMembershipOutboundMapper::toResource
+                )
+        );
+    }
+
+    @GetMapping("/{groupId}/groupMemberships/search")
+    public ResponseEntity<Page<GroupMembershipOutboundResource>> searchGroupMembers(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) String q,
+            Pageable pageable
+    ){
+        return ResponseEntity.ok(
+                groupService.searchGroupMembers(groupId, q, pageable).map(
                         groupMembershipOutboundMapper::toResource
                 )
         );
@@ -138,7 +150,8 @@ public class GroupController extends BaseComponent {
     ){
         return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
                 groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
-                        groupInvitationInboundResource.getUserToBeInvitedRole())
+                        groupInvitationInboundResource.getUserToBeInvitedRole(),
+                        groupInvitationInboundResource.getComment())
         ));
     }
 
@@ -248,6 +261,18 @@ public class GroupController extends BaseComponent {
                 )
         );
     }
+
+    @PostMapping(path = "/{groupId}/task/{taskId}/to-be-reviewed")
+    public ResponseEntity<TaskOutboundResource> markTaskToBeReviewed(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId
+    ) {
+        return ResponseEntity.ok(
+                taskOutboundMapper.toResource(
+                        groupService.markTaskToBeReviewed(groupId, taskId)
+                )
+        );
+    }
     
     @PostMapping(path="/{groupId}/task/{taskId}/taskParticipants")
     public ResponseEntity<TaskOutboundResource> addParticipant(
@@ -272,6 +297,18 @@ public class GroupController extends BaseComponent {
     ) {
            return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.addTaskFile(groupId, taskId, file)
+        ));
+    }
+
+    @PostMapping(path = "/{groupId}/task/{taskId}/assignee-files",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskOutboundResource> addAssigneeTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(taskOutboundMapper.toResource(
+                groupService.addAssigneeTaskFile(groupId, taskId, file)
         ));
     }
 
@@ -343,6 +380,20 @@ public class GroupController extends BaseComponent {
                 .body(download.content());
     }
 
+    @GetMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}/download")
+    public ResponseEntity<byte[]> downloadAssigneeTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long fileId
+    ) {
+        TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + download.filename() + "\"")
+                .body(download.content());
+    }
+
     @DeleteMapping("/{groupId}/task/{taskId}/taskParticipant/{taskParticipantId}")
     public ResponseEntity<Void> removeParticipant(
             @PathVariable Long groupId,
@@ -362,6 +413,16 @@ public class GroupController extends BaseComponent {
         groupService.removeTaskFile(groupId, taskId, fileId);
         return ResponseEntity.noContent().build();
     }
+
+        @DeleteMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}")
+        public ResponseEntity<Void> removeAssigneeTaskFile(
+                        @PathVariable Long groupId,
+                        @PathVariable Long taskId,
+                        @PathVariable Long fileId
+        ) {
+                groupService.removeAssigneeTaskFile(groupId, taskId, fileId);
+                return ResponseEntity.noContent().build();
+        }
 
     @DeleteMapping("/{groupId}/groupMembership/{groupMembershipId}")
     public ResponseEntity<Void> removeGroupMember(

@@ -25,7 +25,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     LEFT JOIN FETCH t.group
     LEFT JOIN FETCH t.taskParticipants tp
     LEFT JOIN FETCH tp.user
-    LEFT JOIN FETCH t.files
+    LEFT JOIN FETCH t.creatorFiles
+    LEFT JOIN FETCH t.assigneeFiles
     WHERE t.id = :taskId
     """)
     Optional<Task> findByIdWithFullFetchParticipantsAndFiles(@Param("taskId") Long taskId);
@@ -36,7 +37,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     FROM Task t
     LEFT JOIN FETCH t.group
     LEFT JOIN FETCH t.taskParticipants tp
-    LEFT JOIN FETCH t.files
+    LEFT JOIN FETCH t.creatorFiles
+    LEFT JOIN FETCH t.assigneeFiles
     WHERE t.id = :taskId
     """)
     Optional<Task> findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);
@@ -53,7 +55,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     @Query("""
     SELECT t
     FROM Task t
-    LEFT JOIN FETCH t.files
+    LEFT JOIN FETCH t.creatorFiles
+    LEFT JOIN FETCH t.assigneeFiles
     WHERE t.id = :taskId
 """)
     Optional<Task> findByIdWithFiles(@Param("taskId") Long taskId);
@@ -61,7 +64,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     @Query("""
     SELECT t
     FROM Task t
-    LEFT JOIN FETCH t.files
+    LEFT JOIN FETCH t.creatorFiles
+    LEFT JOIN FETCH t.assigneeFiles
     LEFT JOIN FETCH t.group
     WHERE t.id = :taskId
 """)

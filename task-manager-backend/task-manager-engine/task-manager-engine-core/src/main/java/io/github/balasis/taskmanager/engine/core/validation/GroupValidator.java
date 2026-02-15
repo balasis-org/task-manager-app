@@ -19,9 +19,13 @@ public interface GroupValidator extends BaseValidator<Group>{
     void validateRemoveTaskParticipant(Task task, Long groupId ,Long taskParticipantId);
 
     void validateAddTaskFile(Task task, Long groupId, MultipartFile file);
+    void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file);
     void validateDownloadTaskFile(Task task, Long groupId);
 
     void validateRemoveTaskFile(Task task, Long groupId, Long fileId);
+    void validateRemoveAssigneeTaskFile(Task task, Long groupId, Long fileId);
+
+    void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId);
 
     void validateReviewTask(Task task, Long groupId, Long userId);
 

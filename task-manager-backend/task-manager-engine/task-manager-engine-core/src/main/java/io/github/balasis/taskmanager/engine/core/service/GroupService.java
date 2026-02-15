@@ -27,14 +27,16 @@ public interface GroupService{
 
     //GroupMemberships
     Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable);
+    Page<GroupMembership> searchGroupMembers(Long groupId, String q, Pageable pageable);
     void removeGroupMember(Long groupId, Long groupMembershipId);
 
     GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
 
     //GroupInvitations
-    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited);
+    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited, String comment);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
     Set<GroupInvitation> findMyGroupInvitations();
+    Set<GroupInvitation> findInvitationsSentByMe();
 
     //GroupTasks
     Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files);
@@ -68,6 +70,12 @@ public interface GroupService{
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
     void removeTaskFile(Long groupId, Long taskId, Long fileId);
     TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId);
+
+    Task addAssigneeTaskFile(Long groupId, Long taskId, MultipartFile file);
+    void removeAssigneeTaskFile(Long groupId, Long taskId, Long fileId);
+    TaskFileDownload downloadAssigneeTaskFile(Long groupId, Long taskId, Long fileId);
+
+    Task markTaskToBeReviewed(Long groupId, Long taskId);
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
 
 }

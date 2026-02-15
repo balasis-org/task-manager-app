@@ -37,6 +37,10 @@ public class User extends BaseModel{
     @Column(nullable = false)
     private String name;
 
+    @Column
+    @Builder.Default
+    private Boolean allowEmailNotification = true;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<GroupMembership> memberships = new HashSet<>();

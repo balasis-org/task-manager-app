@@ -52,6 +52,12 @@ public class Group extends BaseModel{
     private Set<GroupEvent> groupEvent = new HashSet<>();
 
     @Column
+    private Instant lastGroupEventDate;
+
+    @Column
+    private Boolean allowEmailNotification = true;
+
+    @Column
     private Instant createdAt;
 
     @PrePersist

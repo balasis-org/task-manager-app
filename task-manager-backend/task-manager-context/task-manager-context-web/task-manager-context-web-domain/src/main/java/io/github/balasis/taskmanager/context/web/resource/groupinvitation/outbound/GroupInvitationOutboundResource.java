@@ -18,4 +18,6 @@ public class GroupInvitationOutboundResource extends BaseOutboundResource {
     private InvitationStatus invitationStatus;
     private Role userToBeInvitedRole;
 
+    private String comment;
+
 }

@@ -34,4 +34,7 @@ public class GroupInvitation extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InvitationStatus invitationStatus;
+
+    @Column(length = 500)
+    private String comment;
 }
