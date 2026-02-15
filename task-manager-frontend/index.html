@@ -36,12 +36,69 @@
     </label>
     <button id="fakeLoginBtn">Fake Login</button>
 </div>
+
+<br><br>
+<h2>Smoke button guns</h2>
+
+<h3>Smoke A — Auth + Profile + Groups</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>GET /api/groups</li>
+</ul>
+<button id="smokeAuthProfileGroupsBtn" type="button">Run Smoke A</button>
+<pre id="smokeAuthProfileGroupsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Smoke B — Create Group + Create Task</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>POST /api/groups</li>
+    <li>(delay 1.5s)</li>
+    <li>POST /api/groups/{groupId}/tasks</li>
+</ul>
+<button id="smokeCreateGroupAndTaskBtn" type="button">Run Smoke B</button>
+<pre id="smokeCreateGroupAndTaskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<h3>Smoke C — Comment + Review Flow + Events (uses last Smoke B IDs)</h3>
+<ul>
+    <li>POST /api/auth/fake-login (only if not already logged in)</li>
+    <li>GET /api/users/me</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/comments</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/to-be-reviewed</li>
+    <li>(delay 0.5s)</li>
+    <li>POST /api/groups/{groupId}/task/{taskId}/review</li>
+    <li>GET /api/groups/{groupId}/events?page=0&amp;size=5</li>
+    <li>GET /api/groups/{groupId}</li>
+</ul>
+<button id="smokeCommentReviewEventsBtn" type="button">Run Smoke C</button>
+<pre id="smokeCommentReviewEventsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <br><br>
 <h2>Find groups</h2>
 <div id="output"></div>
 <br>
 <button id="fetchBtn">Fetch Groups</button>
 <button id="clearBtn">Clear</button>
+<br><br>
+
+<h2>Get Group (with preview tasks)</h2>
+<form id="getGroupPreviewForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <button type="submit">Fetch</button>
+</form>
+<pre id="groupPreviewOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br>
+<h2>Group Events</h2>
+<form id="getGroupEventsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Fetch Events</button>
+</form>
+<pre id="groupEventsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <br><br>
 <h2>Create a group</h2>
 <form id="createGroupForm">
@@ -195,6 +252,31 @@
     <button type="submit" id="patchTaskBtn">PatchTask</button>
 </form>
 
+<br><br>
+<h2>Mark Task To-Be-Reviewed</h2>
+<form id="markToBeReviewedForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <button type="submit">Mark</button>
+</form>
+<pre id="markToBeReviewedOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br>
+<h2>Review Task</h2>
+<form id="reviewTaskForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Decision:
+        <select name="reviewersDecision">
+            <option value="APPROVE">APPROVE</option>
+            <option value="REJECT">REJECT</option>
+        </select>
+    </label>
+    <label>Review Comment: <input type="text" name="reviewComment"></label>
+    <button type="submit">Submit Review</button>
+</form>
+<pre id="reviewTaskOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
 <br><br><br>
 <h2>Fetch Task</h2>
 <form id="fetchTaskForm">
@@ -315,6 +397,45 @@
 </form>
 
 <pre id="managementOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
+
+<br><br><br>
+<h2>Task Comments</h2>
+
+<h3>Add Comment</h3>
+<form id="addTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment: <input type="text" name="comment" required></label>
+    <button type="submit">Add</button>
+</form>
+
+<h3>List Comments</h3>
+<form id="listTaskCommentsForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Page: <input type="number" name="page" value="0" min="0"></label>
+    <label>Size: <input type="number" name="size" value="10" min="1"></label>
+    <button type="submit">Fetch</button>
+</form>
+
+<h3>Patch Comment</h3>
+<form id="patchTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment ID: <input type="number" name="commentId" required></label>
+    <label>Comment: <input type="text" name="comment" required></label>
+    <button type="submit">Patch</button>
+</form>
+
+<h3>Delete Comment</h3>
+<form id="deleteTaskCommentForm">
+    <label>Group ID: <input type="number" name="groupId" required></label>
+    <label>Task ID: <input type="number" name="taskId" required></label>
+    <label>Comment ID: <input type="number" name="commentId" required></label>
+    <button type="submit">Delete</button>
+</form>
+
+<pre id="taskCommentsOutput" style="border:1px solid #ccc; padding:10px; min-height:50px;"></pre>
 
 <br><br><br>
 <h2>Invite User to Group</h2>
