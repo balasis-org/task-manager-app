@@ -11,4 +11,6 @@ import lombok.*;
 public class GroupInboundPatchResource extends BaseInboundResource {
     private String name;
     private String description;
+    private String Announcement;
+    private Boolean allowEmailNotification;
 }

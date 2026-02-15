@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,12 +37,25 @@ public class User extends BaseModel{
     @Column(nullable = false)
     private String name;
 
+    @Column
+    @Builder.Default
+    private Boolean allowEmailNotification = true;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<GroupMembership> memberships = new HashSet<>();
 
-    @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<Task> tasks = new HashSet<>();
+    private Set<TaskParticipant> taskParticipants  = new HashSet<>();
+
+    @Column
+    private Instant lastSeenInvites;
+
+    @PrePersist
+    protected void onCreate(){
+        lastSeenInvites = Instant.now();
+    }
+
 
 }

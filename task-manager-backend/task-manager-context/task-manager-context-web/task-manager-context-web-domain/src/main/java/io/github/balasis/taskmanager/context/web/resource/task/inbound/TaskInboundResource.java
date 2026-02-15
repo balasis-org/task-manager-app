@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.Set;
 
 @Getter
@@ -27,4 +28,5 @@ public class TaskInboundResource extends BaseInboundResource {
     private TaskState taskState;
     private Set<Long> assignedIds;
     private Set<Long> reviewerIds;
+    private Instant dueDate;
 }

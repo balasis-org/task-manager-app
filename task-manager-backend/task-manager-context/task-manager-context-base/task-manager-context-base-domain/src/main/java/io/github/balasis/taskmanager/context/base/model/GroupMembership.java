@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -31,5 +33,13 @@ public class GroupMembership extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column
+    private Instant lastSeenGroupEvents;
+
+    @PrePersist
+    protected void onCreate(){
+        lastSeenGroupEvents = Instant.now();
+    }
 
 }
