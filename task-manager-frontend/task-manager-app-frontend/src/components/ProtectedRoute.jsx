@@ -1,23 +1,20 @@
 import { useContext } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
+import Spinner from "@components/Spinner";
 
-export default function ProtectedRoute({ children, allowedRoles }) {
-    const { user, loading } = useContext(AuthContext);
+export default function ProtectedRoute({ children }) {
+    const { user, bootstrapped } = useContext(AuthContext);
 
-    if (loading) {
-        return <div>Loading...</div>;
+    // Wait until AuthProvider has finished the initial /me check
+    if (!bootstrapped) {
+        return <Spinner />;
     }
 
-    // Not logged in
+    // Not logged in → redirect to login
     if (!user) {
         return <Navigate to="/login" replace />;
     }
-    //
-    // // Logged in but role not allowed
-    // if (allowedRoles && !allowedRoles.includes(user.role)) {
-    //     return <Navigate to="/" replace />; // or /unauthorized if you want later
-    // }
 
     return children;
 }

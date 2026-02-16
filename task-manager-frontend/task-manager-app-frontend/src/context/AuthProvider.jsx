@@ -12,13 +12,13 @@ export default function AuthProvider({ children }) {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const me = await apiGet("/api/auth/me");
-                setUser(me?.user ?? null);
+                const me = await apiGet("/api/users/me");
+                setUser(me);
             } catch {
                 setUser(null);
             } finally {
                 setLoading(false);
-                setBootstrapped(true); // ✅ first load completed
+                setBootstrapped(true);
             }
         };
 
@@ -28,7 +28,7 @@ export default function AuthProvider({ children }) {
             onUnauthorized: async (config) => {
                 if (
                     config?.url?.startsWith("/api/auth") ||
-                    config?.url === "/api/auth/me"
+                    config?.url === "/api/users/me"
                 ) {
                     return false;
                 }
@@ -78,7 +78,7 @@ export default function AuthProvider({ children }) {
         <AuthContext.Provider value={{
             user,
             loading,
-            bootstrapped, // 👈 important
+            bootstrapped,
             login,
             logout,
             updateUser,
