@@ -37,6 +37,7 @@ public class DevAuthController extends BaseComponent {
 
     @PostMapping("/fake-login")
     public ResponseEntity<Map<String, Object>> fakeLogin(@RequestBody FakeLoginRequest request) {
+        System.out.println("reached inside");
         if (request == null || request.email() == null || request.email().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "email is required"));
         }

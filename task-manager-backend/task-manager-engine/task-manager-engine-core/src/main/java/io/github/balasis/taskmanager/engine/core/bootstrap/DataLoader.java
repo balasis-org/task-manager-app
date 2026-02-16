@@ -19,7 +19,11 @@ import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.Use
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -32,7 +36,7 @@ import java.util.Set;
 @Component
 @Profile({"DataLoader"})
 @RequiredArgsConstructor //TODO:make it run after defaultImageBootstrap
-public class DataLoader extends BaseComponent implements ApplicationRunner {
+public class DataLoader extends BaseComponent {
 
     private static final Lorem lorem = LoremIpsum.getInstance();
     private static final String SEED_TENANT_ID = "dev-fake-tenant";
@@ -42,9 +46,11 @@ public class DataLoader extends BaseComponent implements ApplicationRunner {
     private final GroupService groupService;
     private final UserContext userContext;
     private final DefaultImageService defaultImageService;
+    private final StartupGate startupGate;
 
-    @Override
-    public void run(ApplicationArguments args) {
+    @EventListener(ApplicationReadyEvent.class)
+    @Order(Ordered.LOWEST_PRECEDENCE)
+    public void onApplicationReady(ApplicationReadyEvent evt)  {
         logger.trace("=== Running DataLoader ===");
 
         seedInitialUser();
@@ -61,6 +67,8 @@ public class DataLoader extends BaseComponent implements ApplicationRunner {
         } finally {
             userContext.clear();
         }
+
+        startupGate.markDataReady();
 
         logger.trace("=== DataLoader finished ===");
     }
