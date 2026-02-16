@@ -8,7 +8,9 @@ import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMappe
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
+import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.web.resource.groupevent.outbound.GroupEventOutboundResource;
@@ -55,6 +57,7 @@ public class GroupController extends BaseComponent {
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
     private final GroupMembershipOutboundMapper groupMembershipOutboundMapper;
+    private final GroupMiniForDropdownMapper groupMiniForDropdownMapper;
 
 
     @PostMapping
@@ -77,11 +80,19 @@ public class GroupController extends BaseComponent {
     }
 
     @GetMapping
-    public ResponseEntity<Set<GroupOutboundResource>> findAllByCurrentUser() {
+    public ResponseEntity<Set<GroupMiniForDropdownResource>> findAllByCurrentUser() {
         return ResponseEntity.ok(
-                groupOutboundMapper.toResources(
+                groupMiniForDropdownMapper.toResources(
                         groupService.findAllByCurrentUser()
                 ));
+    }
+
+    @GetMapping(path = "/{groupId}/refresh")
+    public ResponseEntity<GroupRefreshDto> refreshGroup(
+            @PathVariable Long groupId,
+            @RequestParam Instant lastSeen
+    ) {
+        return ResponseEntity.ok(groupService.refreshGroup(groupId, lastSeen));
     }
 
     @GetMapping(path = "/{groupId}")

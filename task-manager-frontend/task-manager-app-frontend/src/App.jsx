@@ -12,11 +12,13 @@ import Settings from "./pages/Settings.jsx";
 import Task from "./pages/Task.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import AuthProvider from "@context/AuthProvider.jsx";
+import GroupProvider from "@context/GroupProvider.jsx";
 
 export default function App() {
     return (
         <Router>
             <AuthProvider>
+                <GroupProvider>
                 <Routes>
                     <Route path="/about-us" element={<ProtectedRoute><Layout><AboutUs /></Layout></ProtectedRoute>} />
                     <Route path="/comments" element={<ProtectedRoute><Layout><Comments /></Layout></ProtectedRoute>} />
@@ -30,6 +32,7 @@ export default function App() {
                     <Route path="/terms-of-service" element={<ProtectedRoute><Layout><TermsOfService /></Layout></ProtectedRoute>} />
 
                 </Routes>
+                </GroupProvider>
             </AuthProvider>
         </Router>
     );
