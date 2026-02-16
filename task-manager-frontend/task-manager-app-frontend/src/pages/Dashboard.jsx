@@ -1,7 +1,6 @@
-import { useState, useEffect, useContext } from "react";
-import { AuthContext } from "@context/AuthContext";
+import { useState, useContext } from "react";
+import { GroupContext } from "@context/GroupContext";
 import { useNavigate } from "react-router-dom";
-import { apiGet } from "@assets/js/apiClient";
 import NewGroupPopup from "@components/popups/NewGroupPopup";
 import InviteToGroupPopup from "@components/popups/InviteToGroupPopup";
 import GroupSettingsPopup from "@components/popups/GroupSettingsPopup";
@@ -15,16 +14,19 @@ const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 
 export default function Dashboard() {
-    const { user } = useContext(AuthContext);
+    const {
+        groups,
+        activeGroup,
+        groupDetail,
+        members,
+        loadingGroups,
+        loadingDetail,
+        selectGroup,
+        addGroup,
+        updateGroup,
+        refreshActiveGroup,
+    } = useContext(GroupContext);
     const navigate = useNavigate();
-
-    // Groups
-    const [groups, setGroups] = useState([]);
-    const [activeGroup, setActiveGroup] = useState(null);
-    const [groupDetail, setGroupDetail] = useState(null);
-    const [members, setMembers] = useState([]);
-    const [loadingGroups, setLoadingGroups] = useState(true);
-    const [loadingDetail, setLoadingDetail] = useState(false);
 
     // Collapsed sections
     const [collapsedSections, setCollapsedSections] = useState({});
@@ -36,67 +38,14 @@ export default function Dashboard() {
     const [showGroupSettings, setShowGroupSettings] = useState(false);
     const [showGroupEvents, setShowGroupEvents] = useState(false);
 
-    // ── Load groups on mount ──
-    useEffect(() => {
-        loadGroups();
-    }, []);
-
-    // ── When activeGroup changes, load its detail ──
-    useEffect(() => {
-        if (activeGroup) {
-            loadGroupDetail(activeGroup.id);
-        } else {
-            setGroupDetail(null);
-            setMembers([]);
-        }
-    }, [activeGroup]);
-
-    async function loadGroups() {
-        setLoadingGroups(true);
-        try {
-            const data = await apiGet("/api/groups");
-            const list = Array.isArray(data) ? data : [];
-            setGroups(list);
-            if (list.length > 0 && !activeGroup) {
-                setActiveGroup(list[0]);
-            }
-        } catch {
-            setGroups([]);
-        } finally {
-            setLoadingGroups(false);
-        }
-    }
-
-    async function loadGroupDetail(groupId) {
-        setLoadingDetail(true);
-        try {
-            const [detail, membersPage] = await Promise.all([
-                apiGet(`/api/groups/${groupId}`),
-                apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`),
-            ]);
-            setGroupDetail(detail);
-            setMembers(membersPage?.content ?? []);
-        } catch {
-            setGroupDetail(null);
-            setMembers([]);
-        } finally {
-            setLoadingDetail(false);
-        }
-    }
-
     function handleGroupCreated(newGroup) {
         setShowNewGroup(false);
-        setGroups((prev) => [...prev, newGroup]);
-        setActiveGroup(newGroup);
+        addGroup(newGroup);
     }
 
     function handleGroupUpdated(updatedGroup) {
         setShowGroupSettings(false);
-        setGroups((prev) =>
-            prev.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
-        );
-        setActiveGroup(updatedGroup);
-        loadGroupDetail(updatedGroup.id);
+        updateGroup(updatedGroup);
     }
 
     function toggleSection(state) {
@@ -149,7 +98,7 @@ export default function Dashboard() {
                 members={members}
                 open={topBarOpen}
                 onToggle={() => setTopBarOpen((v) => !v)}
-                onSelectGroup={(g) => setActiveGroup(g)}
+                onSelectGroup={(g) => selectGroup(g)}
                 onOpenNewGroup={() => setShowNewGroup(true)}
                 onOpenInvite={() => setShowInvite(true)}
                 onOpenGroupSettings={() => setShowGroupSettings(true)}
