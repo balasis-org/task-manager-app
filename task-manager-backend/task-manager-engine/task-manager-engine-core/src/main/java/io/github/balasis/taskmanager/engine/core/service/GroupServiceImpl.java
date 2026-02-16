@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
@@ -229,12 +230,20 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             })
             .collect(Collectors.toSet());
 
+        var groupImgUrlConverted = (group.getImgUrl()==null || group.getImgUrl().isBlank())
+                ? null
+                : BlobContainerType.GROUP_IMAGES.getContainerName() + "/" + group.getImgUrl();
+
+        var defaultImgUrlConverted = ((group.getDefaultImgUrl() == null) || group.getDefaultImgUrl().isBlank())
+                ? null
+                : BlobDefaultImageContainer.GROUP_IMAGES.getContainerName()+"/"+group.getDefaultImgUrl();
+
         return GroupWithPreviewDto.builder()
             .id(group.getId())
             .name(group.getName())
             .description(group.getDescription())
-            .defaultImgUrl(group.getDefaultImgUrl())
-            .imgUrl(group.getImgUrl())
+            .defaultImgUrl(defaultImgUrlConverted)
+            .imgUrl(groupImgUrlConverted)
             .ownerId(group.getOwner().getId())
             .ownerName(group.getOwner().getName())
             .announcement(group.getAnnouncement())
