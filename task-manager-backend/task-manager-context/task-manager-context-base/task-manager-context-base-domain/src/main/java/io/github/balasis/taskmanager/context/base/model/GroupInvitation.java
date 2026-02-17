@@ -37,7 +37,7 @@ public class GroupInvitation extends BaseModel{
     @Column(nullable = false)
     private InvitationStatus invitationStatus;
 
-    @Column(length = 500)
+    @Column(length = 400)
     private String comment;
 
     @Column(nullable = false, updatable = false)

@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring")
-public interface GroupMiniForDropdownMapper extends BaseOutboundMapper<Group, GroupMiniForDropdownResource> {
+public interface GroupMiniForDropdownOutboundMapper extends BaseOutboundMapper<Group, GroupMiniForDropdownResource> {
 
     @Mapping(source = "imgUrl", target = "imgUrl", qualifiedByName = "convertMiniGroupImgUrl")
     @Mapping(source = "defaultImgUrl", target = "defaultImgUrl", qualifiedByName = "convertMiniGroupDefaultImgUrl")

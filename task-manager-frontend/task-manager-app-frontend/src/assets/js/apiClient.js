@@ -26,10 +26,11 @@ export const apiDelete = (path, body, options = {}) =>
 
 async function apiRequest(path, options = {}, retry = true) {
     const method = options.method || "GET";
+    const isFormData = options.body instanceof FormData;
 
     const headers = { ...(options.headers || {}) };
 
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !isFormData) {
         headers["Content-Type"] = "application/json";
     }
 
@@ -37,12 +38,17 @@ async function apiRequest(path, options = {}, retry = true) {
         method,
         headers,
         credentials: "include",
-        ...options,
     };
 
-    // Only stringify body if provided and method supports it
-    if (options.body && typeof options.body !== "string") {
-        fetchOptions.body = JSON.stringify(options.body);
+    // Handle body: FormData goes raw, objects get stringified
+    if (options.body) {
+        if (isFormData) {
+            fetchOptions.body = options.body;
+        } else if (typeof options.body !== "string") {
+            fetchOptions.body = JSON.stringify(options.body);
+        } else {
+            fetchOptions.body = options.body;
+        }
     }
 
     if (options.signal) fetchOptions.signal = options.signal;
@@ -53,34 +59,34 @@ async function apiRequest(path, options = {}, retry = true) {
     } catch {
         throw { status: 0, message: "Network error" };
     }
-    let json = null;
-    try { json = await res.json(); } catch {}
 
-    /**
-     * HTTP-level auth errors
-     */
+    // auth errors
     if (res.status === 401 || res.status === 403) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
-    /**
-     * Other HTTP errors
-     */
+    // other errors
     if (!res.ok) {
+        let body = null;
+        try { body = await res.text(); } catch {}
         throw {
             status: res.status,
-            message: "HTTP error",
+            message: body || "HTTP error",
         };
     }
 
+    // Blob responses (file downloads)
+    if (options.responseType === "blob") {
+        return res.blob();
+    }
+
+    let json = null;
+    try { json = await res.json(); } catch {}
     return json;
 }
 
 
-/**
- * Multipart/form-data request helper
- * Automatically keeps credentials and supports file uploads
- */
+// multipart/form-data helper (file uploads etc)
 export async function apiMultipart(path, formData, options = {}) {
     const fetchOptions = {
         method: options.method || "POST",
@@ -88,7 +94,7 @@ export async function apiMultipart(path, formData, options = {}) {
         credentials: "include", // keep cookies
         headers: {
             ...(options.headers || {}),
-            // NOTE: Do NOT set Content-Type! The browser will set multipart boundary automatically
+            // dont set Content-Type, browser adds multipart boundary automatically
         },
         ...options,
     };
@@ -112,7 +118,11 @@ export async function apiMultipart(path, formData, options = {}) {
     }
 
     if (!res.ok) {
-        throw { status: res.status, message: "HTTP error" };
+        // json was already parsed above; use it for the error message
+        const errMsg = (json && typeof json === "object") ? (json.message || json.error || JSON.stringify(json))
+                     : (json && typeof json === "string") ? json
+                     : "HTTP error";
+        throw { status: res.status, message: errMsg };
     }
 
     // Return raw JSON body (no wrapper unwrapping)
@@ -120,16 +130,15 @@ export async function apiMultipart(path, formData, options = {}) {
 }
 
 async function handleAuthStatus(status, path, options, retry) {
-    // 401 → try refresh once
+    // 401 - try refresh once
     if (status === 401 && retry && authHandlers.onUnauthorized) {
-        // Provide request context so handlers can decide (e.g. skip /api/auth/*)
         const shouldRetry = await authHandlers.onUnauthorized({ url: path, options });
         if (shouldRetry) {
             return apiRequest(path, options, false);
         }
     }
 
-    // 403 → forbidden
+    // 403 - forbidden
     if (status === 403) {
         authHandlers.onForbidden?.();
     }

@@ -1,5 +1,6 @@
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiLock } from "react-icons/fi";
 import "@styles/dashboard/TaskTable.css";
 
 function formatDate(iso) {
@@ -8,11 +9,36 @@ function formatDate(iso) {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function TaskTable({ tasks, groupId }) {
+function priorityTag(p) {
+    if (p == null) return "—";
+    let label, cls;
+    if (p <= 4)      { label = "Low";    cls = "priority-low"; }
+    else if (p <= 7) { label = "Medium"; cls = "priority-med"; }
+    else             { label = "High";   cls = "priority-high"; }
+    return <span className={`priority-tag ${cls}`}>{label} ({p})</span>;
+}
+
+export default function TaskTable({ tasks, groupId, colWidths }) {
     const navigate = useNavigate();
+    const [flashId, setFlashId] = useState(null);
+
+    const flashRow = useCallback((id) => {
+        setFlashId(id);
+        setTimeout(() => setFlashId(null), 500);
+    }, []);
 
     if (!tasks || tasks.length === 0) {
         return <div className="task-table-empty">No tasks</div>;
+    }
+
+    const gridStyle = colWidths
+        ? { gridTemplateColumns: `1fr ${colWidths.slice(1).map((w) => w + "px").join(" ")}` }
+        : undefined;
+
+    function goToComments(e, taskId, accessible) {
+        e.stopPropagation();
+        if (accessible === false) return;
+        navigate(`/group/${groupId}/task/${taskId}/comments`);
     }
 
     return (
@@ -20,10 +46,15 @@ export default function TaskTable({ tasks, groupId }) {
             {tasks.map((t) => (
                 <div
                     key={t.id}
-                    className="task-row"
-                    onClick={() =>
-                        navigate(`/task?groupId=${groupId}&taskId=${t.id}`)
-                    }
+                    className={`task-row${t.accessible === false ? " task-row-locked" : ""}${flashId === t.id ? " task-row-denied" : ""}`}
+                    style={gridStyle}
+                    onClick={() => {
+                        if (t.accessible === false) {
+                            flashRow(t.id);
+                        } else {
+                            navigate(`/group/${groupId}/task/${t.id}`);
+                        }
+                    }}
                 >
                     <span className="task-cell cell-title" title={t.title}>
                         {t.title}
@@ -32,15 +63,19 @@ export default function TaskTable({ tasks, groupId }) {
                         {t.creatorName || "—"}
                     </span>
                     <span className="task-cell cell-priority">
-                        {t.priority || "—"}
+                        {priorityTag(t.priority)}
                     </span>
                     <span className="task-cell cell-due">
                         {formatDate(t.dueDate)}
                     </span>
                     <span className="task-cell cell-access">
-                        {t.accessible ? "✓" : "—"}
+                        {t.accessible ? "✓" : <FiLock size={14} className="lock-icon" title="Not accessible" />}
                     </span>
-                    <span className="task-cell cell-comments">
+                    <span
+                        className="task-cell cell-comments"
+                        onClick={(e) => goToComments(e, t.id, t.accessible)}
+                        title="Go to comments"
+                    >
                         <span
                             className={`comment-icon${t.newCommentsToBeRead ? " has-new" : ""}`}
                             title={

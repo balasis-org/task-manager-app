@@ -12,6 +12,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
@@ -226,6 +227,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .commentCount(task.getCommentCount())
                     .accessible(accessible)
                     .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                    .creatorName(task.getCreatorNameSnapshot())
+                    .priority(task.getPriority())
                     .build();
             })
             .collect(Collectors.toSet());
@@ -309,6 +312,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .commentCount(task.getCommentCount())
                         .accessible(accessible)
                         .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                        .creatorName(task.getCreatorNameSnapshot())
+                        .priority(task.getPriority())
                         .build();
                     })
                     .collect(Collectors.toSet());
@@ -345,6 +350,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .commentCount(task.getCommentCount())
                         .accessible(accessible)
                         .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                        .creatorName(task.getCreatorNameSnapshot())
+                        .priority(task.getPriority())
                         .build();
                 })
                 .collect(Collectors.toSet());
@@ -542,6 +549,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
 
+        // Guard: duplicate title check before hitting the DB constraint
+        if (taskRepository.existsByTitle(task.getTitle())) {
+            throw new BusinessRuleException("A task with this title already exists");
+        }
+
         task.setGroup(groupRepository.getReferenceById(groupId));
         task.setCreatorIdSnapshot(effectiveCurrentUser.getUserId());
         task.setCreatorNameSnapshot(
@@ -613,8 +625,27 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Transactional(readOnly = true)
     public Task getTask(Long groupId, Long taskId){
         authorizationService.requireAnyRoleIn(groupId);
-        return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException(
-                "Task with id " + taskId + "is not found"));
+
+        Long currentUserId = effectiveCurrentUser.getUserId();
+        var membershipOpt = groupMembershipRepository.findByUser_IdAndGroup_Id(currentUserId, groupId);
+        boolean isLeaderOrManager = membershipOpt != null && (
+                membershipOpt.getRole() == Role.GROUP_LEADER ||
+                membershipOpt.getRole() == Role.TASK_MANAGER
+        );
+
+        Task task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException(
+                        "Task with id " + taskId + " is not found"));
+
+        if (!isLeaderOrManager) {
+            boolean isParticipant = task.getTaskParticipants().stream()
+                    .anyMatch(tp -> tp.getUser().getId().equals(currentUserId));
+            if (!isParticipant) {
+                throw new TaskNotFoundException("Task with id " + taskId + " is not accessible");
+            }
+        }
+
+        return task;
     }
 
     @Override
@@ -630,6 +661,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Task patchTask(Long groupId, Long taskId, Task task) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForPatchTask(groupId, taskId, task);
+
+        // Guard: duplicate title check when renaming
+        if (task.getTitle() != null && taskRepository.existsByTitleAndIdNot(task.getTitle(), taskId)) {
+            throw new BusinessRuleException("A task with this title already exists");
+        }
+
         User curUser = userRepository.getReferenceById(effectiveCurrentUser.getUserId());
         var fetchedTask = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + "is not found"));
@@ -964,17 +1001,71 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                             .commentCount(task.getCommentCount())
                             .accessible(accessible)
                             .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                            .creatorName(task.getCreatorNameSnapshot())
+                            .priority(task.getPriority())
                             .build();
                 })
                 .collect(Collectors.toSet());
         builder.changedTasks(taskPreviews);
 
-        // Deleted task IDs
+        // Deleted task IDs (tombstones) since lastSeen, with a small safety offset
         if (tasksDeleted) {
-            builder.deletedTaskIds(deletedTaskRepository.findDeletedTaskIdsByGroupId(groupId));
+            Instant cutoff = lastSeen.minusSeconds(3); // slight cushion to avoid boundary issues
+            builder.deletedTaskIds(
+                    deletedTaskRepository.findDeletedTaskIdsByGroupIdAndDeletedAtAfter(groupId, cutoff)
+            );
         }
 
         return builder.build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteTask(Long groupId, Long taskId) {
+        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var curUser = userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow();
+        var taskToBeDeleted = taskRepository.findById(taskId).orElseThrow(
+                ()-> new EntityNotFoundException("Task to be deleted doesnt exist"));
+        var groupOfTask = groupRepository.findById(groupId).orElseThrow(
+                ()-> new EntityNotFoundException("Group of task to be deleted doesnt exist"));
+        if ( !(taskToBeDeleted.getGroup().getId() .equals(groupOfTask.getId())) ){
+            throw new UnauthorizedException("Task doesn't belong to the group given");
+        }
+        Instant now = Instant.now();
+        var delTask = DeletedTask.builder()
+            .deletedTaskId(taskId)
+            .group(groupOfTask)
+            .deletedAt(now)
+            .build();
+        deletedTaskRepository.save(delTask);
+        groupOfTask.setLastDeleteTaskDate(now);
+        taskRepository.deleteById(taskId);
+        groupEventRepository.save(GroupEvent.builder().description("Task '" + taskToBeDeleted.getTitle() + "' has been deleted by "
+                + curUser.getName()).build());
+        groupOfTask.setLastGroupEventDate(now);
+        groupOfTask.setLastChangeInGroup(now);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> findAccessibleTaskIds(Long groupId) {
+        authorizationService.requireAnyRoleIn(groupId);
+        Long currentUserId = effectiveCurrentUser.getUserId();
+
+        var membershipOpt = groupMembershipRepository.findByUser_IdAndGroup_Id(currentUserId, groupId);
+        boolean isLeaderOrManager = membershipOpt!=null && (
+                membershipOpt.getRole() == Role.GROUP_LEADER ||
+                membershipOpt.getRole() == Role.TASK_MANAGER
+        );
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
+
+        return group.getTasks().stream()
+                .filter(task -> isLeaderOrManager || task.getTaskParticipants().stream()
+                        .anyMatch(tp -> tp.getUser().getId().equals(currentUserId)))
+                .map(Task::getId)
+                .collect(Collectors.toSet());
     }
 
     private Instant touchLastGroupEventDate(Group group) {

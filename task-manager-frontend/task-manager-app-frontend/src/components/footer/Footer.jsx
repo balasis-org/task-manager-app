@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FiMail, FiGithub } from "react-icons/fi";
 import "@styles/footer/Footer.css";
 
 export default function Footer() {
@@ -6,18 +7,22 @@ export default function Footer() {
         <footer className="footer">
             <div className="footer-links">
                 <Link to="/terms-of-service">Terms of service</Link>
-                <span>&amp;</span>
+                <span className="footer-dot">•</span>
                 <Link to="/cookie-policy">Cookie policy</Link>
             </div>
             <div className="footer-contact">
-                Contact us
+                <span className="footer-contact-label">Contact us</span>
                 <div className="footer-icons">
-                    {/* placeholders – swap for real icons later */}
-                    <span className="footer-icon" title="Email">✉</span>
-                    <span className="footer-icon" title="GitHub">⌂</span>
-                    <span className="footer-icon" title="LinkedIn">in</span>
-                    <span className="footer-icon" title="Other">★</span>
+                    <a href="mailto:support@taskmanager.io" title="Email" className="footer-icon-link">
+                        <FiMail size={14} />
+                    </a>
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" title="GitHub" className="footer-icon-link">
+                        <FiGithub size={14} />
+                    </a>
                 </div>
+            </div>
+            <div className="footer-copyright">
+                &copy; {new Date().getFullYear()} Task Manager. All rights reserved.
             </div>
         </footer>
     );

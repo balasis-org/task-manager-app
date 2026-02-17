@@ -1,17 +1,30 @@
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { GroupContext } from "@context/GroupContext";
+import { AuthContext } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import NewGroupPopup from "@components/popups/NewGroupPopup";
 import InviteToGroupPopup from "@components/popups/InviteToGroupPopup";
 import GroupSettingsPopup from "@components/popups/GroupSettingsPopup";
 import GroupEventsPopup from "@components/popups/GroupEventsPopup";
+import NewTaskPopup from "@components/popups/NewTaskPopup";
 import DashboardTopBar from "@components/dashboard/DashboardTopBar";
 import TaskTable from "@components/dashboard/TaskTable";
 import Spinner from "@components/Spinner";
+import { useToast } from "@context/ToastContext";
+import { FiPlus } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
+
+const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
+const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
+const COL_MIN      = [120, 70, 60, 80, 60, 40];
+
+// builds the grid-template-columns css value
+function gridCols(w) {
+    return `1fr ${w.slice(1).map((v) => v + "px").join(" ")}`;
+}
 
 export default function Dashboard() {
     const {
@@ -19,24 +32,69 @@ export default function Dashboard() {
         activeGroup,
         groupDetail,
         members,
+        myRole,
         loadingGroups,
         loadingDetail,
         selectGroup,
         addGroup,
         updateGroup,
         refreshActiveGroup,
+        removeGroupFromState,
+        reloadGroups,
     } = useContext(GroupContext);
+    const { user } = useContext(AuthContext);
     const navigate = useNavigate();
+    const showToast = useToast();
 
-    // Collapsed sections
+    // refresh when coming back to dashboard
+    useEffect(() => {
+        if (activeGroup) refreshActiveGroup();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // resizable columns — dragging a handle grows one side and shrinks the other
+    const [colWidths, setColWidths] = useState(COL_DEFAULTS);
+
+    const onPointerDown = useCallback((leftIdx, e) => {
+        e.preventDefault();
+        const rightIdx = leftIdx + 1;
+        if (rightIdx >= COL_DEFAULTS.length) return; // last col has no right neighbor
+        const startX = e.clientX;
+        const startL = colWidths[leftIdx];
+        const startR = colWidths[rightIdx];
+
+        function onMove(ev) {
+            const dx = ev.clientX - startX;
+            setColWidths((prev) => {
+                const next = [...prev];
+                const newL = Math.max(COL_MIN[leftIdx], startL + dx);
+                const newR = Math.max(COL_MIN[rightIdx], startR - dx);
+                // only apply if both sides stay >= min
+                if (newL >= COL_MIN[leftIdx] && newR >= COL_MIN[rightIdx]) {
+                    next[leftIdx] = newL;
+                    next[rightIdx] = newR;
+                }
+                return next;
+            });
+        }
+        function onUp() {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+    }, [colWidths]);
+
     const [collapsedSections, setCollapsedSections] = useState({});
     const [topBarOpen, setTopBarOpen] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    // Popups
     const [showNewGroup, setShowNewGroup] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
     const [showGroupSettings, setShowGroupSettings] = useState(false);
     const [showGroupEvents, setShowGroupEvents] = useState(false);
+    const [showNewTask, setShowNewTask] = useState(false);
+    const [newTaskState, setNewTaskState] = useState("TODO");
 
     function handleGroupCreated(newGroup) {
         setShowNewGroup(false);
@@ -48,6 +106,15 @@ export default function Dashboard() {
         updateGroup(updatedGroup);
     }
 
+    // "left" or "deleted" => remove group, "refresh" => just reload
+    function handleLeaveGroup(action) {
+        if (action === "left" || action === "deleted") {
+            removeGroupFromState(activeGroup?.id);
+        } else {
+            refreshActiveGroup();
+        }
+    }
+
     function toggleSection(state) {
         setCollapsedSections((prev) => ({
             ...prev,
@@ -55,11 +122,28 @@ export default function Dashboard() {
         }));
     }
 
-    // Group tasks by state
+    const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
+
+    function handleOpenNewTask(e, state) {
+        e.stopPropagation();
+        if (!activeGroup?.id) return;
+        setNewTaskState(state);
+        setShowNewTask(true);
+    }
+
+    function handleTaskCreated(created) {
+        setShowNewTask(false);
+        showToast("Task created!", "success");
+        navigate(`/group/${activeGroup.id}/task/${created.id}`);
+    }
+
+    // group tasks by state + search filter
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
     if (groupDetail?.taskPreviews) {
+        const q = searchQuery.toLowerCase().trim();
         for (const task of groupDetail.taskPreviews) {
+            if (q && !task.title?.toLowerCase().includes(q)) continue;
             const state = task.taskState || "TODO";
             if (tasksByState[state]) {
                 tasksByState[state].push(task);
@@ -67,7 +151,6 @@ export default function Dashboard() {
         }
     }
 
-    // ── No groups empty state ──
     if (!loadingGroups && groups.length === 0) {
         return (
             <div className="dashboard-empty">
@@ -91,11 +174,11 @@ export default function Dashboard() {
 
     return (
         <div className="dashboard">
-            {/* ── Top Bar ── */}
             <DashboardTopBar
                 groups={groups}
                 activeGroup={activeGroup}
                 members={members}
+                myRole={myRole}
                 open={topBarOpen}
                 onToggle={() => setTopBarOpen((v) => !v)}
                 onSelectGroup={(g) => selectGroup(g)}
@@ -103,28 +186,56 @@ export default function Dashboard() {
                 onOpenInvite={() => setShowInvite(true)}
                 onOpenGroupSettings={() => setShowGroupSettings(true)}
                 onOpenGroupEvents={() => setShowGroupEvents(true)}
+                onLeaveGroup={handleLeaveGroup}
+                user={user}
+                groupDetail={groupDetail}
             />
 
-            {/* Announcement */}
-            {groupDetail?.announcement && (
-                <div className="dashboard-announcement">
-                    <strong>Announcement:</strong> {groupDetail.announcement}
+            {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
+                <div className={`dashboard-announcement${groupDetail.announcement ? " has-text" : " empty"}`}>
+                    <strong>Announcement:</strong>{" "}
+                    {groupDetail.announcement || <em>No announcement</em>}
                 </div>
             )}
 
-            {/* ── Task Sections ── */}
             {loadingDetail ? (
                 <Spinner />
             ) : (
                 <div className="dashboard-tasks">
-                    {/* Single column header — rendered once */}
-                    <div className="task-col-header">
-                        <span>Title</span>
-                        <span>Creator</span>
-                        <span>Priority</span>
-                        <span>Due date</span>
-                        <span>Accessible</span>
-                        <span style={{ textAlign: "center" }}>💬</span>
+                    <div className="dashboard-search">
+                        <input
+                            type="text"
+                            className="dashboard-search-input"
+                            placeholder="Search tasks by title…"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                className="dashboard-search-clear"
+                                onClick={() => setSearchQuery("")}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+
+                    {/* column headers + resize handles */}
+                    <div
+                        className="task-col-header"
+                        style={{ gridTemplateColumns: gridCols(colWidths) }}
+                    >
+                        {COL_NAMES.map((name, i) => (
+                            <span key={i} className="col-header-cell">
+                                {name}
+                                {i < COL_NAMES.length - 1 && i >= 1 && (
+                                    <span
+                                        className="col-resize-handle"
+                                        onPointerDown={(e) => onPointerDown(i, e)}
+                                    />
+                                )}
+                            </span>
+                        ))}
                     </div>
 
                     {TASK_STATES.map((state) => (
@@ -138,29 +249,25 @@ export default function Dashboard() {
                                 </span>
                                 <span className="task-section-title">
                                     {STATE_LABELS[state]}
+                                    {canManageTasks && (
+                                        <button
+                                            className="task-section-add"
+                                            title="Create task"
+                                            onClick={(e) => handleOpenNewTask(e, state)}
+                                        >
+                                            <FiPlus size={12} />
+                                        </button>
+                                    )}
                                 </span>
                                 <span className="task-section-count">
                                     ({tasksByState[state].length})
                                 </span>
-                                {state === "TODO" && (
-                                    <button
-                                        className="task-section-add"
-                                        title="Create task"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(
-                                                `/task?groupId=${activeGroup?.id}&new=1`
-                                            );
-                                        }}
-                                    >
-                                        ⊕
-                                    </button>
-                                )}
                             </div>
                             {!collapsedSections[state] && (
                                 <TaskTable
                                     tasks={tasksByState[state]}
                                     groupId={activeGroup?.id}
+                                    colWidths={colWidths}
                                 />
                             )}
                         </div>
@@ -168,7 +275,6 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ── Popups ── */}
             {showNewGroup && (
                 <NewGroupPopup
                     onClose={() => setShowNewGroup(false)}
@@ -184,14 +290,36 @@ export default function Dashboard() {
             {showGroupSettings && activeGroup && (
                 <GroupSettingsPopup
                     group={activeGroup}
+                    members={members}
+                    user={user}
                     onClose={() => setShowGroupSettings(false)}
                     onUpdated={handleGroupUpdated}
+                    onDeleted={() => {
+                        setShowGroupSettings(false);
+                        handleLeaveGroup("deleted");
+                    }}
                 />
             )}
             {showGroupEvents && activeGroup && (
                 <GroupEventsPopup
                     groupId={activeGroup.id}
-                    onClose={() => setShowGroupEvents(false)}
+                    lastSeenGroupEvents={
+                        members?.find((m) => m.user?.id === user?.id)?.lastSeenGroupEvents
+                    }
+                    onClose={() => {
+                        setShowGroupEvents(false);
+                        refreshActiveGroup();
+                    }}
+                />
+            )}
+            {showNewTask && activeGroup && (
+                <NewTaskPopup
+                    groupId={activeGroup.id}
+                    initialState={newTaskState}
+                    members={members}
+                    onClose={() => setShowNewTask(false)}
+                    onCreated={handleTaskCreated}
+                    onRefresh={refreshActiveGroup}
                 />
             )}
         </div>
