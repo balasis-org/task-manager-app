@@ -2,23 +2,34 @@ import { useContext, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
+import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
 import "@styles/pages/Login.css";
+
+const IS_DEV = import.meta.env.DEV;
+
+const DEV_USERS = [
+    { label: "Alice Dev",  email: "alice.dev@example.com" },
+    { label: "Bob Dev",    email: "bob.dev@example.com" },
+    { label: "Carol Dev",  email: "carol.dev@example.com" },
+    { label: "Dave Dev",   email: "dave.dev@example.com" },
+    { label: "Erin Dev",   email: "erin.dev@example.com" },
+    { label: "Frank Dev",  email: "frank.dev@example.com" },
+    { label: "Grace Dev",  email: "grace.dev@example.com" },
+    { label: "Heidi Dev",  email: "heidi.dev@example.com" },
+    { label: "Ivan Dev",   email: "ivan.dev@example.com" },
+    { label: "Judy Dev",   email: "judy.dev@example.com" },
+];
 
 export default function Login() {
     const { user, loading } = useContext(AuthContext);
-    const [fakeEmail, setFakeEmail] = useState("alice.dev@example.com");
+
+    const [devOpen, setDevOpen] = useState(false);
+    const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
 
-    // already logged in
-    if (!loading && user) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
-    // still loading
-    if (loading) {
-        return null;
-    }
+    if (!loading && user) return <Navigate to="/dashboard" replace />;
+    if (loading) return null;
 
     const handleFakeLogin = async (e) => {
         e.preventDefault();
@@ -27,7 +38,6 @@ export default function Login() {
         try {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
-
             window.location.reload();
         } catch {
             setError("Login failed. Please check your credentials.");
@@ -48,52 +58,76 @@ export default function Login() {
 
     return (
         <div className="login-page">
+            {/* Dev-only toggle in the corner */}
+            {IS_DEV && (
+                <button
+                    type="button"
+                    className="login-dev-toggle"
+                    onClick={() => setDevOpen((v) => !v)}
+                    aria-label="Toggle dev panel"
+                    title="Dev tools"
+                >
+                    <FiTool size={14} />
+                </button>
+            )}
+
             <div className="login-card">
-                <h1>Task Manager</h1>
-                <p className="login-subtitle">Sign in to continue</p>
+                <div className="login-brand">
+                    <div className="login-brand-icon">
+                        <FiShield size={28} />
+                    </div>
+                    <h1>Task Manager</h1>
+                    <p className="login-subtitle">Sign in to your account</p>
+                </div>
 
                 {error && <div className="login-error">{error}</div>}
 
-                <form onSubmit={handleFakeLogin} className="login-form">
-                    <label>
-                        Fake user (dev only)
-                        <select
-                            value={fakeEmail}
-                            onChange={(e) => setFakeEmail(e.target.value)}
-                        >
-                            <option value="alice.dev@example.com">Alice Dev</option>
-                            <option value="bob.dev@example.com">Bob Dev</option>
-                            <option value="carol.dev@example.com">Carol Dev</option>
-                            <option value="dave.dev@example.com">Dave Dev</option>
-                            <option value="erin.dev@example.com">Erin Dev</option>
-                            <option value="frank.dev@example.com">Frank Dev</option>
-                            <option value="grace.dev@example.com">Grace Dev</option>
-                            <option value="heidi.dev@example.com">Heidi Dev</option>
-                            <option value="ivan.dev@example.com">Ivan Dev</option>
-                            <option value="judy.dev@example.com">Judy Dev</option>
-                        </select>
-                    </label>
-
-                    <button type="submit" className="login-btn" disabled={busy}>
-                        {busy ? "Signing in…" : "Sign in as dev"}
-                    </button>
-                </form>
-
-                <div className="login-divider">
-                    <span>or</span>
-                </div>
-
                 <button
                     type="button"
-                    className="login-btn login-btn-azure"
+                    className="login-btn login-btn-ms"
                     onClick={handleAzureLogin}
+                    disabled={busy}
                 >
-                    Sign in with Azure AD
+                    <FiLogIn className="login-btn-icon" />
+                    Sign in with Microsoft
                 </button>
+
+                {/* Dev-only quick login panel */}
+                {IS_DEV && devOpen && (
+                    <>
+                        <div className="login-divider"><span>dev only</span></div>
+
+                        <form onSubmit={handleFakeLogin} className="login-dev-form">
+                            <label className="login-field">
+                                <span className="login-field-label">
+                                    <FiUsers size={13} /> Test user
+                                </span>
+                                <select
+                                    value={fakeEmail}
+                                    onChange={(e) => setFakeEmail(e.target.value)}
+                                >
+                                    {DEV_USERS.map((u) => (
+                                        <option key={u.email} value={u.email}>
+                                            {u.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <button
+                                type="submit"
+                                className="login-btn login-btn-dev"
+                                disabled={busy}
+                            >
+                                {busy ? "Signing in…" : "Quick sign in"}
+                            </button>
+                        </form>
+                    </>
+                )}
 
                 <div className="login-legal">
                     <Link to="/terms-of-service">Terms of Service</Link>
-                    <span className="login-legal-dot">•</span>
+                    <span className="login-legal-dot">·</span>
                     <Link to="/cookie-policy">Cookie Policy</Link>
                 </div>
             </div>

@@ -1,109 +1,184 @@
+/* Login page — full viewport, card-centered */
 .login-page {
+    position: relative;
     width: 100vw;
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     background: var(--bg-body);
+    padding: 1em;
 }
 
 .login-card {
     background: var(--bg-primary);
     border-radius: 0.75em;
     box-shadow: var(--shadow-card);
-    padding: 2.5em 2.25em;
-    width: 23.75em;
-    max-width: 95vw;
+    padding: 2.5em 2.25em 2em;
+    width: 22em;
+    max-width: 100%;
     text-align: center;
+}
+
+/* Brand header */
+.login-brand {
+    margin-bottom: 1.75em;
+}
+
+.login-brand-icon {
+    width: 3.25em;
+    height: 3.25em;
+    border-radius: 0.875em;
+    background: var(--gradient-brand);
+    color: var(--text-on-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75em;
 }
 
 .login-card h1 {
     margin: 0 0 0.25em;
-    font-size: 1.62em;
+    font-size: 1.5em;
     color: var(--text-heading);
 }
 
 .login-subtitle {
     color: var(--text-faint);
-    margin: 0 0 1.25em;
-    font-size: 0.875em;
+    margin: 0;
+    font-size: 0.81em;
 }
 
+/* Error banner */
 .login-error {
     background: var(--danger-bg);
-    color: var(--danger-hover);
+    color: var(--danger-text);
     padding: 0.5em 0.75em;
     border-radius: 0.375em;
     font-size: 0.81em;
-    margin-bottom: 0.875em;
+    margin-bottom: 1em;
 }
 
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.875em;
-    text-align: left;
-}
-
-.login-form label {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.81em;
-    font-weight: 600;
-    color: var(--text-secondary);
-    gap: 0.25em;
-}
-
-.login-form input {
-    padding: 0.625em 0.75em;
-    border: 0.06em solid var(--border-input);
-    border-radius: 0.375em;
-    font-size: 0.875em;
-    outline: none;
-    transition: border-color 0.15s;
-}
-
-.login-form input:focus {
-    border-color: var(--link-color);
-}
-
+/* Microsoft sign-in button */
 .login-btn {
-    padding: 0.75em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    padding: 0.69em 1.25em;
     border: none;
     border-radius: 0.5em;
     font-size: 0.94em;
     font-weight: 600;
     cursor: pointer;
-    background: var(--text-heading);
-    color: var(--text-on-primary);
-    transition: background 0.2s;
-}
-
-.login-btn:hover:not(:disabled) {
-    background: var(--text-primary);
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
 .login-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
 }
 
-.login-btn-azure {
+.login-btn-icon {
+    font-size: 1.12em;
+    flex-shrink: 0;
+}
+
+.login-btn-ms {
     background: var(--accent-primary);
+    color: var(--text-on-primary);
     width: 100%;
 }
 
-.login-btn-azure:hover {
+.login-btn-ms:hover:not(:disabled) {
     background: var(--accent-primary-hover);
+    box-shadow: var(--shadow-sm);
 }
 
+/* Dev toggle button — small pill in top-right corner */
+.login-dev-toggle {
+    position: absolute;
+    top: 0.75em;
+    right: 0.75em;
+    background: var(--bg-active);
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.375em;
+    width: 2em;
+    height: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-faint);
+    opacity: 0.45;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.login-dev-toggle:hover {
+    opacity: 1;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+}
+
+/* Dev panel (shown on toggle) */
+.login-dev-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.62em;
+    text-align: left;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+}
+
+.login-field-label {
+    font-size: 0.81em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.31em;
+}
+
+.login-field select {
+    padding: 0.56em 0.75em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    font-size: 0.875em;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.login-field select:focus {
+    border-color: var(--border-focus);
+}
+
+.login-btn-dev {
+    background: var(--bg-active);
+    color: var(--text-secondary);
+    width: 100%;
+}
+
+.login-btn-dev:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+/* Divider */
 .login-divider {
     display: flex;
     align-items: center;
     gap: 0.75em;
-    margin: 1.12em 0;
+    margin: 1em 0;
     color: var(--text-disabled);
-    font-size: 0.81em;
+    font-size: 0.69em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .login-divider::before,
@@ -120,7 +195,7 @@
     justify-content: center;
     align-items: center;
     gap: 0.5em;
-    margin-top: 1.25em;
+    margin-top: 1.75em;
     font-size: 0.75em;
 }
 
@@ -137,4 +212,23 @@
 
 .login-legal-dot {
     color: var(--text-disabled);
+}
+
+/* Responsive — expand card to fill window on small screens */
+@media (max-width: 480px) {
+    .login-page {
+        padding: 0;
+        align-items: stretch;
+    }
+
+    .login-card {
+        width: 100%;
+        border-radius: 0;
+        box-shadow: none;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2em 1.5em;
+    }
 }
