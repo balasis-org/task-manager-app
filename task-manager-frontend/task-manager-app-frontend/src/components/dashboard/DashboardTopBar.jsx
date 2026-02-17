@@ -136,7 +136,7 @@ export default function DashboardTopBar({
                                         <span className="topbar-group-img placeholder" />
                                     )}
                                 </span>
-                                <span className="topbar-group-name">{activeGroup?.name || "Select group"}</span>
+                                <span className="topbar-group-name" title={activeGroup?.name || "Select group"}>{activeGroup?.name || "Select group"}</span>
                                 <span className="caret">▾</span>
                             </button>
                             <button className="topbar-plus-combo" onClick={onOpenNewGroup} title="New group">
@@ -165,7 +165,7 @@ export default function DashboardTopBar({
                                             ) : (
                                                 <span className="topbar-group-img-small placeholder" />
                                             )}
-                                            <span>{g.name}</span>
+                                            <span className="topbar-dropdown-group-name" title={g.name}>{g.name}</span>
                                         </div>
                                     ))}
                                 </div>

@@ -224,7 +224,14 @@
     }
 
     .nav-badge {
-        display: none;
+        position: absolute;
+        top: 4px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        font-size: 0;
+        padding: 0;
+        min-width: 8px;
     }
 
     /* Center icons */
@@ -233,6 +240,7 @@
         padding: 12px 0;
         justify-content: center;
         gap: 0;
+        position: relative;
     }
 
     .nav-icon {

@@ -16,6 +16,6 @@ public class DefaultImage extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column
     private BlobContainerType type;
-    @Column
+    @Column(length = 300)
     private String fileName;
 }

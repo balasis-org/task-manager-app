@@ -15,6 +15,7 @@ import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
+import { LIMITS } from "@assets/js/inputValidation";
 
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
@@ -306,7 +307,7 @@ export default function Task() {
                         <FiArrowLeft size={14} />
                         <span>Back to group</span>
                     </Link>
-                    <span className="task-breadcrumb-trail">
+                    <span className="task-breadcrumb-trail" title={`${groupName} → Task`}>
                         {groupName} → Task
                     </span>
 
@@ -319,7 +320,7 @@ export default function Task() {
                                 <FiEdit2 size={14} /> Edit
                             </button>
                         )}
-                        <span className="task-meta-group">Group: {groupName}</span>
+                        <span className="task-meta-group" title={groupName}>Group: {groupName}</span>
                         {task.lastEditBy && (
                             <span className="task-meta-lastedit">
                                 LastEditBy: {task.lastEditBy.name || task.lastEditBy.email}
@@ -371,14 +372,18 @@ export default function Task() {
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 placeholder="Task title"
+                                maxLength={LIMITS.TASK_TITLE}
                             />
+                            <span className="char-count">{editTitle.length}/{LIMITS.TASK_TITLE}</span>
                             <textarea
                                 className="task-desc-input"
                                 value={editDesc}
                                 onChange={(e) => setEditDesc(e.target.value)}
                                 placeholder="Task description"
                                 rows={6}
+                                maxLength={LIMITS.TASK_DESCRIPTION}
                             />
+                            <span className="char-count">{editDesc.length}/{LIMITS.TASK_DESCRIPTION}</span>
                             <div className="task-edit-actions">
                                 <button className="btn-primary" onClick={handleSave}>
                                     Save
@@ -489,7 +494,7 @@ export default function Task() {
                                                 onClick={() => handleAddParticipant(m.user?.id, "REVIEWER")}
                                             >
                                                 <img src={userImg(m.user)} alt="" className="task-participant-img" />
-                                                <span>{m.user?.name || m.user?.email}</span>
+                                                <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                                 <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
                                             </div>
                                         ))
@@ -508,7 +513,7 @@ export default function Task() {
                                                 alt=""
                                                 className="task-participant-img"
                                             />
-                                            <span>{r.user?.name || r.user?.email}</span>
+                                            <span title={r.user?.email}>{r.user?.name || r.user?.email}</span>
                                         </div>
                                     ))
                                 )}
@@ -541,14 +546,14 @@ export default function Task() {
                                             className="task-review-textarea"
                                             value={reviewComment}
                                             onChange={(e) =>
-                                                setReviewComment(e.target.value.slice(0, 100))
+                                                setReviewComment(e.target.value.slice(0, LIMITS.TASK_REVIEW_COMMENT))
                                             }
                                             placeholder="Your review comment…"
                                             rows={3}
-                                            maxLength={100}
+                                            maxLength={LIMITS.TASK_REVIEW_COMMENT}
                                         />
                                         <span className="task-review-counter">
-                                            {reviewComment.length}/100
+                                            {reviewComment.length}/{LIMITS.TASK_REVIEW_COMMENT}
                                         </span>
                                     </div>
                                     <div className="task-review-actions">
@@ -604,7 +609,7 @@ export default function Task() {
                                                 onClick={() => handleAddParticipant(m.user?.id, "ASSIGNEE")}
                                             >
                                                 <img src={userImg(m.user)} alt="" className="task-participant-img" />
-                                                <span>{m.user?.name || m.user?.email}</span>
+                                                <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                                 <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
                                             </div>
                                         ))
@@ -623,7 +628,7 @@ export default function Task() {
                                                 alt=""
                                                 className="task-participant-img"
                                             />
-                                            <span>{a.user?.name || a.user?.email}</span>
+                                            <span title={a.user?.email}>{a.user?.name || a.user?.email}</span>
                                         </div>
                                     ))
                                 )}

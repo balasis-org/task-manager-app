@@ -46,6 +46,10 @@
 .comments-trail {
     color: #888;
     font-weight: 500;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ── Top actions ── */

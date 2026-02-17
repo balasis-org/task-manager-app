@@ -228,6 +228,14 @@
     white-space: nowrap;
 }
 
+.topbar-dropdown-group-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
 .topbar-plus-combo {
     border: none;
     background: #f8f8f8;

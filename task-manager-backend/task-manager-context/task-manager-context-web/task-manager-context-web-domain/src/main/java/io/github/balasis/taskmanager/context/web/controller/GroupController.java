@@ -162,6 +162,7 @@ public class GroupController extends BaseComponent {
             @PathVariable(name = "groupId") Long groupId,
             @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
     ){
+        resourceDataValidator.validateResourceData(groupInvitationInboundResource);
         return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
                 groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
                         groupInvitationInboundResource.getUserToBeInvitedRole(),
@@ -176,6 +177,7 @@ public class GroupController extends BaseComponent {
             @RequestPart("data") TaskInboundResource inbound,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
+        resourceDataValidator.validateResourceData(inbound);
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
         var partialTask = taskInboundMapper.toDomain(inbound);
 
@@ -272,6 +274,7 @@ public class GroupController extends BaseComponent {
             @PathVariable Long taskId,
             @RequestBody TaskInboundPatchResource taskInboundPatchResource
             ){
+        resourceDataValidator.validateResourceData(taskInboundPatchResource);
         return ResponseEntity.ok(
                 taskOutboundMapper.toResource(
                         groupService.patchTask(groupId,taskId,
@@ -322,6 +325,7 @@ public class GroupController extends BaseComponent {
             @PathVariable Long taskId,
             @RequestBody TaskParticipantInboundResource taskParticipantInboundResource
             ) {
+        resourceDataValidator.validateResourceData(taskParticipantInboundResource);
        return ResponseEntity.ok(
                taskOutboundMapper.toResource(
                 groupService.addTaskParticipant(groupId, taskId,

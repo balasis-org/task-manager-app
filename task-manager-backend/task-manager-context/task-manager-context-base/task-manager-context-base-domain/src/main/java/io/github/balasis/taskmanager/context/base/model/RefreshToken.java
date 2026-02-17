@@ -18,7 +18,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "RefreshTokens")
 public class RefreshToken extends BaseModel{
-    @Column(nullable = false)
+    @Column(nullable = false, length = 128)
     private String refreshCode;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn

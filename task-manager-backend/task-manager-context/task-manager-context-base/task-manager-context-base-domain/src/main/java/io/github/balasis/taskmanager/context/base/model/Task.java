@@ -18,11 +18,11 @@ import java.util.Set;
 @Entity
 @Table(name = "Tasks")
 public class Task extends BaseModel{
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 150)
     private String title;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1500)
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -32,7 +32,7 @@ public class Task extends BaseModel{
     @Column(name = "creator_id_snapshot")
     private Long creatorIdSnapshot;
 
-    @Column(name = "creator_name_snapshot")
+    @Column(name = "creator_name_snapshot", length = 100)
     private String creatorNameSnapshot;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -64,7 +64,7 @@ public class Task extends BaseModel{
     private User reviewedBy;
 
     @Lob
-    @Column
+    @Column(length = 400)
     private String reviewComment;
 
     @ManyToOne

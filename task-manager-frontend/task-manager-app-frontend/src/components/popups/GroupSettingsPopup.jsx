@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiPatch, apiMultipart } from "@assets/js/apiClient";
+import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
 
 export default function GroupSettingsPopup({ group, onClose, onUpdated }) {
@@ -46,7 +47,7 @@ export default function GroupSettingsPopup({ group, onClose, onUpdated }) {
     return (
         <div className="popup-overlay" onClick={onClose}>
             <div className="popup-card" onClick={(e) => e.stopPropagation()}>
-                <h2>{group.name} Settings</h2>
+                <h2 title={group.name} className="popup-heading-ellipsis">{group.name} Settings</h2>
 
                 {error && <div className="popup-error">{error}</div>}
 
@@ -77,7 +78,9 @@ export default function GroupSettingsPopup({ group, onClose, onUpdated }) {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
+                            maxLength={LIMITS.GROUP_DESCRIPTION}
                         />
+                        <span className="char-count">{description.length}/{LIMITS.GROUP_DESCRIPTION}</span>
                     </label>
 
                     <div className="popup-actions">

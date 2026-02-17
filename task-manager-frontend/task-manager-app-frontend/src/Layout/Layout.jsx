@@ -1,7 +1,8 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
+import { apiGet } from "@assets/js/apiClient.js";
 import Footer from "@components/footer/Footer";
 import "@styles/Layout.css";
 import blobBase from "@blobBase";
@@ -10,6 +11,42 @@ export default function Layout({ children }) {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [newInviteCount, setNewInviteCount] = useState(0);
+
+    // ── Check for unseen invitations ──
+    useEffect(() => {
+        if (!user) return;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const lastSeen = user.lastSeenInvites
+                    ? new Date(user.lastSeenInvites)
+                    : null;
+
+                const invites = await apiGet("/api/group-invitations/me");
+                if (cancelled) return;
+
+                const pending = (Array.isArray(invites) ? invites : []).filter(
+                    (inv) => inv.invitationStatus === "PENDING"
+                );
+
+                if (!lastSeen) {
+                    // Never visited invitations page → all pending are "new"
+                    setNewInviteCount(pending.length);
+                } else {
+                    const unseen = pending.filter(
+                        (inv) => inv.createdAt && new Date(inv.createdAt) > lastSeen
+                    );
+                    setNewInviteCount(unseen.length);
+                }
+            } catch {
+                // silently ignore
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [user]);
 
     const handleLogout = async () => {
         await logout();
@@ -64,6 +101,9 @@ export default function Layout({ children }) {
                         >
                             <span className="nav-icon"><FiMail size={16} /></span>
                             <span className="nav-label">Invitations</span>
+                            {newInviteCount > 0 && (
+                                <span className="nav-badge">{newInviteCount}</span>
+                            )}
                         </NavLink>
                         <NavLink
                             to="/settings"

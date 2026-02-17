@@ -1,0 +1,290 @@
+/* ══════════════════════════════════════
+   Invitations page
+   ══════════════════════════════════════ */
+.invitations-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+}
+
+.invitations-heading {
+    font-size: 22px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 24px;
+}
+
+/* ── Section ── */
+.invitations-section {
+    margin-bottom: 36px;
+}
+
+.invitations-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 6px;
+}
+
+.invitations-hint {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.invitations-empty {
+    font-size: 14px;
+    color: #888;
+    padding: 16px 0;
+}
+
+/* ── Received invitation card ── */
+.invitation-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    transition: box-shadow 0.15s;
+}
+
+.invitation-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.invitation-card.unread {
+    border-left: 4px solid #ffc107;
+}
+
+.invitation-card.resolved {
+    opacity: 0.7;
+}
+
+.invitation-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.invitation-group {
+    font-weight: 600;
+    font-size: 15px;
+    color: #222;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.invitation-from {
+    font-size: 13px;
+    color: #666;
+}
+
+.invitation-comment {
+    font-size: 13px;
+    color: #555;
+    margin: 6px 0;
+    line-height: 1.4;
+}
+
+.invitation-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.invitation-date {
+    font-size: 12px;
+    color: #999;
+}
+
+.invitation-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ── Status badges ── */
+.invitation-status {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.invitation-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.invitation-status.accepted {
+    background: #d4edda;
+    color: #155724;
+}
+
+.invitation-status.declined {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ── Resolved toggle ── */
+.invitations-resolved-toggle {
+    margin-top: 14px;
+}
+
+.invitations-resolved-toggle summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: #666;
+    user-select: none;
+    margin-bottom: 8px;
+}
+
+/* ── Sent invitations table ── */
+.invitations-table-wrapper {
+    overflow-x: auto;
+}
+
+.invitations-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.invitations-table th {
+    text-align: left;
+    font-size: 12px;
+    color: #888;
+    padding: 8px 10px;
+    border-bottom: 2px solid #eee;
+    white-space: nowrap;
+}
+
+.invitations-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.sent-group-name {
+    font-weight: 500;
+    max-width: 180px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.sent-comment-cell {
+    max-width: 180px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.btn-abort {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-abort:hover {
+    background: #c0392b;
+}
+
+/* ══════════════════════════════════════
+   Responsive
+   ══════════════════════════════════════ */
+@media (max-width: 600px) {
+    .invitations-page {
+        padding: 16px 12px 40px;
+    }
+
+    .invitations-heading {
+        font-size: 18px;
+    }
+
+    .invitation-card {
+        padding: 10px 12px;
+    }
+
+    .invitation-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-group {
+        max-width: 100%;
+    }
+
+    .invitation-card-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-actions {
+        width: 100%;
+    }
+
+    .invitation-actions .btn-primary,
+    .invitation-actions .btn-secondary {
+        flex: 1;
+    }
+
+    /* Table → card layout on small screens */
+    .invitations-table thead {
+        display: none;
+    }
+
+    .invitations-table,
+    .invitations-table tbody,
+    .invitations-table tr,
+    .invitations-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .invitations-table tr {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+    }
+
+    .invitations-table td {
+        padding: 4px 0;
+        border-bottom: none;
+    }
+
+    .invitations-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 11px;
+        color: #888;
+        display: block;
+    }
+
+    .sent-group-name,
+    .sent-comment-cell {
+        max-width: 100%;
+    }
+}

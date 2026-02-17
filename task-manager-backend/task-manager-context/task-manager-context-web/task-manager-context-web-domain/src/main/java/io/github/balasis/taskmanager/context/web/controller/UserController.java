@@ -8,6 +8,7 @@ import io.github.balasis.taskmanager.context.web.mapper.outbound.UserOutboundMap
 import io.github.balasis.taskmanager.context.web.resource.user.inbound.UserInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
+import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.jsonwebtoken.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class UserController extends BaseComponent {
     private final UserOutboundMapper userOutboundMapper;
     private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
     private final UserInboundMapper userInboundMapper;
+    private final ResourceDataValidator resourceDataValidator;
 
     @GetMapping("/me")
     public ResponseEntity<UserOutboundResource> getMyProfile(){
@@ -50,6 +52,7 @@ public class UserController extends BaseComponent {
     @PatchMapping("/me")
     public ResponseEntity<UserOutboundResource> patchMyProfile(
            @RequestBody UserInboundResource userInboundResource){
+        resourceDataValidator.validateResourceData(userInboundResource);
         return ResponseEntity.ok( userOutboundMapper.toResource(
                 userService.patchMyProfile(
                     userInboundMapper.toDomain(userInboundResource)
