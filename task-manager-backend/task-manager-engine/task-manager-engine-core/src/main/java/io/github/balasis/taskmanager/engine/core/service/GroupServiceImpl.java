@@ -969,9 +969,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .collect(Collectors.toSet());
         builder.changedTasks(taskPreviews);
 
-        // Deleted task IDs
+        // Deleted task IDs (tombstones) since lastSeen, with a small safety offset
         if (tasksDeleted) {
-            builder.deletedTaskIds(deletedTaskRepository.findDeletedTaskIdsByGroupId(groupId));
+            Instant cutoff = lastSeen.minusSeconds(3); // slight cushion to avoid boundary issues
+            builder.deletedTaskIds(
+                    deletedTaskRepository.findDeletedTaskIdsByGroupIdAndDeletedAtAfter(groupId, cutoff)
+            );
         }
 
         return builder.build();
@@ -989,9 +992,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if ( !(taskToBeDeleted.getGroup().getId() .equals(groupOfTask.getId())) ){
             throw new UnauthorizedException("Task doesn't belong to the group given");
         }
-        var delTask = DeletedTask.builder().deletedTaskId(taskId).group(groupOfTask).build();
-        deletedTaskRepository.save(delTask);
         Instant now = Instant.now();
+        var delTask = DeletedTask.builder()
+            .deletedTaskId(taskId)
+            .group(groupOfTask)
+            .deletedAt(now)
+            .build();
+        deletedTaskRepository.save(delTask);
         groupOfTask.setLastDeleteTaskDate(now);
         taskRepository.deleteById(taskId);
         groupEventRepository.save(GroupEvent.builder().description("Task '" + taskToBeDeleted.getTitle() + "' has been deleted by "
