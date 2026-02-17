@@ -13,11 +13,13 @@ import Task from "./pages/Task.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import AuthProvider from "@context/AuthProvider.jsx";
 import GroupProvider from "@context/GroupProvider.jsx";
+import { ToastProvider } from "@context/ToastContext.jsx";
 
 export default function App() {
     return (
         <Router>
             <AuthProvider>
+                <ToastProvider>
                 <GroupProvider>
                 <Routes>
                     <Route path="/about-us" element={<ProtectedRoute><Layout><AboutUs /></Layout></ProtectedRoute>} />
@@ -35,6 +37,7 @@ export default function App() {
 
                 </Routes>
                 </GroupProvider>
+                </ToastProvider>
             </AuthProvider>
         </Router>
     );

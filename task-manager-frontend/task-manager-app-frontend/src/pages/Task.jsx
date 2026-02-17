@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
+import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
@@ -39,7 +40,8 @@ export default function Task() {
     const { groupId, taskId } = useParams();
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, members } = useContext(GroupContext);
+    const { activeGroup, myRole, members, refreshActiveGroup } = useContext(GroupContext);
+    const showToast = useToast();
 
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -103,6 +105,31 @@ export default function Task() {
         (m) => ASSIGNEE_ELIGIBLE_ROLES.includes(m.role) && !existingAssigneeIds.has(m.user?.id)
     );
 
+    // ── Refresh members so pickers are up-to-date ──
+    useEffect(() => {
+        if (groupId) refreshActiveGroup();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [groupId]);
+
+    // ── Reusable: re-fetch task (used after errors to self-heal stale UI) ──
+    function refetchTask() {
+        if (!groupId || !taskId) return;
+        apiGet(`/api/groups/${groupId}/task/${taskId}`)
+            .then((data) => {
+                setTask(data);
+                setEditTitle(data.title || "");
+                setEditDesc(data.description || "");
+                setEditState(data.taskState || "TODO");
+            })
+            .catch(() => {});
+    }
+
+    // Auto-heal: refresh group context + task data so stale pickers / state correct themselves
+    function autoHeal() {
+        refreshActiveGroup();
+        refetchTask();
+    }
+
     // ── Fetch task ──
     useEffect(() => {
         if (!groupId || !taskId) return;
@@ -129,8 +156,9 @@ export default function Task() {
             const updated = await apiPatch(`/api/groups/${groupId}/task/${taskId}`, body);
             setTask(updated);
             setEditing(false);
-        } catch {
-            alert("Failed to save changes");
+        } catch (err) {
+            showToast(err?.message || "Failed to save changes");
+            autoHeal();
         }
     }
 
@@ -142,8 +170,9 @@ export default function Task() {
             });
             setTask(updated);
             setEditState(newState);
-        } catch {
-            alert("Failed to change state");
+        } catch (err) {
+            showToast(err?.message || "Failed to change state");
+            autoHeal();
         }
     }
 
@@ -157,8 +186,9 @@ export default function Task() {
             });
             setTask(updated);
             setReviewComment("");
-        } catch {
-            alert("Failed to submit review");
+        } catch (err) {
+            showToast(err?.message || "Failed to submit review");
+            autoHeal();
         } finally {
             setSubmittingReview(false);
         }
@@ -174,8 +204,9 @@ export default function Task() {
             setTask(updated);
             if (role === "REVIEWER") setShowReviewerPicker(false);
             else setShowAssigneePicker(false);
-        } catch {
-            alert("Failed to add participant");
+        } catch (err) {
+            showToast(err?.message || "Failed to add participant");
+            autoHeal();
         }
     }
 
@@ -184,8 +215,9 @@ export default function Task() {
         try {
             const updated = await apiPost(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`);
             setTask(updated);
-        } catch {
-            alert("Failed to move task to review");
+        } catch (err) {
+            showToast(err?.message || "Failed to move task to review");
+            autoHeal();
         }
     }
 
@@ -201,8 +233,9 @@ export default function Task() {
                 fd
             );
             setTask(updated);
-        } catch {
-            alert("Failed to upload file");
+        } catch (err) {
+            showToast(err?.message || "Failed to upload file");
+            autoHeal();
         }
     }
 
@@ -217,8 +250,9 @@ export default function Task() {
                 fd
             );
             setTask(updated);
-        } catch {
-            alert("Failed to upload assignee file");
+        } catch (err) {
+            showToast(err?.message || "Failed to upload assignee file");
+            autoHeal();
         }
     }
 
@@ -235,8 +269,8 @@ export default function Task() {
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
-        } catch {
-            alert("Failed to download file");
+        } catch (err) {
+            showToast(err?.message || "Failed to download file");
         }
     }
 
@@ -250,8 +284,9 @@ export default function Task() {
             // Refetch task
             const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
             setTask(refreshed);
-        } catch {
-            alert("Failed to delete file");
+        } catch (err) {
+            showToast(err?.message || "Failed to delete file");
+            autoHeal();
         }
     }
 

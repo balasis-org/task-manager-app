@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import {
     FiArrowLeft,
     FiPlus,
@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
+import { useToast } from "@context/ToastContext";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
@@ -16,6 +17,7 @@ import "@styles/pages/Comments.css";
 const EMOJIS = ["😀","😂","😍","👍","👎","🎉","🔥","❤️","😢","😮","🤔","😎","💯","✅","❌","⚡"];
 
 const MAX_LEN = 250;
+const PAGE_SIZE = 5;
 
 function userImg(u) {
     if (!u) return "";
@@ -36,18 +38,20 @@ function formatDate(iso) {
 
 export default function Comments() {
     const { groupId, taskId } = useParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole } = useContext(GroupContext);
+    const { activeGroup, myRole, refreshActiveGroup } = useContext(GroupContext);
+    const showToast = useToast();
+
+    // URL-driven page (1-indexed in URL, 0-indexed for API)
+    const urlPage = searchParams.get("page"); // string or null
 
     const [comments, setComments] = useState([]);
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Pagination
-    const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const PAGE_SIZE = 20;
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // New comment input
     const [composerOpen, setComposerOpen] = useState(false);
@@ -78,38 +82,63 @@ export default function Comments() {
     const isParticipant = user?.id && participantRoleMap[user.id];
     const canComment = isLeaderOrManager || !!isParticipant;
 
-    // ── Fetch task + comments ──
+    const currentPage = urlPage ? Number(urlPage) : 1; // 1-indexed
+
+    function goToPage(p) {
+        setSearchParams({ page: String(p) });
+    }
+
+    // ── Fetch task (once) ──
     useEffect(() => {
         if (!groupId || !taskId) return;
+        apiGet(`/api/groups/${groupId}/task/${taskId}`)
+            .then(setTask)
+            .catch(() => {});
+    }, [groupId, taskId]);
+
+    // ── Resolve initial page: redirect to last page if no ?page in URL ──
+    useEffect(() => {
+        if (!groupId || !taskId || urlPage !== null) return;
+        apiGet(`/api/groups/${groupId}/task/${taskId}/comments?page=0&size=${PAGE_SIZE}&sort=createdAt,asc`)
+            .then((data) => {
+                const lastPage = Math.max(1, data.totalPages || 1);
+                setSearchParams({ page: String(lastPage) }, { replace: true });
+            })
+            .catch(() => setError("Failed to load comments"));
+    }, [groupId, taskId, urlPage]);
+
+    // ── Fetch comments when page is in URL ──
+    useEffect(() => {
+        if (!groupId || !taskId || urlPage === null) return;
+        const apiPage = Math.max(0, Number(urlPage) - 1);
         setLoading(true);
         setError(null);
-        Promise.all([
-            apiGet(`/api/groups/${groupId}/task/${taskId}`),
-            apiGet(`/api/groups/${groupId}/task/${taskId}/comments?page=${page}&size=${PAGE_SIZE}&sort=createdAt,desc`),
-        ])
-            .then(([taskData, commentsData]) => {
-                setTask(taskData);
-                setComments(commentsData.content || []);
-                setTotalPages(commentsData.totalPages || 0);
+        apiGet(`/api/groups/${groupId}/task/${taskId}/comments?page=${apiPage}&size=${PAGE_SIZE}&sort=createdAt,asc`)
+            .then((data) => {
+                setComments(data.content || []);
+                setTotalPages(data.totalPages || 0);
             })
             .catch(() => setError("Failed to load comments"))
             .finally(() => setLoading(false));
-    }, [groupId, taskId, page]);
+    }, [groupId, taskId, urlPage, refreshKey]);
 
     // ── Add comment ──
     async function handleSubmit() {
         if (!newComment.trim()) return;
         setSubmitting(true);
         try {
-            const created = await apiPost(
+            await apiPost(
                 `/api/groups/${groupId}/task/${taskId}/comments`,
                 { comment: newComment.trim() }
             );
-            setComments((prev) => [created, ...prev]);
             setNewComment("");
             setComposerOpen(false);
-        } catch {
-            alert("Failed to add comment");
+            // Navigate to last page (new comment lands there in asc order)
+            // Clear page param → probe effect resolves to last page
+            setSearchParams({}, { replace: true });
+        } catch (err) {
+            showToast(err?.message || "Failed to add comment");
+            refreshActiveGroup();
         } finally {
             setSubmitting(false);
         }
@@ -135,8 +164,9 @@ export default function Comments() {
             );
             setEditingId(null);
             setEditText("");
-        } catch {
-            alert("Failed to save comment");
+        } catch (err) {
+            showToast(err?.message || "Failed to save comment");
+            refreshActiveGroup();
         }
     }
 
@@ -147,10 +177,16 @@ export default function Comments() {
             await apiDelete(
                 `/api/groups/${groupId}/task/${taskId}/comments/${deleteId}`
             );
-            setComments((prev) => prev.filter((c) => c.id !== deleteId));
             setDeleteId(null);
-        } catch {
-            alert("Failed to delete comment");
+            // If last comment on this page and not page 1, go to previous page
+            if (comments.length <= 1 && currentPage > 1) {
+                goToPage(currentPage - 1);
+            } else {
+                setRefreshKey((k) => k + 1);
+            }
+        } catch (err) {
+            showToast(err?.message || "Failed to delete comment");
+            refreshActiveGroup();
         }
     }
 
@@ -176,7 +212,7 @@ export default function Comments() {
 
     const groupName = activeGroup?.name || `Group ${groupId}`;
 
-    if (loading) return <Spinner />;
+    if ((loading && urlPage !== null) || urlPage === null) return <Spinner />;
     if (error) return <div className="comments-page-error">{error}</div>;
 
     return (
@@ -204,6 +240,29 @@ export default function Comments() {
                         onClick={() => setComposerOpen((v) => !v)}
                     >
                         <FiPlus size={14} /> Add a comment
+                    </button>
+                </div>
+            )}
+
+            {/* ── Pagination (fixed at top, always visible) ── */}
+            {totalPages > 1 && (
+                <div className="comments-pagination">
+                    <button
+                        className="btn-secondary btn-sm"
+                        disabled={currentPage <= 1}
+                        onClick={() => goToPage(currentPage - 1)}
+                    >
+                        ← Prev
+                    </button>
+                    <span className="comments-page-info">
+                        {currentPage} / {totalPages}
+                    </span>
+                    <button
+                        className="btn-secondary btn-sm"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => goToPage(currentPage + 1)}
+                    >
+                        Next →
                     </button>
                 </div>
             )}
@@ -309,29 +368,6 @@ export default function Comments() {
                     })
                 )}
             </div>
-
-            {/* ── Pagination ── */}
-            {totalPages > 1 && (
-                <div className="comments-pagination">
-                    <button
-                        className="btn-secondary btn-sm"
-                        disabled={page === 0}
-                        onClick={() => setPage((p) => p - 1)}
-                    >
-                        ← Prev
-                    </button>
-                    <span className="comments-page-info">
-                        {page + 1} / {totalPages}
-                    </span>
-                    <button
-                        className="btn-secondary btn-sm"
-                        disabled={page >= totalPages - 1}
-                        onClick={() => setPage((p) => p + 1)}
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
 
             {/* ── Composer (slides in from bottom) ── */}
             <div className={`comments-composer${composerOpen ? " open" : ""}`}>

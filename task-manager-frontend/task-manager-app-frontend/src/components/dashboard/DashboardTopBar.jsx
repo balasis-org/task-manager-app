@@ -15,6 +15,8 @@ export default function DashboardTopBar({
     onOpenInvite,
     onOpenGroupSettings,
     onOpenGroupEvents,
+    user,
+    groupDetail,
 }) {
     const [groupDropdown, setGroupDropdown] = useState(false);
     const [membersDropdown, setMembersDropdown] = useState(false);
@@ -23,6 +25,21 @@ export default function DashboardTopBar({
 
     const canInvite = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const canSettings = myRole === "GROUP_LEADER";
+
+    // Role label for current user
+    const roleLabel = myRole ? myRole.replace(/_/g, " ").toLowerCase() : null;
+
+    // Notification dot: compare group's lastGroupEventDate vs my membership's lastSeenGroupEvents
+    const myMembership = user && members?.length
+        ? members.find((m) => m.user?.id === user.id)
+        : null;
+    const hasUnseenEvents = (() => {
+        const lastEvent = groupDetail?.lastGroupEventDate;
+        const lastSeen = myMembership?.lastSeenGroupEvents;
+        if (!lastEvent) return false;
+        if (!lastSeen) return true;
+        return new Date(lastEvent) > new Date(lastSeen);
+    })();
 
     // Close dropdowns on outside click
     useEffect(() => {
@@ -48,11 +65,20 @@ export default function DashboardTopBar({
                                 <FiSettings size={16} />
                             </button>
                         )}
+                        {roleLabel && (
+                            <span className="topbar-role-tag">({roleLabel})</span>
+                        )}
                     </div>
 
                     <div className="topbar-right">
-                        <button className="topbar-icon-btn" onClick={onOpenGroupEvents} title="Group Events">
+                        <button className="topbar-icon-btn topbar-events-btn" onClick={onOpenGroupEvents} title="Group Events">
                             📋
+                            {hasUnseenEvents && (
+                                <>
+                                    <span className="topbar-notif-dot" />
+                                    <span className="topbar-notif-badge">NEW</span>
+                                </>
+                            )}
                         </button>
 
                         <div className="topbar-dropdown-wrapper topbar-combo" ref={membersRef}>

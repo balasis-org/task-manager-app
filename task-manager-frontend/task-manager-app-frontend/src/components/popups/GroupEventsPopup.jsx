@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { apiGet } from "@assets/js/apiClient";
 import "@styles/popups/Popup.css";
 
-export default function GroupEventsPopup({ groupId, onClose }) {
+export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents }) {
     const [events, setEvents] = useState([]);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
+
+    // Capture the threshold once on mount so it doesn't change after fetch updates it
+    const [seenThreshold] = useState(() => lastSeenGroupEvents || null);
 
     useEffect(() => {
         loadEvents(page);
@@ -46,14 +49,20 @@ export default function GroupEventsPopup({ groupId, onClose }) {
                     <p className="muted">No events yet.</p>
                 ) : (
                     <ul className="popup-event-list">
-                        {events.map((ev) => (
-                            <li key={ev.id}>
-                                <span>{ev.description}</span>
-                                <span className="popup-event-date">
-                                    {formatDate(ev.createdAt)}
-                                </span>
-                            </li>
-                        ))}
+                        {events.map((ev) => {
+                            const isNew = seenThreshold
+                                ? new Date(ev.createdAt) > new Date(seenThreshold)
+                                : true;
+                            return (
+                                <li key={ev.id} className={isNew ? "popup-event-new" : ""}>
+                                    {isNew && <span className="popup-event-new-badge">NEW</span>}
+                                    <span>{ev.description}</span>
+                                    <span className="popup-event-date">
+                                        {formatDate(ev.createdAt)}
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
 

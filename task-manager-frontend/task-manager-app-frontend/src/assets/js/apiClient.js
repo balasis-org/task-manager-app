@@ -71,9 +71,11 @@ async function apiRequest(path, options = {}, retry = true) {
      * Other HTTP errors
      */
     if (!res.ok) {
+        let body = null;
+        try { body = await res.text(); } catch {}
         throw {
             status: res.status,
-            message: "HTTP error",
+            message: body || "HTTP error",
         };
     }
 
@@ -123,7 +125,11 @@ export async function apiMultipart(path, formData, options = {}) {
     }
 
     if (!res.ok) {
-        throw { status: res.status, message: "HTTP error" };
+        // json was already parsed above; use it for the error message
+        const errMsg = (json && typeof json === "object") ? (json.message || json.error || JSON.stringify(json))
+                     : (json && typeof json === "string") ? json
+                     : "HTTP error";
+        throw { status: res.status, message: errMsg };
     }
 
     // Return raw JSON body (no wrapper unwrapping)

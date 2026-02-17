@@ -15,6 +15,10 @@ import java.util.Set;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task,Long> {
+    boolean existsByTitle(String title);
+
+    boolean existsByTitleAndIdNot(String title, Long id);
+
     @Modifying
     void deleteAllByGroup_Id(Long groupId);
 

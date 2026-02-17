@@ -15,6 +15,11 @@ export default function Login() {
         return <Navigate to="/dashboard" replace />;
     }
 
+    // Still checking auth — show nothing to avoid flashing the login form
+    if (loading) {
+        return null;
+    }
+
     const handleFakeLogin = async (e) => {
         e.preventDefault();
         setError("");
