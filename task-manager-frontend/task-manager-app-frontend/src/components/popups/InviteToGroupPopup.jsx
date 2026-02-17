@@ -23,10 +23,8 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
         }
         try {
             const data = await apiGet(
-                `/api/groups/${groupId}/groupMemberships/search?q=${encodeURIComponent(q)}&page=0&size=10`
+                `/api/users/search?q=${encodeURIComponent(q)}&page=0&size=40`
             );
-            // The search returns existing members – for inviting we'd need a user search endpoint.
-            // For now show members as searchable; the invite endpoint takes userId.
             setResults(data?.content ?? []);
         } catch {
             setResults([]);
@@ -80,21 +78,18 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
 
                     {results.length > 0 && (
                         <div className="popup-search-results">
-                            {results.map((m) => (
+                            {results.map((u) => (
                                 <div
-                                    key={m.id}
-                                    className={`popup-search-item${
-                                        selectedUser?.id === m.user?.id ? " selected" : ""
-                                    }`}
-                                    onClick={() => setSelectedUser(m.user)}
+                                    key={u.id}
+                                    className={`popup-search-item${selectedUser?.id === u.id ? " selected" : ""}`}
+                                    onClick={() => setSelectedUser(u)}
                                 >
                                     <img
-                                        src={ (m.user?.imgUrl) ? blobBase+m.user.imgUrl : (m.user?.defaultImgUrl)
-                                            ? blobBase + m.user.defaultImgUrl : ""}
+                                        src={u.imgUrl ? blobBase + u.imgUrl : (u.defaultImgUrl ? blobBase + u.defaultImgUrl : "")}
                                         alt=""
                                         className="popup-search-img"
                                     />
-                                    <span>{m.user?.name || m.user?.email}</span>
+                                    <span>{u.name || u.email}</span>
                                 </div>
                             ))}
                         </div>

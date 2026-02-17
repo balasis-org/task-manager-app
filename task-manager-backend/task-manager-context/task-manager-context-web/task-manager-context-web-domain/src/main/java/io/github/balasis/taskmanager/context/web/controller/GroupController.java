@@ -26,6 +26,7 @@ import io.github.balasis.taskmanager.context.web.resource.taskcomment.outbound.T
 import io.github.balasis.taskmanager.context.web.resource.taskparticipant.inbound.TaskParticipantInboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
+import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -57,7 +58,9 @@ public class GroupController extends BaseComponent {
     private final TaskInboundMapper taskInboundMapper;
     private final GroupService groupService;
     private final GroupMembershipOutboundMapper groupMembershipOutboundMapper;
-    private final GroupMiniForDropdownMapper groupMiniForDropdownMapper;
+    private final GroupMiniForDropdownOutboundMapper groupMiniForDropdownOutboundMapper;
+        private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
+        private final UserService userService;
 
 
     @PostMapping
@@ -82,7 +85,7 @@ public class GroupController extends BaseComponent {
     @GetMapping
     public ResponseEntity<Set<GroupMiniForDropdownResource>> findAllByCurrentUser() {
         return ResponseEntity.ok(
-                groupMiniForDropdownMapper.toResources(
+                groupMiniForDropdownOutboundMapper.toResources(
                         groupService.findAllByCurrentUser()
                 ));
     }
@@ -208,6 +211,19 @@ public class GroupController extends BaseComponent {
         );
     }
 
+    @GetMapping(path = "/{groupId}/searchForInvite")
+    public ResponseEntity<Page<io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource>> searchUsersForInvite(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) String q,
+            Pageable pageable
+    ){
+        return ResponseEntity.ok(
+                userService.searchUserForInvites(groupId, q, pageable).map(
+                        userMiniForDropdownOutboundMapper::toResource
+                )
+        );
+    }
+
 
     @GetMapping(path="/{groupId}/task")
     public ResponseEntity<Set<TaskPreviewOutboundResource>> findMyTasks(
@@ -258,6 +274,16 @@ public class GroupController extends BaseComponent {
                 )
         );
     }
+
+    @DeleteMapping("/groupId/{groupId}/task/{taskId}")
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId
+    ){
+        groupService.deleteTask(groupId,taskId);
+        return ResponseEntity.noContent().build();
+    }
+
 
     @PostMapping(path = "/{groupId}/task/{taskId}/review")
     public ResponseEntity<TaskOutboundResource> reviewTask(

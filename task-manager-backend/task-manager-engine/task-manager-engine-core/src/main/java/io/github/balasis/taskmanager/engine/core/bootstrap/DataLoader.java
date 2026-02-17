@@ -35,7 +35,7 @@ import java.util.Set;
 
 @Component
 @Profile({"DataLoader"})
-@RequiredArgsConstructor //TODO:make it run after defaultImageBootstrap
+@RequiredArgsConstructor
 public class DataLoader extends BaseComponent {
 
     private static final Lorem lorem = LoremIpsum.getInstance();

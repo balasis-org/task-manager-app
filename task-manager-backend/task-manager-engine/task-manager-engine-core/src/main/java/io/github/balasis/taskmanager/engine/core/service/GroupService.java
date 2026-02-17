@@ -82,4 +82,6 @@ public interface GroupService{
 
     //Refresh (delta polling)
     GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
+
+    void deleteTask(Long groupId, Long taskId);
 }
