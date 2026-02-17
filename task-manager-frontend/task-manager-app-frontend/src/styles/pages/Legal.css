@@ -1,0 +1,171 @@
+/* ══════════════════════════════════════
+   Shared legal-page styles
+   (Terms of Service, Cookie Policy)
+   ══════════════════════════════════════ */
+
+.legal-page {
+    max-width: 48em;
+    margin: 0 auto;
+    padding: 2.5em 1.5em 5em;
+}
+
+/* ── Back link ── */
+.legal-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.81em;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 1.5em;
+    transition: color 0.15s;
+}
+
+.legal-back:hover {
+    color: var(--text-primary);
+}
+
+/* ── Hero / title area ── */
+.legal-hero {
+    text-align: center;
+    margin-bottom: 2.5em;
+}
+
+.legal-hero-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3em;
+    height: 3em;
+    border-radius: 50%;
+    background: var(--gradient-icon-bg);
+    color: var(--gradient-icon-color);
+    margin-bottom: 0.75em;
+}
+
+.legal-hero h1 {
+    font-size: 2em;
+    font-weight: 800;
+    color: var(--text-heading);
+    margin: 0 0 0.5em;
+    letter-spacing: -0.02em;
+}
+
+.legal-hero p {
+    color: var(--text-muted);
+    font-size: 0.875em;
+    margin: 0;
+}
+
+/* ── Section blocks ── */
+.legal-section {
+    margin-bottom: 2em;
+    padding-bottom: 1.5em;
+    border-bottom: 0.06em solid var(--border-secondary);
+}
+
+.legal-section:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.legal-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 1.12em;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0 0 0.75em;
+}
+
+.legal-section h2 svg {
+    color: var(--accent-violet);
+    flex-shrink: 0;
+}
+
+.legal-section h3 {
+    font-size: 0.94em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 1em 0 0.5em;
+}
+
+.legal-section p {
+    font-size: 0.875em;
+    color: var(--text-tertiary);
+    line-height: 1.7;
+    margin: 0 0 0.625em;
+}
+
+.legal-section ul,
+.legal-section ol {
+    font-size: 0.875em;
+    color: var(--text-tertiary);
+    line-height: 1.7;
+    padding-left: 1.5em;
+    margin: 0.5em 0 0.75em;
+}
+
+.legal-section li {
+    margin-bottom: 0.375em;
+}
+
+.legal-section strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ── Highlighted callout box ── */
+.legal-highlight {
+    background: var(--bg-accent-subtle);
+    border-left: 0.19em solid var(--accent-primary);
+    padding: 0.75em 1em;
+    border-radius: 0 0.375em 0.375em 0;
+    margin: 0.75em 0;
+    font-size: 0.875em;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.legal-warning {
+    background: var(--warning-bg);
+    border-left: 0.19em solid var(--warning);
+    padding: 0.75em 1em;
+    border-radius: 0 0.375em 0.375em 0;
+    margin: 0.75em 0;
+    font-size: 0.875em;
+    color: var(--warning-text);
+    line-height: 1.6;
+}
+
+/* ── Contact card ── */
+.legal-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    background: var(--bg-secondary);
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.5em;
+    padding: 1em 1.25em;
+    margin-top: 0.5em;
+}
+
+.legal-contact svg {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.legal-contact a {
+    color: var(--link-color);
+    text-decoration: none;
+    font-size: 0.875em;
+    font-weight: 500;
+}
+
+.legal-contact a:hover {
+    text-decoration: underline;
+}

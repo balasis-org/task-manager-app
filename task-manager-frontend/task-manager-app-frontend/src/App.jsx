@@ -25,7 +25,7 @@ export default function App() {
                 <Routes>
                     <Route path="/about-us" element={<ProtectedRoute><Layout><AboutUs /></Layout></ProtectedRoute>} />
                     <Route path="/comments" element={<ProtectedRoute><Layout><Comments /></Layout></ProtectedRoute>} />
-                    <Route path="/cookie-policy" element={<ProtectedRoute><Layout><CookiePolicy /></Layout></ProtectedRoute>} />
+                    <Route path="/cookie-policy" element={<CookiePolicy />} />
                     <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
                     <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
                     <Route path="/invitations" element={<ProtectedRoute><Layout><Invitations /></Layout></ProtectedRoute>} />
@@ -35,7 +35,7 @@ export default function App() {
                     <Route path="/task" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
                     <Route path="/group/:groupId/task/:taskId" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
                     <Route path="/group/:groupId/task/:taskId/comments" element={<ProtectedRoute><Layout><Comments /></Layout></ProtectedRoute>} />
-                    <Route path="/terms-of-service" element={<ProtectedRoute><Layout><TermsOfService /></Layout></ProtectedRoute>} />
+                    <Route path="/terms-of-service" element={<TermsOfService />} />
 
                 </Routes>
                 </GroupProvider>

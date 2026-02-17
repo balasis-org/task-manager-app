@@ -4,83 +4,83 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f0f2f5;
+    background: var(--bg-body);
 }
 
 .login-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-    padding: 40px 36px;
-    width: 380px;
+    background: var(--bg-primary);
+    border-radius: 0.75em;
+    box-shadow: var(--shadow-card);
+    padding: 2.5em 2.25em;
+    width: 23.75em;
     max-width: 95vw;
     text-align: center;
 }
 
 .login-card h1 {
-    margin: 0 0 4px;
-    font-size: 26px;
-    color: #1e1e2f;
+    margin: 0 0 0.25em;
+    font-size: 1.62em;
+    color: var(--text-heading);
 }
 
 .login-subtitle {
-    color: #888;
-    margin: 0 0 20px;
-    font-size: 14px;
+    color: var(--text-faint);
+    margin: 0 0 1.25em;
+    font-size: 0.875em;
 }
 
 .login-error {
-    background: #fce4e4;
-    color: #c0392b;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    margin-bottom: 14px;
+    background: var(--danger-bg);
+    color: var(--danger-hover);
+    padding: 0.5em 0.75em;
+    border-radius: 0.375em;
+    font-size: 0.81em;
+    margin-bottom: 0.875em;
 }
 
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 0.875em;
     text-align: left;
 }
 
 .login-form label {
     display: flex;
     flex-direction: column;
-    font-size: 13px;
+    font-size: 0.81em;
     font-weight: 600;
-    color: #444;
-    gap: 4px;
+    color: var(--text-secondary);
+    gap: 0.25em;
 }
 
 .login-form input {
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 0.625em 0.75em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    font-size: 0.875em;
     outline: none;
     transition: border-color 0.15s;
 }
 
 .login-form input:focus {
-    border-color: #646cff;
+    border-color: var(--link-color);
 }
 
 .login-btn {
-    padding: 12px;
+    padding: 0.75em;
     border: none;
-    border-radius: 8px;
-    font-size: 15px;
+    border-radius: 0.5em;
+    font-size: 0.94em;
     font-weight: 600;
     cursor: pointer;
-    background: #1e1e2f;
-    color: #fff;
+    background: var(--text-heading);
+    color: var(--text-on-primary);
     transition: background 0.2s;
 }
 
 .login-btn:hover:not(:disabled) {
-    background: #333;
+    background: var(--text-primary);
 }
 
 .login-btn:disabled {
@@ -89,27 +89,52 @@
 }
 
 .login-btn-azure {
-    background: #0078d4;
+    background: var(--accent-primary);
     width: 100%;
 }
 
 .login-btn-azure:hover {
-    background: #106ebe;
+    background: var(--accent-primary-hover);
 }
 
 .login-divider {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 18px 0;
-    color: #aaa;
-    font-size: 13px;
+    gap: 0.75em;
+    margin: 1.12em 0;
+    color: var(--text-disabled);
+    font-size: 0.81em;
 }
 
 .login-divider::before,
 .login-divider::after {
     content: "";
     flex: 1;
-    height: 1px;
-    background: #ddd;
+    height: 0.06em;
+    background: var(--border-primary);
+}
+
+/* ── Legal links ── */
+.login-legal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: 1.25em;
+    font-size: 0.75em;
+}
+
+.login-legal a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.login-legal a:hover {
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.login-legal-dot {
+    color: var(--text-disabled);
 }

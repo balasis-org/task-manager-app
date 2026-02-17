@@ -46,7 +46,7 @@ export default function Layout({ children }) {
         })();
 
         return () => { cancelled = true; };
-    }, [user]);
+    }, [user?.id]);
 
     const handleLogout = async () => {
         await logout();
@@ -83,6 +83,9 @@ export default function Layout({ children }) {
                         )}
                         {user?.name && (
                             <span className="sidebar-profile-name">{user.name}</span>
+                        )}
+                        {user?.email && (
+                            <span className="sidebar-profile-email">{user.email}</span>
                         )}
                     </div>
 
@@ -124,6 +127,11 @@ export default function Layout({ children }) {
                             <span className="nav-label">Logout</span>
                         </button>
                     </nav>
+
+                    {/* Date — just above the footer separator */}
+                    <div className="sidebar-date">
+                        {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    </div>
 
                     {/* Footer — hidden on small screens via CSS */}
                     <div className="sidebar-footer">

@@ -65,6 +65,9 @@ export default function GroupProvider({ children }) {
     // we get it fresh from /users/me every page load / refresh.
     const cacheKeyRef = useRef(null);
 
+    // Keep cache key in sync whenever user object updates (e.g. profile refresh)
+    cacheKeyRef.current = user?.cacheKey || null;
+
     const [groups, setGroups]           = useState([]);
     const [activeGroup, setActiveGroup] = useState(null);
     const [groupDetail, setGroupDetail] = useState(null);
@@ -86,10 +89,8 @@ export default function GroupProvider({ children }) {
             return;
         }
 
-        // grab the cache key the backend gave us through /users/me
-        cacheKeyRef.current = user.cacheKey || null;
         loadGroups();
-    }, [user]);
+    }, [user?.id]);
 
     // --- when active group changes, load or refresh its detail ---
     useEffect(() => {
@@ -234,6 +235,28 @@ export default function GroupProvider({ children }) {
         if (activeGroup) loadOrRefreshDetail(activeGroup.id);
     }, [activeGroup]);
 
+    const removeGroupFromState = useCallback((groupId) => {
+        setGroups(prev => {
+            const next = prev.filter(g => g.id !== groupId);
+            if (user?.id) lsSet(kGroups(user.id), next);
+            // If we removed the active group, switch to next available
+            if (activeGroup?.id === groupId) {
+                const fallback = next.length ? next[0] : null;
+                setActiveGroup(fallback);
+            }
+            return next;
+        });
+        // clear cached detail
+        if (user?.id) {
+            lsRemove(kDetail(user.id, groupId));
+            lsRemove(kLastSeen(user.id, groupId));
+        }
+    }, [user, activeGroup]);
+
+    const reloadGroups = useCallback(() => {
+        if (user) loadGroups();
+    }, [user]);
+
     // ── 5-minute polling, reset on user activity ──
     const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
     const pollTimer = useRef(null);
@@ -279,6 +302,8 @@ export default function GroupProvider({ children }) {
             addGroup,
             updateGroup,
             refreshActiveGroup,
+            removeGroupFromState,
+            reloadGroups,
         }}>
             {children}
         </GroupContext.Provider>

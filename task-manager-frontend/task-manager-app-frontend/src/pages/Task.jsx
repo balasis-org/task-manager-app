@@ -9,13 +9,13 @@ import {
     FiEdit2,
     FiChevronRight,
     FiChevronLeft,
-    FiFile,
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
+import { getFileIcon, isFileTooLarge } from "@assets/js/fileUtils";
 
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
@@ -67,6 +67,9 @@ export default function Task() {
     // File uploads
     const fileInputRef = useRef(null);
     const assigneeFileInputRef = useRef(null);
+    const [fileDragOver, setFileDragOver] = useState(false);
+    const [assigneeDragOver, setAssigneeDragOver] = useState(false);
+    const [downloadingId, setDownloadingId] = useState(null);
 
     // ── Derived roles ──
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
@@ -223,42 +226,57 @@ export default function Task() {
     }
 
     // ── File upload ──
+    async function uploadSingleFile(file, isAssignee) {
+        const currentCount = isAssignee
+            ? (task?.assigneeFiles?.length || 0)
+            : (task?.files?.length || 0);
+        const maxFiles = isAssignee ? LIMITS.MAX_ASSIGNEE_FILES : LIMITS.MAX_TASK_FILES;
+        if (currentCount >= maxFiles) {
+            showToast(`Maximum ${maxFiles} files already uploaded`);
+            return;
+        }
+        if (isFileTooLarge(file)) {
+            showToast(`File exceeds ${LIMITS.MAX_FILE_SIZE_MB} MB limit`);
+            return;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        const endpoint = isAssignee
+            ? `/api/groups/${groupId}/task/${taskId}/assignee-files`
+            : `/api/groups/${groupId}/task/${taskId}/files`;
+        try {
+            const updated = await apiPost(endpoint, fd);
+            setTask(updated);
+        } catch (err) {
+            showToast(err?.message || `Failed to upload ${isAssignee ? "assignee " : ""}file`);
+            autoHeal();
+        }
+    }
+
     async function handleFileUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const fd = new FormData();
-        fd.append("file", file);
-        try {
-            const updated = await apiPost(
-                `/api/groups/${groupId}/task/${taskId}/files`,
-                fd
-            );
-            setTask(updated);
-        } catch (err) {
-            showToast(err?.message || "Failed to upload file");
-            autoHeal();
-        }
+        await uploadSingleFile(file, false);
     }
 
     async function handleAssigneeFileUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const fd = new FormData();
-        fd.append("file", file);
-        try {
-            const updated = await apiPost(
-                `/api/groups/${groupId}/task/${taskId}/assignee-files`,
-                fd
-            );
-            setTask(updated);
-        } catch (err) {
-            showToast(err?.message || "Failed to upload assignee file");
-            autoHeal();
-        }
+        await uploadSingleFile(file, true);
+    }
+
+    function handleFileDrop(e, isAssignee) {
+        e.preventDefault();
+        if (isAssignee) setAssigneeDragOver(false);
+        else setFileDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+        uploadSingleFile(file, isAssignee);
     }
 
     // ── File download ──
     async function handleDownload(fileId, filename, isAssignee) {
+        setDownloadingId(fileId);
         try {
             const endpoint = isAssignee
                 ? `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}/download`
@@ -272,6 +290,8 @@ export default function Task() {
             URL.revokeObjectURL(url);
         } catch (err) {
             showToast(err?.message || "Failed to download file");
+        } finally {
+            setDownloadingId(null);
         }
     }
 
@@ -307,8 +327,10 @@ export default function Task() {
                         <FiArrowLeft size={14} />
                         <span>Back to group</span>
                     </Link>
-                    <span className="task-breadcrumb-trail" title={`${groupName} → Task`}>
-                        {groupName} → Task
+                    <span className="task-breadcrumb-trail">
+                        <Link to="/dashboard" className="breadcrumb-link" title={groupName}>{groupName}</Link>
+                        <FiChevronRight size={12} className="breadcrumb-sep" />
+                        <span className="breadcrumb-current">Task</span>
                     </span>
 
                     <div className="task-breadcrumb-right">
@@ -331,7 +353,7 @@ export default function Task() {
                             className="task-chat-btn"
                             title="Comments"
                         >
-                            <FiMessageCircle size={18} />
+                            <FiMessageCircle size={22} />
                         </Link>
                     </div>
                 </div>
@@ -403,10 +425,15 @@ export default function Task() {
                     )}
 
                     {/* Files */}
-                    <div className="task-files-section">
+                    <div
+                        className={`task-files-section${fileDragOver ? " drag-over" : ""}`}
+                        onDragOver={(e) => { if (canUploadFiles) { e.preventDefault(); setFileDragOver(true); } }}
+                        onDragLeave={() => setFileDragOver(false)}
+                        onDrop={(e) => { if (canUploadFiles) handleFileDrop(e, false); }}
+                    >
                         <h3>
-                            Files:
-                            {canUploadFiles && (
+                            Files ({task.files?.length || 0}/{LIMITS.MAX_TASK_FILES}):
+                            {canUploadFiles && (task.files?.length || 0) < LIMITS.MAX_TASK_FILES && (
                                 <button
                                     className="task-file-add"
                                     onClick={() => fileInputRef.current?.click()}
@@ -424,31 +451,49 @@ export default function Task() {
                         />
                         {task.files && task.files.length > 0 ? (
                             <ul className="task-file-list">
-                                {[...task.files].map((f) => (
-                                    <li key={f.id} className="task-file-item">
-                                        <FiFile size={14} />
-                                        <span className="task-file-name">{f.name}</span>
-                                        <button
-                                            className="task-file-dl"
-                                            title="Download"
-                                            onClick={() => handleDownload(f.id, f.name, false)}
-                                        >
-                                            <FiDownload size={13} />
-                                        </button>
-                                        {canUploadFiles && (
+                                {[...task.files].map((f) => {
+                                    const Icon = getFileIcon(f.name);
+                                    return (
+                                        <li key={f.id} className="task-file-item">
                                             <button
-                                                className="task-file-rm"
-                                                title="Remove"
-                                                onClick={() => handleDeleteFile(f.id, false)}
+                                                className="task-file-icon-btn"
+                                                title="Download"
+                                                onClick={() => handleDownload(f.id, f.name, false)}
                                             >
-                                                <FiTrash2 size={13} />
+                                                <Icon size={16} />
+                                                <span className="task-file-dl-overlay">
+                                                    <FiDownload size={9} />
+                                                </span>
                                             </button>
-                                        )}
-                                    </li>
-                                ))}
+                                            <span
+                                                className="task-file-name"
+                                                title={f.name}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => handleDownload(f.id, f.name, false)}
+                                                onKeyDown={(e) => { if (e.key === "Enter") handleDownload(f.id, f.name, false); }}
+                                            >
+                                                {f.name}
+                                            </span>
+                                            {downloadingId === f.id && <span className="task-file-downloading">↓</span>}
+                                            {canUploadFiles && (
+                                                <button
+                                                    className="task-file-rm"
+                                                    title="Remove"
+                                                    onClick={() => handleDeleteFile(f.id, false)}
+                                                >
+                                                    <FiTrash2 size={13} />
+                                                </button>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         ) : (
                             <p className="task-no-files">No files</p>
+                        )}
+                        {canUploadFiles && (task.files?.length || 0) < LIMITS.MAX_TASK_FILES && (
+                            <span className="task-drop-hint">Drop a file here to upload</span>
                         )}
                     </div>
                 </div>
@@ -636,10 +681,15 @@ export default function Task() {
                         </div>
 
                         {/* ── Assignee Files section ── */}
-                        <div className="task-sidebar-section">
+                        <div
+                            className={`task-sidebar-section${assigneeDragOver ? " drag-over" : ""}`}
+                            onDragOver={(e) => { if (canUploadAssigneeFiles) { e.preventDefault(); setAssigneeDragOver(true); } }}
+                            onDragLeave={() => setAssigneeDragOver(false)}
+                            onDrop={(e) => { if (canUploadAssigneeFiles) handleFileDrop(e, true); }}
+                        >
                             <h3>
-                                Assignee Files
-                                {canUploadAssigneeFiles && (
+                                Assignee Files ({task.assigneeFiles?.length || 0}/{LIMITS.MAX_ASSIGNEE_FILES})
+                                {canUploadAssigneeFiles && (task.assigneeFiles?.length || 0) < LIMITS.MAX_ASSIGNEE_FILES && (
                                     <button
                                         className="task-file-add"
                                         onClick={() => assigneeFileInputRef.current?.click()}
@@ -657,31 +707,49 @@ export default function Task() {
                             />
                             {task.assigneeFiles && task.assigneeFiles.length > 0 ? (
                                 <ul className="task-file-list">
-                                    {[...task.assigneeFiles].map((f) => (
-                                        <li key={f.id} className="task-file-item">
-                                            <FiFile size={14} />
-                                            <span className="task-file-name">{f.name}</span>
-                                            <button
-                                                className="task-file-dl"
-                                                title="Download"
-                                                onClick={() => handleDownload(f.id, f.name, true)}
-                                            >
-                                                <FiDownload size={13} />
-                                            </button>
-                                            {canUploadAssigneeFiles && (
+                                    {[...task.assigneeFiles].map((f) => {
+                                        const Icon = getFileIcon(f.name);
+                                        return (
+                                            <li key={f.id} className="task-file-item">
                                                 <button
-                                                    className="task-file-rm"
-                                                    title="Remove"
-                                                    onClick={() => handleDeleteFile(f.id, true)}
+                                                    className="task-file-icon-btn"
+                                                    title="Download"
+                                                    onClick={() => handleDownload(f.id, f.name, true)}
                                                 >
-                                                    <FiTrash2 size={13} />
+                                                    <Icon size={16} />
+                                                    <span className="task-file-dl-overlay">
+                                                        <FiDownload size={9} />
+                                                    </span>
                                                 </button>
-                                            )}
-                                        </li>
-                                    ))}
+                                                <span
+                                                    className="task-file-name"
+                                                    title={f.name}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => handleDownload(f.id, f.name, true)}
+                                                    onKeyDown={(e) => { if (e.key === "Enter") handleDownload(f.id, f.name, true); }}
+                                                >
+                                                    {f.name}
+                                                </span>
+                                                {downloadingId === f.id && <span className="task-file-downloading">↓</span>}
+                                                {canUploadAssigneeFiles && (
+                                                    <button
+                                                        className="task-file-rm"
+                                                        title="Remove"
+                                                        onClick={() => handleDeleteFile(f.id, true)}
+                                                    >
+                                                        <FiTrash2 size={13} />
+                                                    </button>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             ) : (
                                 <p className="task-no-files">No assignee files</p>
+                            )}
+                            {canUploadAssigneeFiles && (task.assigneeFiles?.length || 0) < LIMITS.MAX_ASSIGNEE_FILES && (
+                                <span className="task-drop-hint">Drop a file here to upload</span>
                             )}
                         </div>
 

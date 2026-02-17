@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiPost, apiMultipart } from "@assets/js/apiClient";
 import { LIMITS } from "@assets/js/inputValidation";
+import { isImageTooLarge } from "@assets/js/fileUtils";
 import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 
@@ -11,6 +12,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
     const [coverPreview, setCoverPreview] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef(null);
 
     const updateCover = (file) => {
@@ -36,6 +38,19 @@ export default function NewGroupPopup({ onClose, onCreated }) {
             e.preventDefault();
             openFileDialog();
         }
+    };
+
+    const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+    const handleDragLeave = () => setDragOver(false);
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) { setError("Only image files are allowed."); return; }
+        if (isImageTooLarge(file)) { setError(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB.`); return; }
+        setError("");
+        updateCover(file);
     };
 
     useEffect(() => () => {
@@ -139,11 +154,14 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                             <span className="label-optional">optional</span>
                         </label>
                         <div
-                            className={`new-group-dropzone ${coverPreview ? "has-preview" : ""}`}
+                            className={`new-group-dropzone ${coverPreview ? "has-preview" : ""}${dragOver ? " drag-over" : ""}`}
                             role="button"
                             tabIndex={0}
                             onClick={openFileDialog}
                             onKeyDown={handleDropzoneKeyDown}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
                         >
                             {coverPreview ? (
                                 <>

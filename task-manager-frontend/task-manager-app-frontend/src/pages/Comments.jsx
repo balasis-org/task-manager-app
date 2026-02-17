@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext, useRef } from "react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import {
     FiArrowLeft,
+    FiChevronRight,
     FiPlus,
     FiSmile,
     FiX,
@@ -39,6 +40,7 @@ function formatDate(iso) {
 
 export default function Comments() {
     const { groupId, taskId } = useParams();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
     const { activeGroup, myRole, refreshActiveGroup } = useContext(GroupContext);
@@ -220,16 +222,20 @@ export default function Comments() {
         <div className="comments-page">
             {/* ── Breadcrumb ── */}
             <div className="comments-breadcrumb">
-                <Link
-                    to={`/group/${groupId}/task/${taskId}`}
+                <button
+                    onClick={() => navigate(-1)}
                     className="comments-back"
-                    title="Back to task"
+                    title="Go back"
                 >
                     <FiArrowLeft size={14} />
                     <span>Go back</span>
-                </Link>
-                <span className="comments-trail" title={`${groupName} → Task → comments`}>
-                    {groupName} → Task → comments
+                </button>
+                <span className="comments-trail">
+                    <Link to="/dashboard" className="breadcrumb-link" title={groupName}>{groupName}</Link>
+                    <FiChevronRight size={12} className="breadcrumb-sep" />
+                    <Link to={`/group/${groupId}/task/${taskId}`} className="breadcrumb-link">Task</Link>
+                    <FiChevronRight size={12} className="breadcrumb-sep" />
+                    <span className="breadcrumb-current">Comments</span>
                 </span>
             </div>
 

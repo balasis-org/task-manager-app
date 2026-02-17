@@ -1,5 +1,6 @@
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiLock } from "react-icons/fi";
 import "@styles/dashboard/TaskTable.css";
 
 function formatDate(iso) {
@@ -19,6 +20,12 @@ function priorityTag(p) {
 
 export default function TaskTable({ tasks, groupId, colWidths }) {
     const navigate = useNavigate();
+    const [flashId, setFlashId] = useState(null);
+
+    const flashRow = useCallback((id) => {
+        setFlashId(id);
+        setTimeout(() => setFlashId(null), 500);
+    }, []);
 
     if (!tasks || tasks.length === 0) {
         return <div className="task-table-empty">No tasks</div>;
@@ -28,8 +35,9 @@ export default function TaskTable({ tasks, groupId, colWidths }) {
         ? { gridTemplateColumns: `1fr ${colWidths.slice(1).map((w) => w + "px").join(" ")}` }
         : undefined;
 
-    function goToComments(e, taskId) {
+    function goToComments(e, taskId, accessible) {
         e.stopPropagation();
+        if (accessible === false) return;
         navigate(`/group/${groupId}/task/${taskId}/comments`);
     }
 
@@ -38,11 +46,15 @@ export default function TaskTable({ tasks, groupId, colWidths }) {
             {tasks.map((t) => (
                 <div
                     key={t.id}
-                    className="task-row"
+                    className={`task-row${t.accessible === false ? " task-row-locked" : ""}${flashId === t.id ? " task-row-denied" : ""}`}
                     style={gridStyle}
-                    onClick={() =>
-                        navigate(`/group/${groupId}/task/${t.id}`)
-                    }
+                    onClick={() => {
+                        if (t.accessible === false) {
+                            flashRow(t.id);
+                        } else {
+                            navigate(`/group/${groupId}/task/${t.id}`);
+                        }
+                    }}
                 >
                     <span className="task-cell cell-title" title={t.title}>
                         {t.title}
@@ -57,11 +69,11 @@ export default function TaskTable({ tasks, groupId, colWidths }) {
                         {formatDate(t.dueDate)}
                     </span>
                     <span className="task-cell cell-access">
-                        {t.accessible ? "✓" : "—"}
+                        {t.accessible ? "✓" : <FiLock size={14} className="lock-icon" title="Not accessible" />}
                     </span>
                     <span
                         className="task-cell cell-comments"
-                        onClick={(e) => goToComments(e, t.id)}
+                        onClick={(e) => goToComments(e, t.id, t.accessible)}
                         title="Go to comments"
                     >
                         <span

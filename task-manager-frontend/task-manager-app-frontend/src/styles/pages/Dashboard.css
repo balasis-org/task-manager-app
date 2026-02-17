@@ -12,64 +12,64 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: 12px;
+    gap: 0.75em;
     text-align: center;
-    padding: 40px;
+    padding: 2.5em;
 }
 
 .dashboard-empty h2 {
     margin: 0;
-    color: #1e1e2f;
+    color: var(--text-heading);
 }
 
 .dashboard-empty p {
-    color: #888;
-    font-size: 15px;
-    margin: 0 0 8px;
+    color: var(--text-faint);
+    font-size: 0.94em;
+    margin: 0 0 0.5em;
 }
 
 /* Announcement */
 .dashboard-announcement {
-    padding: 8px 16px;
-    font-size: 13px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 0.5em 1em;
+    font-size: 0.81em;
+    border-bottom: 0.06em solid var(--border-primary);
 }
 
 .dashboard-announcement.has-text {
-    background: #fff3cd;
-    color: #856404;
-    border-bottom-color: #ffeeba;
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    border-bottom-color: var(--warning-border);
 }
 
 .dashboard-announcement.empty {
-    background: #f0f0f0;
-    color: #999;
-    border-bottom-color: #e0e0e0;
+    background: var(--bg-active);
+    color: var(--text-placeholder);
+    border-bottom-color: var(--border-primary);
 }
 
 /* Task sections */
 .dashboard-tasks {
     flex: 1;
     overflow-y: auto;
-    padding: 0 0 24px;
+    padding: 0 0 1.5em;
 }
 
 /* Search bar */
 .dashboard-search {
     display: flex;
     align-items: center;
-    padding: 8px 16px;
-    gap: 6px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
+    padding: 0.5em 1em;
+    gap: 0.375em;
+    background: var(--bg-primary);
+    border-bottom: 0.06em solid var(--border-secondary);
 }
 
 .dashboard-search-input {
     flex: 1;
-    padding: 6px 10px;
-    font-size: 13px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    padding: 0.375em 0.625em;
+    font-size: 0.81em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
     outline: none;
     transition: border-color 0.15s;
 }
@@ -82,27 +82,27 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
-    color: #999;
-    padding: 4px;
+    font-size: 0.875em;
+    color: var(--text-placeholder);
+    padding: 0.25em;
 }
 
 .dashboard-search-clear:hover {
-    color: #555;
+    color: var(--text-tertiary);
 }
 
 .task-section {
-    border-bottom: 1px solid #eee;
+    border-bottom: 0.06em solid var(--border-secondary);
 }
 
 .task-section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 0.5em;
+    padding: 0.625em 1em;
     cursor: pointer;
     user-select: none;
-    background: #fafbfc;
+    background: var(--bg-tertiary);
     transition: background 0.12s;
 }
 
@@ -111,42 +111,42 @@
 }
 
 .task-section-arrow {
-    font-size: 11px;
-    width: 16px;
+    font-size: 0.69em;
+    width: 1em;
     text-align: center;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .task-section-title {
     font-weight: 600;
-    font-size: 14px;
-    color: #333;
+    font-size: 0.875em;
+    color: var(--text-primary);
 }
 
 .task-section-count {
-    font-size: 12px;
-    color: #999;
+    font-size: 0.75em;
+    color: var(--text-placeholder);
 }
 
 .task-section-add {
-    margin-left: 8px;
-    background: #28a745;
+    margin-left: 0.5em;
+    background: var(--success);
     border: none;
     border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    font-size: 12px;
+    width: 1.38em;
+    height: 1.38em;
+    font-size: 0.75em;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--text-on-primary);
     transition: background 0.12s, transform 0.08s;
 }
 
 .task-section-add:hover {
-    background: #238d43;
-    transform: translateY(-1px);
+    background: var(--success-hover);
+    transform: translateY(-0.06em);
 }
 
 /* ══════════════════════════════════════
@@ -154,45 +154,45 @@
    ══════════════════════════════════════ */
 @media (max-width: 1024px) {
     .dashboard-search {
-        padding: 8px 12px;
+        padding: 0.5em 0.75em;
     }
 
     .task-section-header {
-        padding: 8px 12px;
+        padding: 0.5em 0.75em;
     }
 }
 
 @media (max-width: 768px) {
     .dashboard-announcement {
-        font-size: 12px;
-        padding: 6px 12px;
+        font-size: 0.75em;
+        padding: 0.375em 0.75em;
     }
 
     .task-section-header {
-        padding: 8px 10px;
-        gap: 6px;
+        padding: 0.5em 0.625em;
+        gap: 0.375em;
     }
 
     .task-section-title {
-        font-size: 13px;
+        font-size: 0.81em;
     }
 
     .task-section-add {
-        width: 20px;
-        height: 20px;
+        width: 1.25em;
+        height: 1.25em;
     }
 }
 
 @media (max-width: 480px) {
     .dashboard-search {
-        padding: 6px 8px;
+        padding: 0.375em 0.5em;
     }
 
     .dashboard-search-input {
-        font-size: 12px;
+        font-size: 0.75em;
     }
 
     .task-section-header {
-        padding: 6px 8px;
+        padding: 0.375em 0.5em;
     }
 }

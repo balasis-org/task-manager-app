@@ -29,6 +29,12 @@ export const LIMITS = Object.freeze({
 
     // User
     USER_NAME:         100,
+
+    // Files
+    MAX_TASK_FILES:       3,   // creator files per task
+    MAX_ASSIGNEE_FILES:   3,   // assignee files per task
+    MAX_FILE_SIZE_MB:     40,  // max size per task file
+    MAX_IMAGE_SIZE_MB:    5,   // max size per image upload
 });
 
 /* ───────────── Invisible-character regex ───────────── */

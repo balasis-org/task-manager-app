@@ -11,7 +11,7 @@ export default function Footer() {
                 <Link to="/cookie-policy">Cookie policy</Link>
             </div>
             <div className="footer-contact">
-                <span>Contact us</span>
+                <span className="footer-contact-label">Contact us</span>
                 <div className="footer-icons">
                     <a href="mailto:support@taskmanager.io" title="Email" className="footer-icon-link">
                         <FiMail size={14} />
@@ -20,6 +20,9 @@ export default function Footer() {
                         <FiGithub size={14} />
                     </a>
                 </div>
+            </div>
+            <div className="footer-copyright">
+                &copy; {new Date().getFullYear()} Task Manager. All rights reserved.
             </div>
         </footer>
     );

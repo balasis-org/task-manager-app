@@ -39,6 +39,8 @@ export default function Dashboard() {
         addGroup,
         updateGroup,
         refreshActiveGroup,
+        removeGroupFromState,
+        reloadGroups,
     } = useContext(GroupContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -105,6 +107,20 @@ export default function Dashboard() {
     function handleGroupUpdated(updatedGroup) {
         setShowGroupSettings(false);
         updateGroup(updatedGroup);
+    }
+
+    /**
+     * Called from DashboardTopBar when user leaves group or removes a member.
+     * "left" = current user left → remove group from state
+     * "refresh" = member removed → just refresh
+     * "deleted" = group deleted → remove from state
+     */
+    function handleLeaveGroup(action) {
+        if (action === "left" || action === "deleted") {
+            removeGroupFromState(activeGroup?.id);
+        } else {
+            refreshActiveGroup();
+        }
     }
 
     function toggleSection(state) {
@@ -182,6 +198,7 @@ export default function Dashboard() {
                 onOpenInvite={() => setShowInvite(true)}
                 onOpenGroupSettings={() => setShowGroupSettings(true)}
                 onOpenGroupEvents={() => setShowGroupEvents(true)}
+                onLeaveGroup={handleLeaveGroup}
                 user={user}
                 groupDetail={groupDetail}
             />
@@ -289,8 +306,14 @@ export default function Dashboard() {
             {showGroupSettings && activeGroup && (
                 <GroupSettingsPopup
                     group={activeGroup}
+                    members={members}
+                    user={user}
                     onClose={() => setShowGroupSettings(false)}
                     onUpdated={handleGroupUpdated}
+                    onDeleted={() => {
+                        setShowGroupSettings(false);
+                        handleLeaveGroup("deleted");
+                    }}
                 />
             )}
             {showGroupEvents && activeGroup && (
