@@ -446,6 +446,8 @@
     align-items: center;
     gap: 8px;
     margin-top: 8px;
+    flex-wrap: wrap;
+    overflow: hidden;
 }
 
 .task-review-decision {

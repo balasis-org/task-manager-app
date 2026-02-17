@@ -12,6 +12,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
@@ -548,6 +549,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
 
+        // Guard: duplicate title check before hitting the DB constraint
+        if (taskRepository.existsByTitle(task.getTitle())) {
+            throw new BusinessRuleException("A task with this title already exists");
+        }
+
         task.setGroup(groupRepository.getReferenceById(groupId));
         task.setCreatorIdSnapshot(effectiveCurrentUser.getUserId());
         task.setCreatorNameSnapshot(
@@ -636,6 +642,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Task patchTask(Long groupId, Long taskId, Task task) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForPatchTask(groupId, taskId, task);
+
+        // Guard: duplicate title check when renaming
+        if (task.getTitle() != null && taskRepository.existsByTitleAndIdNot(task.getTitle(), taskId)) {
+            throw new BusinessRuleException("A task with this title already exists");
+        }
+
         User curUser = userRepository.getReferenceById(effectiveCurrentUser.getUserId());
         var fetchedTask = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + "is not found"));

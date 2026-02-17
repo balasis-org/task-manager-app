@@ -1,13 +1,16 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { GroupContext } from "@context/GroupContext";
+import { AuthContext } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import NewGroupPopup from "@components/popups/NewGroupPopup";
 import InviteToGroupPopup from "@components/popups/InviteToGroupPopup";
 import GroupSettingsPopup from "@components/popups/GroupSettingsPopup";
 import GroupEventsPopup from "@components/popups/GroupEventsPopup";
+import NewTaskPopup from "@components/popups/NewTaskPopup";
 import DashboardTopBar from "@components/dashboard/DashboardTopBar";
 import TaskTable from "@components/dashboard/TaskTable";
 import Spinner from "@components/Spinner";
+import { useToast } from "@context/ToastContext";
 import { FiPlus } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
@@ -37,7 +40,9 @@ export default function Dashboard() {
         updateGroup,
         refreshActiveGroup,
     } = useContext(GroupContext);
+    const { user } = useContext(AuthContext);
     const navigate = useNavigate();
+    const showToast = useToast();
 
     // Refresh active group data when Dashboard mounts (e.g. navigating back from Task page)
     useEffect(() => {
@@ -89,6 +94,8 @@ export default function Dashboard() {
     const [showInvite, setShowInvite] = useState(false);
     const [showGroupSettings, setShowGroupSettings] = useState(false);
     const [showGroupEvents, setShowGroupEvents] = useState(false);
+    const [showNewTask, setShowNewTask] = useState(false);
+    const [newTaskState, setNewTaskState] = useState("TODO");
 
     function handleGroupCreated(newGroup) {
         setShowNewGroup(false);
@@ -109,6 +116,20 @@ export default function Dashboard() {
 
     // Role-based visibility
     const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
+
+    // Task creation — open popup
+    function handleOpenNewTask(e, state) {
+        e.stopPropagation();
+        if (!activeGroup?.id) return;
+        setNewTaskState(state);
+        setShowNewTask(true);
+    }
+
+    function handleTaskCreated(created) {
+        setShowNewTask(false);
+        showToast("Task created!", "success");
+        navigate(`/group/${activeGroup.id}/task/${created.id}`);
+    }
 
     // Group tasks by state, filtered by search query
     const tasksByState = {};
@@ -161,6 +182,8 @@ export default function Dashboard() {
                 onOpenInvite={() => setShowInvite(true)}
                 onOpenGroupSettings={() => setShowGroupSettings(true)}
                 onOpenGroupEvents={() => setShowGroupEvents(true)}
+                user={user}
+                groupDetail={groupDetail}
             />
 
             {/* Announcement */}
@@ -201,7 +224,7 @@ export default function Dashboard() {
                         style={{ gridTemplateColumns: gridCols(colWidths) }}
                     >
                         {COL_NAMES.map((name, i) => (
-                            <span key={i} className={`col-header-cell${i >= 4 ? " col-center" : ""}`}>
+                            <span key={i} className="col-header-cell">
                                 {name}
                                 {i < COL_NAMES.length - 1 && i >= 1 && (
                                     <span
@@ -228,12 +251,7 @@ export default function Dashboard() {
                                         <button
                                             className="task-section-add"
                                             title="Create task"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(
-                                                    `/task?groupId=${activeGroup?.id}&new=1&state=${state}`
-                                                );
-                                            }}
+                                            onClick={(e) => handleOpenNewTask(e, state)}
                                         >
                                             <FiPlus size={12} />
                                         </button>
@@ -278,7 +296,23 @@ export default function Dashboard() {
             {showGroupEvents && activeGroup && (
                 <GroupEventsPopup
                     groupId={activeGroup.id}
-                    onClose={() => setShowGroupEvents(false)}
+                    lastSeenGroupEvents={
+                        members?.find((m) => m.user?.id === user?.id)?.lastSeenGroupEvents
+                    }
+                    onClose={() => {
+                        setShowGroupEvents(false);
+                        refreshActiveGroup();
+                    }}
+                />
+            )}
+            {showNewTask && activeGroup && (
+                <NewTaskPopup
+                    groupId={activeGroup.id}
+                    initialState={newTaskState}
+                    members={members}
+                    onClose={() => setShowNewTask(false)}
+                    onCreated={handleTaskCreated}
+                    onRefresh={refreshActiveGroup}
                 />
             )}
         </div>

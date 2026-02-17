@@ -199,6 +199,23 @@
     margin-left: 12px;
 }
 
+/* New (unseen) event highlight */
+.popup-event-new {
+    background: #fffde7;
+}
+
+.popup-event-new-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: #e74c3c;
+    letter-spacing: 0.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #ffebee;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
 /* Pagination */
 .popup-pagination {
     display: flex;
@@ -225,4 +242,105 @@
 
 .muted {
     color: #999;
+}
+
+/* ── Form row (side-by-side fields) ── */
+.popup-form-row {
+    display: flex;
+    gap: 12px;
+}
+.popup-form-half {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ── Picker sections (reviewers, assignees, files) ── */
+.popup-picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.popup-picker-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.popup-picker-dropdown {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}
+.popup-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.12s;
+}
+.popup-picker-item:hover {
+    background: #f5f5f5;
+}
+.popup-picker-role {
+    margin-left: auto;
+    font-size: 11px;
+    color: #888;
+    text-transform: lowercase;
+}
+
+/* ── Chips (selected items) ── */
+.popup-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.popup-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e8f0fe;
+    border-radius: 14px;
+    padding: 3px 10px 3px 4px;
+    font-size: 12px;
+    color: #333;
+}
+.popup-chip-img {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #ddd;
+}
+.popup-chip-rm {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+}
+.popup-chip-rm:hover {
+    color: #e74c3c;
+}
+.popup-chip-add {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+    flex-shrink: 0;
+}
+.popup-chip-add:hover {
+    background: #eee;
 }

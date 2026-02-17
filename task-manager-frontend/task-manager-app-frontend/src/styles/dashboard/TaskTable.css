@@ -27,6 +27,12 @@
     align-items: center;
 }
 
+/* Centre every header except the first (Title) */
+.col-header-cell:not(:first-child) {
+    justify-content: center;
+    text-align: center;
+}
+
 /* Drag handle between column headers */
 .col-resize-handle {
     position: absolute;
@@ -45,13 +51,13 @@
     left: 3px;
     width: 2px;
     height: 60%;
-    background: transparent;
+    background: #ccc;
     border-radius: 1px;
     transition: background 0.15s;
 }
 
 .col-resize-handle:hover::after {
-    background: #aaa;
+    background: #888;
 }
 
 /* ── Task row ── */
@@ -178,17 +184,17 @@
     /* Hide lesser columns on narrow screens */
     .task-col-header,
     .task-row {
-        grid-template-columns: 1fr 90px 70px 50px !important;
+        grid-template-columns: 1fr 80px 70px 50px !important;
     }
 
-    /* Hide due-date & accessible columns */
-    .cell-due,
-    .cell-access {
+    /* Hide creator & due-date columns */
+    .cell-creator,
+    .cell-due {
         display: none;
     }
 
-    .task-col-header > .col-header-cell:nth-child(4),
-    .task-col-header > .col-header-cell:nth-child(5) {
+    .task-col-header > .col-header-cell:nth-child(2),
+    .task-col-header > .col-header-cell:nth-child(4) {
         display: none;
     }
 
@@ -213,11 +219,12 @@
         grid-template-columns: 1fr 70px 40px !important;
     }
 
-    .cell-creator {
+    /* Additionally hide accessible (creator & due already hidden at 768px) */
+    .cell-access {
         display: none;
     }
 
-    .task-col-header > .col-header-cell:nth-child(2) {
+    .task-col-header > .col-header-cell:nth-child(5) {
         display: none;
     }
 

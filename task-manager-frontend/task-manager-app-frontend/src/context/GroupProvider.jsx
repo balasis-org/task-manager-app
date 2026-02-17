@@ -234,6 +234,38 @@ export default function GroupProvider({ children }) {
         if (activeGroup) loadOrRefreshDetail(activeGroup.id);
     }, [activeGroup]);
 
+    // ── 5-minute polling, reset on user activity ──
+    const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    const pollTimer = useRef(null);
+
+    const resetPollTimer = useCallback(() => {
+        if (pollTimer.current) clearTimeout(pollTimer.current);
+        pollTimer.current = setTimeout(() => {
+            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+            // after the refresh fires, start the timer again
+            resetPollTimer();
+        }, POLL_INTERVAL);
+    }, [activeGroup]);
+
+    // start / restart polling when activeGroup changes
+    useEffect(() => {
+        if (!activeGroup || !user) {
+            if (pollTimer.current) clearTimeout(pollTimer.current);
+            return;
+        }
+        resetPollTimer();
+        return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
+    }, [activeGroup, user, resetPollTimer]);
+
+    // reset timer on user activity (clicks, key presses, scrolls)
+    useEffect(() => {
+        if (!activeGroup || !user) return;
+        const handler = () => resetPollTimer();
+        const events = ["click", "keydown", "scroll", "pointerdown"];
+        events.forEach((ev) => window.addEventListener(ev, handler, { passive: true }));
+        return () => events.forEach((ev) => window.removeEventListener(ev, handler));
+    }, [activeGroup, user, resetPollTimer]);
+
     return (
         <GroupContext.Provider value={{
             groups,
