@@ -21,4 +21,7 @@ public class DeletedTask extends BaseModel{
 
     @Column
     private Long deletedTaskId;
+
+    @Column(nullable = false)
+    private java.time.Instant deletedAt;
 }
