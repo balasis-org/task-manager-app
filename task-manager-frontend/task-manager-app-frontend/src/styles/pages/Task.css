@@ -516,3 +516,172 @@
     color: #e74c3c;
     font-size: 15px;
 }
+
+/* ── Participant picker dropdown ── */
+.task-participant-picker {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.task-participant-picker-empty {
+    display: block;
+    padding: 12px;
+    color: #999;
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+}
+
+.task-participant-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.12s;
+}
+
+.task-participant-picker-item:hover {
+    background: #f0f5ff;
+}
+
+.task-participant-picker-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.task-participant-picker-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+
+.task-participant-role-tag {
+    margin-left: auto;
+    font-size: 10px;
+    color: #888;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+/* ══════════════════════════════════════
+   Responsive — Task Page
+   ══════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .task-right-sidebar {
+        width: 260px;
+        min-width: 260px;
+    }
+
+    .task-right-content {
+        min-width: 260px;
+    }
+
+    .task-breadcrumb-right {
+        gap: 8px;
+    }
+
+    .task-meta-group {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .task-page {
+        flex-direction: column;
+        overflow-y: auto;       /* single scrollbar for the whole page */
+        overflow-x: hidden;
+    }
+
+    .task-main {
+        flex: none;
+        overflow-y: visible;    /* no inner scroll — parent scrolls */
+    }
+
+    /* Right sidebar stacks below, no separate scroll */
+    .task-right-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        border-left: none;
+        border-top: 1px solid #ddd;
+        overflow-y: visible;    /* no inner scroll */
+        flex: none;
+    }
+
+    .task-right-sidebar.collapsed {
+        display: none;
+    }
+
+    .task-right-content {
+        min-width: 0;
+        overflow: visible;      /* no inner scroll */
+    }
+
+    /* Toggle becomes a horizontal strip at top of sidebar panel */
+    .task-right-toggle {
+        position: relative;
+        top: auto;
+        bottom: auto;
+        right: auto;
+        left: auto;
+        transform: none;
+        width: 100%;
+        height: 24px;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        background: rgba(250, 251, 252, 0.5);
+    }
+
+    .task-breadcrumb {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .task-breadcrumb-right {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .task-meta-lastedit,
+    .task-meta-group {
+        display: none;
+    }
+
+    .task-body {
+        padding: 16px;
+    }
+
+    .task-title {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .task-breadcrumb-right {
+        display: none;
+    }
+
+    .task-body {
+        padding: 12px;
+    }
+
+    .task-title {
+        font-size: 16px;
+    }
+
+    .task-right-content {
+        padding: 12px;
+    }
+
+    .task-participant-picker-item {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}

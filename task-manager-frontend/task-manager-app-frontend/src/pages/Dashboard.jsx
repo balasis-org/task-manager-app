@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { GroupContext } from "@context/GroupContext";
 import { useNavigate } from "react-router-dom";
 import NewGroupPopup from "@components/popups/NewGroupPopup";
@@ -13,6 +13,15 @@ import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
+
+const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
+const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
+const COL_MIN      = [120, 70, 60, 80, 60, 40];
+
+/* helper: build grid-template-columns string from widths array */
+function gridCols(w) {
+    return `1fr ${w.slice(1).map((v) => v + "px").join(" ")}`;
+}
 
 export default function Dashboard() {
     const {
@@ -29,6 +38,46 @@ export default function Dashboard() {
         refreshActiveGroup,
     } = useContext(GroupContext);
     const navigate = useNavigate();
+
+    // Refresh active group data when Dashboard mounts (e.g. navigating back from Task page)
+    useEffect(() => {
+        if (activeGroup) refreshActiveGroup();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Resizable columns ──
+    // Dragging handle between col[i] and col[i+1] grows one and shrinks the other (Excel-style).
+    const [colWidths, setColWidths] = useState(COL_DEFAULTS);
+
+    const onPointerDown = useCallback((leftIdx, e) => {
+        e.preventDefault();
+        const rightIdx = leftIdx + 1;
+        if (rightIdx >= COL_DEFAULTS.length) return; // last col has no right neighbor
+        const startX = e.clientX;
+        const startL = colWidths[leftIdx];
+        const startR = colWidths[rightIdx];
+
+        function onMove(ev) {
+            const dx = ev.clientX - startX;
+            setColWidths((prev) => {
+                const next = [...prev];
+                const newL = Math.max(COL_MIN[leftIdx], startL + dx);
+                const newR = Math.max(COL_MIN[rightIdx], startR - dx);
+                // only apply if both sides stay >= min
+                if (newL >= COL_MIN[leftIdx] && newR >= COL_MIN[rightIdx]) {
+                    next[leftIdx] = newL;
+                    next[rightIdx] = newR;
+                }
+                return next;
+            });
+        }
+        function onUp() {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+    }, [colWidths]);
 
     // Collapsed sections
     const [collapsedSections, setCollapsedSections] = useState({});
@@ -146,14 +195,22 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    {/* Single column header — rendered once */}
-                    <div className="task-col-header">
-                        <span>Title</span>
-                        <span>Creator</span>
-                        <span>Priority</span>
-                        <span>Due date</span>
-                        <span>Accessible</span>
-                        <span style={{ textAlign: "center" }}>💬</span>
+                    {/* Single column header — rendered once, with drag handles */}
+                    <div
+                        className="task-col-header"
+                        style={{ gridTemplateColumns: gridCols(colWidths) }}
+                    >
+                        {COL_NAMES.map((name, i) => (
+                            <span key={i} className={`col-header-cell${i >= 4 ? " col-center" : ""}`}>
+                                {name}
+                                {i < COL_NAMES.length - 1 && i >= 1 && (
+                                    <span
+                                        className="col-resize-handle"
+                                        onPointerDown={(e) => onPointerDown(i, e)}
+                                    />
+                                )}
+                            </span>
+                        ))}
                     </div>
 
                     {TASK_STATES.map((state) => (
@@ -190,6 +247,7 @@ export default function Dashboard() {
                                 <TaskTable
                                     tasks={tasksByState[state]}
                                     groupId={activeGroup?.id}
+                                    colWidths={colWidths}
                                 />
                             )}
                         </div>

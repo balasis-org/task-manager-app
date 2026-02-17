@@ -31,64 +31,65 @@ export default function Layout({ children }) {
                     {sidebarOpen ? "◀" : "▶"}
                 </button>
 
+                <div className="sidebar-clip">
                 <div className="sidebar-inner">
-                    {sidebarOpen && (
-                        <>
-                            {/* Profile area */}
-                            <div className="sidebar-profile">
-                                {profileImg ? (
-                                    <img
-                                        src={profileImg}
-                                        alt="profile"
-                                        className="sidebar-profile-img"
-                                    />
-                                ) : (
-                                    <div className="sidebar-profile-img" />
-                                )}
-                            </div>
+                    {/* Profile area — hidden on small screens via CSS */}
+                    <div className="sidebar-profile">
+                        {profileImg ? (
+                            <img
+                                src={profileImg}
+                                alt="profile"
+                                className="sidebar-profile-img"
+                            />
+                        ) : (
+                            <div className="sidebar-profile-img" />
+                        )}
+                        {user?.name && (
+                            <span className="sidebar-profile-name">{user.name}</span>
+                        )}
+                    </div>
 
-                            {/* Navigation */}
-                            <nav className="sidebar-nav">
-                                <NavLink
-                                    to="/dashboard"
-                                    className={({ isActive }) => (isActive ? "active" : "")}
-                                >
-                                    <span className="nav-icon"><FiGrid size={16} /></span>
-                                    <span className="nav-label">Dashboard</span>
-                                </NavLink>
-                                <NavLink
-                                    to="/invitations"
-                                    className={({ isActive }) => (isActive ? "active" : "")}
-                                >
-                                    <span className="nav-icon"><FiMail size={16} /></span>
-                                    <span className="nav-label">Invitations</span>
-                                </NavLink>
-                                <NavLink
-                                    to="/settings"
-                                    className={({ isActive }) => (isActive ? "active" : "")}
-                                >
-                                    <span className="nav-icon"><FiSliders size={16} /></span>
-                                    <span className="nav-label">Settings</span>
-                                </NavLink>
-                                <NavLink
-                                    to="/about-us"
-                                    className={({ isActive }) => (isActive ? "active" : "")}
-                                >
-                                    <span className="nav-icon"><FiInfo size={16} /></span>
-                                    <span className="nav-label">About us</span>
-                                </NavLink>
-                                <button onClick={handleLogout}>
-                                    <span className="nav-icon"><FiLogOut size={16} /></span>
-                                    <span className="nav-label">Logout</span>
-                                </button>
-                            </nav>
+                    {/* Navigation — always rendered; labels hidden on small screens via CSS */}
+                    <nav className="sidebar-nav">
+                        <NavLink
+                            to="/dashboard"
+                            className={({ isActive }) => (isActive ? "active" : "")}
+                        >
+                            <span className="nav-icon"><FiGrid size={16} /></span>
+                            <span className="nav-label">Dashboard</span>
+                        </NavLink>
+                        <NavLink
+                            to="/invitations"
+                            className={({ isActive }) => (isActive ? "active" : "")}
+                        >
+                            <span className="nav-icon"><FiMail size={16} /></span>
+                            <span className="nav-label">Invitations</span>
+                        </NavLink>
+                        <NavLink
+                            to="/settings"
+                            className={({ isActive }) => (isActive ? "active" : "")}
+                        >
+                            <span className="nav-icon"><FiSliders size={16} /></span>
+                            <span className="nav-label">Settings</span>
+                        </NavLink>
+                        <NavLink
+                            to="/about-us"
+                            className={({ isActive }) => (isActive ? "active" : "")}
+                        >
+                            <span className="nav-icon"><FiInfo size={16} /></span>
+                            <span className="nav-label">About us</span>
+                        </NavLink>
+                        <button onClick={handleLogout}>
+                            <span className="nav-icon"><FiLogOut size={16} /></span>
+                            <span className="nav-label">Logout</span>
+                        </button>
+                    </nav>
 
-                            {/* Footer in sidebar bottom */}
-                            <div className="sidebar-footer">
-                                <Footer />
-                            </div>
-                        </>
-                    )}
+                    {/* Footer — hidden on small screens via CSS */}
+                    <div className="sidebar-footer">
+                        <Footer />
+                    </div>
+                </div>
                 </div>
             </aside>
 
