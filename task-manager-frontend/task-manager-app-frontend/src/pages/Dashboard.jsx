@@ -8,6 +8,7 @@ import GroupEventsPopup from "@components/popups/GroupEventsPopup";
 import DashboardTopBar from "@components/dashboard/DashboardTopBar";
 import TaskTable from "@components/dashboard/TaskTable";
 import Spinner from "@components/Spinner";
+import { FiPlus } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
@@ -19,6 +20,7 @@ export default function Dashboard() {
         activeGroup,
         groupDetail,
         members,
+        myRole,
         loadingGroups,
         loadingDetail,
         selectGroup,
@@ -31,6 +33,7 @@ export default function Dashboard() {
     // Collapsed sections
     const [collapsedSections, setCollapsedSections] = useState({});
     const [topBarOpen, setTopBarOpen] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Popups
     const [showNewGroup, setShowNewGroup] = useState(false);
@@ -55,11 +58,16 @@ export default function Dashboard() {
         }));
     }
 
-    // Group tasks by state
+    // Role-based visibility
+    const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
+
+    // Group tasks by state, filtered by search query
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
     if (groupDetail?.taskPreviews) {
+        const q = searchQuery.toLowerCase().trim();
         for (const task of groupDetail.taskPreviews) {
+            if (q && !task.title?.toLowerCase().includes(q)) continue;
             const state = task.taskState || "TODO";
             if (tasksByState[state]) {
                 tasksByState[state].push(task);
@@ -96,6 +104,7 @@ export default function Dashboard() {
                 groups={groups}
                 activeGroup={activeGroup}
                 members={members}
+                myRole={myRole}
                 open={topBarOpen}
                 onToggle={() => setTopBarOpen((v) => !v)}
                 onSelectGroup={(g) => selectGroup(g)}
@@ -106,9 +115,10 @@ export default function Dashboard() {
             />
 
             {/* Announcement */}
-            {groupDetail?.announcement && (
-                <div className="dashboard-announcement">
-                    <strong>Announcement:</strong> {groupDetail.announcement}
+            {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
+                <div className={`dashboard-announcement${groupDetail.announcement ? " has-text" : " empty"}`}>
+                    <strong>Announcement:</strong>{" "}
+                    {groupDetail.announcement || <em>No announcement</em>}
                 </div>
             )}
 
@@ -117,6 +127,25 @@ export default function Dashboard() {
                 <Spinner />
             ) : (
                 <div className="dashboard-tasks">
+                    {/* Search input */}
+                    <div className="dashboard-search">
+                        <input
+                            type="text"
+                            className="dashboard-search-input"
+                            placeholder="Search tasks by title…"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                className="dashboard-search-clear"
+                                onClick={() => setSearchQuery("")}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+
                     {/* Single column header — rendered once */}
                     <div className="task-col-header">
                         <span>Title</span>
@@ -138,24 +167,24 @@ export default function Dashboard() {
                                 </span>
                                 <span className="task-section-title">
                                     {STATE_LABELS[state]}
+                                    {canManageTasks && (
+                                        <button
+                                            className="task-section-add"
+                                            title="Create task"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(
+                                                    `/task?groupId=${activeGroup?.id}&new=1&state=${state}`
+                                                );
+                                            }}
+                                        >
+                                            <FiPlus size={12} />
+                                        </button>
+                                    )}
                                 </span>
                                 <span className="task-section-count">
                                     ({tasksByState[state].length})
                                 </span>
-                                {state === "TODO" && (
-                                    <button
-                                        className="task-section-add"
-                                        title="Create task"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(
-                                                `/task?groupId=${activeGroup?.id}&new=1`
-                                            );
-                                        }}
-                                    >
-                                        ⊕
-                                    </button>
-                                )}
                             </div>
                             {!collapsedSections[state] && (
                                 <TaskTable

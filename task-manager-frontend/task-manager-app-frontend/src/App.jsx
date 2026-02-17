@@ -29,6 +29,8 @@ export default function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                     <Route path="/task" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
+                    <Route path="/group/:groupId/task/:taskId" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
+                    <Route path="/group/:groupId/task/:taskId/comments" element={<ProtectedRoute><Layout><Comments /></Layout></ProtectedRoute>} />
                     <Route path="/terms-of-service" element={<ProtectedRoute><Layout><TermsOfService /></Layout></ProtectedRoute>} />
 
                 </Routes>

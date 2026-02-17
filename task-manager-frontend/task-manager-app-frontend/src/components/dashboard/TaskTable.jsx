@@ -8,6 +8,15 @@ function formatDate(iso) {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function priorityTag(p) {
+    if (p == null) return "—";
+    let label, cls;
+    if (p <= 4)      { label = "Low";    cls = "priority-low"; }
+    else if (p <= 7) { label = "Medium"; cls = "priority-med"; }
+    else             { label = "High";   cls = "priority-high"; }
+    return <span className={`priority-tag ${cls}`}>{label} ({p})</span>;
+}
+
 export default function TaskTable({ tasks, groupId }) {
     const navigate = useNavigate();
 
@@ -22,7 +31,7 @@ export default function TaskTable({ tasks, groupId }) {
                     key={t.id}
                     className="task-row"
                     onClick={() =>
-                        navigate(`/task?groupId=${groupId}&taskId=${t.id}`)
+                        navigate(`/group/${groupId}/task/${t.id}`)
                     }
                 >
                     <span className="task-cell cell-title" title={t.title}>
@@ -32,7 +41,7 @@ export default function TaskTable({ tasks, groupId }) {
                         {t.creatorName || "—"}
                     </span>
                     <span className="task-cell cell-priority">
-                        {t.priority || "—"}
+                        {priorityTag(t.priority)}
                     </span>
                     <span className="task-cell cell-due">
                         {formatDate(t.dueDate)}

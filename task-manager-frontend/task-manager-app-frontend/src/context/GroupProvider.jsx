@@ -71,6 +71,7 @@ export default function GroupProvider({ children }) {
     const [members, setMembers]         = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const [myRole, setMyRole]           = useState(null);
 
     // --- when user changes (login / logout / switch) ---
     useEffect(() => {
@@ -80,6 +81,7 @@ export default function GroupProvider({ children }) {
             setActiveGroup(null);
             setGroupDetail(null);
             setMembers([]);
+            setMyRole(null);
             setLoadingGroups(false);
             return;
         }
@@ -97,8 +99,19 @@ export default function GroupProvider({ children }) {
         } else {
             setGroupDetail(null);
             setMembers([]);
+            setMyRole(null);
         }
     }, [activeGroup]);
+
+    // derive current user's role from members list
+    useEffect(() => {
+        if (user && members.length > 0) {
+            const mine = members.find(m => m.user?.id === user.id);
+            setMyRole(mine?.role ?? null);
+        } else {
+            setMyRole(null);
+        }
+    }, [members, user]);
 
 
     // ── lightweight group list (not sensitive — stored plain) ──
@@ -227,6 +240,7 @@ export default function GroupProvider({ children }) {
             activeGroup,
             groupDetail,
             members,
+            myRole,
             loadingGroups,
             loadingDetail,
             selectGroup,

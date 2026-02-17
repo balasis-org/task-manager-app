@@ -29,4 +29,7 @@ public class TaskInboundResource extends BaseInboundResource {
     private Set<Long> assignedIds;
     private Set<Long> reviewerIds;
     private Instant dueDate;
+    @jakarta.validation.constraints.Min(value = 0, message = "priority must be between 0 and 10")
+    @jakarta.validation.constraints.Max(value = 10, message = "priority must be between 0 and 10")
+    private Integer priority;
 }
