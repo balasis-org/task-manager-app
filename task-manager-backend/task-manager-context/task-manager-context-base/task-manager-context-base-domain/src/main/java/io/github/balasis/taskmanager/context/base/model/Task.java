@@ -69,6 +69,18 @@ public class Task extends BaseModel{
 
     @Column
     private Instant lastEditDate;
+
+    @Column
+    private Instant lastChangeDate;
+
+    @Column
+    private Instant lastChangeDateNoJoins;
+
+    @Column
+    private Instant lastChangeDateInParticipants;
+
+    @Column
+    private Instant lastChangeDateInComments;
     
     @Column
     private Instant createdAt;

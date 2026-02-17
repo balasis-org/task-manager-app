@@ -7,6 +7,7 @@ import lombok.experimental.SuperBuilder;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -52,9 +53,21 @@ public class User extends BaseModel{
     @Column
     private Instant lastSeenInvites;
 
+    @Column
+    private String cacheKey;
+
+    @Column
+    private Instant cacheKeyCreatedAt;
+
     @PrePersist
     protected void onCreate(){
         lastSeenInvites = Instant.now();
+        rotateCacheKey();
+    }
+
+    public void rotateCacheKey() {
+        this.cacheKey = UUID.randomUUID().toString().replace("-", "");
+        this.cacheKeyCreatedAt = Instant.now();
     }
 
 

@@ -58,6 +58,19 @@ public class Group extends BaseModel{
     private Boolean allowEmailNotification = true;
 
     @Column
+    private Instant lastChangeInGroup;
+
+    @Column
+    private Instant lastChangeInGroupNoJoins;
+
+    @Column
+    private Instant lastDeleteTaskDate;
+
+    @Column
+    private Instant lastMaintenanceDate;
+
+
+    @Column
     private Instant createdAt;
 
     @PrePersist

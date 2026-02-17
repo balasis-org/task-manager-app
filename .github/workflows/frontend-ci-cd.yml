@@ -3,7 +3,7 @@ name: frontend-ci-cd
 on:
   push:
     paths:
-      - 'task-manager-frontend/**'
+      - '../../task-manager-frontend-demo/**'
   workflow_dispatch:
 
 jobs:
