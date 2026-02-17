@@ -17,11 +17,20 @@ function priorityTag(p) {
     return <span className={`priority-tag ${cls}`}>{label} ({p})</span>;
 }
 
-export default function TaskTable({ tasks, groupId }) {
+export default function TaskTable({ tasks, groupId, colWidths }) {
     const navigate = useNavigate();
 
     if (!tasks || tasks.length === 0) {
         return <div className="task-table-empty">No tasks</div>;
+    }
+
+    const gridStyle = colWidths
+        ? { gridTemplateColumns: `1fr ${colWidths.slice(1).map((w) => w + "px").join(" ")}` }
+        : undefined;
+
+    function goToComments(e, taskId) {
+        e.stopPropagation();
+        navigate(`/group/${groupId}/task/${taskId}/comments`);
     }
 
     return (
@@ -30,6 +39,7 @@ export default function TaskTable({ tasks, groupId }) {
                 <div
                     key={t.id}
                     className="task-row"
+                    style={gridStyle}
                     onClick={() =>
                         navigate(`/group/${groupId}/task/${t.id}`)
                     }
@@ -49,7 +59,11 @@ export default function TaskTable({ tasks, groupId }) {
                     <span className="task-cell cell-access">
                         {t.accessible ? "✓" : "—"}
                     </span>
-                    <span className="task-cell cell-comments">
+                    <span
+                        className="task-cell cell-comments"
+                        onClick={(e) => goToComments(e, t.id)}
+                        title="Go to comments"
+                    >
                         <span
                             className={`comment-icon${t.newCommentsToBeRead ? " has-new" : ""}`}
                             title={

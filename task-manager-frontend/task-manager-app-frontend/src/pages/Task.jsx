@@ -14,6 +14,9 @@ import {
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
+
+const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
+const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Task.css";
@@ -36,7 +39,7 @@ export default function Task() {
     const { groupId, taskId } = useParams();
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole } = useContext(GroupContext);
+    const { activeGroup, myRole, members } = useContext(GroupContext);
 
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -54,6 +57,10 @@ export default function Task() {
     const [reviewDecision, setReviewDecision] = useState("APPROVE");
     const [submittingReview, setSubmittingReview] = useState(false);
 
+    // Participant picker popups
+    const [showReviewerPicker, setShowReviewerPicker] = useState(false);
+    const [showAssigneePicker, setShowAssigneePicker] = useState(false);
+
     // File uploads
     const fileInputRef = useRef(null);
     const assigneeFileInputRef = useRef(null);
@@ -69,7 +76,7 @@ export default function Task() {
     const isCreator = myTaskRole === "CREATOR";
     const canEdit = isLeaderOrManager;
     const canReview = isReviewer || isLeaderOrManager;
-    const canMoveToBeReviewed = isAssignee || isLeaderOrManager;
+    const canMoveToBeReviewed = isAssignee;
     const canChangeState = isLeaderOrManager;
     const canAddParticipants = isLeaderOrManager;
     const canUploadFiles = isLeaderOrManager;
@@ -85,6 +92,16 @@ export default function Task() {
     const creator = task?.taskParticipants
         ? [...task.taskParticipants].find((p) => p.taskParticipantRole === "CREATOR")
         : null;
+
+    // Eligible members for pickers (filtered by role & not already added)
+    const existingReviewerIds = new Set(reviewers.map((r) => r.user?.id));
+    const existingAssigneeIds = new Set(assignees.map((a) => a.user?.id));
+    const eligibleReviewers = (members || []).filter(
+        (m) => REVIEWER_ELIGIBLE_ROLES.includes(m.role) && !existingReviewerIds.has(m.user?.id)
+    );
+    const eligibleAssignees = (members || []).filter(
+        (m) => ASSIGNEE_ELIGIBLE_ROLES.includes(m.role) && !existingAssigneeIds.has(m.user?.id)
+    );
 
     // ── Fetch task ──
     useEffect(() => {
@@ -144,6 +161,21 @@ export default function Task() {
             alert("Failed to submit review");
         } finally {
             setSubmittingReview(false);
+        }
+    }
+
+    // ── Add participant ──
+    async function handleAddParticipant(userId, role) {
+        try {
+            const updated = await apiPost(
+                `/api/groups/${groupId}/task/${taskId}/taskParticipants`,
+                { userId, taskParticipantRole: role }
+            );
+            setTask(updated);
+            if (role === "REVIEWER") setShowReviewerPicker(false);
+            else setShowAssigneePicker(false);
+        } catch {
+            alert("Failed to add participant");
         }
     }
 
@@ -399,11 +431,37 @@ export default function Task() {
                             <h4>
                                 Reviewer
                                 {canAddParticipants && (
-                                    <button className="task-sidebar-add" title="Add reviewer">
+                                    <button
+                                        className="task-sidebar-add"
+                                        title="Add reviewer"
+                                        onClick={() => { setShowReviewerPicker((v) => !v); setShowAssigneePicker(false); }}
+                                    >
                                         <FiPlus size={12} />
                                     </button>
                                 )}
                             </h4>
+
+                            {/* Reviewer picker dropdown */}
+                            {showReviewerPicker && canAddParticipants && (
+                                <div className="task-participant-picker">
+                                    {eligibleReviewers.length === 0 ? (
+                                        <span className="task-participant-picker-empty">No eligible members</span>
+                                    ) : (
+                                        eligibleReviewers.map((m) => (
+                                            <div
+                                                key={m.user?.id}
+                                                className="task-participant-picker-item"
+                                                onClick={() => handleAddParticipant(m.user?.id, "REVIEWER")}
+                                            >
+                                                <img src={userImg(m.user)} alt="" className="task-participant-img" />
+                                                <span>{m.user?.name || m.user?.email}</span>
+                                                <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
                             <div className="task-participant-list">
                                 {reviewers.length === 0 ? (
                                     <span className="muted">No reviewer</span>
@@ -488,11 +546,37 @@ export default function Task() {
                             <h4>
                                 Assignees
                                 {canAddParticipants && (
-                                    <button className="task-sidebar-add" title="Add assignee">
+                                    <button
+                                        className="task-sidebar-add"
+                                        title="Add assignee"
+                                        onClick={() => { setShowAssigneePicker((v) => !v); setShowReviewerPicker(false); }}
+                                    >
                                         <FiPlus size={12} />
                                     </button>
                                 )}
                             </h4>
+
+                            {/* Assignee picker dropdown */}
+                            {showAssigneePicker && canAddParticipants && (
+                                <div className="task-participant-picker">
+                                    {eligibleAssignees.length === 0 ? (
+                                        <span className="task-participant-picker-empty">No eligible members</span>
+                                    ) : (
+                                        eligibleAssignees.map((m) => (
+                                            <div
+                                                key={m.user?.id}
+                                                className="task-participant-picker-item"
+                                                onClick={() => handleAddParticipant(m.user?.id, "ASSIGNEE")}
+                                            >
+                                                <img src={userImg(m.user)} alt="" className="task-participant-img" />
+                                                <span>{m.user?.name || m.user?.email}</span>
+                                                <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
                             <div className="task-participant-list">
                                 {assignees.length === 0 ? (
                                     <span className="muted">No assignees</span>

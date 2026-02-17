@@ -2,18 +2,8 @@
    Shared column grid  –  single header
    ══════════════════════════════════════ */
 
-/* Reusable grid: every header-row AND task-row use the same template */
-.task-grid-row {
-    display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
-    /* title(flex) | creator | priority | due date | accessible | 💬 */
-    align-items: center;
-    padding: 0 16px;
-}
-
 /* ── Column header (rendered once) ── */
 .task-col-header {
-    composes: task-grid-row;
     display: grid;
     grid-template-columns: 1fr 130px 90px 120px 90px 60px;
     padding: 8px 16px;
@@ -28,6 +18,40 @@
     top: 0;
     background: #fff;
     z-index: 2;
+}
+
+.col-header-cell {
+    position: relative;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Drag handle between column headers */
+.col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 5;
+}
+
+.col-resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 3px;
+    width: 2px;
+    height: 60%;
+    background: transparent;
+    border-radius: 1px;
+    transition: background 0.15s;
+}
+
+.col-resize-handle:hover::after {
+    background: #aaa;
 }
 
 /* ── Task row ── */
@@ -62,12 +86,22 @@
 .cell-priority,
 .cell-due,
 .cell-access {
-    text-align: left;
+    text-align: center;
+    justify-self: center;
 }
 
 .cell-comments {
     text-align: center;
     justify-self: center;
+    cursor: pointer;
+}
+
+.cell-comments:hover .comment-icon {
+    color: #1a73e8;
+}
+
+.col-center {
+    justify-content: center;
 }
 
 /* ── Empty state ── */
@@ -123,4 +157,81 @@
 .priority-high {
     background: #ffebee;
     color: #c62828;
+}
+
+/* ══════════════════════════════════════
+   Responsive — Task Table
+   ══════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 110px 80px 100px 70px 50px !important;
+    }
+
+    .task-cell {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hide lesser columns on narrow screens */
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 90px 70px 50px !important;
+    }
+
+    /* Hide due-date & accessible columns */
+    .cell-due,
+    .cell-access {
+        display: none;
+    }
+
+    .task-col-header > .col-header-cell:nth-child(4),
+    .task-col-header > .col-header-cell:nth-child(5) {
+        display: none;
+    }
+
+    .task-col-header {
+        padding: 6px 10px;
+    }
+
+    .task-row {
+        padding: 0 10px;
+    }
+
+    .task-cell {
+        padding: 6px 6px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* On very small screens keep just title + priority + chat */
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 70px 40px !important;
+    }
+
+    .cell-creator {
+        display: none;
+    }
+
+    .task-col-header > .col-header-cell:nth-child(2) {
+        display: none;
+    }
+
+    .task-col-header {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+
+    .task-row {
+        padding: 0 8px;
+    }
+
+    .task-cell {
+        padding: 4px 4px;
+        font-size: 11px;
+    }
 }

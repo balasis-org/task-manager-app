@@ -148,3 +148,51 @@
     background: #238d43;
     transform: translateY(-1px);
 }
+
+/* ══════════════════════════════════════
+   Responsive — Dashboard
+   ══════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .dashboard-search {
+        padding: 8px 12px;
+    }
+
+    .task-section-header {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-announcement {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .task-section-header {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    .task-section-title {
+        font-size: 13px;
+    }
+
+    .task-section-add {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-search {
+        padding: 6px 8px;
+    }
+
+    .dashboard-search-input {
+        font-size: 12px;
+    }
+
+    .task-section-header {
+        padding: 6px 8px;
+    }
+}

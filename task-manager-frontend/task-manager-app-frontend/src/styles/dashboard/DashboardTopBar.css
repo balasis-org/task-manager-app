@@ -260,3 +260,50 @@
 .topbar-group-btn {
     font-weight: 600;
 }
+
+/* ══════════════════════════════════════
+   Responsive — Dashboard Top Bar
+   ══════════════════════════════════════ */
+@media (max-width: 768px) {
+    .topbar-content {
+        padding: 8px 10px;
+        gap: 0.8em;
+        flex-wrap: wrap;
+    }
+
+    .topbar-right {
+        gap: 0.8em;
+    }
+
+    .topbar-group-btn {
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar-content {
+        padding: 6px 8px;
+        gap: 0.5em;
+    }
+
+    .topbar-combo .topbar-dropdown-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        height: 30px;
+    }
+
+    .topbar-plus-combo {
+        width: 30px;
+        height: 30px;
+    }
+
+    .topbar-icon-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+    }
+
+    .topbar-group-btn {
+        min-width: 80px;
+    }
+}
