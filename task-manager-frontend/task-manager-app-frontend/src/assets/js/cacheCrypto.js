@@ -26,7 +26,7 @@ async function deriveKey(rawKey) {
    );
 }
 
-// encrypt a JS object → base64 string that goes into localStorage
+// encrypt a JS object into a base64 string for localStorage
 // we prepend a small "tag" (first 8 chars of the raw key) so we can
 // quickly check whether the stored blob matches the current key
 // without attempting a full decrypt.

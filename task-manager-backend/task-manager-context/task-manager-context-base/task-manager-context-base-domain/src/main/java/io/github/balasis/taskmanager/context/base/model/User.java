@@ -17,25 +17,25 @@ import java.util.UUID;
 @Entity
 @Table(name = "Users")
 public class User extends BaseModel{
-    @Column(nullable = false , unique = true)
+    @Column(nullable = false, unique = true, length = 128)
     private String azureKey;
 
-    @Column
+    @Column(length = 64)
     private String tenantId;
 
-    @Column
+    @Column(length = 500)
     private String defaultImgUrl;
 
-    @Column
+    @Column(length = 500)
     private String imgUrl;
 
     @Column
     private boolean isOrg = false;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 254)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
     @Column
@@ -53,7 +53,7 @@ public class User extends BaseModel{
     @Column
     private Instant lastSeenInvites;
 
-    @Column
+    @Column(length = 64)
     private String cacheKey;
 
     @Column

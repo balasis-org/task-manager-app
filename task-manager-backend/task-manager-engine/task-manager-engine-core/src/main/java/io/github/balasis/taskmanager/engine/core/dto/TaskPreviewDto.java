@@ -21,4 +21,6 @@ public class TaskPreviewDto {
     private Long commentCount;
     private Boolean accessible;
     private Boolean newCommentsToBeRead;
+    private String creatorName;
+    private Integer priority;
 }

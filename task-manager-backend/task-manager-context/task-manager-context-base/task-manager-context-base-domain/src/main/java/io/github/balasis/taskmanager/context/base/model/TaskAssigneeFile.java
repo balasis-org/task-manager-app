@@ -13,7 +13,10 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Table(name = "TaskAssigneeFiles")
 public class TaskAssigneeFile extends BaseModel {
+    @Column(length = 500)
     private String fileUrl;
+
+    @Column(length = 255)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)

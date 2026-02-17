@@ -65,14 +65,18 @@ export default function GroupProvider({ children }) {
     // we get it fresh from /users/me every page load / refresh.
     const cacheKeyRef = useRef(null);
 
+    // Keep cache key in sync whenever user object updates (e.g. profile refresh)
+    cacheKeyRef.current = user?.cacheKey || null;
+
     const [groups, setGroups]           = useState([]);
     const [activeGroup, setActiveGroup] = useState(null);
     const [groupDetail, setGroupDetail] = useState(null);
     const [members, setMembers]         = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const [myRole, setMyRole]           = useState(null);
 
-    // --- when user changes (login / logout / switch) ---
+    // user changed? reload everything
     useEffect(() => {
         if (!user) {
             cacheKeyRef.current = null;
@@ -80,16 +84,15 @@ export default function GroupProvider({ children }) {
             setActiveGroup(null);
             setGroupDetail(null);
             setMembers([]);
+            setMyRole(null);
             setLoadingGroups(false);
             return;
         }
 
-        // grab the cache key the backend gave us through /users/me
-        cacheKeyRef.current = user.cacheKey || null;
         loadGroups();
-    }, [user]);
+    }, [user?.id]);
 
-    // --- when active group changes, load or refresh its detail ---
+    // active group switched -> load/refresh detail
     useEffect(() => {
         if (activeGroup && user) {
             lsSet(kActiveId(user.id), activeGroup.id);
@@ -97,11 +100,22 @@ export default function GroupProvider({ children }) {
         } else {
             setGroupDetail(null);
             setMembers([]);
+            setMyRole(null);
         }
     }, [activeGroup]);
 
+    // figure out my role from the members list
+    useEffect(() => {
+        if (user && members.length > 0) {
+            const mine = members.find(m => m.user?.id === user.id);
+            setMyRole(mine?.role ?? null);
+        } else {
+            setMyRole(null);
+        }
+    }, [members, user]);
 
-    // ── lightweight group list (not sensitive — stored plain) ──
+
+    // groups list - stored as plain json, nothing sensitive
     async function loadGroups() {
         setLoadingGroups(true);
         try {
@@ -124,7 +138,7 @@ export default function GroupProvider({ children }) {
     }
 
 
-    // ── full group detail — encrypted in localStorage ──
+    // full detail - encrypted in localstorage
     async function loadOrRefreshDetail(groupId) {
         setLoadingDetail(true);
         const ck = cacheKeyRef.current;
@@ -189,8 +203,7 @@ export default function GroupProvider({ children }) {
     }
 
 
-    // ── actions exposed to the rest of the app ──
-
+    // --- public api ---
     const selectGroup = useCallback((g) => setActiveGroup(g), []);
 
     const addGroup = useCallback((newGroup) => {
@@ -209,7 +222,7 @@ export default function GroupProvider({ children }) {
             return next;
         });
         setActiveGroup(updatedGroup);
-        // throw away old encrypted cache for this group so we do a full load
+        // wipe old cache so we do a full re-load next time
         if (user?.id) {
             lsRemove(kDetail(user.id, updatedGroup.id));
             lsRemove(kLastSeen(user.id, updatedGroup.id));
@@ -221,18 +234,75 @@ export default function GroupProvider({ children }) {
         if (activeGroup) loadOrRefreshDetail(activeGroup.id);
     }, [activeGroup]);
 
+    const removeGroupFromState = useCallback((groupId) => {
+        setGroups(prev => {
+            const next = prev.filter(g => g.id !== groupId);
+            if (user?.id) lsSet(kGroups(user.id), next);
+            // If we removed the active group, switch to next available
+            if (activeGroup?.id === groupId) {
+                const fallback = next.length ? next[0] : null;
+                setActiveGroup(fallback);
+            }
+            return next;
+        });
+        // clear cached detail
+        if (user?.id) {
+            lsRemove(kDetail(user.id, groupId));
+            lsRemove(kLastSeen(user.id, groupId));
+        }
+    }, [user, activeGroup]);
+
+    const reloadGroups = useCallback(() => {
+        if (user) loadGroups();
+    }, [user]);
+
+    // poll every 5min, resets on user activity
+    const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    const pollTimer = useRef(null);
+
+    const resetPollTimer = useCallback(() => {
+        if (pollTimer.current) clearTimeout(pollTimer.current);
+        pollTimer.current = setTimeout(() => {
+            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+            // after the refresh fires, start the timer again
+            resetPollTimer();
+        }, POLL_INTERVAL);
+    }, [activeGroup]);
+
+    // kick off / restart polling when group changes
+    useEffect(() => {
+        if (!activeGroup || !user) {
+            if (pollTimer.current) clearTimeout(pollTimer.current);
+            return;
+        }
+        resetPollTimer();
+        return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
+    }, [activeGroup, user, resetPollTimer]);
+
+    // any user interaction resets the poll timer
+    useEffect(() => {
+        if (!activeGroup || !user) return;
+        const handler = () => resetPollTimer();
+        const events = ["click", "keydown", "scroll", "pointerdown"];
+        events.forEach((ev) => window.addEventListener(ev, handler, { passive: true }));
+        return () => events.forEach((ev) => window.removeEventListener(ev, handler));
+    }, [activeGroup, user, resetPollTimer]);
+
     return (
         <GroupContext.Provider value={{
             groups,
             activeGroup,
             groupDetail,
             members,
+            myRole,
             loadingGroups,
             loadingDetail,
             selectGroup,
             addGroup,
             updateGroup,
             refreshActiveGroup,
+            removeGroupFromState,
+            reloadGroups,
         }}>
             {children}
         </GroupContext.Provider>

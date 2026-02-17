@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.web.resource.BaseInboundResource;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Getter
@@ -18,5 +19,6 @@ public class GroupInvitationInboundResource extends BaseInboundResource {
 
     private Role userToBeInvitedRole;
 
+    @Size(max = 400, message = "comment must be at most 400 characters")
     private String comment;
 }

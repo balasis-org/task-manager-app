@@ -9,6 +9,8 @@ import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.Eff
 
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -67,6 +69,18 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         String blobName = blobStorageService.uploadProfileImage(file, user.getId());
         user.setImgUrl(blobName);
         return user;
+    }
+
+    @Override
+    public Page<User> searchUser(String q, Pageable pageable) {
+        var normalized = (q == null || q.isBlank()) ? null : q.trim();
+        return userRepository.searchUser(normalized, pageable);
+    }
+
+    @Override
+    public Page<User> searchUserForInvites(Long groupId, String q , Pageable pageable){
+        var normalized = (q == null || q.isBlank()) ? null : q.trim();
+        return userRepository.searchUserForInvites(groupId,normalized,pageable);
     }
 
 }

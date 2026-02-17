@@ -20,19 +20,19 @@ import java.util.Set;
 })
 public class Group extends BaseModel{
 
-    @Column(name="name", nullable = false)
+    @Column(name="name", nullable = false, length = 50)
     private String name;
 
-    @Column
+    @Column(length = 500)
     private String description;
 
     @Column(length = 150)
     private String Announcement;
 
-    @Column
+    @Column(length = 500)
     private String defaultImgUrl;
 
-    @Column
+    @Column(length = 500)
     private String imgUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)

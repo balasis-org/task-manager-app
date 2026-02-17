@@ -1,54 +1,96 @@
-/* ══════════════════════════════════════
-   Shared column grid  –  single header
-   ══════════════════════════════════════ */
+/* Shared column grid  –  single header */
 
-/* Reusable grid: every header-row AND task-row use the same template */
-.task-grid-row {
-    display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
-    /* title(flex) | creator | priority | due date | accessible | 💬 */
-    align-items: center;
-    padding: 0 16px;
-}
-
-/* ── Column header (rendered once) ── */
+/* Column header (rendered once) */
 .task-col-header {
-    composes: task-grid-row;
     display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
-    padding: 8px 16px;
-    border-bottom: 2px solid #ddd;
+    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
+    padding: 0.5em 1em;
+    border-bottom: 0.125em solid var(--border-primary);
     font-weight: 600;
-    font-size: 12px;
-    color: #555;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.02em;
     white-space: nowrap;
     position: sticky;
     top: 0;
-    background: #fff;
+    background: var(--bg-primary);
     z-index: 2;
 }
 
-/* ── Task row ── */
+.col-header-cell {
+    position: relative;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Centre every header except the first (Title) */
+.col-header-cell:not(:first-child) {
+    justify-content: center;
+    text-align: center;
+}
+
+/* Drag handle between column headers */
+.col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -0.25em;
+    width: 0.5em;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 5;
+}
+
+.col-resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 0.19em;
+    width: 0.125em;
+    height: 60%;
+    background: #ccc;
+    border-radius: 0.06em;
+    transition: background 0.15s;
+}
+
+.col-resize-handle:hover::after {
+    background: #888;
+}
+
+/* Task row */
 .task-row {
     display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
+    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 1em;
     cursor: pointer;
     transition: background 0.12s;
-    border-bottom: 1px solid #eee;
+    border-bottom: 0.06em solid var(--border-secondary);
 }
 
 .task-row:hover {
-    background: #f5f7fa;
+    background: var(--bg-hover);
 }
 
-/* ── Cells ── */
+.task-row-locked {
+    cursor: not-allowed;
+}
+
+.task-row-denied {
+    animation: row-denied-flash 0.5s ease;
+}
+
+@keyframes row-denied-flash {
+    0%   { background: #ffdddd; }
+    50%  { background: #ffaaaa; }
+    100% { background: transparent; }
+}
+
+/* Cells */
 .task-cell {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 0.5em 0.75em;
+    font-size: 0.81em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -62,19 +104,33 @@
 .cell-priority,
 .cell-due,
 .cell-access {
-    text-align: left;
+    text-align: center;
+    justify-self: center;
+}
+
+.lock-icon {
+    color: var(--text-disabled);
 }
 
 .cell-comments {
     text-align: center;
     justify-self: center;
+    cursor: pointer;
 }
 
-/* ── Empty state ── */
+.cell-comments:hover .comment-icon {
+    color: var(--accent-primary);
+}
+
+.col-center {
+    justify-content: center;
+}
+
+/* Empty state */
 .task-table-empty {
-    padding: 12px 20px;
-    color: #999;
-    font-size: 13px;
+    padding: 0.75em 1.25em;
+    color: var(--text-placeholder);
+    font-size: 0.81em;
     font-style: italic;
 }
 
@@ -86,16 +142,117 @@
 .comment-icon {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    color: #999;
+    gap: 0.19em;
+    color: var(--text-placeholder);
     position: relative;
 }
 
 .comment-icon.has-new {
-    color: #e67e22;
+    color: var(--warning);
 }
 
 .comment-count {
-    font-size: 11px;
+    font-size: 0.69em;
     font-weight: 600;
+}
+
+/* Priority tags */
+.priority-tag {
+    display: inline-block;
+    padding: 0.125em 0.5em;
+    border-radius: 0.625em;
+    font-size: 0.69em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.priority-low {
+    background: var(--success-bg-alt);
+    color: var(--success-text-alt);
+}
+
+.priority-med {
+    background: #fff3e0;
+    color: var(--priority-med-text);
+}
+
+.priority-high {
+    background: var(--danger-bg-alt);
+    color: var(--danger-text-alt);
+}
+
+/* Responsive — Task Table */
+@media (max-width: 1024px) {
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 6.88em 5em 6.25em 4.38em 3.12em !important;
+    }
+
+    .task-cell {
+        padding: 0.375em 0.5em;
+        font-size: 0.75em;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hide lesser columns on narrow screens */
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 5em 4.38em 3.12em !important;
+    }
+
+    /* Hide creator & due-date columns */
+    .cell-creator,
+    .cell-due {
+        display: none;
+    }
+
+    .task-col-header > .col-header-cell:nth-child(2),
+    .task-col-header > .col-header-cell:nth-child(4) {
+        display: none;
+    }
+
+    .task-col-header {
+        padding: 0.375em 0.625em;
+    }
+
+    .task-row {
+        padding: 0 0.625em;
+    }
+
+    .task-cell {
+        padding: 0.375em 0.375em;
+        font-size: 0.75em;
+    }
+}
+
+@media (max-width: 480px) {
+    /* On very small screens keep just title + priority + chat */
+    .task-col-header,
+    .task-row {
+        grid-template-columns: 1fr 4.38em 2.5em !important;
+    }
+
+    /* Additionally hide accessible (creator & due already hidden at 48em) */
+    .cell-access {
+        display: none;
+    }
+
+    .task-col-header > .col-header-cell:nth-child(5) {
+        display: none;
+    }
+
+    .task-col-header {
+        padding: 0.375em 0.5em;
+        font-size: 0.625em;
+    }
+
+    .task-row {
+        padding: 0 0.5em;
+    }
+
+    .task-cell {
+        padding: 0.25em 0.25em;
+        font-size: 0.69em;
+    }
 }

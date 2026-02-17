@@ -6,8 +6,8 @@ let isRefreshing = false;
 
 export default function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);        // network activity
-    const [bootstrapped, setBootstrapped] = useState(false); // FIRST LOAD ONLY
+    const [loading, setLoading] = useState(true);
+    const [bootstrapped, setBootstrapped] = useState(false);
 
     useEffect(() => {
         const loadUser = async () => {

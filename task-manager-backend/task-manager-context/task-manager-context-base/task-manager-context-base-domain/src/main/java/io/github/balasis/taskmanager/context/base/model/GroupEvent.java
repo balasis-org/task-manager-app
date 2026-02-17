@@ -24,7 +24,7 @@ public class GroupEvent extends BaseModel{
     private Group group;
 
     @Lob
-    @Column
+    @Column(length = 500)
     private String description;
 
     @Column(nullable = false, updatable = false)

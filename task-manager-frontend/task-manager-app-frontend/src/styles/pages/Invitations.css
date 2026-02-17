@@ -1,0 +1,286 @@
+/* Invitations page */
+.invitations-page {
+    max-width: 51.25em;
+    margin: 0 auto;
+    padding: 2em 1.5em 3.75em;
+}
+
+.invitations-heading {
+    font-size: 1.38em;
+    font-weight: 700;
+    color: var(--text-heading-alt);
+    margin-bottom: 1.5em;
+}
+
+/* Section */
+.invitations-section {
+    margin-bottom: 2.25em;
+}
+
+.invitations-section-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.625em;
+    border-bottom: 0.06em solid var(--border-secondary);
+    padding-bottom: 0.375em;
+}
+
+.invitations-hint {
+    font-size: 0.75em;
+    color: var(--text-placeholder);
+    margin-bottom: 0.625em;
+}
+
+.invitations-empty {
+    font-size: 0.875em;
+    color: var(--text-faint);
+    padding: 1em 0;
+}
+
+/* Received invitation card */
+.invitation-card {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    padding: 0.875em 1.12em;
+    margin-bottom: 0.625em;
+    transition: box-shadow 0.15s;
+}
+
+.invitation-card:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.invitation-card.unread {
+    border-left: 0.25em solid var(--warning);
+}
+
+.invitation-card.resolved {
+    opacity: 0.7;
+}
+
+.invitation-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.invitation-group {
+    font-weight: 600;
+    font-size: 0.94em;
+    color: var(--text-heading-alt);
+    max-width: 18.75em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.invitation-from {
+    font-size: 0.81em;
+    color: var(--text-muted);
+}
+
+.invitation-comment {
+    font-size: 0.81em;
+    color: var(--text-tertiary);
+    margin: 0.375em 0;
+    line-height: 1.4;
+}
+
+.invitation-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5em;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.invitation-date {
+    font-size: 0.75em;
+    color: var(--text-placeholder);
+}
+
+.invitation-actions {
+    display: flex;
+    gap: 0.5em;
+}
+
+/* Status badges */
+.invitation-status {
+    font-size: 0.69em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.125em 0.5em;
+    border-radius: 0.625em;
+}
+
+.invitation-status.pending {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.invitation-status.accepted {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.invitation-status.declined {
+    background: var(--danger-bg-light);
+    color: var(--danger-text-badge);
+}
+
+/* Resolved toggle */
+.invitations-resolved-toggle {
+    margin-top: 0.875em;
+}
+
+.invitations-resolved-toggle summary {
+    cursor: pointer;
+    font-size: 0.81em;
+    color: var(--text-muted);
+    user-select: none;
+    margin-bottom: 0.5em;
+}
+
+/* Sent invitations table */
+.invitations-table-wrapper {
+    overflow-x: auto;
+}
+
+.invitations-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875em;
+}
+
+.invitations-table th {
+    text-align: left;
+    font-size: 0.75em;
+    color: var(--text-faint);
+    padding: 0.5em 0.625em;
+    border-bottom: 0.125em solid var(--border-secondary);
+    white-space: nowrap;
+}
+
+.invitations-table td {
+    padding: 0.625em 0.625em;
+    border-bottom: 0.06em solid var(--border-light);
+    vertical-align: middle;
+}
+
+.sent-group-name {
+    font-weight: 500;
+    max-width: 11.25em;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.sent-comment-cell {
+    max-width: 11.25em;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.btn-abort {
+    background: var(--danger);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 0.375em;
+    padding: 0.31em 0.875em;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-abort:hover {
+    background: var(--danger-hover);
+}
+
+/* --- responsive --- */
+@media (max-width: 600px) {
+    .invitations-page {
+        padding: 1em 0.75em 2.5em;
+    }
+
+    .invitations-heading {
+        font-size: 1.12em;
+    }
+
+    .invitation-card {
+        padding: 0.625em 0.75em;
+    }
+
+    .invitation-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-group {
+        max-width: 100%;
+    }
+
+    .invitation-card-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-actions {
+        width: 100%;
+    }
+
+    .invitation-actions .btn-primary,
+    .invitation-actions .btn-secondary {
+        flex: 1;
+    }
+
+    /* table -> card layout on small screens */
+    .invitations-table thead {
+        display: none;
+    }
+
+    .invitations-table,
+    .invitations-table tbody,
+    .invitations-table tr,
+    .invitations-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .invitations-table tr {
+        background: var(--bg-primary);
+        border: 0.06em solid var(--border-primary);
+        border-radius: 0.5em;
+        padding: 0.625em 0.75em;
+        margin-bottom: 0.625em;
+    }
+
+    .invitations-table td {
+        padding: 0.25em 0;
+        border-bottom: none;
+    }
+
+    .invitations-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 0.69em;
+        color: var(--text-faint);
+        display: block;
+    }
+
+    .sent-group-name,
+    .sent-comment-cell {
+        max-width: 100%;
+    }
+}

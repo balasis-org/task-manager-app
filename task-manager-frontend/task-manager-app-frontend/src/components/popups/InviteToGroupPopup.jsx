@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { apiGet, apiPost } from "@assets/js/apiClient";
+import { useToast } from "@context/ToastContext";
+import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
 import blobBase from "@blobBase";
 
 const ROLES = ["MEMBER", "GUEST", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
 export default function InviteToGroupPopup({ groupId, onClose }) {
+    const showToast = useToast();
     const [search, setSearch] = useState("");
     const [results, setResults] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -13,7 +16,6 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
     const [comment, setComment] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
     const handleSearch = async (q) => {
         setSearch(q);
@@ -23,10 +25,8 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
         }
         try {
             const data = await apiGet(
-                `/api/groups/${groupId}/groupMemberships/search?q=${encodeURIComponent(q)}&page=0&size=10`
+                `/api/users/search?q=${encodeURIComponent(q)}&page=0&size=40`
             );
-            // The search returns existing members – for inviting we'd need a user search endpoint.
-            // For now show members as searchable; the invite endpoint takes userId.
             setResults(data?.content ?? []);
         } catch {
             setResults([]);
@@ -41,17 +41,14 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
         }
         setBusy(true);
         setError("");
-        setSuccess("");
         try {
             await apiPost(`/api/groups/${groupId}/invite`, {
                 userId: selectedUser.id,
                 userToBeInvitedRole: role,
                 comment: comment.trim(),
             });
-            setSuccess("Invitation sent!");
-            setSelectedUser(null);
-            setSearch("");
-            setComment("");
+            onClose();
+            showToast("Invitation sent!", "success");
         } catch {
             setError("Failed to send invitation.");
         } finally {
@@ -65,7 +62,6 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                 <h2>Invite to group</h2>
 
                 {error && <div className="popup-error">{error}</div>}
-                {success && <div className="popup-success">{success}</div>}
 
                 <form onSubmit={handleInvite} className="popup-form">
                     <label>
@@ -80,21 +76,18 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
 
                     {results.length > 0 && (
                         <div className="popup-search-results">
-                            {results.map((m) => (
+                            {results.map((u) => (
                                 <div
-                                    key={m.id}
-                                    className={`popup-search-item${
-                                        selectedUser?.id === m.user?.id ? " selected" : ""
-                                    }`}
-                                    onClick={() => setSelectedUser(m.user)}
+                                    key={u.id}
+                                    className={`popup-search-item${selectedUser?.id === u.id ? " selected" : ""}`}
+                                    onClick={() => setSelectedUser(u)}
                                 >
                                     <img
-                                        src={ (m.user?.imgUrl) ? blobBase+m.user.imgUrl : (m.user?.defaultImgUrl)
-                                            ? blobBase + m.user.defaultImgUrl : ""}
+                                        src={u.imgUrl ? blobBase + u.imgUrl : (u.defaultImgUrl ? blobBase + u.defaultImgUrl : "")}
                                         alt=""
                                         className="popup-search-img"
                                     />
-                                    <span>{m.user?.name || m.user?.email}</span>
+                                    <span>{u.name || u.email}</span>
                                 </div>
                             ))}
                         </div>
@@ -123,9 +116,9 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             rows={2}
-                            maxLength={50}
+                            maxLength={LIMITS.INVITE_COMMENT}
                         />
-                        <span className="char-count">{comment.length}/50</span>
+                        <span className="char-count">{comment.length}/{LIMITS.INVITE_COMMENT}</span>
                     </label>
 
                     <div className="popup-actions">
