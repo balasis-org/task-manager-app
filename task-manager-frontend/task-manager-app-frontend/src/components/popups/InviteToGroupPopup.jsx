@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiGet, apiPost } from "@assets/js/apiClient";
+import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
 import blobBase from "@blobBase";
 
@@ -118,9 +119,9 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             rows={2}
-                            maxLength={50}
+                            maxLength={LIMITS.INVITE_COMMENT}
                         />
-                        <span className="char-count">{comment.length}/50</span>
+                        <span className="char-count">{comment.length}/{LIMITS.INVITE_COMMENT}</span>
                     </label>
 
                     <div className="popup-actions">

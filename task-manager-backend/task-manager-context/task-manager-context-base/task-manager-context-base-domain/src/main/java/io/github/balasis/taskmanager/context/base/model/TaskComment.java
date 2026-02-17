@@ -27,7 +27,7 @@ public class TaskComment extends BaseModel{
     private User creator;
 
     @Lob
-    @Column
+    @Column(length = 400)
     private String comment;
 
     @Column

@@ -10,13 +10,14 @@ import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@assets/js/apiClient.js";
+import { LIMITS } from "@assets/js/inputValidation";
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Comments.css";
 
 const EMOJIS = ["😀","😂","😍","👍","👎","🎉","🔥","❤️","😢","😮","🤔","😎","💯","✅","❌","⚡"];
 
-const MAX_LEN = 250;
+const MAX_LEN = LIMITS.COMMENT;
 const PAGE_SIZE = 5;
 
 function userImg(u) {
@@ -227,7 +228,7 @@ export default function Comments() {
                     <FiArrowLeft size={14} />
                     <span>Go back</span>
                 </Link>
-                <span className="comments-trail">
+                <span className="comments-trail" title={`${groupName} → Task → comments`}>
                     {groupName} → Task → comments
                 </span>
             </div>

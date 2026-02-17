@@ -1,13 +1,46 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiPost, apiMultipart } from "@assets/js/apiClient";
+import { LIMITS } from "@assets/js/inputValidation";
+import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 
 export default function NewGroupPopup({ onClose, onCreated }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [coverImage, setCoverImage] = useState(null);
+    const [coverPreview, setCoverPreview] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const fileInputRef = useRef(null);
+
+    const updateCover = (file) => {
+        setCoverImage(file);
+        setCoverPreview((prevUrl) => {
+            if (prevUrl) URL.revokeObjectURL(prevUrl);
+            return file ? URL.createObjectURL(file) : null;
+        });
+    };
+
+    const handleCoverChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        updateCover(file);
+        e.target.value = "";
+    };
+
+    const clearCover = () => updateCover(null);
+
+    const openFileDialog = () => fileInputRef.current?.click();
+
+    const handleDropzoneKeyDown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openFileDialog();
+        }
+    };
+
+    useEffect(() => () => {
+        if (coverPreview) URL.revokeObjectURL(coverPreview);
+    }, [coverPreview]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,40 +86,94 @@ export default function NewGroupPopup({ onClose, onCreated }) {
 
     return (
         <div className="popup-overlay" onClick={onClose}>
-            <div className="popup-card" onClick={(e) => e.stopPropagation()}>
-                <h2>New group</h2>
+            <div className="popup-card popup-card-wide new-group-popup-card" onClick={(e) => e.stopPropagation()}>
+                <div className="new-group-header">
+                    <div className="new-group-icon">
+                        <FiUsers size={22} />
+                    </div>
+                    <div>
+                        <h2>New group</h2>
+                        <p>Give it a name, context, and optional banner to welcome members.</p>
+                    </div>
+                </div>
 
                 {error && <div className="popup-error">{error}</div>}
 
-                <form onSubmit={handleSubmit} className="popup-form">
-                    <label>
-                        Title
+                <form onSubmit={handleSubmit} className="popup-form new-group-form">
+                    <div className="popup-field">
+                        <label htmlFor="group-title" className="popup-label">
+                            Group name
+                            <span className="label-required">required</span>
+                        </label>
                         <input
+                            id="group-title"
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            maxLength={100}
+                            maxLength={LIMITS.GROUP_NAME}
+                            placeholder="e.g. Product Launch Crew"
                             required
                         />
-                    </label>
+                    </div>
 
-                    <label>
-                        Description
+                    <div className="popup-field">
+                        <label htmlFor="group-description" className="popup-label">
+                            Description
+                            <span className="label-optional">optional</span>
+                        </label>
                         <textarea
+                            id="group-description"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
+                            maxLength={LIMITS.GROUP_DESCRIPTION}
+                            placeholder="Share what this group is about or what you will collaborate on."
                         />
-                    </label>
+                        <span className="char-count">{description.length}/{LIMITS.GROUP_DESCRIPTION}</span>
+                        <p className="popup-field-hint">You can always edit this later from group settings.</p>
+                    </div>
 
-                    <label>
-                        Cover Image
+                    <div className="popup-field">
+                        <label className="popup-label">
+                            Cover image
+                            <span className="label-optional">optional</span>
+                        </label>
+                        <div
+                            className={`new-group-dropzone ${coverPreview ? "has-preview" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={openFileDialog}
+                            onKeyDown={handleDropzoneKeyDown}
+                        >
+                            {coverPreview ? (
+                                <>
+                                    <img src={coverPreview} alt="Cover preview" />
+                                    <span className="new-group-dropzone-hint">Click to replace</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FiImage size={28} />
+                                    <strong>Upload a banner</strong>
+                                    <span>PNG or JPG, up to 5 MB.</span>
+                                </>
+                            )}
+                        </div>
+                        {coverImage && (
+                            <div className="new-group-file-row">
+                                <span>{coverImage.name}</span>
+                                <button type="button" className="link-btn" onClick={clearCover}>
+                                    Remove
+                                </button>
+                            </div>
+                        )}
                         <input
+                            ref={fileInputRef}
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+                            hidden
+                            onChange={handleCoverChange}
                         />
-                    </label>
+                    </div>
 
                     <div className="popup-actions">
                         <button
