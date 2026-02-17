@@ -226,6 +226,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .commentCount(task.getCommentCount())
                     .accessible(accessible)
                     .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                    .creatorName(task.getCreatorNameSnapshot())
+                    .priority(task.getPriority())
                     .build();
             })
             .collect(Collectors.toSet());
@@ -309,6 +311,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .commentCount(task.getCommentCount())
                         .accessible(accessible)
                         .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                        .creatorName(task.getCreatorNameSnapshot())
+                        .priority(task.getPriority())
                         .build();
                     })
                     .collect(Collectors.toSet());
@@ -345,6 +349,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .commentCount(task.getCommentCount())
                         .accessible(accessible)
                         .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                        .creatorName(task.getCreatorNameSnapshot())
+                        .priority(task.getPriority())
                         .build();
                 })
                 .collect(Collectors.toSet());
@@ -964,6 +970,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                             .commentCount(task.getCommentCount())
                             .accessible(accessible)
                             .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                            .creatorName(task.getCreatorNameSnapshot())
+                            .priority(task.getPriority())
                             .build();
                 })
                 .collect(Collectors.toSet());
@@ -1005,6 +1013,28 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 + curUser.getName()).build());
         groupOfTask.setLastGroupEventDate(now);
         groupOfTask.setLastChangeInGroup(now);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> findAccessibleTaskIds(Long groupId) {
+        authorizationService.requireAnyRoleIn(groupId);
+        Long currentUserId = effectiveCurrentUser.getUserId();
+
+        var membershipOpt = groupMembershipRepository.findByUser_IdAndGroup_Id(currentUserId, groupId);
+        boolean isLeaderOrManager = membershipOpt!=null && (
+                membershipOpt.getRole() == Role.GROUP_LEADER ||
+                membershipOpt.getRole() == Role.TASK_MANAGER
+        );
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
+
+        return group.getTasks().stream()
+                .filter(task -> isLeaderOrManager || task.getTaskParticipants().stream()
+                        .anyMatch(tp -> tp.getUser().getId().equals(currentUserId)))
+                .map(Task::getId)
+                .collect(Collectors.toSet());
     }
 
     private Instant touchLastGroupEventDate(Group group) {

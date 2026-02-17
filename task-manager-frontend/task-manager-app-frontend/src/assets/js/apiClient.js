@@ -26,10 +26,11 @@ export const apiDelete = (path, body, options = {}) =>
 
 async function apiRequest(path, options = {}, retry = true) {
     const method = options.method || "GET";
+    const isFormData = options.body instanceof FormData;
 
     const headers = { ...(options.headers || {}) };
 
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !isFormData) {
         headers["Content-Type"] = "application/json";
     }
 
@@ -37,12 +38,17 @@ async function apiRequest(path, options = {}, retry = true) {
         method,
         headers,
         credentials: "include",
-        ...options,
     };
 
-    // Only stringify body if provided and method supports it
-    if (options.body && typeof options.body !== "string") {
-        fetchOptions.body = JSON.stringify(options.body);
+    // Handle body: FormData goes raw, objects get stringified
+    if (options.body) {
+        if (isFormData) {
+            fetchOptions.body = options.body;
+        } else if (typeof options.body !== "string") {
+            fetchOptions.body = JSON.stringify(options.body);
+        } else {
+            fetchOptions.body = options.body;
+        }
     }
 
     if (options.signal) fetchOptions.signal = options.signal;
@@ -53,8 +59,6 @@ async function apiRequest(path, options = {}, retry = true) {
     } catch {
         throw { status: 0, message: "Network error" };
     }
-    let json = null;
-    try { json = await res.json(); } catch {}
 
     /**
      * HTTP-level auth errors
@@ -73,6 +77,13 @@ async function apiRequest(path, options = {}, retry = true) {
         };
     }
 
+    // Blob responses (file downloads)
+    if (options.responseType === "blob") {
+        return res.blob();
+    }
+
+    let json = null;
+    try { json = await res.json(); } catch {}
     return json;
 }
 

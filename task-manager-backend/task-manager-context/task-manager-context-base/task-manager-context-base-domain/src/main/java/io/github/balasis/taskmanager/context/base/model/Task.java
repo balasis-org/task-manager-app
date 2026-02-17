@@ -18,7 +18,7 @@ import java.util.Set;
 @Entity
 @Table(name = "Tasks")
 public class Task extends BaseModel{
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String title;
 
     @Lob
@@ -94,6 +94,9 @@ public class Task extends BaseModel{
 
     @Column
     private Long commentCount;
+
+    @Column
+    private Integer priority;
 
     @Column
     private Instant lastCommentDate;

@@ -31,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 @Component
@@ -208,10 +209,11 @@ public class DataLoader extends BaseComponent {
             Task todo1 = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title("Seed TODO #1")
+                            .title(manager.getName() + " - Implement session refresh")
                             .description(lorem.getParagraphs(1, 2))
-                            .taskState(TaskState.TODO)
-                            .dueDate(dueSoon)
+                        .taskState(TaskState.TODO)
+                        .priority(randomPriority())
+                        .dueDate(dueSoon)
                             .build(),
                     Set.of(member1.getId()),
                     Set.of(reviewer.getId()),
@@ -222,10 +224,11 @@ public class DataLoader extends BaseComponent {
             Task todo2 = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title("Seed TODO #2")
+                            .title(manager.getName() + " - Fix avatar upload error")
                             .description(lorem.getParagraphs(1, 2))
-                            .taskState(TaskState.TODO)
-                            .dueDate(dueSoon)
+                        .taskState(TaskState.TODO)
+                        .priority(randomPriority())
+                        .dueDate(dueSoon)
                             .build(),
                     Set.of(member2.getId()),
                     Set.of(reviewer.getId()),
@@ -236,10 +239,11 @@ public class DataLoader extends BaseComponent {
             Task inProgress = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title("Seed IN_PROGRESS")
+                            .title(manager.getName() + " - Integrate payment gateway")
                             .description(lorem.getParagraphs(1, 2))
-                            .taskState(TaskState.IN_PROGRESS)
-                            .dueDate(dueSoon)
+                        .taskState(TaskState.IN_PROGRESS)
+                        .priority(randomPriority())
+                        .dueDate(dueSoon)
                             .build(),
                     Set.of(member1.getId()),
                     Set.of(reviewer.getId()),
@@ -250,10 +254,11 @@ public class DataLoader extends BaseComponent {
             Task toBeReviewed = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title("Seed TO_BE_REVIEWED")
+                            .title(manager.getName() + " - Bulk CSV import feature")
                             .description(lorem.getParagraphs(1, 2))
-                            .taskState(TaskState.IN_PROGRESS)
-                            .dueDate(dueSoon)
+                        .taskState(TaskState.IN_PROGRESS)
+                        .priority(randomPriority())
+                        .dueDate(dueSoon)
                             .build(),
                     Set.of(member2.getId()),
                     Set.of(reviewer.getId()),
@@ -268,10 +273,11 @@ public class DataLoader extends BaseComponent {
             Task done = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title("Seed DONE")
+                            .title(manager.getName() + " - Redesign comments UI")
                             .description(lorem.getParagraphs(1, 2))
-                            .taskState(TaskState.IN_PROGRESS)
-                            .dueDate(dueSoon)
+                        .taskState(TaskState.IN_PROGRESS)
+                        .priority(randomPriority())
+                        .dueDate(dueSoon)
                             .build(),
                     Set.of(member1.getId()),
                     Set.of(reviewer.getId()),
@@ -326,6 +332,10 @@ public class DataLoader extends BaseComponent {
 
     private static String devAzureKey(String email) {
         return "dev-fake:" + email;
+    }
+
+    private int randomPriority() {
+        return ThreadLocalRandom.current().nextInt(0, 11);
     }
 
 }

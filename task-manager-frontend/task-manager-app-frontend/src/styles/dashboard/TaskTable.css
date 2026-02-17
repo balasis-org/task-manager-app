@@ -99,3 +99,28 @@
     font-size: 11px;
     font-weight: 600;
 }
+
+/* ── Priority tags ── */
+.priority-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.priority-low {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.priority-med {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.priority-high {
+    background: #ffebee;
+    color: #c62828;
+}

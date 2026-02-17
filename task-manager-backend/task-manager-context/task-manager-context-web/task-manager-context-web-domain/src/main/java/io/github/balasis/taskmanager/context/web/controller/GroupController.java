@@ -211,6 +211,11 @@ public class GroupController extends BaseComponent {
         );
     }
 
+    @GetMapping(path = "/{groupId}/tasks/accessible-ids")
+    public ResponseEntity<Set<Long>> findAccessibleTaskIds(@PathVariable Long groupId) {
+        return ResponseEntity.ok(groupService.findAccessibleTaskIds(groupId));
+    }
+
     @GetMapping(path = "/{groupId}/searchForInvite")
     public ResponseEntity<Page<io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource>> searchUsersForInvite(
             @PathVariable Long groupId,
