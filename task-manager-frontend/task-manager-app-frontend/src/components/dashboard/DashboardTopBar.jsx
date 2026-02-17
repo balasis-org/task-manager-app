@@ -279,6 +279,7 @@ export default function DashboardTopBar({
 
             <button className="topbar-toggle" onClick={onToggle} title={open ? "Hide top bar" : "Show top bar"}>
                 {open ? "▲" : "▼"}
-            </button>
-
+            </button></div>
+)
 }
+

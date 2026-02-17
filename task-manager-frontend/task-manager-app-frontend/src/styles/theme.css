@@ -89,7 +89,7 @@
 
     /* Misc */
     --overlay-bg:        rgba(0, 0, 0, 0.4);
-    --spinner-overlay:   rgba(255, 255, 255, 0.6);
+    --spinner-overlay:   transparent;
     --spinner-track:     #f3f3f3;
     --spinner-accent:    #3498db;
     --priority-low-bg:   #e8f5e9;
@@ -182,7 +182,7 @@
     --shadow-card: 0 0.25em 1.5em rgba(0, 0, 0, 0.3);
 
     --overlay-bg:        rgba(0, 0, 0, 0.6);
-    --spinner-overlay:   rgba(30, 30, 46, 0.6);
+    --spinner-overlay:   transparent;
     --spinner-track:     #333346;
     --spinner-accent:    #5b9cf6;
     --priority-low-bg:   #1a3326;
