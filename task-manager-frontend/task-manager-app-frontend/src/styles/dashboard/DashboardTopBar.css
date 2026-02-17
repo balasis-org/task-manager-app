@@ -1,4 +1,4 @@
-/* ── Top Bar ── */
+/* Top Bar */
 .topbar {
     background: var(--bg-secondary);
     border-bottom: 0.06em solid var(--border-primary);
@@ -460,9 +460,7 @@
     font-weight: 600;
 }
 
-/* ══════════════════════════════════════
-   Responsive — Dashboard Top Bar
-   ══════════════════════════════════════ */
+/* Responsive — Dashboard Top Bar */
 @media (max-width: 768px) {
     .topbar-content {
         padding: 0.5em 0.625em;

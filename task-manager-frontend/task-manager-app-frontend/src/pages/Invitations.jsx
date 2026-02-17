@@ -25,12 +25,11 @@ export default function Invitations() {
     const [loading, setLoading] = useState(true);
     const [lastSeenBefore, setLastSeenBefore] = useState(null);
 
-    // ── Fetch both lists on mount ──
     useEffect(() => {
         (async () => {
             setLoading(true);
             try {
-                // Grab profile BEFORE fetching /me invitations (which updates lastSeenInvites)
+                // get profile first because the /me endpoint updates lastSeen
                 const profile = await apiGet("/api/users/me");
                 const lsBefore = profile?.lastSeenInvites
                     ? new Date(profile.lastSeenInvites)
@@ -44,8 +43,7 @@ export default function Invitations() {
                 setReceived(Array.isArray(inv) ? inv : []);
                 setSent(Array.isArray(sentInv) ? sentInv : []);
 
-                // After fetching, the backend marked invites as seen.
-                // Update the user context so sidebar badge clears.
+                // backend already marked as seen, update sidebar badge
                 setUser((prev) =>
                     prev ? { ...prev, lastSeenInvites: new Date().toISOString() } : prev
                 );
@@ -58,7 +56,6 @@ export default function Invitations() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Respond to an invitation (ACCEPTED / DECLINED) ──
     async function handleRespond(invId, status) {
         try {
             const updated = await apiPatch(
@@ -72,7 +69,6 @@ export default function Invitations() {
         }
     }
 
-    // ── Cancel a sent invitation ──
     async function handleCancel(invId) {
         try {
             await apiDelete(`/api/group-invitations/${invId}`);
@@ -89,7 +85,7 @@ export default function Invitations() {
 
     if (loading) return <Spinner />;
 
-    // Only show PENDING received invitations that haven't been resolved
+    // split pending vs resolved
     const pendingReceived = received.filter(
         (inv) => inv.invitationStatus === "PENDING"
     );
@@ -101,7 +97,6 @@ export default function Invitations() {
         <div className="invitations-page">
             <h1 className="invitations-heading">Invitations</h1>
 
-            {/* ── Received invitations ── */}
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Received</h2>
 
@@ -180,7 +175,6 @@ export default function Invitations() {
                 )}
             </section>
 
-            {/* ── Sent / pending invitations ── */}
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Your pending invites</h2>
 

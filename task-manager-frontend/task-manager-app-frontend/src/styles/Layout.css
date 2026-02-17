@@ -1,4 +1,4 @@
-/* ── Layout shell ── */
+/* Layout shell */
 .layout {
     display: flex;
     width: 100vw;
@@ -6,7 +6,7 @@
     overflow: hidden;
 }
 
-/* ── Sidebar ── */
+/* Sidebar */
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -179,7 +179,7 @@
     padding: 0.5em 0.5em 0;
 }
 
-/* ── Main content area ── */
+/* Main content area */
 .layout-body {
     flex: 1;
     display: flex;
@@ -195,9 +195,7 @@
 
 }
 
-/* ══════════════════════════════════════
-   Responsive — Sidebar icons-only mode
-   ══════════════════════════════════════ */
+/* Responsive — Sidebar icons-only mode */
 @media (max-width: 768px) {
     /* Shrink sidebar to icons-only */
     .sidebar {

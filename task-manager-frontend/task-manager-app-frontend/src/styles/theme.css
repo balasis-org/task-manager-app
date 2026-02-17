@@ -1,10 +1,8 @@
-/* ══════════════════════════════════════════════════
-   Theme — Light (default) and Dark mode
-   Swap by setting data-theme="dark" on <html>
-   ══════════════════════════════════════════════════ */
+/* Theme variables - light (default) + dark mode
+   Toggle dark mode by setting data-theme="dark" on <html> */
 
 :root {
-    /* ── Page backgrounds ── */
+    /* Page backgrounds */
     --bg-body:           #f0f2f5;
     --bg-primary:        #fff;
     --bg-secondary:      #f8f9fa;
@@ -16,7 +14,7 @@
     --bg-accent-subtle:  #e8f0fe;
     --bg-accent-deep:    #f0f5ff;
 
-    /* ── Sidebar (dark in both modes) ── */
+    /* Sidebar (dark in both modes) */
     --sidebar-bg:        #1e1e2f;
     --sidebar-bg-hover:  #2a2a40;
     --sidebar-text:      #ccc;
@@ -25,7 +23,7 @@
     --sidebar-active:    #ffc107;
     --sidebar-profile:   #555;
 
-    /* ── Text ── */
+    /* Text */
     --text-heading:      #1e1e2f;
     --text-heading-alt:  #222;
     --text-primary:      #333;
@@ -39,11 +37,11 @@
     --text-icon:         #555;
     --text-icon-muted:   #999;
 
-    /* ── Links ── */
+    /* Links */
     --link-color:        #646cff;
     --link-hover:        #535bf2;
 
-    /* ── Borders ── */
+    /* Borders */
     --border-heavy:      #ddd;
     --border-primary:    #ddd;
     --border-secondary:  #eee;
@@ -51,7 +49,7 @@
     --border-light:      #f0f0f0;
     --border-focus:      #646cff;
 
-    /* ── Accent ── */
+    /* Accent */
     --accent-primary:       #1a73e8;
     --accent-primary-hover: #1557b0;
     --accent-primary-bg:    #e8f0fe;
@@ -59,7 +57,7 @@
     --accent-violet-bg:     #f3f0ff;
     --accent-violet-deep:   #ede9fe;
 
-    /* ── Status ── */
+    /* Status */
     --success:           #28a745;
     --success-hover:     #238d43;
     --success-bg:        #d4edda;
@@ -82,14 +80,14 @@
     --info-bg:           #e8f8e8;
     --info-text:         #27ae60;
 
-    /* ── Shadows ── */
+    /* Shadows */
     --shadow-xs:   0 0.06em 0.25em rgba(0, 0, 0, 0.04);
     --shadow-sm:   0 0.125em 0.5em rgba(0, 0, 0, 0.06);
     --shadow-md:   0 0.25em 1em rgba(0, 0, 0, 0.12);
     --shadow-lg:   0 0.5em 2em rgba(0, 0, 0, 0.18);
     --shadow-card: 0 0.25em 1.5em rgba(0, 0, 0, 0.1);
 
-    /* ── Misc ── */
+    /* Misc */
     --overlay-bg:        rgba(0, 0, 0, 0.4);
     --spinner-overlay:   rgba(255, 255, 255, 0.6);
     --spinner-track:     #f3f3f3;
@@ -108,9 +106,7 @@
     --notif-badge-shadow:rgba(231, 76, 60, 0.4);
 }
 
-/* ══════════════════════════════
-   Dark Mode
-   ══════════════════════════════ */
+/* dark mode */
 [data-theme="dark"] {
     --bg-body:           #121218;
     --bg-primary:        #1e1e2e;

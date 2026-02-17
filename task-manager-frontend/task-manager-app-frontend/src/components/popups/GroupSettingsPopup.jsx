@@ -10,39 +10,39 @@ import blobBase from "@blobBase";
 export default function GroupSettingsPopup({ group, members, user, onClose, onUpdated, onDeleted }) {
     const showToast = useToast();
 
-    /* ── Description field ── */
+    /* description */
     const [editDesc, setEditDesc] = useState(false);
     const [description, setDescription] = useState(group.description || "");
     const [savingDesc, setSavingDesc] = useState(false);
 
-    /* ── Announcement field ── */
+    /* announcement */
     const [editAnn, setEditAnn] = useState(false);
     const [announcement, setAnnouncement] = useState(group.announcement || "");
     const [savingAnn, setSavingAnn] = useState(false);
 
-    /* ── Email notifications ── */
+    /* email notifs */
     const [editEmail, setEditEmail] = useState(false);
     const [emailNotif, setEmailNotif] = useState(group.allowEmailNotification ?? true);
     const [savingEmail, setSavingEmail] = useState(false);
 
-    /* ── Image ── */
+    /* Image */
     const [coverImage, setCoverImage] = useState(null);
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
     const fileRef = useRef(null);
 
-    /* ── Transfer leadership ── */
+    /* Transfer leadership */
     const [showTransfer, setShowTransfer] = useState(false);
     const [transferSearch, setTransferSearch] = useState("");
     const [transferTarget, setTransferTarget] = useState(null);
     const [confirmTransfer, setConfirmTransfer] = useState(false);
     const [transferring, setTransferring] = useState(false);
 
-    /* ── Delete group ── */
+    /* Delete group */
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    // Members excluding self (for transfer)
+    // members excluding self (for transfer picker)
     const otherMembers = (members || []).filter(m => m.user?.id !== user?.id);
     const filteredTransfer = otherMembers.filter(m => {
         if (!transferSearch.trim()) return true;
@@ -51,7 +51,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             || (m.user?.email || "").toLowerCase().includes(q);
     });
 
-    /* ── Patch helpers ── */
+    // save helpers
     async function saveDescription() {
         setSavingDesc(true);
         try {
@@ -99,7 +99,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
         finally { setUploadingImg(false); }
     }
 
-    /* ── Transfer leadership ── */
+    /* Transfer leadership */
     async function handleTransfer() {
         if (!transferTarget) return;
         setTransferring(true);
@@ -113,7 +113,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
         finally { setTransferring(false); }
     }
 
-    /* ── Delete group ── */
+    /* Delete group */
     async function handleDelete() {
         setDeleting(true);
         try {
@@ -131,7 +131,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     {group.name} — Settings
                 </h2>
 
-                {/* ═══ Description ═══ */}
+                {/* Description */}
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Description</span>
@@ -164,7 +164,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* ═══ Announcement ═══ */}
+                {/* Announcement */}
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Announcement</span>
@@ -197,7 +197,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* ═══ Email notifications ═══ */}
+                {/* Email notifications */}
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Email notifications</span>
@@ -230,7 +230,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* ═══ Group image ═══ */}
+                {/* Group image */}
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Group image</span>
@@ -274,7 +274,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     </div>
                 </section>
 
-                {/* ═══ Transfer leadership ═══ */}
+                {/* Transfer leadership */}
                 <section className="gs-section gs-section-warning">
                     <div className="gs-section-header">
                         <span className="gs-section-label">
@@ -349,7 +349,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* ═══ Danger zone — Delete group ═══ */}
+                {/* Danger zone */}
                 <section className="gs-section gs-section-danger">
                     <div className="gs-section-header">
                         <span className="gs-section-label">
@@ -377,7 +377,6 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* ═══ Close button ═══ */}
                 <div className="popup-actions" style={{ marginTop: 16 }}>
                     <button className="btn-secondary" onClick={onClose}>Close</button>
                 </div>

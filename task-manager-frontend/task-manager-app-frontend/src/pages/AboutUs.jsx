@@ -28,7 +28,7 @@ const FEATURES = [
 export default function AboutUs() {
     const cardsRef = useRef([]);
 
-    // Fade-in on scroll (Intersection Observer)
+    // fade cards in as they scroll into view
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -48,7 +48,6 @@ export default function AboutUs() {
 
     return (
         <div className="about-page">
-            {/* Hero */}
             <section className="about-hero">
                 <h1 className="about-hero-title">Task Manager</h1>
                 <p className="about-hero-sub">
@@ -57,25 +56,22 @@ export default function AboutUs() {
                 </p>
             </section>
 
-            {/* Story placeholder */}
+            {/* our story */}
             <section className="about-story">
                 <h2>Our story</h2>
                 <p>
-                    {/* ── PUT YOUR TEXT HERE ── */}
                     This project was created as part of a university thesis exploring
                     modern full-stack development with React, Spring Boot, and Azure
                     cloud services. The goal was to build a production-grade tool that
                     real teams could use day-to-day.
                 </p>
                 <p>
-                    {/* ── PUT MORE TEXT HERE ── */}
                     We believe great software comes from understanding real workflows.
                     Every feature — from role-based permissions to smart caching — was
                     designed with actual collaboration pain-points in mind.
                 </p>
             </section>
 
-            {/* Features */}
             <section className="about-features">
                 <h2>What we offer</h2>
                 <div className="about-features-grid">
@@ -93,11 +89,10 @@ export default function AboutUs() {
                 </div>
             </section>
 
-            {/* Contact / placeholder */}
+            {/* contact */}
             <section className="about-contact">
                 <h2>Get in touch</h2>
                 <p>
-                    {/* ── PUT CONTACT INFO OR LINKS HERE ── */}
                     Have questions, feedback, or want to contribute? Reach out via the
                     project repository or email us at&nbsp;
                     <strong>placeholder@example.com</strong>.

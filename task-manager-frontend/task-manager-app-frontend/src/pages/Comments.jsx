@@ -73,7 +73,7 @@ export default function Comments() {
     // Derived roles
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
 
-    // Build a map: userId → taskParticipantRole for display
+    // build a map: userId -> taskParticipantRole for display
     const participantRoleMap = {};
     if (task?.taskParticipants) {
         for (const tp of task.taskParticipants) {
@@ -91,15 +91,14 @@ export default function Comments() {
         setSearchParams({ page: String(p) });
     }
 
-    // ── Fetch task (once) ──
-    useEffect(() => {
+    useEffect(() => { // grab task info
         if (!groupId || !taskId) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}`)
             .then(setTask)
             .catch(() => {});
     }, [groupId, taskId]);
 
-    // ── Resolve initial page: redirect to last page if no ?page in URL ──
+    // if no ?page in URL, jump to last page
     useEffect(() => {
         if (!groupId || !taskId || urlPage !== null) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}/comments?page=0&size=${PAGE_SIZE}&sort=createdAt,asc`)
@@ -110,7 +109,7 @@ export default function Comments() {
             .catch(() => setError("Failed to load comments"));
     }, [groupId, taskId, urlPage]);
 
-    // ── Fetch comments when page is in URL ──
+    // fetch comments when page changes
     useEffect(() => {
         if (!groupId || !taskId || urlPage === null) return;
         const apiPage = Math.max(0, Number(urlPage) - 1);
@@ -125,7 +124,6 @@ export default function Comments() {
             .finally(() => setLoading(false));
     }, [groupId, taskId, urlPage, refreshKey]);
 
-    // ── Add comment ──
     async function handleSubmit() {
         if (!newComment.trim()) return;
         setSubmitting(true);
@@ -137,7 +135,7 @@ export default function Comments() {
             setNewComment("");
             setComposerOpen(false);
             // Navigate to last page (new comment lands there in asc order)
-            // Clear page param → probe effect resolves to last page
+            // clear page param so probe effect resolves to last page
             setSearchParams({}, { replace: true });
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
@@ -147,7 +145,6 @@ export default function Comments() {
         }
     }
 
-    // ── Edit comment ──
     function startEdit(c) {
         setEditingId(c.id);
         setEditText(c.comment);
@@ -173,7 +170,6 @@ export default function Comments() {
         }
     }
 
-    // ── Delete comment ──
     async function confirmDelete() {
         if (!deleteId) return;
         try {
@@ -193,7 +189,6 @@ export default function Comments() {
         }
     }
 
-    // ── Insert emoji ──
     function insertEmoji(em) {
         if (composerOpen) {
             setNewComment((prev) => (prev + em).slice(0, MAX_LEN));
@@ -220,7 +215,7 @@ export default function Comments() {
 
     return (
         <div className="comments-page">
-            {/* ── Breadcrumb ── */}
+            {/* breadcrumb nav */}
             <div className="comments-breadcrumb">
                 <button
                     onClick={() => navigate(-1)}
@@ -239,7 +234,7 @@ export default function Comments() {
                 </span>
             </div>
 
-            {/* ── Top area: add comment button if comments exist ── */}
+            {/* add button (when theres already comments) */}
             {canComment && comments.length > 0 && (
                 <div className="comments-top-actions">
                     <button
@@ -251,7 +246,7 @@ export default function Comments() {
                 </div>
             )}
 
-            {/* ── Pagination (fixed at top, always visible) ── */}
+            {/* pagination */}
             {totalPages > 1 && (
                 <div className="comments-pagination">
                     <button
@@ -274,7 +269,7 @@ export default function Comments() {
                 </div>
             )}
 
-            {/* ── Comments list ── */}
+
             <div className="comments-list">
                 {comments.length === 0 ? (
                     <div className="comments-empty">
@@ -376,7 +371,7 @@ export default function Comments() {
                 )}
             </div>
 
-            {/* ── Composer (slides in from bottom) ── */}
+            {/* new comment composer - slides up from bottom */}
             <div className={`comments-composer${composerOpen ? " open" : ""}`}>
                 <div className="composer-bar">
                     <span className="composer-label">Make a comment…</span>
@@ -442,7 +437,7 @@ export default function Comments() {
                 </div>
             </div>
 
-            {/* ── Delete confirmation popup ── */}
+            {/* confirm delete popup */}
             {deleteId && (
                 <div className="comments-overlay" onClick={() => setDeleteId(null)}>
                     <div

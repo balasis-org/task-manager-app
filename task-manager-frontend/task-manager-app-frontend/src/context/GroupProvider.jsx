@@ -76,7 +76,7 @@ export default function GroupProvider({ children }) {
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [myRole, setMyRole]           = useState(null);
 
-    // --- when user changes (login / logout / switch) ---
+    // user changed? reload everything
     useEffect(() => {
         if (!user) {
             cacheKeyRef.current = null;
@@ -92,7 +92,7 @@ export default function GroupProvider({ children }) {
         loadGroups();
     }, [user?.id]);
 
-    // --- when active group changes, load or refresh its detail ---
+    // active group switched -> load/refresh detail
     useEffect(() => {
         if (activeGroup && user) {
             lsSet(kActiveId(user.id), activeGroup.id);
@@ -104,7 +104,7 @@ export default function GroupProvider({ children }) {
         }
     }, [activeGroup]);
 
-    // derive current user's role from members list
+    // figure out my role from the members list
     useEffect(() => {
         if (user && members.length > 0) {
             const mine = members.find(m => m.user?.id === user.id);
@@ -115,7 +115,7 @@ export default function GroupProvider({ children }) {
     }, [members, user]);
 
 
-    // ── lightweight group list (not sensitive — stored plain) ──
+    // groups list - stored as plain json, nothing sensitive
     async function loadGroups() {
         setLoadingGroups(true);
         try {
@@ -138,7 +138,7 @@ export default function GroupProvider({ children }) {
     }
 
 
-    // ── full group detail — encrypted in localStorage ──
+    // full detail - encrypted in localstorage
     async function loadOrRefreshDetail(groupId) {
         setLoadingDetail(true);
         const ck = cacheKeyRef.current;
@@ -203,8 +203,7 @@ export default function GroupProvider({ children }) {
     }
 
 
-    // ── actions exposed to the rest of the app ──
-
+    // --- public api ---
     const selectGroup = useCallback((g) => setActiveGroup(g), []);
 
     const addGroup = useCallback((newGroup) => {
@@ -223,7 +222,7 @@ export default function GroupProvider({ children }) {
             return next;
         });
         setActiveGroup(updatedGroup);
-        // throw away old encrypted cache for this group so we do a full load
+        // wipe old cache so we do a full re-load next time
         if (user?.id) {
             lsRemove(kDetail(user.id, updatedGroup.id));
             lsRemove(kLastSeen(user.id, updatedGroup.id));
@@ -257,7 +256,7 @@ export default function GroupProvider({ children }) {
         if (user) loadGroups();
     }, [user]);
 
-    // ── 5-minute polling, reset on user activity ──
+    // poll every 5min, resets on user activity
     const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
     const pollTimer = useRef(null);
 
@@ -270,7 +269,7 @@ export default function GroupProvider({ children }) {
         }, POLL_INTERVAL);
     }, [activeGroup]);
 
-    // start / restart polling when activeGroup changes
+    // kick off / restart polling when group changes
     useEffect(() => {
         if (!activeGroup || !user) {
             if (pollTimer.current) clearTimeout(pollTimer.current);
@@ -280,7 +279,7 @@ export default function GroupProvider({ children }) {
         return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
     }, [activeGroup, user, resetPollTimer]);
 
-    // reset timer on user activity (clicks, key presses, scrolls)
+    // any user interaction resets the poll timer
     useEffect(() => {
         if (!activeGroup || !user) return;
         const handler = () => resetPollTimer();

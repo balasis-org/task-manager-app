@@ -71,7 +71,6 @@ export default function Task() {
     const [assigneeDragOver, setAssigneeDragOver] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
 
-    // ── Derived roles ──
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const myParticipant = task?.taskParticipants
         ? [...task.taskParticipants].find((p) => p.user?.id === user?.id)
@@ -88,7 +87,7 @@ export default function Task() {
     const canUploadFiles = isLeaderOrManager;
     const canUploadAssigneeFiles = isAssignee || isLeaderOrManager;
 
-    // Participant groupings
+    // participant groupings
     const reviewers = task?.taskParticipants
         ? [...task.taskParticipants].filter((p) => p.taskParticipantRole === "REVIEWER")
         : [];
@@ -99,7 +98,7 @@ export default function Task() {
         ? [...task.taskParticipants].find((p) => p.taskParticipantRole === "CREATOR")
         : null;
 
-    // Eligible members for pickers (filtered by role & not already added)
+    // filter out members already added
     const existingReviewerIds = new Set(reviewers.map((r) => r.user?.id));
     const existingAssigneeIds = new Set(assignees.map((a) => a.user?.id));
     const eligibleReviewers = (members || []).filter(
@@ -109,13 +108,13 @@ export default function Task() {
         (m) => ASSIGNEE_ELIGIBLE_ROLES.includes(m.role) && !existingAssigneeIds.has(m.user?.id)
     );
 
-    // ── Refresh members so pickers are up-to-date ──
+    // refresh the members list so the pickers stay current
     useEffect(() => {
         if (groupId) refreshActiveGroup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupId]);
 
-    // ── Reusable: re-fetch task (used after errors to self-heal stale UI) ──
+    // re-fetch task data (called after errors to fix stale UI)
     function refetchTask() {
         if (!groupId || !taskId) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}`)
@@ -128,13 +127,13 @@ export default function Task() {
             .catch(() => {});
     }
 
-    // Auto-heal: refresh group context + task data so stale pickers / state correct themselves
+    // quick heal - re-pull both group + task so everything's fresh
     function autoHeal() {
         refreshActiveGroup();
         refetchTask();
     }
 
-    // ── Fetch task ──
+    // load task on mount
     useEffect(() => {
         if (!groupId || !taskId) return;
         setLoading(true);
@@ -150,7 +149,6 @@ export default function Task() {
             .finally(() => setLoading(false));
     }, [groupId, taskId]);
 
-    // ── Save edits ──
     async function handleSave() {
         try {
             const body = {};
@@ -166,7 +164,6 @@ export default function Task() {
         }
     }
 
-    // ── Change state ──
     async function handleStateChange(newState) {
         try {
             const updated = await apiPatch(`/api/groups/${groupId}/task/${taskId}`, {
@@ -180,7 +177,6 @@ export default function Task() {
         }
     }
 
-    // ── Review ──
     async function handleReview() {
         setSubmittingReview(true);
         try {
@@ -198,7 +194,6 @@ export default function Task() {
         }
     }
 
-    // ── Add participant ──
     async function handleAddParticipant(userId, role) {
         try {
             const updated = await apiPost(
@@ -214,7 +209,6 @@ export default function Task() {
         }
     }
 
-    // ── Move to be reviewed ──
     async function handleMoveToBeReviewed() {
         try {
             const updated = await apiPost(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`);
@@ -225,7 +219,7 @@ export default function Task() {
         }
     }
 
-    // ── File upload ──
+    /* upload a single file (task or assignee) */
     async function uploadSingleFile(file, isAssignee) {
         const currentCount = isAssignee
             ? (task?.assigneeFiles?.length || 0)
@@ -274,7 +268,6 @@ export default function Task() {
         uploadSingleFile(file, isAssignee);
     }
 
-    // ── File download ──
     async function handleDownload(fileId, filename, isAssignee) {
         setDownloadingId(fileId);
         try {
@@ -295,7 +288,6 @@ export default function Task() {
         }
     }
 
-    // ── File delete ──
     async function handleDeleteFile(fileId, isAssignee) {
         try {
             const endpoint = isAssignee
@@ -319,7 +311,7 @@ export default function Task() {
 
     return (
         <div className="task-page">
-            {/* ── Left: main task content ── */}
+
             <div className={`task-main${rightOpen ? "" : " full-width"}`}>
                 {/* Breadcrumb / top bar */}
                 <div className="task-breadcrumb">
@@ -499,7 +491,7 @@ export default function Task() {
                 </div>
             </div>
 
-            {/* ── Right sidebar ── */}
+
             <aside className={`task-right-sidebar${rightOpen ? "" : " collapsed"}`}>
                 <button
                     className="task-right-toggle"
@@ -511,7 +503,7 @@ export default function Task() {
 
                 {rightOpen && (
                     <div className="task-right-content">
-                        {/* ── Reviewer section ── */}
+                        {/* reviewers */}
                         <div className="task-sidebar-section">
                             <h4>
                                 Reviewer
@@ -626,7 +618,7 @@ export default function Task() {
                             )}
                         </div>
 
-                        {/* ── Assignees section ── */}
+                        {/* assignees */}
                         <div className="task-sidebar-section">
                             <h4>
                                 Assignees
@@ -680,7 +672,7 @@ export default function Task() {
                             </div>
                         </div>
 
-                        {/* ── Assignee Files section ── */}
+                        {/* assignee files */}
                         <div
                             className={`task-sidebar-section${assigneeDragOver ? " drag-over" : ""}`}
                             onDragOver={(e) => { if (canUploadAssigneeFiles) { e.preventDefault(); setAssigneeDragOver(true); } }}

@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════
-   Task Page
-   ══════════════════════════════════════ */
+/* Task Page */
 
 .task-page {
     display: flex;
@@ -9,7 +7,7 @@
     position: relative;
 }
 
-/* ── Left / main area ── */
+/* Left / main area */
 .task-main {
     flex: 1;
     min-width: 0;
@@ -23,7 +21,7 @@
     margin-right: 0;
 }
 
-/* ── Breadcrumb bar ── */
+/* Breadcrumb bar */
 .task-breadcrumb {
     display: flex;
     align-items: center;
@@ -127,7 +125,7 @@
     color: var(--text-primary);
 }
 
-/* ── State bar ── */
+/* State bar */
 .task-state-bar {
     padding: 0.5em 1em;
     border-bottom: 0.06em solid var(--border-secondary);
@@ -152,7 +150,7 @@
     color: var(--accent-primary);
 }
 
-/* ── Task body ── */
+/* Task body */
 .task-body {
     flex: 1;
     padding: 1.25em 1.5em;
@@ -207,7 +205,7 @@
     margin-top: 0.625em;
 }
 
-/* ── Files ── */
+/* Files */
 .task-files-section {
     margin-top: 1.5em;
 }
@@ -269,7 +267,7 @@
     text-decoration: underline;
 }
 
-/* File icon button with download overlay */
+/* file icon btn + download overlay */
 .task-file-icon-btn {
     position: relative;
     background: none;
@@ -321,7 +319,7 @@
     50% { opacity: 0.3; }
 }
 
-/* Drag-over state for file sections */
+/* drag-over highlight */
 .task-files-section.drag-over,
 .task-sidebar-section.drag-over {
     background: var(--accent-violet-bg);
@@ -364,7 +362,7 @@
     margin: 0.25em 0;
 }
 
-/* ── Right sidebar ── */
+/* --- right sidebar --- */
 .task-right-sidebar {
     width: 20em;
     min-width: 20em;
@@ -417,7 +415,7 @@
     padding: 1em;
 }
 
-/* ── Sidebar sections ── */
+/* Sidebar sections */
 .task-sidebar-section {
     margin-bottom: 1.25em;
     padding-bottom: 1em;
@@ -587,7 +585,7 @@
     padding-top: 0.25em;
 }
 
-/* ── Buttons ── */
+/* Buttons */
 .btn-primary {
     background: var(--accent-primary);
     color: var(--text-on-primary);
@@ -633,7 +631,7 @@
     background: var(--bg-active);
 }
 
-/* ── Error state ── */
+/* Error state */
 .task-page-error {
     display: flex;
     align-items: center;
@@ -643,7 +641,7 @@
     font-size: 0.94em;
 }
 
-/* ── Participant picker dropdown ── */
+/* participant picker dropdown */
 .task-participant-picker {
     background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
@@ -696,9 +694,7 @@
     white-space: nowrap;
 }
 
-/* ══════════════════════════════════════
-   Responsive — Task Page
-   ══════════════════════════════════════ */
+/* Responsive — Task Page */
 @media (max-width: 1024px) {
     .task-right-sidebar {
         width: 16.25em;
