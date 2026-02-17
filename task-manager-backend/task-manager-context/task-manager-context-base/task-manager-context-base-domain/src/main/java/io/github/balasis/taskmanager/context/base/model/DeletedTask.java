@@ -7,15 +7,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import java.lang.reflect.Type;
-
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "DeletedTasks")
+@Table(name = "DeletedTasks" , uniqueConstraints = @UniqueConstraint(columnNames = {"group_id","deletedTaskId"}))
 public class DeletedTask extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)

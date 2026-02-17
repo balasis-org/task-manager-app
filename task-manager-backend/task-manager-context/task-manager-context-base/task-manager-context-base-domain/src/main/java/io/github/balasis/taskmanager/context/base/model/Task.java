@@ -51,6 +51,10 @@ public class Task extends BaseModel{
     @Builder.Default
     private Set<TaskAssigneeFile> assigneeFiles = new HashSet<>();
 
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL , orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskComment> taskComments = new HashSet<>();
+
     @Enumerated(EnumType.STRING)
     @Column
     private ReviewersDecision reviewersDecision;

@@ -977,6 +977,29 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return builder.build();
     }
 
+    @Override
+    @Transactional
+    public void deleteTask(Long groupId, Long taskId) {
+        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        var curUser = userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow();
+        var taskToBeDeleted = taskRepository.findById(taskId).orElseThrow(
+                ()-> new EntityNotFoundException("Task to be deleted doesnt exist"));
+        var groupOfTask = groupRepository.findById(groupId).orElseThrow(
+                ()-> new EntityNotFoundException("Group of task to be deleted doesnt exist"));
+        if ( !(taskToBeDeleted.getGroup().getId() .equals(groupOfTask.getId())) ){
+            throw new UnauthorizedException("Task doesn't belong to the group given");
+        }
+        var delTask = DeletedTask.builder().deletedTaskId(taskId).group(groupOfTask).build();
+        deletedTaskRepository.save(delTask);
+        Instant now = Instant.now();
+        groupOfTask.setLastDeleteTaskDate(now);
+        taskRepository.deleteById(taskId);
+        groupEventRepository.save(GroupEvent.builder().description("Task '" + taskToBeDeleted.getTitle() + "' has been deleted by "
+                + curUser.getName()).build());
+        groupOfTask.setLastGroupEventDate(now);
+        groupOfTask.setLastChangeInGroup(now);
+    }
+
     private Instant touchLastGroupEventDate(Group group) {
         Instant now = Instant.now();
         group.setLastGroupEventDate(now);
