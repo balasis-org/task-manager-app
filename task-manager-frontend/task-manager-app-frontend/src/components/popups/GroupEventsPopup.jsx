@@ -8,7 +8,7 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    // Capture the threshold once on mount so it doesn't change after fetch updates it
+    // save threshold once so it doesnt shift after the fetch
     const [seenThreshold] = useState(() => lastSeenGroupEvents || null);
 
     useEffect(() => {
@@ -66,7 +66,6 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
                     </ul>
                 )}
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                     <div className="popup-pagination">
                         <button

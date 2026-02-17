@@ -36,10 +36,9 @@ export default function DashboardTopBar({
     const canRemoveMembers = myRole === "GROUP_LEADER";
     const isLeader = myRole === "GROUP_LEADER";
 
-    // Role label for current user
     const roleLabel = myRole ? myRole.replace(/_/g, " ").toLowerCase() : null;
 
-    // Notification dot: compare group's lastGroupEventDate vs my membership's lastSeenGroupEvents
+    // check for unseen group events
     const myMembership = user && members?.length
         ? members.find((m) => m.user?.id === user.id)
         : null;
@@ -51,7 +50,6 @@ export default function DashboardTopBar({
         return new Date(lastEvent) > new Date(lastSeen);
     })();
 
-    // Filter members by search query
     const filteredMembers = members.filter((m) => {
         if (!memberSearch.trim()) return true;
         const q = memberSearch.toLowerCase();
@@ -61,7 +59,6 @@ export default function DashboardTopBar({
         );
     });
 
-    // Focus search input when dropdown opens
     useEffect(() => {
         if (membersDropdown && memberSearchRef.current) {
             memberSearchRef.current.focus();
@@ -72,7 +69,7 @@ export default function DashboardTopBar({
         }
     }, [membersDropdown]);
 
-    // Close dropdowns on outside click
+    // click outside closes dropdowns
     useEffect(() => {
         function handleClick(e) {
             if (groupRef.current && !groupRef.current.contains(e.target)) {
@@ -86,7 +83,6 @@ export default function DashboardTopBar({
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
-    // Remove member
     async function handleRemoveMember(membershipId) {
         try {
             await apiDelete(`/api/groups/${activeGroup.id}/groupMembership/${membershipId}`);
@@ -99,7 +95,6 @@ export default function DashboardTopBar({
         }
     }
 
-    // Leave group
     async function handleLeaveGroup() {
         if (!myMembership) return;
         try {
@@ -125,7 +120,7 @@ export default function DashboardTopBar({
                         {roleLabel && (
                             <span className="topbar-role-tag">({roleLabel})</span>
                         )}
-                        {/* Leave group — everyone except the leader */}
+                        {/* leave btn (not for leader) */}
                         {!isLeader && activeGroup && (
                             <>
                                 {!confirmLeave ? (
@@ -175,7 +170,6 @@ export default function DashboardTopBar({
 
                             {membersDropdown && (
                                 <div className="topbar-dropdown topbar-members-dropdown">
-                                    {/* Search bar */}
                                     <div className="topbar-member-search">
                                         <FiSearch size={13} className="topbar-member-search-icon" />
                                         <input
@@ -203,7 +197,7 @@ export default function DashboardTopBar({
                                                     <span className="topbar-member-role">
                                                         {m.role}
                                                     </span>
-                                                    {/* Remove button — leader can remove anyone except self */}
+                                                    {/* remove btn */}
                                                     {canRemoveMembers && m.user?.id !== user?.id && (
                                                         confirmRemove === m.id ? (
                                                             <span className="topbar-member-confirm">
@@ -287,7 +281,4 @@ export default function DashboardTopBar({
                 {open ? "▲" : "▼"}
             </button>
 
-            {/* Leave group confirmation overlay — not used (inline instead) */}
-        </div>
-    );
 }

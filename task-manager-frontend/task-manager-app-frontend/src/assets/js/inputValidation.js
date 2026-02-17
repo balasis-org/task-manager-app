@@ -1,14 +1,7 @@
-/**
- * inputValidation.js
- *
- * Shared field-length constants (matching backend @Size / @Column limits)
- * and a lightweight sanitize helper for the UI layer.
- *
- * Import where needed:
- *   import { LIMITS, sanitize } from "@assets/js/inputValidation";
- */
+// shared field-length limits (should match backend @Size / @Column)
+// and a basic sanitize helper for the UI.
 
-/* ───────────── Field-length limits ───────────── */
+/* limits */
 
 export const LIMITS = Object.freeze({
     // Group
@@ -37,11 +30,9 @@ export const LIMITS = Object.freeze({
     MAX_IMAGE_SIZE_MB:    5,   // max size per image upload
 });
 
-/* ───────────── Invisible-character regex ───────────── */
-
-// Unicode "invisible" whitespace codepoints that look blank but aren't
-// ASCII 0x20. These are frequently used to bypass visual validation or
-// to break copy-paste experiences.
+/* invisible-char regex
+   unicode "invisible" whitespace codepoints that look blank but arent ASCII 0x20.
+   used to bypass visual validation or break copy-paste. */
 //
 // \u00A0  No-Break Space
 // \u2000–\u200B  various typographic spaces + zero-width space
@@ -56,20 +47,11 @@ export const LIMITS = Object.freeze({
 const INVISIBLE_RE =
     /[\u00A0\u2000-\u200B\u200C\u200D\u2028\u2029\u202F\u205F\u3000\uFEFF]/g;
 
-/* ───────────── Sanitize helper ───────────── */
+/* Sanitize helper */
 
-/**
- * Light client-side sanitisation:
- * 1. Replace invisible Unicode whitespace with normal space.
- * 2. Trim leading / trailing whitespace.
- *
- * Note: full XSS escaping is handled server-side (`InputSanitizer`).
- * This function focuses on UX — preventing confusing invisible
- * characters from creeping in via paste.
- *
- * @param {string} value
- * @returns {string}
- */
+// replaces invisible unicode whitespace with normal space, then trims.
+// full XSS escaping happens server-side (InputSanitizer),
+// this is just to prevent weird invisible chars from pasting.
 export function sanitize(value) {
     if (typeof value !== "string") return "";
     return value.replace(INVISIBLE_RE, " ").trim();

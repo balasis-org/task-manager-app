@@ -13,7 +13,7 @@ export default function Layout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [newInviteCount, setNewInviteCount] = useState(0);
 
-    // ── Check for unseen invitations ──
+    // check if there are new invitations we havent seen
     useEffect(() => {
         if (!user) return;
         let cancelled = false;
@@ -32,7 +32,7 @@ export default function Layout({ children }) {
                 );
 
                 if (!lastSeen) {
-                    // Never visited invitations page → all pending are "new"
+                    // Never visited invitations page, all pending count as new
                     setNewInviteCount(pending.length);
                 } else {
                     const unseen = pending.filter(
@@ -58,7 +58,7 @@ export default function Layout({ children }) {
 
     return (
         <div className="layout">
-            {/* ── Sidebar ── */}
+
             <aside className={`sidebar${sidebarOpen ? "" : " collapsed"}`}>
                 <button
                     className="sidebar-toggle"
@@ -70,7 +70,7 @@ export default function Layout({ children }) {
 
                 <div className="sidebar-clip">
                 <div className="sidebar-inner">
-                    {/* Profile area — hidden on small screens via CSS */}
+                    {/* profile pic + name */}
                     <div className="sidebar-profile">
                         {profileImg ? (
                             <img
@@ -89,7 +89,7 @@ export default function Layout({ children }) {
                         )}
                     </div>
 
-                    {/* Navigation — always rendered; labels hidden on small screens via CSS */}
+                    {/* nav links */}
                     <nav className="sidebar-nav">
                         <NavLink
                             to="/dashboard"
@@ -128,12 +128,12 @@ export default function Layout({ children }) {
                         </button>
                     </nav>
 
-                    {/* Date — just above the footer separator */}
+
                     <div className="sidebar-date">
                         {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                     </div>
 
-                    {/* Footer — hidden on small screens via CSS */}
+
                     <div className="sidebar-footer">
                         <Footer />
                     </div>
@@ -141,7 +141,7 @@ export default function Layout({ children }) {
                 </div>
             </aside>
 
-            {/* ── Main content ── */}
+
             <div className="layout-body">
                 <main className="layout-main">{children}</main>
             </div>

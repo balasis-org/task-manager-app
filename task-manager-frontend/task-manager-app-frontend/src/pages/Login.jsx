@@ -10,12 +10,12 @@ export default function Login() {
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
 
-    // Already authenticated → go to dashboard
+    // already logged in
     if (!loading && user) {
         return <Navigate to="/dashboard" replace />;
     }
 
-    // Still checking auth — show nothing to avoid flashing the login form
+    // still loading
     if (loading) {
         return null;
     }

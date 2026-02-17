@@ -60,16 +60,12 @@ async function apiRequest(path, options = {}, retry = true) {
         throw { status: 0, message: "Network error" };
     }
 
-    /**
-     * HTTP-level auth errors
-     */
+    // auth errors
     if (res.status === 401 || res.status === 403) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
-    /**
-     * Other HTTP errors
-     */
+    // other errors
     if (!res.ok) {
         let body = null;
         try { body = await res.text(); } catch {}
@@ -90,10 +86,7 @@ async function apiRequest(path, options = {}, retry = true) {
 }
 
 
-/**
- * Multipart/form-data request helper
- * Automatically keeps credentials and supports file uploads
- */
+// multipart/form-data helper (file uploads etc)
 export async function apiMultipart(path, formData, options = {}) {
     const fetchOptions = {
         method: options.method || "POST",
@@ -101,7 +94,7 @@ export async function apiMultipart(path, formData, options = {}) {
         credentials: "include", // keep cookies
         headers: {
             ...(options.headers || {}),
-            // NOTE: Do NOT set Content-Type! The browser will set multipart boundary automatically
+            // dont set Content-Type, browser adds multipart boundary automatically
         },
         ...options,
     };
@@ -137,16 +130,15 @@ export async function apiMultipart(path, formData, options = {}) {
 }
 
 async function handleAuthStatus(status, path, options, retry) {
-    // 401 → try refresh once
+    // 401 - try refresh once
     if (status === 401 && retry && authHandlers.onUnauthorized) {
-        // Provide request context so handlers can decide (e.g. skip /api/auth/*)
         const shouldRetry = await authHandlers.onUnauthorized({ url: path, options });
         if (shouldRetry) {
             return apiRequest(path, options, false);
         }
     }
 
-    // 403 → forbidden
+    // 403 - forbidden
     if (status === 403) {
         authHandlers.onForbidden?.();
     }

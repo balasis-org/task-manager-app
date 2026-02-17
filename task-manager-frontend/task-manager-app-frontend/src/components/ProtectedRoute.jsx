@@ -6,12 +6,11 @@ import Spinner from "@components/Spinner";
 export default function ProtectedRoute({ children }) {
     const { user, bootstrapped } = useContext(AuthContext);
 
-    // Wait until AuthProvider has finished the initial /me check
+    // wait for initial auth check
     if (!bootstrapped) {
         return <Spinner />;
     }
 
-    // Not logged in → redirect to login
     if (!user) {
         return <Navigate to="/login" replace />;
     }

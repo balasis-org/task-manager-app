@@ -1,9 +1,5 @@
-/**
- * fileUtils.js
- *
- * Helpers for mapping file extensions to feather icons
- * and checking client-side file constraints.
- */
+// helpers for mapping file extensions to feather icons
+// and checking file size constraints on the client side
 
 import {
     FiFile,
@@ -16,7 +12,7 @@ import {
 } from "react-icons/fi";
 import { LIMITS } from "@assets/js/inputValidation";
 
-/* ───────── extension → icon mapping ───────── */
+/* extension -> icon mapping */
 
 const EXT_MAP = {
     // Images
@@ -50,33 +46,21 @@ const EXT_MAP = {
     sh: FiCode, sql: FiCode, yml: FiCode, yaml: FiCode,
 };
 
-/**
- * Return the React Icon component for a filename.
- * @param {string} filename
- * @returns {import("react").ComponentType}
- */
+// returns the right react-icons component for a given filename
 export function getFileIcon(filename) {
     if (!filename) return FiFile;
     const ext = filename.split(".").pop()?.toLowerCase();
     return EXT_MAP[ext] || FiFile;
 }
 
-/* ───────── validation helpers ───────── */
+/* validation helpers */
 
-/**
- * Check whether a file exceeds the max task-file size.
- * @param {File} file
- * @returns {boolean} true if the file is too big
- */
+// true if file exceeds the max task-file size
 export function isFileTooLarge(file) {
     return file.size > LIMITS.MAX_FILE_SIZE_MB * 1024 * 1024;
 }
 
-/**
- * Check whether a file exceeds the max image size.
- * @param {File} file
- * @returns {boolean} true if the image is too big
- */
+// true if image exceeds max image size
 export function isImageTooLarge(file) {
     return file.size > LIMITS.MAX_IMAGE_SIZE_MB * 1024 * 1024;
 }

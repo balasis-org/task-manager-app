@@ -21,7 +21,7 @@ const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "
 const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
 const COL_MIN      = [120, 70, 60, 80, 60, 40];
 
-/* helper: build grid-template-columns string from widths array */
+// builds the grid-template-columns css value
 function gridCols(w) {
     return `1fr ${w.slice(1).map((v) => v + "px").join(" ")}`;
 }
@@ -46,14 +46,13 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const showToast = useToast();
 
-    // Refresh active group data when Dashboard mounts (e.g. navigating back from Task page)
+    // refresh when coming back to dashboard
     useEffect(() => {
         if (activeGroup) refreshActiveGroup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Resizable columns ──
-    // Dragging handle between col[i] and col[i+1] grows one and shrinks the other (Excel-style).
+    // resizable columns — dragging a handle grows one side and shrinks the other
     const [colWidths, setColWidths] = useState(COL_DEFAULTS);
 
     const onPointerDown = useCallback((leftIdx, e) => {
@@ -86,12 +85,10 @@ export default function Dashboard() {
         window.addEventListener("pointerup", onUp);
     }, [colWidths]);
 
-    // Collapsed sections
     const [collapsedSections, setCollapsedSections] = useState({});
     const [topBarOpen, setTopBarOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Popups
     const [showNewGroup, setShowNewGroup] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
     const [showGroupSettings, setShowGroupSettings] = useState(false);
@@ -109,12 +106,7 @@ export default function Dashboard() {
         updateGroup(updatedGroup);
     }
 
-    /**
-     * Called from DashboardTopBar when user leaves group or removes a member.
-     * "left" = current user left → remove group from state
-     * "refresh" = member removed → just refresh
-     * "deleted" = group deleted → remove from state
-     */
+    // "left" or "deleted" => remove group, "refresh" => just reload
     function handleLeaveGroup(action) {
         if (action === "left" || action === "deleted") {
             removeGroupFromState(activeGroup?.id);
@@ -130,10 +122,8 @@ export default function Dashboard() {
         }));
     }
 
-    // Role-based visibility
     const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
 
-    // Task creation — open popup
     function handleOpenNewTask(e, state) {
         e.stopPropagation();
         if (!activeGroup?.id) return;
@@ -147,7 +137,7 @@ export default function Dashboard() {
         navigate(`/group/${activeGroup.id}/task/${created.id}`);
     }
 
-    // Group tasks by state, filtered by search query
+    // group tasks by state + search filter
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
     if (groupDetail?.taskPreviews) {
@@ -161,7 +151,6 @@ export default function Dashboard() {
         }
     }
 
-    // ── No groups empty state ──
     if (!loadingGroups && groups.length === 0) {
         return (
             <div className="dashboard-empty">
@@ -185,7 +174,6 @@ export default function Dashboard() {
 
     return (
         <div className="dashboard">
-            {/* ── Top Bar ── */}
             <DashboardTopBar
                 groups={groups}
                 activeGroup={activeGroup}
@@ -203,7 +191,6 @@ export default function Dashboard() {
                 groupDetail={groupDetail}
             />
 
-            {/* Announcement */}
             {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
                 <div className={`dashboard-announcement${groupDetail.announcement ? " has-text" : " empty"}`}>
                     <strong>Announcement:</strong>{" "}
@@ -211,12 +198,10 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ── Task Sections ── */}
             {loadingDetail ? (
                 <Spinner />
             ) : (
                 <div className="dashboard-tasks">
-                    {/* Search input */}
                     <div className="dashboard-search">
                         <input
                             type="text"
@@ -235,7 +220,7 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    {/* Single column header — rendered once, with drag handles */}
+                    {/* column headers + resize handles */}
                     <div
                         className="task-col-header"
                         style={{ gridTemplateColumns: gridCols(colWidths) }}
@@ -290,7 +275,6 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ── Popups ── */}
             {showNewGroup && (
                 <NewGroupPopup
                     onClose={() => setShowNewGroup(false)}

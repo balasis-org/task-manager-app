@@ -1,7 +1,4 @@
-/* ══════════════════════════════════════
-   Shared legal-page styles
-   (Terms of Service, Cookie Policy)
-   ══════════════════════════════════════ */
+/* Shared styles for legal pages (ToS, Cookie Policy) */
 
 .legal-page {
     max-width: 48em;
@@ -9,7 +6,7 @@
     padding: 2.5em 1.5em 5em;
 }
 
-/* ── Back link ── */
+/* Back link */
 .legal-back {
     display: inline-flex;
     align-items: center;
@@ -28,7 +25,7 @@
     color: var(--text-primary);
 }
 
-/* ── Hero / title area ── */
+/* Hero / title area */
 .legal-hero {
     text-align: center;
     margin-bottom: 2.5em;
@@ -60,7 +57,7 @@
     margin: 0;
 }
 
-/* ── Section blocks ── */
+/* Section blocks */
 .legal-section {
     margin-bottom: 2em;
     padding-bottom: 1.5em;
@@ -119,7 +116,7 @@
     font-weight: 600;
 }
 
-/* ── Highlighted callout box ── */
+/* Highlighted callout box */
 .legal-highlight {
     background: var(--bg-accent-subtle);
     border-left: 0.19em solid var(--accent-primary);
@@ -142,7 +139,7 @@
     line-height: 1.6;
 }
 
-/* ── Contact card ── */
+/* Contact card */
 .legal-contact {
     display: flex;
     align-items: center;

@@ -1,4 +1,4 @@
-/* ── Dashboard Page ── */
+/* Dashboard Page */
 .dashboard {
     display: flex;
     flex-direction: column;
@@ -149,9 +149,7 @@
     transform: translateY(-0.06em);
 }
 
-/* ══════════════════════════════════════
-   Responsive — Dashboard
-   ══════════════════════════════════════ */
+/* Responsive — Dashboard */
 @media (max-width: 1024px) {
     .dashboard-search {
         padding: 0.5em 0.75em;

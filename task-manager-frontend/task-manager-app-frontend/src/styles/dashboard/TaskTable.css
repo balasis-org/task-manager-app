@@ -1,8 +1,6 @@
-/* ══════════════════════════════════════
-   Shared column grid  –  single header
-   ══════════════════════════════════════ */
+/* Shared column grid  –  single header */
 
-/* ── Column header (rendered once) ── */
+/* Column header (rendered once) */
 .task-col-header {
     display: grid;
     grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
@@ -60,7 +58,7 @@
     background: #888;
 }
 
-/* ── Task row ── */
+/* Task row */
 .task-row {
     display: grid;
     grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
@@ -89,7 +87,7 @@
     100% { background: transparent; }
 }
 
-/* ── Cells ── */
+/* Cells */
 .task-cell {
     padding: 0.5em 0.75em;
     font-size: 0.81em;
@@ -128,7 +126,7 @@
     justify-content: center;
 }
 
-/* ── Empty state ── */
+/* Empty state */
 .task-table-empty {
     padding: 0.75em 1.25em;
     color: var(--text-placeholder);
@@ -158,7 +156,7 @@
     font-weight: 600;
 }
 
-/* ── Priority tags ── */
+/* Priority tags */
 .priority-tag {
     display: inline-block;
     padding: 0.125em 0.5em;
@@ -183,9 +181,7 @@
     color: var(--danger-text-alt);
 }
 
-/* ══════════════════════════════════════
-   Responsive — Task Table
-   ══════════════════════════════════════ */
+/* Responsive — Task Table */
 @media (max-width: 1024px) {
     .task-col-header,
     .task-row {

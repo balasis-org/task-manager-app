@@ -114,7 +114,7 @@
     background: var(--border-primary);
 }
 
-/* ── Legal links ── */
+/* Legal links */
 .login-legal {
     display: flex;
     justify-content: center;
