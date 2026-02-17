@@ -35,7 +35,7 @@
 }
 
 .topbar-toggle:hover {
-    background: #eee;
+    background: var(--bg-active);
 }
 
 .topbar-content {
@@ -76,7 +76,7 @@
 }
 
 .topbar-icon-btn:hover {
-    background: #e8e8e8;
+    background: var(--bg-active);
 }
 
 /* Events button — notification dot */
@@ -240,7 +240,7 @@
 }
 
 .topbar-member-remove:hover {
-    background: #fee;
+    background: var(--danger-bg);
     border-color: var(--danger);
     color: var(--danger);
 }
@@ -255,11 +255,11 @@
 /* Leave group button */
 .topbar-leave-btn {
     color: var(--danger);
-    border-color: #f5c6cb;
+    border-color: var(--danger-bg-light);
 }
 
 .topbar-leave-btn:hover {
-    background: #fee;
+    background: var(--danger-bg);
 }
 
 /* Inline confirm (leave group / remove member) */
@@ -297,12 +297,12 @@
 }
 
 .topbar-confirm-no {
-    background: #eee;
+    background: var(--bg-secondary);
     color: var(--text-tertiary);
 }
 
 .topbar-confirm-no:hover {
-    background: #ddd;
+    background: var(--bg-active);
 }
 
 @keyframes topbarFadeSlide {
@@ -376,7 +376,7 @@
 
 .topbar-plus-combo {
     border: none;
-    background: #f8f8f8;
+    background: var(--bg-secondary);
     border-left: 0.06em solid var(--border-primary);
     border-radius: 0 0.5em 0.5em 0;
     width: 2.38em;
@@ -389,7 +389,7 @@
 }
 
 .topbar-plus-combo:hover {
-    background: #ededed;
+    background: var(--bg-active);
 }
 
 .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
@@ -407,7 +407,7 @@
     height: 1.5em;
     border-radius: 50%;
     object-fit: cover;
-    background: #ddd;
+    background: var(--border-primary);
 }
 
 .topbar-member-role {
@@ -429,7 +429,7 @@
     height: 1.75em;
     border-radius: 0.375em;
     object-fit: cover;
-    background: #ddd;
+    background: var(--border-primary);
 }
 
 .topbar-group-img.placeholder {
@@ -437,7 +437,7 @@
     width: 1.75em;
     height: 1.75em;
     border-radius: 0.375em;
-    background: #ccc;
+    background: var(--bg-active);
 }
 
 .topbar-group-img-small {
@@ -445,7 +445,7 @@
     height: 1.38em;
     border-radius: 0.25em;
     object-fit: cover;
-    background: #ddd;
+    background: var(--border-primary);
 }
 
 .topbar-group-img-small.placeholder {
@@ -453,7 +453,7 @@
     width: 1.38em;
     height: 1.38em;
     border-radius: 0.25em;
-    background: #ccc;
+    background: var(--bg-active);
 }
 
 .topbar-group-btn {
