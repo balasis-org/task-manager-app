@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
 import "@styles/pages/Login.css";
@@ -90,6 +90,12 @@ export default function Login() {
                 >
                     Sign in with Azure AD
                 </button>
+
+                <div className="login-legal">
+                    <Link to="/terms-of-service">Terms of Service</Link>
+                    <span className="login-legal-dot">•</span>
+                    <Link to="/cookie-policy">Cookie Policy</Link>
+                </div>
             </div>
         </div>
     );

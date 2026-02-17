@@ -183,9 +183,7 @@ export default function Invitations() {
             {/* ── Sent / pending invitations ── */}
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Your pending invites</h2>
-                <p className="invitations-hint">
-                    (Hover at the comment to show full as tooltip)
-                </p>
+
 
                 {sent.length === 0 ? (
                     <p className="invitations-empty">No pending invites.</p>

@@ -5,18 +5,18 @@
 /* ── Column header (rendered once) ── */
 .task-col-header {
     display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
-    padding: 8px 16px;
-    border-bottom: 2px solid #ddd;
+    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
+    padding: 0.5em 1em;
+    border-bottom: 0.125em solid var(--border-primary);
     font-weight: 600;
-    font-size: 12px;
-    color: #555;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.02em;
     white-space: nowrap;
     position: sticky;
     top: 0;
-    background: #fff;
+    background: var(--bg-primary);
     z-index: 2;
 }
 
@@ -37,8 +37,8 @@
 .col-resize-handle {
     position: absolute;
     top: 0;
-    right: -4px;
-    width: 8px;
+    right: -0.25em;
+    width: 0.5em;
     height: 100%;
     cursor: col-resize;
     z-index: 5;
@@ -48,11 +48,11 @@
     content: "";
     position: absolute;
     top: 20%;
-    left: 3px;
-    width: 2px;
+    left: 0.19em;
+    width: 0.125em;
     height: 60%;
     background: #ccc;
-    border-radius: 1px;
+    border-radius: 0.06em;
     transition: background 0.15s;
 }
 
@@ -63,22 +63,36 @@
 /* ── Task row ── */
 .task-row {
     display: grid;
-    grid-template-columns: 1fr 130px 90px 120px 90px 60px;
+    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 1em;
     cursor: pointer;
     transition: background 0.12s;
-    border-bottom: 1px solid #eee;
+    border-bottom: 0.06em solid var(--border-secondary);
 }
 
 .task-row:hover {
-    background: #f5f7fa;
+    background: var(--bg-hover);
+}
+
+.task-row-locked {
+    cursor: not-allowed;
+}
+
+.task-row-denied {
+    animation: row-denied-flash 0.5s ease;
+}
+
+@keyframes row-denied-flash {
+    0%   { background: #ffdddd; }
+    50%  { background: #ffaaaa; }
+    100% { background: transparent; }
 }
 
 /* ── Cells ── */
 .task-cell {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 0.5em 0.75em;
+    font-size: 0.81em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -96,6 +110,10 @@
     justify-self: center;
 }
 
+.lock-icon {
+    color: var(--text-disabled);
+}
+
 .cell-comments {
     text-align: center;
     justify-self: center;
@@ -103,7 +121,7 @@
 }
 
 .cell-comments:hover .comment-icon {
-    color: #1a73e8;
+    color: var(--accent-primary);
 }
 
 .col-center {
@@ -112,9 +130,9 @@
 
 /* ── Empty state ── */
 .task-table-empty {
-    padding: 12px 20px;
-    color: #999;
-    font-size: 13px;
+    padding: 0.75em 1.25em;
+    color: var(--text-placeholder);
+    font-size: 0.81em;
     font-style: italic;
 }
 
@@ -126,43 +144,43 @@
 .comment-icon {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    color: #999;
+    gap: 0.19em;
+    color: var(--text-placeholder);
     position: relative;
 }
 
 .comment-icon.has-new {
-    color: #e67e22;
+    color: var(--warning);
 }
 
 .comment-count {
-    font-size: 11px;
+    font-size: 0.69em;
     font-weight: 600;
 }
 
 /* ── Priority tags ── */
 .priority-tag {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
+    padding: 0.125em 0.5em;
+    border-radius: 0.625em;
+    font-size: 0.69em;
     font-weight: 600;
     white-space: nowrap;
 }
 
 .priority-low {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--success-bg-alt);
+    color: var(--success-text-alt);
 }
 
 .priority-med {
     background: #fff3e0;
-    color: #e65100;
+    color: var(--priority-med-text);
 }
 
 .priority-high {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--danger-bg-alt);
+    color: var(--danger-text-alt);
 }
 
 /* ══════════════════════════════════════
@@ -171,12 +189,12 @@
 @media (max-width: 1024px) {
     .task-col-header,
     .task-row {
-        grid-template-columns: 1fr 110px 80px 100px 70px 50px !important;
+        grid-template-columns: 1fr 6.88em 5em 6.25em 4.38em 3.12em !important;
     }
 
     .task-cell {
-        padding: 6px 8px;
-        font-size: 12px;
+        padding: 0.375em 0.5em;
+        font-size: 0.75em;
     }
 }
 
@@ -184,7 +202,7 @@
     /* Hide lesser columns on narrow screens */
     .task-col-header,
     .task-row {
-        grid-template-columns: 1fr 80px 70px 50px !important;
+        grid-template-columns: 1fr 5em 4.38em 3.12em !important;
     }
 
     /* Hide creator & due-date columns */
@@ -199,16 +217,16 @@
     }
 
     .task-col-header {
-        padding: 6px 10px;
+        padding: 0.375em 0.625em;
     }
 
     .task-row {
-        padding: 0 10px;
+        padding: 0 0.625em;
     }
 
     .task-cell {
-        padding: 6px 6px;
-        font-size: 12px;
+        padding: 0.375em 0.375em;
+        font-size: 0.75em;
     }
 }
 
@@ -216,10 +234,10 @@
     /* On very small screens keep just title + priority + chat */
     .task-col-header,
     .task-row {
-        grid-template-columns: 1fr 70px 40px !important;
+        grid-template-columns: 1fr 4.38em 2.5em !important;
     }
 
-    /* Additionally hide accessible (creator & due already hidden at 768px) */
+    /* Additionally hide accessible (creator & due already hidden at 48em) */
     .cell-access {
         display: none;
     }
@@ -229,16 +247,16 @@
     }
 
     .task-col-header {
-        padding: 6px 8px;
-        font-size: 10px;
+        padding: 0.375em 0.5em;
+        font-size: 0.625em;
     }
 
     .task-row {
-        padding: 0 8px;
+        padding: 0 0.5em;
     }
 
     .task-cell {
-        padding: 4px 4px;
-        font-size: 11px;
+        padding: 0.25em 0.25em;
+        font-size: 0.69em;
     }
 }

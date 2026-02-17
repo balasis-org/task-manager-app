@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiGet, apiPost } from "@assets/js/apiClient";
+import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
 import blobBase from "@blobBase";
@@ -7,6 +8,7 @@ import blobBase from "@blobBase";
 const ROLES = ["MEMBER", "GUEST", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
 export default function InviteToGroupPopup({ groupId, onClose }) {
+    const showToast = useToast();
     const [search, setSearch] = useState("");
     const [results, setResults] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -14,7 +16,6 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
     const [comment, setComment] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
     const handleSearch = async (q) => {
         setSearch(q);
@@ -40,17 +41,14 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
         }
         setBusy(true);
         setError("");
-        setSuccess("");
         try {
             await apiPost(`/api/groups/${groupId}/invite`, {
                 userId: selectedUser.id,
                 userToBeInvitedRole: role,
                 comment: comment.trim(),
             });
-            setSuccess("Invitation sent!");
-            setSelectedUser(null);
-            setSearch("");
-            setComment("");
+            onClose();
+            showToast("Invitation sent!", "success");
         } catch {
             setError("Failed to send invitation.");
         } finally {
@@ -64,7 +62,6 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                 <h2>Invite to group</h2>
 
                 {error && <div className="popup-error">{error}</div>}
-                {success && <div className="popup-success">{success}</div>}
 
                 <form onSubmit={handleInvite} className="popup-form">
                     <label>

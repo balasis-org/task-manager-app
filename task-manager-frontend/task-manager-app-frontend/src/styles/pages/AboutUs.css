@@ -1,0 +1,165 @@
+/* ══════════════════════════════════════
+   About Us page
+   ══════════════════════════════════════ */
+.about-page {
+    max-width: 51.25em;
+    margin: 0 auto;
+    padding: 2.5em 1.5em 5em;
+}
+
+/* ── Hero ── */
+.about-hero {
+    text-align: center;
+    margin-bottom: 3em;
+    animation: aboutFadeUp 0.6s ease both;
+}
+
+.about-hero-title {
+    font-size: 2.25em;
+    font-weight: 800;
+    color: var(--text-heading);
+    margin: 0 0 0.75em;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #4f46e5, var(--accent-violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.about-hero-sub {
+    font-size: 1em;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+    max-width: 35em;
+    margin: 0 auto;
+}
+
+/* ── Story section ── */
+.about-story {
+    margin-bottom: 2.5em;
+    animation: aboutFadeUp 0.7s 0.15s ease both;
+}
+
+.about-story h2 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: var(--text-heading-alt);
+    margin: 0 0 0.75em;
+}
+
+.about-story p {
+    font-size: 0.875em;
+    color: var(--text-tertiary);
+    line-height: 1.7;
+    margin: 0 0 0.625em;
+}
+
+/* ── Features grid ── */
+.about-features {
+    margin-bottom: 3em;
+}
+
+.about-features h2 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: var(--text-heading-alt);
+    margin: 0 0 1.25em;
+    text-align: center;
+}
+
+.about-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13.125em, 1fr));
+    gap: 1.25em;
+}
+
+.about-feature-card {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.75em;
+    padding: 1.5em 1.25em;
+    text-align: center;
+    transition: transform 0.25s, box-shadow 0.25s;
+    /* Fade-in on scroll — hidden by default */
+    opacity: 0;
+    transform: translateY(1.5em);
+    transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s;
+}
+
+.about-feature-card.about-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.about-feature-card:hover {
+    transform: translateY(-0.25em);
+    box-shadow: 0 0.375em 1.5em rgba(0, 0, 0, 0.08);
+}
+
+.about-feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5em;
+    height: 3.5em;
+    border-radius: 0.875em;
+    background: linear-gradient(135deg, #eef2ff, var(--accent-violet-deep));
+    color: #4f46e5;
+    margin-bottom: 0.875em;
+}
+
+.about-feature-card h3 {
+    font-size: 0.94em;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0 0 0.5em;
+}
+
+.about-feature-card p {
+    font-size: 0.81em;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* ── Contact ── */
+.about-contact {
+    text-align: center;
+    animation: aboutFadeUp 0.7s 0.3s ease both;
+}
+
+.about-contact h2 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: var(--text-heading-alt);
+    margin: 0 0 0.625em;
+}
+
+.about-contact p {
+    font-size: 0.875em;
+    color: var(--text-tertiary);
+    line-height: 1.65;
+}
+
+/* ── Animation ── */
+@keyframes aboutFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(1.12em);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .about-hero-title {
+        font-size: 1.75em;
+    }
+
+    .about-features-grid {
+        grid-template-columns: 1fr;
+    }
+}

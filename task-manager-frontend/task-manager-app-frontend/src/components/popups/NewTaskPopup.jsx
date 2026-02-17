@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { apiMultipart } from "@assets/js/apiClient";
 import { LIMITS } from "@assets/js/inputValidation";
+import { isFileTooLarge, getFileIcon } from "@assets/js/fileUtils";
 import blobBase from "@blobBase";
 import { FiX, FiPlus, FiSearch } from "react-icons/fi";
 import "@styles/popups/Popup.css";
@@ -33,6 +34,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
     const [assigneeSearch, setAssigneeSearch] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [fileDragOver, setFileDragOver] = useState(false);
     const fileInputRef = useRef(null);
 
     // Eligible members for pickers
@@ -63,12 +65,33 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
 
     function handleFileAdd(e) {
         const picked = Array.from(e.target.files || []);
-        setFiles((prev) => {
-            const combined = [...prev, ...picked];
-            return combined.slice(0, 3); // max 3
-        });
+        addFiles(picked);
         e.target.value = "";
     }
+
+    function addFiles(incoming) {
+        const oversized = incoming.filter(isFileTooLarge);
+        if (oversized.length) {
+            setError(`File(s) exceed ${LIMITS.MAX_FILE_SIZE_MB} MB limit: ${oversized.map(f => f.name).join(", ")}`);
+            return;
+        }
+        setFiles((prev) => {
+            const combined = [...prev, ...incoming];
+            if (combined.length > LIMITS.MAX_TASK_FILES) {
+                setError(`Maximum ${LIMITS.MAX_TASK_FILES} files allowed.`);
+            }
+            return combined.slice(0, LIMITS.MAX_TASK_FILES);
+        });
+    }
+
+    function handleFileDrop(e) {
+        e.preventDefault();
+        setFileDragOver(false);
+        const dropped = Array.from(e.dataTransfer.files || []);
+        if (!dropped.length) return;
+        addFiles(dropped);
+    }
+
     function removeFile(idx) { setFiles((prev) => prev.filter((_, i) => i !== idx)); }
 
     const handleSubmit = async (e) => {
@@ -248,10 +271,15 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                     </div>
 
                     {/* ── Files (max 3) ── */}
-                    <div className="popup-picker-section">
+                    <div
+                        className={`popup-picker-section${fileDragOver ? " file-drag-over" : ""}`}
+                        onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}
+                        onDragLeave={() => setFileDragOver(false)}
+                        onDrop={handleFileDrop}
+                    >
                         <span className="popup-picker-label">
-                            Files ({files.length}/3)
-                            {files.length < 3 && (
+                            Files ({files.length}/{LIMITS.MAX_TASK_FILES})
+                            {files.length < LIMITS.MAX_TASK_FILES && (
                                 <button type="button" className="popup-chip-add" onClick={() => fileInputRef.current?.click()} title="Add file">
                                     <FiPlus size={12} />
                                 </button>
@@ -260,13 +288,20 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         <input ref={fileInputRef} type="file" hidden onChange={handleFileAdd} />
                         {files.length > 0 && (
                             <div className="popup-chip-list">
-                                {files.map((f, i) => (
-                                    <span key={i} className="popup-chip">
-                                        {f.name}
-                                        <button type="button" className="popup-chip-rm" onClick={() => removeFile(i)}><FiX size={10} /></button>
-                                    </span>
-                                ))}
+                                {files.map((f, i) => {
+                                    const Icon = getFileIcon(f.name);
+                                    return (
+                                        <span key={i} className="popup-chip" title={f.name}>
+                                            <Icon size={12} />
+                                            {f.name}
+                                            <button type="button" className="popup-chip-rm" onClick={() => removeFile(i)}><FiX size={10} /></button>
+                                        </span>
+                                    );
+                                })}
                             </div>
+                        )}
+                        {files.length < LIMITS.MAX_TASK_FILES && (
+                            <span className="popup-drop-hint">or drag & drop files here</span>
                         )}
                     </div>
 

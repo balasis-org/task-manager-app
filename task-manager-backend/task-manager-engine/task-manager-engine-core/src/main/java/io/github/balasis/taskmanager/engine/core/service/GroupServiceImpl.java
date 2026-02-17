@@ -625,8 +625,27 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Transactional(readOnly = true)
     public Task getTask(Long groupId, Long taskId){
         authorizationService.requireAnyRoleIn(groupId);
-        return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId).orElseThrow(()-> new TaskNotFoundException(
-                "Task with id " + taskId + "is not found"));
+
+        Long currentUserId = effectiveCurrentUser.getUserId();
+        var membershipOpt = groupMembershipRepository.findByUser_IdAndGroup_Id(currentUserId, groupId);
+        boolean isLeaderOrManager = membershipOpt != null && (
+                membershipOpt.getRole() == Role.GROUP_LEADER ||
+                membershipOpt.getRole() == Role.TASK_MANAGER
+        );
+
+        Task task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException(
+                        "Task with id " + taskId + " is not found"));
+
+        if (!isLeaderOrManager) {
+            boolean isParticipant = task.getTaskParticipants().stream()
+                    .anyMatch(tp -> tp.getUser().getId().equals(currentUserId));
+            if (!isParticipant) {
+                throw new TaskNotFoundException("Task with id " + taskId + " is not accessible");
+            }
+        }
+
+        return task;
     }
 
     @Override

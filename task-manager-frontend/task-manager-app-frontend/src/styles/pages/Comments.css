@@ -14,68 +14,97 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #e74c3c;
-    font-size: 15px;
+    color: var(--danger);
+    font-size: 0.94em;
 }
 
 /* ── Breadcrumb ── */
 .comments-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #ddd;
-    font-size: 13px;
+    gap: 0.75em;
+    padding: 0.625em 1em;
+    background: var(--bg-secondary);
+    border-bottom: 0.06em solid var(--border-primary);
+    font-size: 0.81em;
     flex-shrink: 0;
 }
 
 .comments-back {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    color: #555;
+    gap: 0.25em;
+    color: var(--text-tertiary);
     text-decoration: none;
     font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+    font-family: inherit;
 }
 
 .comments-back:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .comments-trail {
-    color: #888;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    color: var(--text-faint);
     font-weight: 500;
-    max-width: 220px;
+    max-width: 18em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.comments-trail .breadcrumb-link {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.comments-trail .breadcrumb-link:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+}
+
+.comments-trail .breadcrumb-sep {
+    color: var(--text-disabled);
+    flex-shrink: 0;
+}
+
+.comments-trail .breadcrumb-current {
+    color: var(--text-faint);
+}
+
 /* ── Top actions ── */
 .comments-top-actions {
     display: flex;
-    padding: 10px 16px;
-    border-bottom: 1px solid #eee;
+    padding: 0.625em 1em;
+    border-bottom: 0.06em solid var(--border-secondary);
     flex-shrink: 0;
 }
 
 .btn-add-comment {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #fff;
-    color: #333;
+    gap: 0.375em;
+    padding: 0.44em 1em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 0.81em;
     transition: background 0.12s;
 }
 
 .btn-add-comment:hover {
-    background: #f0f0f0;
+    background: var(--bg-active);
 }
 
 .btn-add-comment.centered {
@@ -86,7 +115,7 @@
 .comments-list {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 1em;
 }
 
 .comments-empty {
@@ -95,9 +124,9 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: 12px;
-    color: #999;
-    font-size: 15px;
+    gap: 0.75em;
+    color: var(--text-placeholder);
+    font-size: 0.94em;
 }
 
 .comments-empty p {
@@ -108,9 +137,9 @@
 /* ── Comment card ── */
 .comment-card {
     display: flex;
-    gap: 12px;
-    padding: 14px 0;
-    border-bottom: 1px solid #eee;
+    gap: 0.75em;
+    padding: 0.875em 0;
+    border-bottom: 0.06em solid var(--border-secondary);
 }
 
 .comment-card:last-child {
@@ -118,12 +147,12 @@
 }
 
 .comment-avatar {
-    width: 36px;
-    height: 36px;
+    width: 2.25em;
+    height: 2.25em;
     border-radius: 50%;
     object-fit: cover;
     background: #ddd;
-    border: 1px solid #ccc;
+    border: 0.06em solid var(--border-input);
     flex-shrink: 0;
 }
 
@@ -136,74 +165,74 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 4px;
+    margin-bottom: 0.25em;
 }
 
 .comment-author {
-    font-size: 13px;
+    font-size: 0.81em;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .comment-role-tag {
     font-weight: 400;
-    color: #888;
-    font-size: 11px;
-    margin-left: 4px;
+    color: var(--text-faint);
+    font-size: 0.69em;
+    margin-left: 0.25em;
     text-transform: capitalize;
 }
 
 .comment-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.5em;
 }
 
 .comment-action-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    color: #555;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25em;
     transition: background 0.12s, color 0.12s;
 }
 
 .comment-action-btn:hover {
     background: #eee;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .comment-action-btn.danger:hover {
     background: #ffe0e0;
-    color: #e74c3c;
+    color: var(--danger);
 }
 
 .comment-text {
-    font-size: 14px;
-    color: #444;
+    font-size: 0.875em;
+    color: var(--text-secondary);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-    margin: 0 0 4px;
+    margin: 0 0 0.25em;
 }
 
 .comment-date {
-    font-size: 11px;
-    color: #aaa;
+    font-size: 0.69em;
+    color: var(--text-disabled);
 }
 
 /* ── Edit area ── */
 .comment-edit-area {
-    margin: 6px 0;
+    margin: 0.375em 0;
 }
 
 .comment-edit-textarea {
     width: 100%;
-    font-size: 13px;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    font-size: 0.81em;
+    padding: 0.5em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
     resize: vertical;
     font-family: inherit;
     box-sizing: border-box;
@@ -213,25 +242,25 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 6px;
+    margin-top: 0.375em;
 }
 
 .comment-counter {
-    font-size: 11px;
-    color: #999;
+    font-size: 0.69em;
+    color: var(--text-placeholder);
 }
 
 .comment-edit-btns {
     display: flex;
-    gap: 8px;
+    gap: 0.5em;
 }
 
 .btn-cancel-edit {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    color: #e74c3c;
+    font-size: 0.75em;
+    color: var(--danger);
     font-weight: 500;
 }
 
@@ -240,18 +269,18 @@
 }
 
 .btn-save-edit {
-    background: #1a73e8;
-    color: #fff;
+    background: var(--accent-primary);
+    color: var(--text-on-primary);
     border: none;
-    border-radius: 4px;
-    padding: 4px 12px;
-    font-size: 12px;
+    border-radius: 0.25em;
+    padding: 0.25em 0.75em;
+    font-size: 0.75em;
     cursor: pointer;
     transition: background 0.12s;
 }
 
 .btn-save-edit:hover {
-    background: #1557b0;
+    background: var(--accent-primary-hover);
 }
 
 /* ── Pagination (pinned at top) ── */
@@ -259,16 +288,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 8px 16px;
-    border-bottom: 1px solid #eee;
-    background: #fafbfc;
+    gap: 0.75em;
+    padding: 0.5em 1em;
+    border-bottom: 0.06em solid var(--border-secondary);
+    background: var(--bg-tertiary);
     flex-shrink: 0;
 }
 
 .comments-page-info {
-    font-size: 12px;
-    color: #666;
+    font-size: 0.75em;
+    color: var(--text-muted);
 }
 
 /* ── Composer (slides from bottom) ── */
@@ -277,13 +306,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #fff;
-    border-top: 1px solid #ddd;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    background: var(--bg-primary);
+    border-top: 0.06em solid var(--border-primary);
+    box-shadow: 0 -0.25em 1em rgba(0, 0, 0, 0.08);
     transform: translateY(100%);
     transition: transform 0.25s ease;
     z-index: 20;
-    padding: 10px 16px 14px;
+    padding: 0.625em 1em 0.875em;
 }
 
 .comments-composer.open {
@@ -293,14 +322,14 @@
 .composer-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 0.75em;
+    margin-bottom: 0.5em;
 }
 
 .composer-label {
-    font-size: 13px;
+    font-size: 0.81em;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .composer-emoji-wrapper {
@@ -310,56 +339,56 @@
 .composer-emoji-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.25em;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    color: #666;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 0.75em;
+    color: var(--text-muted);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25em;
     transition: background 0.12s;
 }
 
 .composer-emoji-btn:hover {
-    background: #f0f0f0;
+    background: var(--bg-active);
 }
 
 .composer-emoji-picker {
     position: absolute;
     bottom: 100%;
     left: 0;
-    margin-bottom: 4px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    padding: 8px;
+    margin-bottom: 0.25em;
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    box-shadow: var(--shadow-md);
+    padding: 0.5em;
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 4px;
+    gap: 0.25em;
     z-index: 30;
 }
 
 .composer-emoji-item {
-    font-size: 20px;
+    font-size: 1.25em;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
+    width: 2em;
+    height: 2em;
+    border-radius: 0.25em;
     transition: background 0.1s;
 }
 
 .composer-emoji-item:hover {
-    background: #f0f5ff;
+    background: var(--bg-accent-deep);
 }
 
 .composer-hint {
-    font-size: 11px;
-    color: #aaa;
+    font-size: 0.69em;
+    color: var(--text-disabled);
     margin-left: auto;
 }
 
@@ -367,14 +396,14 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: #999;
+    color: var(--text-placeholder);
     display: flex;
     align-items: center;
-    padding: 4px;
+    padding: 0.25em;
 }
 
 .composer-close-btn:hover {
-    color: #555;
+    color: var(--text-tertiary);
 }
 
 .composer-input-row {
@@ -383,10 +412,10 @@
 
 .composer-textarea {
     width: 100%;
-    font-size: 13px;
-    padding: 8px 50px 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    font-size: 0.81em;
+    padding: 0.5em 3.12em 0.5em 0.625em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
     resize: vertical;
     font-family: inherit;
     box-sizing: border-box;
@@ -394,23 +423,23 @@
 
 .composer-counter {
     position: absolute;
-    bottom: 6px;
-    right: 10px;
-    font-size: 11px;
-    color: #999;
+    bottom: 0.375em;
+    right: 0.625em;
+    font-size: 0.69em;
+    color: var(--text-placeholder);
 }
 
 .composer-submit-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 8px;
+    margin-top: 0.5em;
 }
 
 /* ── Delete confirmation overlay ── */
 .comments-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--overlay-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -418,59 +447,59 @@
 }
 
 .comments-confirm-popup {
-    background: #fff;
-    border-radius: 10px;
-    padding: 24px;
-    min-width: 300px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    background: var(--bg-primary);
+    border-radius: 0.625em;
+    padding: 1.5em;
+    min-width: 18.75em;
+    box-shadow: var(--shadow-lg);
     text-align: center;
 }
 
 .comments-confirm-popup p {
-    margin: 0 0 20px;
-    font-size: 14px;
-    color: #333;
+    margin: 0 0 1.25em;
+    font-size: 0.875em;
+    color: var(--text-primary);
 }
 
 .confirm-actions {
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 0.75em;
 }
 
 .btn-danger {
-    background: #e74c3c;
-    color: #fff;
+    background: var(--danger);
+    color: var(--text-on-primary);
     border: none;
-    border-radius: 6px;
-    padding: 7px 20px;
-    font-size: 13px;
+    border-radius: 0.375em;
+    padding: 0.44em 1.25em;
+    font-size: 0.81em;
     cursor: pointer;
     transition: background 0.12s;
 }
 
 .btn-danger:hover {
-    background: #c0392b;
+    background: var(--danger-hover);
 }
 
 .btn-secondary {
-    background: #fff;
-    color: #555;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 7px 16px;
-    font-size: 13px;
+    background: var(--bg-primary);
+    color: var(--text-tertiary);
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    padding: 0.44em 1em;
+    font-size: 0.81em;
     cursor: pointer;
     transition: background 0.12s;
 }
 
 .btn-secondary:hover {
-    background: #f5f5f5;
+    background: var(--bg-active);
 }
 
 .btn-secondary.btn-sm {
-    padding: 4px 12px;
-    font-size: 12px;
+    padding: 0.25em 0.75em;
+    font-size: 0.75em;
 }
 
 /* ══════════════════════════════════════
@@ -478,26 +507,26 @@
    ══════════════════════════════════════ */
 @media (max-width: 768px) {
     .comments-breadcrumb {
-        padding: 8px 12px;
-        font-size: 12px;
+        padding: 0.5em 0.75em;
+        font-size: 0.75em;
     }
 
     .comments-list {
-        padding: 12px;
+        padding: 0.75em;
     }
 
     .comment-card {
-        gap: 8px;
-        padding: 10px 0;
+        gap: 0.5em;
+        padding: 0.625em 0;
     }
 
     .comment-avatar {
-        width: 30px;
-        height: 30px;
+        width: 1.88em;
+        height: 1.88em;
     }
 
     .comment-text {
-        font-size: 13px;
+        font-size: 0.81em;
     }
 
     .composer-emoji-picker {
@@ -505,45 +534,45 @@
     }
 
     .comments-top-actions {
-        padding: 8px 12px;
+        padding: 0.5em 0.75em;
     }
 }
 
 @media (max-width: 480px) {
     .comments-breadcrumb {
-        padding: 6px 8px;
-        gap: 8px;
+        padding: 0.375em 0.5em;
+        gap: 0.5em;
     }
 
     .comments-trail {
-        font-size: 11px;
+        font-size: 0.69em;
     }
 
     .comments-list {
-        padding: 8px;
+        padding: 0.5em;
     }
 
     .comment-card {
-        gap: 6px;
-        padding: 8px 0;
+        gap: 0.375em;
+        padding: 0.5em 0;
     }
 
     .comment-avatar {
-        width: 26px;
-        height: 26px;
+        width: 1.62em;
+        height: 1.62em;
     }
 
     .comment-author {
-        font-size: 12px;
+        font-size: 0.75em;
     }
 
     .comment-text {
-        font-size: 12px;
+        font-size: 0.75em;
     }
 
     .composer-bar {
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 0.375em;
     }
 
     .composer-hint {
@@ -555,7 +584,7 @@
     }
 
     .comments-confirm-popup {
-        min-width: 240px;
-        padding: 16px;
+        min-width: 15em;
+        padding: 1em;
     }
 }
