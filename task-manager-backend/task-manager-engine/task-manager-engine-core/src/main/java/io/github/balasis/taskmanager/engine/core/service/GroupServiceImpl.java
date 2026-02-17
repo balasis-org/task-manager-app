@@ -64,32 +64,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final DeletedTaskRepository deletedTaskRepository;
 
 
-    private Instant touchLastGroupEventDate(Group group) {
-        Instant now = Instant.now();
-        group.setLastGroupEventDate(now);
-        return now;
-    }
 
-    /* ── Date-tracking helpers ── */
-
-    /** Touch group-level change dates. Call on every mutation inside the group. */
-    private void touchGroupChange(Group group, boolean noJoins) {
-        Instant now = Instant.now();
-        group.setLastChangeInGroup(now);
-        if (noJoins) {
-            group.setLastChangeInGroupNoJoins(now);
-        }
-    }
-
-    /** Touch task-level change dates and propagate to its group. */
-    private void touchTaskChange(Task task, boolean noJoins, boolean participants, boolean comments) {
-        Instant now = Instant.now();
-        task.setLastChangeDate(now);
-        if (noJoins) task.setLastChangeDateNoJoins(now);
-        if (participants) task.setLastChangeDateInParticipants(now);
-        if (comments) task.setLastChangeDateInComments(now);
-        touchGroupChange(task.getGroup(), false);
-    }
 
 
     @Override
@@ -1001,5 +976,31 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         return builder.build();
     }
+
+    private Instant touchLastGroupEventDate(Group group) {
+        Instant now = Instant.now();
+        group.setLastGroupEventDate(now);
+        return now;
+    }
+
+    /* ── Date-tracking helpers ── */
+
+    private void touchGroupChange(Group group, boolean noJoins) {
+        Instant now = Instant.now();
+        group.setLastChangeInGroup(now);
+        if (noJoins) {
+            group.setLastChangeInGroupNoJoins(now);
+        }
+    }
+
+    private void touchTaskChange(Task task, boolean noJoins, boolean participants, boolean comments) {
+        Instant now = Instant.now();
+        task.setLastChangeDate(now);
+        if (noJoins) task.setLastChangeDateNoJoins(now);
+        if (participants) task.setLastChangeDateInParticipants(now);
+        if (comments) task.setLastChangeDateInComments(now);
+        touchGroupChange(task.getGroup(), false);
+    }
+
 
 }
