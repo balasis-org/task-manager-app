@@ -2,6 +2,8 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
+import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
@@ -59,13 +61,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final AuthorizationService authorizationService;
     private final DefaultImageService defaultImageService;
     private final GroupInvitationRepository groupInvitationRepository;
+    private final DeletedTaskRepository deletedTaskRepository;
 
 
-    private Instant touchLastGroupEventDate(Group group) {
-        Instant now = Instant.now();
-        group.setLastGroupEventDate(now);
-        return now;
-    }
+
 
 
     @Override
@@ -75,6 +74,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupValidator.validate(group);
         group.setOwner(user);
         group.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.GROUP_IMAGES));
+        touchGroupChange(group, true);
         Group savedGroup = groupRepository.save(group);
         groupMembershipRepository.save(
                 GroupMembership.builder()
@@ -141,7 +141,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             groupEventRepository.save(gEvAllowEmail);
         }
 
-
+        touchGroupChange(existingGroup, true);
 
         return groupRepository.save(existingGroup);
     }
@@ -165,6 +165,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         String blobName = blobStorageService.uploadGroupImage(file, groupId);
         group.setImgUrl(blobName);
+        touchGroupChange(group, true);
 
         return groupRepository.save(group);
     }
@@ -229,12 +230,20 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             })
             .collect(Collectors.toSet());
 
+        var groupImgUrlConverted = (group.getImgUrl()==null || group.getImgUrl().isBlank())
+                ? null
+                : BlobContainerType.GROUP_IMAGES.getContainerName() + "/" + group.getImgUrl();
+
+        var defaultImgUrlConverted = ((group.getDefaultImgUrl() == null) || group.getDefaultImgUrl().isBlank())
+                ? null
+                : BlobDefaultImageContainer.GROUP_IMAGES.getContainerName()+"/"+group.getDefaultImgUrl();
+
         return GroupWithPreviewDto.builder()
             .id(group.getId())
             .name(group.getName())
             .description(group.getDescription())
-            .defaultImgUrl(group.getDefaultImgUrl())
-            .imgUrl(group.getImgUrl())
+            .defaultImgUrl(defaultImgUrlConverted)
+            .imgUrl(groupImgUrlConverted)
             .ownerId(group.getOwner().getId())
             .ownerName(group.getOwner().getName())
             .announcement(group.getAnnouncement())
@@ -385,6 +394,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 )
                 .build();
         groupEventRepository.save(ge);
+        touchGroupChange(gr, false);
         taskParticipantRepository.deleteByUserIdAndGroupId(targetsId, groupId);
         groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
     }
@@ -414,9 +424,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             taskParticipantRepository.deleteReviewersByUserIdAndGroupId(target.getUser().getId(), groupId);
         }
         target.setRole(newRole);
+        touchGroupChange(groupRepository.getReferenceById(groupId), false);
         GroupMembership saved = groupMembershipRepository.save(target);
-        // evict cache for this group to keep member listings fresh
-        // Note: @CacheEvict on this method would be ideal; using CacheEvict annotation requires method-level placement.
         return saved;
     }
 
@@ -478,6 +487,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         touchLastGroupEventDate(groupInvitation.getGroup());
+        touchGroupChange(groupInvitation.getGroup(), false);
         groupEventRepository.save(GroupEvent.builder()
                 .group(groupInvitation.getGroup())
                 .description(groupInvitation.getUser().getName() + " has been added to the group")
@@ -586,6 +596,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 savedTask.getCreatorFiles().add(taskFile);
             }
         }
+        touchTaskChange(savedTask, true, true, false);
         taskRepository.save(savedTask);
 
         var thefetchedOne = taskRepository.findByIdWithFullFetchParticipantsAndFiles(savedTask.getId()).orElseThrow(
@@ -639,6 +650,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
         fetchedTask.setLastEditBy(curUser);
         fetchedTask.setLastEditDate(Instant.now());
+        touchTaskChange(fetchedTask, true, false, false);
         return taskRepository.save(fetchedTask);
     }
 
@@ -661,6 +673,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (task.getReviewComment() != null) {
             fetchedTask.setReviewComment(task.getReviewComment());
         }
+        touchTaskChange(fetchedTask, true, false, false);
 
         return taskRepository.save(fetchedTask);
     }
@@ -686,6 +699,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         .user(userRepository.getReferenceById(userId))
         .taskParticipantRole(taskParticipantRole)
         .build());
+        touchTaskChange(task, false, true, false);
         return taskRepository.save(task);
     }
 
@@ -698,6 +712,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         task.getTaskParticipants().removeIf(tp ->
         tp.getId().equals(taskParticipantId));
+        touchTaskChange(task, false, true, false);
     }
 
 
@@ -713,6 +728,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .name(file.getOriginalFilename())
                 .fileUrl(url)
                 .build());
+        touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
 
     }
@@ -753,6 +769,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         task.getCreatorFiles().remove(file);
         taskFileRepository.delete(file);
+        touchTaskChange(task, false, false, false);
     }
 
         @Override
@@ -770,6 +787,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .name(file.getOriginalFilename())
             .fileUrl(url)
             .build());
+        touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
         }
 
@@ -789,6 +807,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         task.getAssigneeFiles().remove(file);
         taskAssigneeFileRepository.delete(file);
+        touchTaskChange(task, false, false, false);
         }
 
         @Override
@@ -818,6 +837,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupValidator.validateAssigneeMarkTaskToBeReviewed(task, groupId);
         task.setTaskState(TaskState.TO_BE_REVIEWED);
+        touchTaskChange(task, true, false, false);
         taskRepository.save(task);
 
         return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
@@ -844,6 +864,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         long currentCount = taskCommentRepository.countByTask_Id(taskId);
         task.setCommentCount(currentCount);
         task.setLastCommentDate(Instant.now());
+        touchTaskChange(task, false, false, true);
         taskRepository.save(task);
 
         return saved;
@@ -856,6 +877,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(() -> new RuntimeException("Task comment not found"));
         groupValidator.validateTaskPatchComment(groupId,existing,taskId,comment);
         existing.setComment(comment);
+        touchTaskChange(existing.getTask(), false, false, true);
         return taskCommentRepository.save(existing);
     }
 
@@ -868,7 +890,116 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         taskCommentRepository.delete(existing);
         long currentCount = taskCommentRepository.countByTask_Id(task.getId());
         task.setCommentCount(currentCount);
+        touchTaskChange(task, false, false, true);
         taskRepository.save(task);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen) {
+        authorizationService.requireAnyRoleIn(groupId);
+        Instant serverNow = Instant.now();
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
+
+        boolean groupChanged = group.getLastChangeInGroup() != null && group.getLastChangeInGroup().isAfter(lastSeen);
+        boolean groupNoJoinsChanged = group.getLastChangeInGroupNoJoins() != null && group.getLastChangeInGroupNoJoins().isAfter(lastSeen);
+        boolean tasksDeleted = group.getLastDeleteTaskDate() != null && group.getLastDeleteTaskDate().isAfter(lastSeen);
+
+        if (!groupChanged && !tasksDeleted) {
+            return GroupRefreshDto.builder()
+                    .serverNow(serverNow)
+                    .changed(false)
+                    .build();
+        }
+
+        GroupRefreshDto.GroupRefreshDtoBuilder builder = GroupRefreshDto.builder()
+                .serverNow(serverNow)
+                .changed(true);
+
+        // Populate group-level fields only if the group itself changed (non-join fields)
+        if (groupNoJoinsChanged) {
+            var groupImgUrlConverted = (group.getImgUrl() == null || group.getImgUrl().isBlank())
+                    ? null
+                    : BlobContainerType.GROUP_IMAGES.getContainerName() + "/" + group.getImgUrl();
+            var defaultImgUrlConverted = (group.getDefaultImgUrl() == null || group.getDefaultImgUrl().isBlank())
+                    ? null
+                    : BlobDefaultImageContainer.GROUP_IMAGES.getContainerName() + "/" + group.getDefaultImgUrl();
+
+            builder.name(group.getName())
+                    .description(group.getDescription())
+                    .announcement(group.getAnnouncement())
+                    .defaultImgUrl(defaultImgUrlConverted)
+                    .imgUrl(groupImgUrlConverted)
+                    .allowEmailNotification(group.getAllowEmailNotification())
+                    .lastGroupEventDate(group.getLastGroupEventDate());
+        }
+
+        // Changed tasks
+        Long currentUserId = effectiveCurrentUser.getUserId();
+        var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, currentUserId);
+        boolean isLeaderOrManager = membershipOpt.isPresent() && (
+                membershipOpt.get().getRole() == Role.GROUP_LEADER ||
+                        membershipOpt.get().getRole() == Role.TASK_MANAGER
+        );
+
+        Set<Task> changedTasks = taskRepository.findChangedSince(groupId, lastSeen);
+        Set<TaskPreviewDto> taskPreviews = changedTasks.stream()
+                .map(task -> {
+                    boolean accessible = isLeaderOrManager || task.getTaskParticipants().stream()
+                            .anyMatch(tp -> tp.getUser().getId().equals(currentUserId));
+                    boolean areThereNewCommentsToBeRead = task.getTaskParticipants().stream()
+                            .anyMatch(tp -> tp.getUser().getId().equals(currentUserId)
+                                    && tp.getLastSeenTaskComments() != null
+                                    && task.getLastCommentDate() != null
+                                    && tp.getLastSeenTaskComments().isBefore(task.getLastCommentDate()));
+                    return TaskPreviewDto.builder()
+                            .id(task.getId())
+                            .title(task.getTitle())
+                            .taskState(task.getTaskState())
+                            .createdAt(task.getCreatedAt())
+                            .dueDate(task.getDueDate())
+                            .commentCount(task.getCommentCount())
+                            .accessible(accessible)
+                            .newCommentsToBeRead(areThereNewCommentsToBeRead)
+                            .build();
+                })
+                .collect(Collectors.toSet());
+        builder.changedTasks(taskPreviews);
+
+        // Deleted task IDs
+        if (tasksDeleted) {
+            builder.deletedTaskIds(deletedTaskRepository.findDeletedTaskIdsByGroupId(groupId));
+        }
+
+        return builder.build();
+    }
+
+    private Instant touchLastGroupEventDate(Group group) {
+        Instant now = Instant.now();
+        group.setLastGroupEventDate(now);
+        return now;
+    }
+
+    /* ── Date-tracking helpers ── */
+
+    private void touchGroupChange(Group group, boolean noJoins) {
+        Instant now = Instant.now();
+        group.setLastChangeInGroup(now);
+        if (noJoins) {
+            group.setLastChangeInGroupNoJoins(now);
+        }
+    }
+
+    private void touchTaskChange(Task task, boolean noJoins, boolean participants, boolean comments) {
+        Instant now = Instant.now();
+        task.setLastChangeDate(now);
+        if (noJoins) task.setLastChangeDateNoJoins(now);
+        if (participants) task.setLastChangeDateInParticipants(now);
+        if (comments) task.setLastChangeDateInComments(now);
+        touchGroupChange(task.getGroup(), false);
     }
 
 

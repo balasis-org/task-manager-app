@@ -143,4 +143,16 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
             @Param("dueDateBefore") Instant dueDateBefore
         );
 
+    @Query("""
+        SELECT DISTINCT t
+        FROM Task t
+        LEFT JOIN FETCH t.taskParticipants tp
+        LEFT JOIN FETCH tp.user
+        WHERE t.group.id = :groupId
+          AND t.lastChangeDate > :since
+    """)
+    Set<Task> findChangedSince(
+        @Param("groupId") Long groupId,
+        @Param("since") Instant since
+    );
 }

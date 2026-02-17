@@ -37,6 +37,7 @@ class GroupServiceTest {
     private GroupServiceImpl groupService;
     private AuthorizationService authorizationService;
     private GroupInvitationRepository groupInvitationRepository;
+    private DeletedTaskRepository deletedTaskRepository;
     private DefaultImageService defaultImageService;
 
     @BeforeEach
@@ -53,6 +54,7 @@ class GroupServiceTest {
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         groupEventRepository = mock (GroupEventRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
+        deletedTaskRepository = mock(DeletedTaskRepository.class);
 
         emailClientProvider = mock(ObjectProvider.class);
         blobStorageService = mock(BlobStorageService.class);
@@ -75,7 +77,8 @@ class GroupServiceTest {
                 blobStorageService,
                 authorizationService,
                 defaultImageService,
-                groupInvitationRepository
+                groupInvitationRepository,
+                deletedTaskRepository
 
         );
     }

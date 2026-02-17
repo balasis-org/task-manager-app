@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.*;
+import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.model.TaskComment;
@@ -79,4 +80,6 @@ public interface GroupService{
     Task markTaskToBeReviewed(Long groupId, Long taskId);
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
 
+    //Refresh (delta polling)
+    GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
 }
