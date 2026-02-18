@@ -86,4 +86,19 @@ public interface GroupService{
     void deleteTask(Long groupId, Long taskId);
 
     Set<Long> findAccessibleTaskIds(Long groupId);
+
+    Set<Long> findFilteredTaskIds(
+        Long groupId,
+        Long creatorId,
+        Boolean creatorIsMe,
+        Long reviewerId,
+        Boolean reviewerIsMe,
+        Long assigneeId,
+        Boolean assigneeIsMe,
+        Instant dueDateBefore,
+        Integer priorityMin,
+        Integer priorityMax,
+        TaskState taskState,
+        Boolean hasFiles
+    );
 }

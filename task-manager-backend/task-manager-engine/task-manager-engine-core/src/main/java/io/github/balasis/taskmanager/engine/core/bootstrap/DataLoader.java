@@ -28,9 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -110,6 +108,15 @@ public class DataLoader extends BaseComponent {
         seeds.put("MALLORY", new SeedUser(devAzureKey("mallory.dev@example.com"), "mallory.dev@example.com", "Mallory Dev"));
         seeds.put("OSCAR", new SeedUser(devAzureKey("oscar.dev@example.com"), "oscar.dev@example.com", "Oscar Dev"));
 
+        var whitelistOtherTenant = new HashSet<>(
+                Set.of(
+                        seeds.get("ALICE").name,
+                        seeds.get("GRACE").name,
+                        seeds.get("JUDY").name,
+                        seeds.get("BOB").name
+                )
+        );
+
         Map<String, User> created = new LinkedHashMap<>();
         for (Map.Entry<String, SeedUser> entry : seeds.entrySet()) {
             SeedUser seed = entry.getValue();
@@ -117,7 +124,7 @@ public class DataLoader extends BaseComponent {
                     .orElseGet(() -> userRepository.save(
                             User.builder()
                                     .azureKey(seed.azureKey)
-                                    .tenantId(SEED_TENANT_ID)
+                                    .tenantId((whitelistOtherTenant.contains(seed.name)) ? "OtherTenant" :SEED_TENANT_ID)
                                     .email(seed.email)
                                     .name(seed.name)
                                     .isOrg(false)

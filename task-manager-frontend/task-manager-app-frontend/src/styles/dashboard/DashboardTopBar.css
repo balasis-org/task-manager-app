@@ -4,7 +4,7 @@
     border-bottom: 0.06em solid var(--border-primary);
     position: relative;
     transition: max-height 0.25s ease;
-    max-height: 12.5em;
+    max-height: 20em;       /* generous to accommodate wrap at narrow widths */
     overflow: visible;
 }
 
@@ -16,21 +16,22 @@
 
 .topbar-toggle {
     position: absolute;
-    bottom: -1.25em;
+    bottom: -1.38em;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
     background: var(--bg-secondary);
     border: 0.06em solid var(--border-primary);
     border-top: none;
-    border-radius: 0 0 0.375em 0.375em;
+    border-radius: 0 0 0.5em 0.5em;
     width: 2.5em;
-    height: 1.25em;
+    height: 1.38em;
     cursor: pointer;
     font-size: 0.625em;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0.15em 0 0.1em;
     color: var(--text-muted);
 }
 
@@ -43,12 +44,15 @@
     align-items: center;
     padding: 0.625em 1em 0.625em 2.25em;
     gap: 1.5em;
+    min-width: 0;
 }
 
 .topbar-left {
     display: flex;
     align-items: center;
     gap: 0.5em;
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 .topbar-right {
@@ -56,6 +60,8 @@
     display: flex;
     align-items: center;
     gap: 1.5em;
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 /* Icon buttons */
@@ -82,6 +88,26 @@
 /* Events button — notification dot */
 .topbar-events-btn {
     position: relative;
+}
+
+/* Filter button */
+.topbar-filter-btn {
+    position: relative;
+}
+
+.topbar-filter-btn.filter-active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.topbar-filter-dot {
+    position: absolute;
+    top: 0.06em;
+    right: 0.06em;
+    width: 0.44em;
+    height: 0.44em;
+    border-radius: 50%;
+    background: var(--accent-primary);
 }
 
 .topbar-notif-dot {
@@ -341,6 +367,8 @@
     border: 0.06em solid var(--border-input);
     border-radius: 0.5em;
     background: var(--bg-primary);
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 .topbar-combo .topbar-dropdown-btn {
@@ -349,6 +377,8 @@
     padding: 0.375em 0.75em;
     height: 2.12em;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .topbar-members-btn svg {
@@ -356,7 +386,7 @@
 }
 
 .topbar-group-btn {
-    min-width: 11.875em;
+    min-width: 0;
 }
 
 .topbar-group-name {
@@ -417,6 +447,18 @@
     text-transform: uppercase;
 }
 
+.topbar-org-badge {
+    font-size: 0.6em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.1em 0.4em;
+    border-radius: 0.3em;
+    background: var(--accent);
+    color: #fff;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
 /* Group image */
 .topbar-group-img-wrapper {
     display: flex;
@@ -461,26 +503,43 @@
 }
 
 /* Responsive — Dashboard Top Bar */
+
+/* At 768px: allow the topbar-content and topbar-right to wrap.
+   Left items stay on the first line; right items flow to a second line. */
 @media (max-width: 768px) {
     .topbar-content {
         padding: 0.5em 0.625em;
-        gap: 0.8em;
+        gap: 0.5em 0.8em;
         flex-wrap: wrap;
     }
 
+    /* Let left take full width so right wraps to next line */
+    .topbar-left {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .topbar-right {
-        gap: 0.8em;
+        flex: 1 1 100%;
+        gap: 0.5em;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .topbar-group-btn {
-        min-width: 7.5em;
+        min-width: 0;
+    }
+
+    .topbar-role-tag {
+        font-size: 0.69em;
     }
 }
 
+/* At 480px: everything compact, still wrapping */
 @media (max-width: 480px) {
     .topbar-content {
         padding: 0.375em 0.5em;
-        gap: 0.5em;
+        gap: 0.375em 0.5em;
     }
 
     .topbar-combo .topbar-dropdown-btn {
@@ -501,6 +560,19 @@
     }
 
     .topbar-group-btn {
-        min-width: 5em;
+        min-width: 0;
+    }
+
+    .topbar-right {
+        gap: 0.375em;
+    }
+
+    .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
+        margin-left: 0;
+    }
+
+    /* Hide text labels on small screens, keep icons */
+    .topbar-members-btn span:not(.caret) {
+        display: none;
     }
 }

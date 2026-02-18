@@ -16,4 +16,5 @@ public class UserMiniForDropdownOutboundResource extends BaseOutboundResource {
     private String name;
     private String defaultImgUrl;
     private String imgUrl;
+    private Boolean sameOrg;
 }

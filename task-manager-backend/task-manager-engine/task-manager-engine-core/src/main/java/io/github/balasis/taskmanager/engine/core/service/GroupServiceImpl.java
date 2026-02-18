@@ -1068,6 +1068,51 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .collect(Collectors.toSet());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> findFilteredTaskIds(
+            Long groupId,
+            Long creatorId,
+            Boolean creatorIsMe,
+            Long reviewerId,
+            Boolean reviewerIsMe,
+            Long assigneeId,
+            Boolean assigneeIsMe,
+            Instant dueDateBefore,
+            Integer priorityMin,
+            Integer priorityMax,
+            TaskState taskState,
+            Boolean hasFiles
+    ) {
+        // Single DB query: authorize + fetch membership for role check
+        var membership = authorizationService.requireAnyRoleInAndGet(groupId);
+        Long currentUserId = effectiveCurrentUser.getUserId();
+
+        boolean isLeaderOrManager =
+                membership.getRole() == Role.GROUP_LEADER ||
+                membership.getRole() == Role.TASK_MANAGER;
+
+        Long effectiveCreatorId  = Boolean.TRUE.equals(creatorIsMe)  ? currentUserId : creatorId;
+        Long effectiveReviewerId = Boolean.TRUE.equals(reviewerIsMe) ? currentUserId : reviewerId;
+        Long effectiveAssigneeId = Boolean.TRUE.equals(assigneeIsMe) ? currentUserId : assigneeId;
+
+        // non-leaders/managers can only see tasks they participate in
+        Long participantUserId = isLeaderOrManager ? null : currentUserId;
+
+        return taskRepository.filterTaskIds(
+                groupId,
+                effectiveCreatorId,
+                effectiveReviewerId,
+                effectiveAssigneeId,
+                participantUserId,
+                dueDateBefore,
+                priorityMin,
+                priorityMax,
+                taskState,
+                hasFiles
+        );
+    }
+
     private Instant touchLastGroupEventDate(Group group) {
         Instant now = Instant.now();
         group.setLastGroupEventDate(now);

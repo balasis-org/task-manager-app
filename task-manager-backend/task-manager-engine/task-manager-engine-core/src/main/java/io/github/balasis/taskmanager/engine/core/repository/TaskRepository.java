@@ -159,4 +159,52 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         @Param("groupId") Long groupId,
         @Param("since") Instant since
     );
+
+    @Query("""
+        SELECT DISTINCT t.id
+        FROM Task t
+        WHERE t.group.id = :groupId
+        AND (:dueDateBefore IS NULL OR (t.dueDate IS NOT NULL AND t.dueDate <= :dueDateBefore))
+        AND (:priorityMin IS NULL OR t.priority >= :priorityMin)
+        AND (:priorityMax IS NULL OR t.priority <= :priorityMax)
+        AND (:taskState IS NULL OR t.taskState = :taskState)
+        AND (:hasFiles IS NULL
+            OR (:hasFiles = TRUE AND (
+                EXISTS (SELECT f FROM TaskFile f WHERE f.task.id = t.id)
+                OR EXISTS (SELECT af FROM TaskAssigneeFile af WHERE af.task.id = t.id)
+            ))
+            OR (:hasFiles = FALSE AND
+                NOT EXISTS (SELECT f FROM TaskFile f WHERE f.task.id = t.id)
+                AND NOT EXISTS (SELECT af FROM TaskAssigneeFile af WHERE af.task.id = t.id)
+            )
+        )
+        AND (:creatorId IS NULL OR t.id IN (
+            SELECT t1.id FROM Task t1 JOIN t1.taskParticipants tp1
+            WHERE tp1.taskParticipantRole = 'CREATOR' AND tp1.user.id = :creatorId
+        ))
+        AND (:reviewerId IS NULL OR t.id IN (
+            SELECT t2.id FROM Task t2 JOIN t2.taskParticipants tp2
+            WHERE tp2.taskParticipantRole = 'REVIEWER' AND tp2.user.id = :reviewerId
+        ))
+        AND (:assigneeId IS NULL OR t.id IN (
+            SELECT t3.id FROM Task t3 JOIN t3.taskParticipants tp3
+            WHERE tp3.taskParticipantRole = 'ASSIGNEE' AND tp3.user.id = :assigneeId
+        ))
+        AND (:participantUserId IS NULL OR t.id IN (
+            SELECT t4.id FROM Task t4 JOIN t4.taskParticipants tp4
+            WHERE tp4.user.id = :participantUserId
+        ))
+    """)
+    Set<Long> filterTaskIds(
+        @Param("groupId") Long groupId,
+        @Param("creatorId") Long creatorId,
+        @Param("reviewerId") Long reviewerId,
+        @Param("assigneeId") Long assigneeId,
+        @Param("participantUserId") Long participantUserId,
+        @Param("dueDateBefore") Instant dueDateBefore,
+        @Param("priorityMin") Integer priorityMin,
+        @Param("priorityMax") Integer priorityMax,
+        @Param("taskState") TaskState taskState,
+        @Param("hasFiles") Boolean hasFiles
+    );
 }

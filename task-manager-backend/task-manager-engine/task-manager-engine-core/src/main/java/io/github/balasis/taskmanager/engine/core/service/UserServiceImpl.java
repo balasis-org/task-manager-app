@@ -78,9 +78,22 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     }
 
     @Override
-    public Page<User> searchUserForInvites(Long groupId, String q , Pageable pageable){
+    public User findCurrentUser() {
+        return userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+    }
+
+    @Override
+    public Page<User> searchUserForInvites(Long groupId, String q, boolean sameOrgOnly, Pageable pageable) {
         var normalized = (q == null || q.isBlank()) ? null : q.trim();
-        return userRepository.searchUserForInvites(groupId,normalized,pageable);
+        String tenantId = null;
+        if (sameOrgOnly) {
+            User me = findCurrentUser();
+            if (me.isOrg()) {
+                tenantId = me.getTenantId();
+            }
+        }
+        return userRepository.searchUserForInvites(groupId, normalized, tenantId, pageable);
     }
 
 }

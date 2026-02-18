@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.context.web.controller;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
+import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
@@ -10,6 +11,7 @@ import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInb
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
@@ -110,10 +112,18 @@ public class GroupController extends BaseComponent {
             @PathVariable Long groupId,
             Pageable pageable
     ){
+        User me = userService.findCurrentUser();
         return ResponseEntity.ok(
-                groupService.getAllGroupMembers(groupId,pageable).map(
-                        groupMembershipOutboundMapper::toResource
-                )
+                groupService.getAllGroupMembers(groupId,pageable).map(gm -> {
+                    var res = groupMembershipOutboundMapper.toResource(gm);
+                    if (res.getUser() != null) {
+                        res.getUser().setSameOrg(
+                                me.isOrg() && gm.getUser().isOrg()
+                                && me.getTenantId() != null && me.getTenantId().equals(gm.getUser().getTenantId())
+                        );
+                    }
+                    return res;
+                })
         );
     }
 
@@ -123,10 +133,18 @@ public class GroupController extends BaseComponent {
             @RequestParam(required = false) String q,
             Pageable pageable
     ){
+        User me = userService.findCurrentUser();
         return ResponseEntity.ok(
-                groupService.searchGroupMembers(groupId, q, pageable).map(
-                        groupMembershipOutboundMapper::toResource
-                )
+                groupService.searchGroupMembers(groupId, q, pageable).map(gm -> {
+                    var res = groupMembershipOutboundMapper.toResource(gm);
+                    if (res.getUser() != null) {
+                        res.getUser().setSameOrg(
+                                me.isOrg() && gm.getUser().isOrg()
+                                && me.getTenantId() != null && me.getTenantId().equals(gm.getUser().getTenantId())
+                        );
+                    }
+                    return res;
+                })
         );
     }
 
@@ -218,17 +236,66 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok(groupService.findAccessibleTaskIds(groupId));
     }
 
-    @GetMapping(path = "/{groupId}/searchForInvite")
-    public ResponseEntity<Page<io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource>> searchUsersForInvite(
+    @GetMapping(path = "/{groupId}/tasks/filter-ids")
+    public ResponseEntity<Set<Long>> findFilteredTaskIds(
             @PathVariable Long groupId,
-            @RequestParam(required = false) String q,
-            Pageable pageable
-    ){
+            @RequestParam(required = false) Long creatorId,
+            @RequestParam(required = false) Boolean creatorIsMe,
+            @RequestParam(required = false) Long reviewerId,
+            @RequestParam(required = false) Boolean reviewerIsMe,
+            @RequestParam(required = false) Long assigneeId,
+            @RequestParam(required = false) Boolean assigneeIsMe,
+            @RequestParam(required = false) Instant dueDateBefore,
+            @RequestParam(required = false) Integer priorityMin,
+            @RequestParam(required = false) Integer priorityMax,
+            @RequestParam(required = false) TaskState taskState,
+            @RequestParam(required = false) Boolean hasFiles
+    ) {
         return ResponseEntity.ok(
-                userService.searchUserForInvites(groupId, q, pageable).map(
-                        userMiniForDropdownOutboundMapper::toResource
+                groupService.findFilteredTaskIds(
+                        groupId,
+                        creatorId,
+                        creatorIsMe,
+                        reviewerId,
+                        reviewerIsMe,
+                        assigneeId,
+                        assigneeIsMe,
+                        dueDateBefore,
+                        priorityMin,
+                        priorityMax,
+                        taskState,
+                        hasFiles
                 )
         );
+    }
+
+    @GetMapping(path = "/{groupId}/searchForInvite")
+    public ResponseEntity<Page<UserMiniForDropdownOutboundResource>> searchUsersForInvite(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false, defaultValue = "false") boolean sameOrgOnly,
+            Pageable pageable
+    ){
+                User me = userService.findCurrentUser();
+
+                // If the requester asked for "same org only" but they themselves are not in an organisation,
+                // return an empty page immediately (no results).
+                if (sameOrgOnly && !me.isOrg()) {
+                        return ResponseEntity.ok(Page.empty(pageable));
+                }
+
+                Page<UserMiniForDropdownOutboundResource> page = userService
+                                .searchUserForInvites(groupId, q, sameOrgOnly, pageable)
+                                .map(u -> {
+                                        var res = userMiniForDropdownOutboundMapper.toResource(u);
+                                        res.setSameOrg(
+                                                        me.isOrg() && u.isOrg()
+                                                                        && me.getTenantId() != null && me.getTenantId().equals(u.getTenantId())
+                                        );
+                                        return res;
+                                });
+
+                return ResponseEntity.ok(page);
     }
 
 

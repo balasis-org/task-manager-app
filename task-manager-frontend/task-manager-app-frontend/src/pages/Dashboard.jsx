@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { GroupContext } from "@context/GroupContext";
 import { AuthContext } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,8 @@ import DashboardTopBar from "@components/dashboard/DashboardTopBar";
 import TaskTable from "@components/dashboard/TaskTable";
 import Spinner from "@components/Spinner";
 import { useToast } from "@context/ToastContext";
+import { apiGet } from "@assets/js/apiClient.js";
+import { FILTER_EMPTY, isFilterEmpty } from "@components/dashboard/FilterPanel";
 import { FiPlus } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
@@ -18,12 +20,25 @@ const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 
 const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
+const COL_CLASSES = ["col-title", "col-creator", "col-priority", "col-due", "col-access", "col-comments"];
 const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
 const COL_MIN      = [120, 70, 60, 80, 60, 40];
 
-// builds the grid-template-columns css value
-function gridCols(w) {
-    return `1fr ${w.slice(1).map((v) => v + "px").join(" ")}`;
+// Which column indices are visible at each breakpoint
+function visibleCols(width) {
+    if (width <= 480) return [0, 2, 5];                // title + priority + comments
+    if (width <= 768) return [0, 2, 3, 4, 5];          // hide creator + due => actually hide creator(1) and due(3)
+    // Wait — at 768 we hid creator(1) and due(3), so visible = [0, 2, 4, 5]
+    // Let me re-check: the CSS hides .cell-creator and .cell-due at 768
+    // So visible columns at <=768: title(0), priority(2), accessible(4), comments(5)
+    // At <=480 additionally hide accessible: title(0), priority(2), comments(5)
+    if (width <= 768) return [0, 2, 4, 5];
+    return [0, 1, 2, 3, 4, 5];                         // all
+}
+
+// builds the grid-template-columns css value for visible columns only
+function gridCols(w, vis) {
+    return vis.map((ci) => (ci === 0 ? "minmax(0,1fr)" : w[ci] + "px")).join(" ");
 }
 
 export default function Dashboard() {
@@ -51,6 +66,15 @@ export default function Dashboard() {
         if (activeGroup) refreshActiveGroup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // track viewport width for responsive column visibility
+    const [vpWidth, setVpWidth] = useState(() => window.innerWidth);
+    useEffect(() => {
+        const onResize = () => setVpWidth(window.innerWidth);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+    const visCols = visibleCols(vpWidth);
 
     // resizable columns — dragging a handle grows one side and shrinks the other
     const [colWidths, setColWidths] = useState(COL_DEFAULTS);
@@ -85,6 +109,29 @@ export default function Dashboard() {
         window.addEventListener("pointerup", onUp);
     }, [colWidths]);
 
+    // Resize handle for the title column's right edge.
+    // Since title is 1fr (flexible), dragging adjusts the adjacent fixed column.
+    const onTitleHandleDown = useCallback((nextColIdx, e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startW = colWidths[nextColIdx];
+
+        function onMove(ev) {
+            const dx = ev.clientX - startX;
+            setColWidths((prev) => {
+                const next = [...prev];
+                next[nextColIdx] = Math.max(COL_MIN[nextColIdx], startW - dx);
+                return next;
+            });
+        }
+        function onUp() {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+    }, [colWidths]);
+
     const [collapsedSections, setCollapsedSections] = useState({});
     const [topBarOpen, setTopBarOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -95,6 +142,79 @@ export default function Dashboard() {
     const [showGroupEvents, setShowGroupEvents] = useState(false);
     const [showNewTask, setShowNewTask] = useState(false);
     const [newTaskState, setNewTaskState] = useState("TODO");
+
+    // ── Filter state ──
+    const [filters, setFilters] = useState({ ...FILTER_EMPTY });
+    const [filterIds, setFilterIds] = useState(null);   // Set<number> or null
+    const [isFilterApplied, setIsFilterApplied] = useState(false);
+    const filterVersionRef = useRef(0);
+
+    // Build query string from filter criteria
+    function buildFilterParams(f) {
+        const p = new URLSearchParams();
+        if (f.creatorId)     p.set("creatorId", f.creatorId);
+        if (f.reviewerId)    p.set("reviewerId", f.reviewerId);
+        if (f.assigneeId)    p.set("assigneeId", f.assigneeId);
+        if (f.priorityMin)   p.set("priorityMin", f.priorityMin);
+        if (f.priorityMax)   p.set("priorityMax", f.priorityMax);
+        if (f.taskState)     p.set("taskState", f.taskState);
+        if (f.hasFiles)      p.set("hasFiles", f.hasFiles);
+        if (f.dueDateBefore) {
+            p.set("dueDateBefore", new Date(f.dueDateBefore + "T23:59:59").toISOString());
+        }
+        return p.toString();
+    }
+
+    async function fetchFilterIds(groupId, criteria) {
+        const version = ++filterVersionRef.current;
+        try {
+            const qs = buildFilterParams(criteria);
+            const ids = await apiGet(`/api/groups/${groupId}/tasks/filter-ids?${qs}`);
+            if (filterVersionRef.current === version) {
+                setFilterIds(new Set(ids));
+            }
+        } catch {
+            if (filterVersionRef.current === version) setFilterIds(null);
+        }
+    }
+
+    // Explicit apply — called by FilterPanel's Apply button
+    const handleApplyFilters = useCallback(() => {
+        if (!activeGroup?.id || isFilterEmpty(filters)) return;
+        setIsFilterApplied(true);
+        fetchFilterIds(activeGroup.id, filters);
+    }, [activeGroup?.id, filters]);
+
+    // Unlock fields for editing (keep current filterIds visible)
+    const handleEditFilters = useCallback(() => {
+        setIsFilterApplied(false);
+    }, []);
+
+    // Clear everything
+    const handleClearFilters = useCallback(() => {
+        setFilters({ ...FILTER_EMPTY });
+        setFilterIds(null);
+        setIsFilterApplied(false);
+    }, []);
+
+    // Re-fetch filter IDs when groupDetail changes (polling) and filter is applied
+    const filtersRef = useRef(filters);
+    filtersRef.current = filters;
+    const isFilterAppliedRef = useRef(isFilterApplied);
+    isFilterAppliedRef.current = isFilterApplied;
+    useEffect(() => {
+        if (isFilterAppliedRef.current && !isFilterEmpty(filtersRef.current) && activeGroup?.id && groupDetail) {
+            fetchFilterIds(activeGroup.id, filtersRef.current);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [groupDetail]);
+
+    // Reset filters when switching groups
+    useEffect(() => {
+        setFilters({ ...FILTER_EMPTY });
+        setFilterIds(null);
+        setIsFilterApplied(false);
+    }, [activeGroup?.id]);
 
     function handleGroupCreated(newGroup) {
         setShowNewGroup(false);
@@ -137,12 +257,15 @@ export default function Dashboard() {
         navigate(`/group/${activeGroup.id}/task/${created.id}`);
     }
 
-    // group tasks by state + search filter
+    // group tasks by state + filter IDs whitelist + search filter
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
     if (groupDetail?.taskPreviews) {
         const q = searchQuery.toLowerCase().trim();
         for (const task of groupDetail.taskPreviews) {
+            // 1. Filter by backend IDs whitelist (when filter is active)
+            if (filterIds && !filterIds.has(task.id)) continue;
+            // 2. Then local search
             if (q && !task.title?.toLowerCase().includes(q)) continue;
             const state = task.taskState || "TODO";
             if (tasksByState[state]) {
@@ -189,6 +312,12 @@ export default function Dashboard() {
                 onLeaveGroup={handleLeaveGroup}
                 user={user}
                 groupDetail={groupDetail}
+                filters={filters}
+                isFilterApplied={isFilterApplied}
+                onDraftChange={setFilters}
+                onApplyFilters={handleApplyFilters}
+                onEditFilters={handleEditFilters}
+                onFiltersClear={handleClearFilters}
             />
 
             {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
@@ -223,15 +352,23 @@ export default function Dashboard() {
                     {/* column headers + resize handles */}
                     <div
                         className="task-col-header"
-                        style={{ gridTemplateColumns: gridCols(colWidths) }}
+                        style={{ gridTemplateColumns: gridCols(colWidths, visCols) }}
                     >
-                        {COL_NAMES.map((name, i) => (
-                            <span key={i} className="col-header-cell">
-                                {name}
-                                {i < COL_NAMES.length - 1 && i >= 1 && (
+                        {visCols.map((ci) => (
+                            <span key={ci} className={`col-header-cell ${COL_CLASSES[ci]}`}>
+                                {COL_NAMES[ci]}
+                                {/* Title column: resize handle on the right, adjusts the next fixed column */}
+                                {ci === 0 && visCols.length > 1 && (
                                     <span
                                         className="col-resize-handle"
-                                        onPointerDown={(e) => onPointerDown(i, e)}
+                                        onPointerDown={(e) => onTitleHandleDown(visCols[1], e)}
+                                    />
+                                )}
+                                {/* Other columns: resize handle between adjacent visible columns (skip last) */}
+                                {ci !== 0 && ci !== visCols[visCols.length - 1] && (
+                                    <span
+                                        className="col-resize-handle"
+                                        onPointerDown={(e) => onPointerDown(ci, e)}
                                     />
                                 )}
                             </span>
@@ -268,6 +405,7 @@ export default function Dashboard() {
                                     tasks={tasksByState[state]}
                                     groupId={activeGroup?.id}
                                     colWidths={colWidths}
+                                    visCols={visCols}
                                 />
                             )}
                         </div>
