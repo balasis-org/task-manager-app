@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import {
     FiArrowLeft,
@@ -6,12 +6,14 @@ import {
     FiPlus,
     FiSmile,
     FiX,
+    FiRefreshCw,
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
+import useSmartPoll from "@hooks/useSmartPoll";
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Comments.css";
@@ -70,6 +72,20 @@ export default function Comments() {
     // Delete confirm
     const [deleteId, setDeleteId] = useState(null);
 
+    // lightweight comments-change poll
+    const lastFetchRef = useRef(new Date().toISOString());
+
+    const commentsPollCheck = useCallback(async () => {
+        if (!groupId || !taskId) return;
+        await apiGet(`/api/groups/${groupId}/task/${taskId}/comments/has-changed?since=${encodeURIComponent(lastFetchRef.current)}`);
+    }, [groupId, taskId]);
+
+    const {
+        hasChanged: commentsHaveChanged,
+        isStale: commentsStale,
+        reset: resetCommentsPoll,
+    } = useSmartPoll(commentsPollCheck, { enabled: !!groupId && !!taskId });
+
     // Derived roles
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
 
@@ -119,6 +135,8 @@ export default function Comments() {
             .then((data) => {
                 setComments(data.content || []);
                 setTotalPages(data.totalPages || 0);
+                lastFetchRef.current = new Date().toISOString();
+                resetCommentsPoll();
             })
             .catch(() => setError("Failed to load comments"))
             .finally(() => setLoading(false));
@@ -234,6 +252,16 @@ export default function Comments() {
                 </span>
             </div>
 
+            {/* Poll-detected new comments banner */}
+            {(commentsHaveChanged || commentsStale) && (
+                <div className="comments-stale-banner">
+                    <span>{commentsHaveChanged ? "New comments available." : "Data may be outdated."}</span>
+                    <button className="stale-refresh-btn" onClick={() => setRefreshKey(k => k + 1)}>
+                        <FiRefreshCw size={14} className="stale-refresh-icon" /> Refresh
+                    </button>
+                </div>
+            )}
+
             {/* add button (when theres already comments) */}
             {canComment && comments.length > 0 && (
                 <div className="comments-top-actions">
@@ -286,26 +314,35 @@ export default function Comments() {
                 ) : (
                     comments.map((c) => {
                         const isEditing = editingId === c.id;
-                        const taskRole = participantRoleMap[c.creator?.id];
+                        const isDeletedCreator = !c.creator;
+                        const taskRole = !isDeletedCreator ? participantRoleMap[c.creator?.id] : null;
                         return (
                             <div key={c.id} className="comment-card">
-                                <img
-                                    src={userImg(c.creator)}
-                                    alt=""
-                                    className="comment-avatar"
-                                />
+                                {isDeletedCreator ? (
+                                    <div className="comment-avatar comment-avatar-deleted" title="Deleted user" />
+                                ) : (
+                                    <img
+                                        src={userImg(c.creator)}
+                                        alt=""
+                                        className="comment-avatar"
+                                    />
+                                )}
                                 <div className="comment-body">
                                     <div className="comment-header">
                                         <span className="comment-author">
-                                            {c.creator?.name || c.creator?.email || "Unknown"}
-                                            {taskRole && (
-                                                <span className="comment-role-tag">
-                                                    ({taskRole.replace("_", " ")})
-                                                </span>
-                                            )}
+                                            {isDeletedCreator
+                                                ? <>{c.creatorNameSnapshot || "Unknown"} <span className="comment-deleted-tag">(Deleted User)</span></>
+                                                : <>{c.creator?.name || c.creator?.email || "Unknown"}
+                                                    {taskRole && (
+                                                        <span className="comment-role-tag">
+                                                            ({taskRole.replace("_", " ")})
+                                                        </span>
+                                                    )}
+                                                  </>
+                                            }
                                         </span>
                                         <div className="comment-actions">
-                                            {!isEditing && canEditComment(c) && (
+                                            {!isEditing && canEditComment(c) && !isDeletedCreator && (
                                                 <button
                                                     className="comment-action-btn"
                                                     title="Edit"

@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.config;
+package io.github.balasis.taskmanager.maintenance.config;
 
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.models.KeyVaultSecret;

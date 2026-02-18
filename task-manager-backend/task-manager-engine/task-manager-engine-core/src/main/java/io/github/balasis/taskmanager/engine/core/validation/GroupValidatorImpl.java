@@ -458,7 +458,7 @@ public class GroupValidatorImpl implements GroupValidator{
 
     private void isToBeInvitedUserAlreadyInGroup(GroupInvitation groupInvitation){
         if (groupMembershipRepository.existsByGroupIdAndUserId(
-                groupInvitation.getUser().getId(),groupInvitation.getGroup().getId()
+                groupInvitation.getGroup().getId(),groupInvitation.getUser().getId()
         )){throw new GroupMemberDuplicateException("User is already in group");}
     }
 

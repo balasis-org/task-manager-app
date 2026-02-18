@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleInvalidEnum(HttpMessageNotReadableException ex) {
         String message = ex.getCause() instanceof InvalidFormatException
-                ? "Invalid value for enum field: " + ((InvalidFormatException) ex.getCause()).getValue()
+                ? "Invalid value for field: " + ((InvalidFormatException) ex.getCause()).getValue()
                 : "Malformed request";
 
         Map<String, String> error = Map.of("error", message);

@@ -13,7 +13,7 @@ import Spinner from "@components/Spinner";
 import { useToast } from "@context/ToastContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import { FILTER_EMPTY, isFilterEmpty } from "@components/dashboard/FilterPanel";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiRefreshCw } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
@@ -50,12 +50,14 @@ export default function Dashboard() {
         myRole,
         loadingGroups,
         loadingDetail,
+        isStale,
         selectGroup,
         addGroup,
         updateGroup,
         refreshActiveGroup,
         removeGroupFromState,
         reloadGroups,
+        manualRefresh,
     } = useContext(GroupContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -320,6 +322,15 @@ export default function Dashboard() {
                 onFiltersClear={handleClearFilters}
             />
 
+            {isStale && (
+                <div className="dashboard-stale-banner">
+                    <span>Data may be outdated.</span>
+                    <button className="stale-refresh-btn" onClick={manualRefresh}>
+                        <FiRefreshCw size={14} className="stale-refresh-icon" /> Refresh
+                    </button>
+                </div>
+            )}
+
             {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
                 <div className={`dashboard-announcement${groupDetail.announcement ? " has-text" : " empty"}`}>
                     <strong>Announcement:</strong>{" "}
@@ -347,6 +358,15 @@ export default function Dashboard() {
                                 ✕
                             </button>
                         )}
+                    </div>
+
+                    <div className="dashboard-limits-bar">
+                        <span className="dashboard-limit-tag" title="Groups you belong to">
+                            Groups: {groups.length}/3
+                        </span>
+                        <span className="dashboard-limit-tag" title="Tasks in this group">
+                            Tasks: {groupDetail?.taskPreviews?.length ?? 0}/50
+                        </span>
                     </div>
 
                     {/* column headers + resize handles */}

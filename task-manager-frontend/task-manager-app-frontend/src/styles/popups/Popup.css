@@ -377,6 +377,7 @@
     color: var(--danger);
 }
 .popup-chip-add {
+    font-size:1.5em;
     background: none;
     border: 0.06em solid var(--border-input);
     border-radius: 50%;
@@ -560,6 +561,7 @@
 
 /* Picker inline search */
 .popup-picker-search {
+    width:100%;
     display: inline-flex;
     align-items: center;
     gap: 0.25em;
@@ -571,11 +573,12 @@
     font-weight: 400;
 }
 .popup-picker-search input {
+    width:100%;
     border: none;
     background: transparent;
     outline: none;
     font-size: 0.75em;
-    width: 6.25em;
+
     color: var(--text-primary);
 }
 .popup-picker-search svg {

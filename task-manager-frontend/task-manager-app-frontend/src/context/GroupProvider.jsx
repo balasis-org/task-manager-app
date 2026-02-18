@@ -256,18 +256,56 @@ export default function GroupProvider({ children }) {
         if (user) loadGroups();
     }, [user]);
 
-    // poll every 5min, resets on user activity
-    const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    const pollTimer = useRef(null);
+    // --- Smart polling with progressive backoff ---
+    const BASE_POLL_MS   = 30_000;       // 30 seconds
+    const MAX_POLL_MS    = 5 * 60_000;   // 5 minutes ceiling
+    const STALE_AFTER_MS = 5 * 60_000;   // show refresh button after 5 min inactivity
+    const [isStale, setIsStale]     = useState(false);
 
-    const resetPollTimer = useCallback(() => {
+    const pollTimer       = useRef(null);
+    const currentInterval = useRef(BASE_POLL_MS);
+    const lastActivity    = useRef(Date.now());
+
+    const schedulePoll = useCallback(() => {
         if (pollTimer.current) clearTimeout(pollTimer.current);
+
         pollTimer.current = setTimeout(() => {
+            const idle = Date.now() - lastActivity.current;
+
+            if (idle >= STALE_AFTER_MS) {
+                // user has been idle too long — stop polling, mark stale
+                setIsStale(true);
+                return;
+            }
+
             if (activeGroup) loadOrRefreshDetail(activeGroup.id);
-            // after the refresh fires, start the timer again
-            resetPollTimer();
-        }, POLL_INTERVAL);
+
+            // double the interval (capped)
+            currentInterval.current = Math.min(currentInterval.current * 2, MAX_POLL_MS);
+            schedulePoll();
+        }, currentInterval.current);
     }, [activeGroup]);
+
+    // reset on user interaction — restart from base interval
+    const onUserActivity = useCallback(() => {
+        lastActivity.current = Date.now();
+        if (isStale) {
+            setIsStale(false);
+            // user came back — do an immediate refresh
+            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        }
+        currentInterval.current = BASE_POLL_MS;
+        schedulePoll();
+    }, [activeGroup, isStale, schedulePoll]);
+
+    // manual refresh (from the stale banner button)
+    const manualRefresh = useCallback(() => {
+        lastActivity.current = Date.now();
+        setIsStale(false);
+        currentInterval.current = BASE_POLL_MS;
+        if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        schedulePoll();
+    }, [activeGroup, schedulePoll]);
 
     // kick off / restart polling when group changes
     useEffect(() => {
@@ -275,18 +313,20 @@ export default function GroupProvider({ children }) {
             if (pollTimer.current) clearTimeout(pollTimer.current);
             return;
         }
-        resetPollTimer();
+        currentInterval.current = BASE_POLL_MS;
+        lastActivity.current = Date.now();
+        setIsStale(false);
+        schedulePoll();
         return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
-    }, [activeGroup, user, resetPollTimer]);
+    }, [activeGroup, user, schedulePoll]);
 
-    // any user interaction resets the poll timer
+    // listen for user-interaction events to reset backoff
     useEffect(() => {
         if (!activeGroup || !user) return;
-        const handler = () => resetPollTimer();
         const events = ["click", "keydown", "scroll", "pointerdown"];
-        events.forEach((ev) => window.addEventListener(ev, handler, { passive: true }));
-        return () => events.forEach((ev) => window.removeEventListener(ev, handler));
-    }, [activeGroup, user, resetPollTimer]);
+        events.forEach((ev) => window.addEventListener(ev, onUserActivity, { passive: true }));
+        return () => events.forEach((ev) => window.removeEventListener(ev, onUserActivity));
+    }, [activeGroup, user, onUserActivity]);
 
     return (
         <GroupContext.Provider value={{
@@ -297,12 +337,14 @@ export default function GroupProvider({ children }) {
             myRole,
             loadingGroups,
             loadingDetail,
+            isStale,
             selectGroup,
             addGroup,
             updateGroup,
             refreshActiveGroup,
             removeGroupFromState,
             reloadGroups,
+            manualRefresh,
         }}>
             {children}
         </GroupContext.Provider>

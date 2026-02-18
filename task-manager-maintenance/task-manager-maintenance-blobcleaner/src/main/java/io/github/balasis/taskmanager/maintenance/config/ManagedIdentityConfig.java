@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.config;
+package io.github.balasis.taskmanager.maintenance.config;
 
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;

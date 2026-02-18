@@ -101,4 +101,11 @@ public interface GroupService{
         TaskState taskState,
         Boolean hasFiles
     );
+
+    //Invitation polling
+    boolean hasNewInvitations();
+
+    //Task / comments lightweight change check
+    boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
+    boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 }

@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.service;
+package io.github.balasis.taskmanager.maintenance.service;
 
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;

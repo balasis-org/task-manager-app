@@ -36,6 +36,9 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         User user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
 
+        // keep last-active timestamp fresh (used by maintenance cleanup)
+        user.setLastActiveAt(Instant.now());
+
         // rotate cache encryption key every 7 days
         if (user.getCacheKey() == null || user.getCacheKeyCreatedAt() == null
                 || Duration.between(user.getCacheKeyCreatedAt(), Instant.now()).toDays() >= 7) {

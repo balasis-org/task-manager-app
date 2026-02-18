@@ -1,8 +1,9 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner;
+package io.github.balasis.taskmanager.maintenance;
 
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.maintenance.blobcleaner.base.BaseComponent;
-import io.github.balasis.taskmanager.maintenance.blobcleaner.service.BlobCleanerService;
+import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
+import io.github.balasis.taskmanager.maintenance.service.BlobCleanerService;
+import io.github.balasis.taskmanager.maintenance.service.UserCleanupService;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -12,27 +13,29 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 @EnableScheduling
-public class BlobCleanerRunner extends BaseComponent implements CommandLineRunner {
+public class MaintenanceRunner extends BaseComponent implements CommandLineRunner {
 
     private final BlobCleanerService blobCleanerService;
+    private final UserCleanupService userCleanupService;
 
     @Override
     public void run(String... args) {
-        logger.trace("Blob Cleaner test run starting...");
-        cleanAllContainers();
+        logger.trace("Maintenance test run starting...");
+        runAllJobs();
         logger.trace("Test run finished.");
     }
 
     @Scheduled(cron = "0 0 3 * * ?", zone = "UTC")
     public void scheduledRun() {
-        logger.trace("Blob Cleaner scheduled run starting...");
-        cleanAllContainers();
+        logger.trace("Maintenance scheduled run starting...");
+        runAllJobs();
         logger.trace("Scheduled run finished.");
     }
 
-    private void cleanAllContainers() {
+    private void runAllJobs() {
         for (BlobContainerType type : BlobContainerType.values()) {
             blobCleanerService.clean(type);
         }
+        userCleanupService.cleanInactiveUsers();
     }
 }

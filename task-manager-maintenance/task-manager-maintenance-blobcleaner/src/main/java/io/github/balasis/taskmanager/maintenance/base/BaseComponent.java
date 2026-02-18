@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.base;
+package io.github.balasis.taskmanager.maintenance.base;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;

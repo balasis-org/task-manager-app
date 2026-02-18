@@ -12,6 +12,7 @@
 }
 
 .spinner {
+    opacity:0;
     border: 0.25em solid var(--spinner-track);
     border-top: 0.25em solid var(--spinner-accent);
     border-radius: 50%;

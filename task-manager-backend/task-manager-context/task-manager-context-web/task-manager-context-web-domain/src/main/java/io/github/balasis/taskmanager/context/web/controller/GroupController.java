@@ -100,6 +100,38 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok(groupService.refreshGroup(groupId, lastSeen));
     }
 
+    /**
+     * Lightweight poll: has the task changed since the given timestamp?
+     * Returns 204 if unchanged, 409 if changed.
+     */
+    @GetMapping(path = "/{groupId}/task/{taskId}/has-changed")
+    public ResponseEntity<Void> hasTaskChanged(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestParam Instant since
+    ) {
+        if (groupService.hasTaskChanged(groupId, taskId, since)) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lightweight poll: have comments changed on this task since the given timestamp?
+     * Returns 204 if unchanged, 409 if changed.
+     */
+    @GetMapping(path = "/{groupId}/task/{taskId}/comments/has-changed")
+    public ResponseEntity<Void> hasCommentsChanged(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestParam Instant since
+    ) {
+        if (groupService.hasCommentsChanged(groupId, taskId, since)) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping(path = "/{groupId}")
     public ResponseEntity<GroupWithPreviewDto> getGroupWithPreviewTasks(
             @PathVariable Long groupId

@@ -22,9 +22,12 @@ public class TaskComment extends BaseModel{
     @JoinColumn
     private Task task;
 
-    @ManyToOne
-    @JoinColumn
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
     private User creator;
+
+    @Column
+    private String creatorNameSnapshot;
 
     @Lob
     @Column(length = 400)
