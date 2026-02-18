@@ -68,4 +68,11 @@ public class UserController extends BaseComponent {
         ));
     }
 
+    @PostMapping("/me/refresh-invite-code")
+    public ResponseEntity<UserOutboundResource> refreshInviteCode() {
+        return ResponseEntity.ok(userOutboundMapper.toResource(
+                userService.refreshInviteCode()
+        ));
+    }
+
 }

@@ -135,7 +135,7 @@
     font-weight: 700;
     color: var(--text-on-primary);
     background: var(--danger);
-    padding: 0.06em 0.31em;
+    padding: 0.1em 0.31em;
     border-radius: 0.375em;
     letter-spacing: 0.03em;
     line-height: 0.875em;

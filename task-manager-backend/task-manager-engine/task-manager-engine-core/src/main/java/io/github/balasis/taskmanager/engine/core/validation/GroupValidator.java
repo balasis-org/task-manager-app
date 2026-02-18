@@ -32,6 +32,8 @@ public interface GroupValidator extends BaseValidator<Group>{
 
     void validateCreateGroupInvitation(GroupInvitation groupInvitation);
 
+    void validateInvitationRole(GroupInvitation groupInvitation);
+
     void validateRespondToGroupInvitation(GroupInvitation groupInvitation);
 
     void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt);

@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     boolean existsByAzureKey(String azureKey);
 
+    Optional<User> findByInviteCode(String inviteCode);
+
     @Query("""
     select u
     from User u

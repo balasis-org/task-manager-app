@@ -134,6 +134,8 @@ public class BlobStorageService {
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new BlobUploadTaskFileException("TaskAssignee file must have a name");
         }
+
+        assertContentSafetyIfImage(file);
     }
 
     private void assertTaskFile(MultipartFile file) {
@@ -148,6 +150,23 @@ public class BlobStorageService {
 
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new BlobUploadTaskFileException("Task file must have a name");
+        }
+
+        assertContentSafetyIfImage(file);
+    }
+
+    private void assertContentSafetyIfImage(MultipartFile file) {
+        String ct = file.getContentType();
+        if (ct != null && ct.startsWith("image/")) {
+            try {
+                if (!contentSafetyService.isSafe(file.getInputStream())) {
+                    throw new BlobUploadTaskFileException(
+                            "File failed content safety check (potential adult or violent content)");
+                }
+            } catch (IOException e) {
+                throw new BlobUploadTaskFileException(
+                        "Failed reading file for safety check: " + e.getMessage());
+            }
         }
     }
 

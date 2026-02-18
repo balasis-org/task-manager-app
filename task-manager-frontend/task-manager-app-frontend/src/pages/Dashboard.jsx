@@ -69,6 +69,16 @@ export default function Dashboard() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // listen for group-access-lost (fired by GroupProvider when a 403/404 on refresh)
+    useEffect(() => {
+        const handler = (e) => {
+            const msg = e.detail?.message || "You no longer have access to this group.";
+            showToast(msg, "error");
+        };
+        window.addEventListener("group-access-lost", handler);
+        return () => window.removeEventListener("group-access-lost", handler);
+    }, [showToast]);
+
     // track viewport width for responsive column visibility
     const [vpWidth, setVpWidth] = useState(() => window.innerWidth);
     useEffect(() => {

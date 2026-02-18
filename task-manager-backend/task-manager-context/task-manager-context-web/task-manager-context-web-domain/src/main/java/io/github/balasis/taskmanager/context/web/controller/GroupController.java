@@ -208,16 +208,15 @@ public class GroupController extends BaseComponent {
 
 
     @PostMapping(path="/{groupId}/invite")
-    public ResponseEntity<GroupInvitationOutboundResource> inviteToGroup(
+    public ResponseEntity<Void> inviteToGroup(
             @PathVariable(name = "groupId") Long groupId,
             @RequestBody GroupInvitationInboundResource groupInvitationInboundResource
     ){
         resourceDataValidator.validateResourceData(groupInvitationInboundResource);
-        return ResponseEntity.ok(groupInvitationOutboundMapper.toResource(
-                groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getUserId(),
+        groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getInviteCode(),
                         groupInvitationInboundResource.getUserToBeInvitedRole(),
-                        groupInvitationInboundResource.getComment())
-        ));
+                        groupInvitationInboundResource.getComment());
+        return ResponseEntity.ok().build();
     }
 
 
@@ -299,35 +298,6 @@ public class GroupController extends BaseComponent {
                         hasFiles
                 )
         );
-    }
-
-    @GetMapping(path = "/{groupId}/searchForInvite")
-    public ResponseEntity<Page<UserMiniForDropdownOutboundResource>> searchUsersForInvite(
-            @PathVariable Long groupId,
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false, defaultValue = "false") boolean sameOrgOnly,
-            Pageable pageable
-    ){
-                User me = userService.findCurrentUser();
-
-                // If the requester asked for "same org only" but they themselves are not in an organisation,
-                // return an empty page immediately (no results).
-                if (sameOrgOnly && !me.isOrg()) {
-                        return ResponseEntity.ok(Page.empty(pageable));
-                }
-
-                Page<UserMiniForDropdownOutboundResource> page = userService
-                                .searchUserForInvites(groupId, q, sameOrgOnly, pageable)
-                                .map(u -> {
-                                        var res = userMiniForDropdownOutboundMapper.toResource(u);
-                                        res.setSameOrg(
-                                                        me.isOrg() && u.isOrg()
-                                                                        && me.getTenantId() != null && me.getTenantId().equals(u.getTenantId())
-                                        );
-                                        return res;
-                                });
-
-                return ResponseEntity.ok(page);
     }
 
 

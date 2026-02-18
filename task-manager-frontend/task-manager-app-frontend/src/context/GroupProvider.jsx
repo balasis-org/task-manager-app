@@ -192,8 +192,23 @@ export default function GroupProvider({ children }) {
                 }
                 lsSet(kLastSeen(user.id, groupId), new Date().toISOString());
             }
-        } catch {
-            if (!cachedDetail) {
+        } catch (err) {
+            // If 403 or 404 the user was likely removed from the group (or group deleted).
+            // Auto-recover by reloading the groups list so the stale group disappears.
+            if (err?.status === 403 || err?.status === 404) {
+                // wipe local cache for this group
+                lsRemove(kDetail(user.id, groupId));
+                lsRemove(kLastSeen(user.id, groupId));
+                setGroupDetail(null);
+                setMembers([]);
+                // reload will drop the missing group and auto-select another
+                await loadGroups();
+                window.dispatchEvent(
+                    new CustomEvent("group-access-lost", {
+                        detail: { groupId, message: err?.message || "You no longer have access to this group." },
+                    })
+                );
+            } else if (!cachedDetail) {
                 setGroupDetail(null);
                 setMembers([]);
             }
@@ -257,9 +272,9 @@ export default function GroupProvider({ children }) {
     }, [user]);
 
     // --- Smart polling with progressive backoff ---
-    const BASE_POLL_MS   = 30_000;       // 30 seconds
+    const BASE_POLL_MS   = 60_000;       // 1 minute
     const MAX_POLL_MS    = 5 * 60_000;   // 5 minutes ceiling
-    const STALE_AFTER_MS = 5 * 60_000;   // show refresh button after 5 min inactivity
+    const STALE_AFTER_MS = 20 * 60_000;  // show refresh button after 20 min inactivity
     const [isStale, setIsStale]     = useState(false);
 
     const pollTimer       = useRef(null);

@@ -37,4 +37,19 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     """)
     void detachCreatorFromAllComments(@Param("userId") Long userId,
                                       @Param("creatorName") String creatorName);
+
+    @Query("""
+        SELECT tc
+        FROM TaskComment tc
+        LEFT JOIN tc.task t
+        LEFT JOIN t.group g
+        LEFT JOIN tc.creator c
+        WHERE (:taskId IS NULL OR t.id = :taskId)
+          AND (:groupId IS NULL OR g.id = :groupId)
+          AND (:creatorId IS NULL OR c.id = :creatorId)
+    """)
+    Page<TaskComment> adminFilterComments(@Param("taskId") Long taskId,
+                                          @Param("groupId") Long groupId,
+                                          @Param("creatorId") Long creatorId,
+                                          Pageable pageable);
 }

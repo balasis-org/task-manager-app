@@ -84,9 +84,23 @@ export default function TermsOfService() {
                 <p>
                     You retain ownership of all content (text, files, images) you upload
                     to the Service. By uploading content, you grant Task Manager a
-                    limited, non-exclusive licence to store, process, and display that
-                    content as necessary to provide the Service.
+                    limited, non-exclusive, royalty-free licence to <strong>store,
+                    process, display, reproduce, and review</strong> that content as
+                    necessary to provide, operate, maintain, and moderate the Service.
+                    This licence persists for the duration of your content&rsquo;s
+                    presence on the platform and terminates upon its deletion.
                 </p>
+                <div className="legal-highlight">
+                    <strong>Content Licence Notice:</strong> By using the Service you
+                    acknowledge that user-generated content&mdash;including task
+                    descriptions, comments, and uploaded files&mdash;may be reviewed by
+                    platform administrators <strong>solely for the purposes of</strong>{" "}
+                    content moderation, security enforcement, platform integrity, and
+                    compliance with applicable law. Your content is <strong>never
+                    published, sold, or shared with third parties</strong>, and
+                    administrators access it only when necessary to maintain a safe and
+                    functional platform.
+                </div>
                 <div className="legal-warning">
                     <strong>Disclaimer:</strong> Task Manager is not responsible for any
                     user-uploaded content. We do not pre-screen all uploaded materials.
@@ -172,6 +186,17 @@ export default function TermsOfService() {
                     that violates our guidelines may be automatically filtered, flagged,
                     or removed. We reserve the right to remove any content at our
                     discretion.
+                </p>
+                <p>
+                    In addition to automated systems, platform administrators may
+                    review user-generated content&mdash;including task data, comments,
+                    and attached files&mdash;<strong>only for the purposes of</strong>{" "}
+                    moderation, security, and legal-compliance. Such reviews are
+                    conducted on a need-to-know basis and your content is{" "}
+                    <strong>never published, shared externally, or used for any purpose
+                    beyond operating and safeguarding the platform</strong>.
+                    Administrators may edit or remove content that violates these Terms
+                    or applicable law.
                 </p>
             </section>
 

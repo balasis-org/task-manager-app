@@ -1,10 +1,10 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.Task;
-import io.github.balasis.taskmanager.context.base.model.TaskComment;
-import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
+import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserOutboundMapper;
 import io.github.balasis.taskmanager.engine.core.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,6 +35,27 @@ public class AdminController extends BaseComponent {
         return ResponseEntity.ok(page.map(this::mapUser));
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> getUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(mapUserFull(adminService.getUser(userId)));
+    }
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> updateUser(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Object> body) {
+        String name = (String) body.get("name");
+        String email = (String) body.get("email");
+        SystemRole systemRole = body.containsKey("systemRole")
+                ? SystemRole.valueOf((String) body.get("systemRole")) : null;
+        SubscriptionPlan plan = body.containsKey("subscriptionPlan")
+                ? SubscriptionPlan.valueOf((String) body.get("subscriptionPlan")) : null;
+        Boolean allowEmail = body.containsKey("allowEmailNotification")
+                ? (Boolean) body.get("allowEmailNotification") : null;
+        return ResponseEntity.ok(mapUserFull(
+                adminService.updateUser(userId, name, email, systemRole, plan, allowEmail)));
+    }
+
     @DeleteMapping("/users/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         adminService.deleteUser(userId);
@@ -43,9 +65,29 @@ public class AdminController extends BaseComponent {
     /* ───── groups ───── */
 
     @GetMapping("/groups")
-    public ResponseEntity<Page<Map<String, Object>>> listGroups(Pageable pageable) {
-        Page<Group> page = adminService.listGroups(pageable);
+    public ResponseEntity<Page<Map<String, Object>>> listGroups(
+            @RequestParam(required = false) String q,
+            Pageable pageable) {
+        Page<Group> page = adminService.listGroups(q, pageable);
         return ResponseEntity.ok(page.map(this::mapGroup));
+    }
+
+    @GetMapping("/groups/{groupId}")
+    public ResponseEntity<Map<String, Object>> getGroup(@PathVariable Long groupId) {
+        return ResponseEntity.ok(mapGroupFull(adminService.getGroup(groupId)));
+    }
+
+    @PatchMapping("/groups/{groupId}")
+    public ResponseEntity<Map<String, Object>> updateGroup(
+            @PathVariable Long groupId,
+            @RequestBody Map<String, Object> body) {
+        String name = (String) body.get("name");
+        String description = (String) body.get("description");
+        String announcement = (String) body.get("announcement");
+        Boolean allowEmail = body.containsKey("allowEmailNotification")
+                ? (Boolean) body.get("allowEmailNotification") : null;
+        return ResponseEntity.ok(mapGroupFull(
+                adminService.updateGroup(groupId, name, description, announcement, allowEmail)));
     }
 
     @DeleteMapping("/groups/{groupId}")
@@ -57,9 +99,32 @@ public class AdminController extends BaseComponent {
     /* ───── tasks ───── */
 
     @GetMapping("/tasks")
-    public ResponseEntity<Page<Map<String, Object>>> listTasks(Pageable pageable) {
-        Page<Task> page = adminService.listTasks(pageable);
+    public ResponseEntity<Page<Map<String, Object>>> listTasks(
+            @RequestParam(required = false) String q,
+            Pageable pageable) {
+        Page<Task> page = adminService.listTasks(q, pageable);
         return ResponseEntity.ok(page.map(this::mapTask));
+    }
+
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> getTask(@PathVariable Long taskId) {
+        return ResponseEntity.ok(mapTaskFull(adminService.getTask(taskId)));
+    }
+
+    @PatchMapping("/tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> updateTask(
+            @PathVariable Long taskId,
+            @RequestBody Map<String, Object> body) {
+        String title = (String) body.get("title");
+        String description = (String) body.get("description");
+        TaskState taskState = body.containsKey("taskState")
+                ? TaskState.valueOf((String) body.get("taskState")) : null;
+        Integer priority = body.containsKey("priority") && body.get("priority") != null
+                ? ((Number) body.get("priority")).intValue() : null;
+        Instant dueDate = body.containsKey("dueDate") && body.get("dueDate") != null
+                ? Instant.parse((String) body.get("dueDate")) : null;
+        return ResponseEntity.ok(mapTaskFull(
+                adminService.updateTask(taskId, title, description, taskState, priority, dueDate)));
     }
 
     @DeleteMapping("/tasks/{taskId}")
@@ -71,9 +136,27 @@ public class AdminController extends BaseComponent {
     /* ───── comments ───── */
 
     @GetMapping("/comments")
-    public ResponseEntity<Page<Map<String, Object>>> listComments(Pageable pageable) {
-        Page<TaskComment> page = adminService.listComments(pageable);
+    public ResponseEntity<Page<Map<String, Object>>> listComments(
+            @RequestParam(required = false) Long taskId,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) Long creatorId,
+            Pageable pageable) {
+        Page<TaskComment> page = adminService.listComments(taskId, groupId, creatorId, pageable);
         return ResponseEntity.ok(page.map(this::mapComment));
+    }
+
+    @GetMapping("/comments/{commentId}")
+    public ResponseEntity<Map<String, Object>> getComment(@PathVariable Long commentId) {
+        return ResponseEntity.ok(mapCommentFull(adminService.getComment(commentId)));
+    }
+
+    @PatchMapping("/comments/{commentId}")
+    public ResponseEntity<Map<String, Object>> updateComment(
+            @PathVariable Long commentId,
+            @RequestBody Map<String, Object> body) {
+        String comment = (String) body.get("comment");
+        return ResponseEntity.ok(mapCommentFull(
+                adminService.updateComment(commentId, comment)));
     }
 
     @DeleteMapping("/comments/{commentId}")
@@ -96,6 +179,16 @@ public class AdminController extends BaseComponent {
         return m;
     }
 
+    private Map<String, Object> mapUserFull(User u) {
+        Map<String, Object> m = mapUser(u);
+        m.put("allowEmailNotification", u.getAllowEmailNotification());
+        m.put("tenantId", u.getTenantId());
+        m.put("lastSeenInvites", u.getLastSeenInvites());
+        m.put("lastInviteReceivedAt", u.getLastInviteReceivedAt());
+        m.put("createdAt", u.getLastActiveAt()); // closest proxy
+        return m;
+    }
+
     private Map<String, Object> mapGroup(Group g) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", g.getId());
@@ -106,6 +199,25 @@ public class AdminController extends BaseComponent {
         m.put("memberCount", g.getMemberships() != null ? g.getMemberships().size() : 0);
         m.put("taskCount", g.getTasks() != null ? g.getTasks().size() : 0);
         m.put("createdAt", g.getCreatedAt());
+        return m;
+    }
+
+    private Map<String, Object> mapGroupFull(Group g) {
+        Map<String, Object> m = mapGroup(g);
+        m.put("announcement", g.getAnnouncement());
+        m.put("allowEmailNotification", g.getAllowEmailNotification());
+        m.put("lastGroupEventDate", g.getLastGroupEventDate());
+        // members detail
+        if (g.getMemberships() != null) {
+            m.put("members", g.getMemberships().stream().map(gm -> {
+                Map<String, Object> mm = new LinkedHashMap<>();
+                mm.put("id", gm.getId());
+                mm.put("userId", gm.getUser() != null ? gm.getUser().getId() : null);
+                mm.put("userName", gm.getUser() != null ? gm.getUser().getName() : null);
+                mm.put("role", gm.getRole());
+                return mm;
+            }).collect(Collectors.toList()));
+        }
         return m;
     }
 
@@ -124,15 +236,63 @@ public class AdminController extends BaseComponent {
         return m;
     }
 
+    private Map<String, Object> mapTaskFull(Task t) {
+        Map<String, Object> m = mapTask(t);
+        m.put("description", t.getDescription());
+        m.put("reviewersDecision", t.getReviewersDecision());
+        m.put("reviewComment", t.getReviewComment());
+        m.put("reviewedBy", t.getReviewedBy() != null ? t.getReviewedBy().getName() : null);
+        // participants
+        if (t.getTaskParticipants() != null) {
+            m.put("participants", t.getTaskParticipants().stream().map(tp -> {
+                Map<String, Object> pm = new LinkedHashMap<>();
+                pm.put("id", tp.getId());
+                pm.put("userId", tp.getUser() != null ? tp.getUser().getId() : null);
+                pm.put("userName", tp.getUser() != null ? tp.getUser().getName() : null);
+                pm.put("role", tp.getTaskParticipantRole());
+                return pm;
+            }).collect(Collectors.toList()));
+        }
+        // creator files
+        if (t.getCreatorFiles() != null) {
+            m.put("creatorFiles", t.getCreatorFiles().stream().map(f -> {
+                Map<String, Object> fm = new LinkedHashMap<>();
+                fm.put("id", f.getId());
+                fm.put("name", f.getName());
+                fm.put("fileUrl", f.getFileUrl());
+                return fm;
+            }).collect(Collectors.toList()));
+        }
+        // assignee files
+        if (t.getAssigneeFiles() != null) {
+            m.put("assigneeFiles", t.getAssigneeFiles().stream().map(f -> {
+                Map<String, Object> fm = new LinkedHashMap<>();
+                fm.put("id", f.getId());
+                fm.put("name", f.getName());
+                fm.put("fileUrl", f.getFileUrl());
+                return fm;
+            }).collect(Collectors.toList()));
+        }
+        return m;
+    }
+
     private Map<String, Object> mapComment(TaskComment c) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", c.getId());
         m.put("comment", c.getComment());
         m.put("creatorName", c.getCreator() != null ? c.getCreator().getName() : c.getCreatorNameSnapshot());
         m.put("creatorEmail", c.getCreator() != null ? c.getCreator().getEmail() : null);
+        m.put("creatorId", c.getCreator() != null ? c.getCreator().getId() : null);
         m.put("taskId", c.getTask() != null ? c.getTask().getId() : null);
         m.put("taskTitle", c.getTask() != null ? c.getTask().getTitle() : null);
+        m.put("groupId", c.getTask() != null && c.getTask().getGroup() != null ? c.getTask().getGroup().getId() : null);
+        m.put("groupName", c.getTask() != null && c.getTask().getGroup() != null ? c.getTask().getGroup().getName() : null);
         m.put("createdAt", c.getCreatedAt());
+        return m;
+    }
+
+    private Map<String, Object> mapCommentFull(TaskComment c) {
+        Map<String, Object> m = mapComment(c);
         return m;
     }
 }

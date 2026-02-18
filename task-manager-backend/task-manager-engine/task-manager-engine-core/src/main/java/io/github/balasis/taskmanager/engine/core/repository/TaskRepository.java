@@ -2,6 +2,8 @@ package io.github.balasis.taskmanager.engine.core.repository;
 
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Task;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -211,5 +213,14 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     @Modifying
     @Query("UPDATE Task t SET t.lastEditBy = null WHERE t.lastEditBy.id = :userId")
     void nullifyLastEditByForUser(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT t
+        FROM Task t
+        LEFT JOIN t.group g
+        WHERE lower(t.title) LIKE lower(concat('%', :q, '%'))
+           OR lower(g.name) LIKE lower(concat('%', :q, '%'))
+    """)
+    Page<Task> adminSearchTasks(@Param("q") String q, Pageable pageable);
 
 }

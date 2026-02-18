@@ -1,68 +1,38 @@
-import { useState, useEffect } from "react";
-import { apiGet, apiPost } from "@assets/js/apiClient";
+import { useState } from "react";
+import { apiPost } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
-import blobBase from "@blobBase";
 
 const ROLES = ["MEMBER", "GUEST", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
 export default function InviteToGroupPopup({ groupId, onClose }) {
     const showToast = useToast();
-    const [search, setSearch] = useState("");
-    const [results, setResults] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [inviteCode, setInviteCode] = useState("");
     const [role, setRole] = useState("MEMBER");
     const [comment, setComment] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-    const [orgOnly, setOrgOnly] = useState(false);
-
-    const fetchResults = async (q, orgFlag) => {
-        if (!q || q.length < 2) {
-            setResults([]);
-            return;
-        }
-        try {
-            let url = `/api/groups/${groupId}/searchForInvite?q=${encodeURIComponent(q)}&page=0&size=40`;
-            if (orgFlag) url += "&sameOrgOnly=true";
-            const data = await apiGet(url);
-            setResults(data?.content ?? []);
-        } catch {
-            setResults([]);
-        }
-    };
-
-    // Debounce user input and org toggle
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchResults(search, orgOnly);
-        }, 300);
-        return () => clearTimeout(timer); //clean up whatever is being returned at useEffect...(before next rerender)
-    }, [search, orgOnly, groupId]);
-
-    const toggleOrgOnly = () => {
-        setOrgOnly((prev) => !prev);
-    };
 
     const handleInvite = async (e) => {
         e.preventDefault();
-        if (!selectedUser) {
-            setError("Select a user to invite.");
+        const code = inviteCode.trim();
+        if (!code) {
+            setError("Enter an invite code.");
             return;
         }
         setBusy(true);
         setError("");
         try {
             await apiPost(`/api/groups/${groupId}/invite`, {
-                userId: selectedUser.id,
+                inviteCode: code,
                 userToBeInvitedRole: role,
                 comment: comment.trim(),
             });
             onClose();
-            showToast("Invitation sent!", "success");
-        } catch {
-            setError("Failed to send invitation.");
+            showToast("If the code is valid, the invitation has been sent.", "success");
+        } catch (err) {
+            setError(err?.message || "Something went wrong.");
         } finally {
             setBusy(false);
         }
@@ -77,49 +47,20 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
 
                 <form onSubmit={handleInvite} className="popup-form">
                     <label>
-                        Search
+                        Invite code
                         <input
                             type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Type to search users…"
+                            value={inviteCode}
+                            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                            placeholder="e.g. A3B7KX9P"
+                            maxLength={8}
+                            autoFocus
+                            style={{ fontFamily: "'Consolas','Courier New',monospace", letterSpacing: "0.15em" }}
                         />
+                        <span className="popup-hint">
+                            Ask the person for their invite code (visible on their profile).
+                        </span>
                     </label>
-
-                    <label className="popup-checkbox-label">
-                        <input
-                            type="checkbox"
-                            checked={orgOnly}
-                            onChange={toggleOrgOnly}
-                        />
-                        Org only
-                    </label>
-
-                    {results.length > 0 && (
-                        <div className="popup-search-results">
-                            {results.map((u) => (
-                                <div
-                                    key={u.id}
-                                    className={`popup-search-item${selectedUser?.id === u.id ? " selected" : ""}`}
-                                    onClick={() => setSelectedUser(u)}
-                                >
-                                    <img
-                                        src={u.imgUrl ? blobBase + u.imgUrl : (u.defaultImgUrl ? blobBase + u.defaultImgUrl : "")}
-                                        alt=""
-                                        className="popup-search-img"
-                                    />
-                                    <span>{u.name || u.email}</span>
-                                    {u.sameOrg && <span className="popup-org-badge" title="Same organisation">ORG</span>}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {selectedUser && (
-                        <div className="popup-selected-user">
-                            Selected: <strong>{selectedUser.name || selectedUser.email}</strong>
-                        </div>
-                    )}
 
                     <label>
                         Role
@@ -152,8 +93,8 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                         >
                             Cancel
                         </button>
-                        <button type="submit" className="btn-primary" disabled={busy}>
-                            {busy ? "Sending…" : "Confirm"}
+                        <button type="submit" className="btn-primary" disabled={busy || !inviteCode.trim()}>
+                            {busy ? "Sending…" : "Send invite"}
                         </button>
                     </div>
                 </form>

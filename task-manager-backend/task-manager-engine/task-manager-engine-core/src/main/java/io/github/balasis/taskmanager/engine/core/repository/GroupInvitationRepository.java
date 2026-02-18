@@ -80,4 +80,10 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
     void deleteAllByGroup_Id(Long groupId);
 
     void deleteAllByUser_IdOrInvitedBy_Id(Long userId, Long invitedById);
+
+    Optional<GroupInvitation> findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
+        Long groupId,
+        Long userId,
+        InvitationStatus status
+    );
 }

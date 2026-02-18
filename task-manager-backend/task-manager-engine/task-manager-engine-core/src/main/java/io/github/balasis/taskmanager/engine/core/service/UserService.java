@@ -12,4 +12,5 @@ public interface UserService {
     User updateProfileImage(MultipartFile file);
     Page<User> searchUser(String q, Pageable pageable);
     Page<User> searchUserForInvites(Long groupId, String q, boolean sameOrgOnly, Pageable pageable);
+    User refreshInviteCode();
 }

@@ -103,6 +103,18 @@ export default function Comments() {
 
     const currentPage = urlPage ? Number(urlPage) : 1; // 1-indexed
 
+    // auto-redirect to dashboard if the user loses access to this group
+    useEffect(() => {
+        const handler = (e) => {
+            if (String(e.detail?.groupId) === String(groupId)) {
+                showToast(e.detail?.message || "You no longer have access to this group.", "error");
+                navigate("/dashboard", { replace: true });
+            }
+        };
+        window.addEventListener("group-access-lost", handler);
+        return () => window.removeEventListener("group-access-lost", handler);
+    }, [groupId, navigate, showToast]);
+
     function goToPage(p) {
         setSearchParams({ page: String(p) });
     }

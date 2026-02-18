@@ -8,10 +8,10 @@ import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.engine.core.repository.GroupInvitationRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -42,6 +42,7 @@ public class DataLoader extends BaseComponent {
     private static final String GROUP_A_LEADER_AZURE_KEY = "dev-fake:alice.dev@example.com";
 
     private final UserRepository userRepository;
+    private final GroupInvitationRepository groupInvitationRepository;
     private final GroupService groupService;
     private final UserContext userContext;
     private final DefaultImageService defaultImageService;
@@ -191,10 +192,27 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
-        GroupInvitation invitation = groupService.createGroupInvitation(groupId, invitee.getId(), role, comment);
-        withUser(invitee, () -> groupService.respondToInvitation(invitation.getId(), InvitationStatus.ACCEPTED));
-    }
+        private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
+        User inviteeWithCode = userRepository.findById(invitee.getId()).orElseThrow();
+        if (inviteeWithCode.getInviteCode() == null || inviteeWithCode.getInviteCode().isBlank()) {
+            inviteeWithCode.refreshInviteCode();
+            userRepository.save(inviteeWithCode);
+        }
+
+        groupService.createGroupInvitation(groupId, inviteeWithCode.getInviteCode(), role, comment);
+
+        groupInvitationRepository
+            .findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
+                groupId,
+                inviteeWithCode.getId(),
+                InvitationStatus.PENDING)
+            .ifPresentOrElse(
+                invitation -> withUser(inviteeWithCode, () ->
+                    groupService.respondToInvitation(invitation.getId(), InvitationStatus.ACCEPTED)
+                ),
+                () -> logger.warn("Seed invite missing for user {} in group {}", inviteeWithCode.getId(), groupId)
+            );
+        }
 
     private void seedTasksForGroup(Long groupId, User manager, User reviewer, User member1, User member2) {
         logger.trace("Seeding tasks for groupId={}...", groupId);

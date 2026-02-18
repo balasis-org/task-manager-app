@@ -6,17 +6,17 @@ import { useEffect, useRef, useState, useCallback } from "react";
  * @param {Function} checkFn   - async () => void.  Should throw (or return truthy)
  *                                when "something changed" (e.g. 409 from server).
  * @param {Object}   opts
- * @param {number}   opts.baseMs      - starting interval  (default 30 000)
+ * @param {number}   opts.baseMs      - starting interval  (default 60 000)
  * @param {number}   opts.maxMs       - ceiling interval    (default 5 min)
- * @param {number}   opts.staleMs     - stop polling after this idle time (default 5 min)
+ * @param {number}   opts.staleMs     - stop polling after this idle time (default 20 min)
  * @param {boolean}  opts.enabled     - master on/off (default true)
  *
  * @returns {{ hasChanged: boolean, isStale: boolean, reset: () => void }}
  */
 export default function useSmartPoll(checkFn, {
-    baseMs  = 30_000,
+    baseMs  = 60_000,
     maxMs   = 5 * 60_000,
-    staleMs = 5 * 60_000,
+    staleMs = 20 * 60_000,
     enabled = true,
 } = {}) {
     const [hasChanged, setHasChanged] = useState(false);
