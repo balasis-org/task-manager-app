@@ -97,7 +97,6 @@ public class DataLoader extends BaseComponent {
 
         Map<String, SeedUser> seeds = new LinkedHashMap<>();
 
-        // These first 10 users match the frontend fake-login dropdown.
         seeds.put("ALICE", new SeedUser(devAzureKey("alice.dev@example.com"), "alice.dev@example.com", "Alice Dev"));
         seeds.put("BOB", new SeedUser(devAzureKey("bob.dev@example.com"), "bob.dev@example.com", "Bob Dev"));
         seeds.put("CAROL", new SeedUser(devAzureKey("carol.dev@example.com"), "carol.dev@example.com", "Carol Dev"));
@@ -143,6 +142,8 @@ public class DataLoader extends BaseComponent {
         User member2 = users.get("ERIN");
         User guest = users.get("FRANK");
 
+        User reviewer2 = users.get("GRACE");
+
         withUser(leader, () -> {
             Group group = groupService.create(Group.builder()
                     .name("Seed Group A")
@@ -156,11 +157,13 @@ public class DataLoader extends BaseComponent {
             inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
             inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
 
+            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
+
             seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
 
             patchGroupForEvents(group.getId(), leader,
                     "Seeded group A (patched)",
-                    "Welcome to Seed Group A (patched)");
+                    "Welcome to dev Group A (patched)");
         });
     }
 
@@ -173,6 +176,9 @@ public class DataLoader extends BaseComponent {
         User member1 = users.get("JUDY");
         User member2 = users.get("MALLORY");
         User guest = users.get("OSCAR");
+
+
+        User reviewer2 = users.get("ALICE");
 
         withUser(leader, () -> {
             Group group = groupService.create(Group.builder()
@@ -187,11 +193,13 @@ public class DataLoader extends BaseComponent {
             inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
             inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
 
+            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
+
             seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
 
             patchGroupForEvents(group.getId(), leader,
                     "Seeded group B (patched)",
-                    "Welcome to Seed Group B (patched)");
+                    "Welcome to dev Group B (patched)");
         });
     }
 

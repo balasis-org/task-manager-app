@@ -26,7 +26,7 @@ public class BlobCleanerService extends BaseComponent {
         List<BlobItem> allBlobs = new ArrayList<>();
         iterable.forEach(allBlobs::add);
 
-       logger.trace("Scanning {} blobs in container {}", allBlobs.size(), type.getContainerName());
+       logger.info("Scanning {} blobs in container {}", allBlobs.size(), type.getContainerName());
 
         for (int i = 0; i < allBlobs.size(); i += batchSize) {
             int end = Math.min(i + batchSize, allBlobs.size());
@@ -36,7 +36,7 @@ public class BlobCleanerService extends BaseComponent {
                 long id = extractId(blob.getName());
                 if (id <= 0 || !repository.existsById(type, id)) {
                     blobAccessService.deleteBlob(type, blob.getName());
-                    logger.trace("Deleted orphan blob: {}" , blob.getName());
+                    logger.info("Deleted orphan blob: {}" , blob.getName());
                 }
             }
 

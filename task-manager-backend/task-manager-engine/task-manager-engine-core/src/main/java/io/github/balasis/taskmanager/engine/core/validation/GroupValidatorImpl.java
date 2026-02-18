@@ -132,7 +132,6 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
-
     @Override
     public void validateRemoveTaskParticipant(Task task, Long groupId, Long taskParticipantId) {
         doesTaskBelongToGroup(task,groupId);
