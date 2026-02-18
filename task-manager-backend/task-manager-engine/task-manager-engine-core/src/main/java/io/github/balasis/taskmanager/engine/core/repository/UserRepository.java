@@ -34,6 +34,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
       and not exists (
           select gm.id from GroupMembership gm where gm.user = u and gm.group.id = :groupId
       )
+      and (:tenantId IS NULL OR u.tenantId = :tenantId)
     """)
-    Page<User> searchUserForInvites(@Param("groupId")Long groupId,  @Param("q")String q, Pageable pageable);
+    Page<User> searchUserForInvites(@Param("groupId") Long groupId, @Param("q") String q, @Param("tenantId") String tenantId, Pageable pageable);
 }

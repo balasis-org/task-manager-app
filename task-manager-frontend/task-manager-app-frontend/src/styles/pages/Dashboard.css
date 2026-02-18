@@ -4,6 +4,7 @@
     flex-direction: column;
     height: 100%;
     position: relative;
+    min-width: 0;
 }
 
 .dashboard-empty {
@@ -50,6 +51,7 @@
 /* Task sections */
 .dashboard-tasks {
     flex: 1;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 0 0 1.5em;
 }

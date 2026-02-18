@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiMinus } from "react-icons/fi";
+import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiMinus, FiFilter } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
+import FilterPanel from "@components/dashboard/FilterPanel";
 import "@styles/dashboard/DashboardTopBar.css";
 import blobBase from "@blobBase";
 
@@ -20,6 +21,12 @@ export default function DashboardTopBar({
     onLeaveGroup,
     user,
     groupDetail,
+    filters,
+    isFilterApplied,
+    onDraftChange,
+    onApplyFilters,
+    onEditFilters,
+    onFiltersClear,
 }) {
     const showToast = useToast();
     const [groupDropdown, setGroupDropdown] = useState(false);
@@ -27,9 +34,11 @@ export default function DashboardTopBar({
     const [memberSearch, setMemberSearch] = useState("");
     const [confirmRemove, setConfirmRemove] = useState(null); // membershipId
     const [confirmLeave, setConfirmLeave] = useState(false);
+    const [filterOpen, setFilterOpen] = useState(false);
     const groupRef = useRef(null);
     const membersRef = useRef(null);
     const memberSearchRef = useRef(null);
+    const filterRef = useRef(null);
 
     const canInvite = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const canSettings = myRole === "GROUP_LEADER";
@@ -143,6 +152,29 @@ export default function DashboardTopBar({
                     </div>
 
                     <div className="topbar-right">
+                        <div className="topbar-dropdown-wrapper" ref={filterRef}>
+                            <button
+                                className={`topbar-icon-btn topbar-filter-btn${isFilterApplied ? " filter-active" : ""}`}
+                                onClick={() => setFilterOpen((v) => !v)}
+                                title="Filter tasks"
+                            >
+                                <FiFilter size={15} />
+                                {isFilterApplied && <span className="topbar-filter-dot" />}
+                            </button>
+                            {filterOpen && (
+                                <FilterPanel
+                                    members={members}
+                                    filters={filters}
+                                    isApplied={isFilterApplied}
+                                    onDraftChange={onDraftChange}
+                                    onApply={onApplyFilters}
+                                    onEdit={onEditFilters}
+                                    onClear={onFiltersClear}
+                                    onClose={() => setFilterOpen(false)}
+                                />
+                            )}
+                        </div>
+
                         <button className="topbar-icon-btn topbar-events-btn" onClick={onOpenGroupEvents} title="Group Events">
                             📋
                             {hasUnseenEvents && (
@@ -194,6 +226,7 @@ export default function DashboardTopBar({
                                                         className="topbar-member-img"
                                                     />
                                                     <span className="topbar-member-name">{m.user?.name || m.user?.email}</span>
+                                                    {m.user?.sameOrg && <span className="topbar-org-badge" title="Same organisation">ORG</span>}
                                                     <span className="topbar-member-role">
                                                         {m.role}
                                                     </span>

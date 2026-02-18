@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiGet, apiPost } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
@@ -16,21 +16,33 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
     const [comment, setComment] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [orgOnly, setOrgOnly] = useState(false);
 
-    const handleSearch = async (q) => {
-        setSearch(q);
-        if (q.length < 2) {
+    const fetchResults = async (q, orgFlag) => {
+        if (!q || q.length < 2) {
             setResults([]);
             return;
         }
         try {
-            const data = await apiGet(
-                `/api/users/search?q=${encodeURIComponent(q)}&page=0&size=40`
-            );
+            let url = `/api/groups/${groupId}/searchForInvite?q=${encodeURIComponent(q)}&page=0&size=40`;
+            if (orgFlag) url += "&sameOrgOnly=true";
+            const data = await apiGet(url);
             setResults(data?.content ?? []);
         } catch {
             setResults([]);
         }
+    };
+
+    // Debounce user input and org toggle
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchResults(search, orgOnly);
+        }, 300);
+        return () => clearTimeout(timer); //clean up whatever is being returned at useEffect...(before next rerender)
+    }, [search, orgOnly, groupId]);
+
+    const toggleOrgOnly = () => {
+        setOrgOnly((prev) => !prev);
     };
 
     const handleInvite = async (e) => {
@@ -69,9 +81,18 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                         <input
                             type="text"
                             value={search}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            placeholder="Type to search members…"
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Type to search users…"
                         />
+                    </label>
+
+                    <label className="popup-checkbox-label">
+                        <input
+                            type="checkbox"
+                            checked={orgOnly}
+                            onChange={toggleOrgOnly}
+                        />
+                        Org only
                     </label>
 
                     {results.length > 0 && (
@@ -88,6 +109,7 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                                         className="popup-search-img"
                                     />
                                     <span>{u.name || u.email}</span>
+                                    {u.sameOrg && <span className="popup-org-badge" title="Same organisation">ORG</span>}
                                 </div>
                             ))}
                         </div>

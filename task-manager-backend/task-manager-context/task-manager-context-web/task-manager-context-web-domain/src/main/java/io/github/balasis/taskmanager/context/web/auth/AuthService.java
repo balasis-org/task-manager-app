@@ -113,8 +113,11 @@ public class AuthService extends BaseComponent {
 
     private User findOrCreateUser(String tenantId,String email, String azureId ,String name){
 
-        boolean isOrg = azureId != null;
-        var azureKey = isOrg ? tenantId.concat(azureId) : tenantId;
+        boolean isOrg = !"consumers".equalsIgnoreCase(tenantId);
+        if (azureId == null || azureId.isBlank()) {
+            throw new AuthenticationIntegrityException("Missing Azure object id (oid) in token");
+        }
+        var azureKey = tenantId.concat(azureId);
         var finalName = (name!=null) ? name : email.substring(0,email.indexOf("@"));
 
         return  userRepository.findByAzureKey(azureKey)

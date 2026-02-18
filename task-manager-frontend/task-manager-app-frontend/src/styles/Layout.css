@@ -1,7 +1,7 @@
 /* Layout shell */
 .layout {
     display: flex;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     overflow: hidden;
 }
@@ -48,17 +48,17 @@
     z-index: 30;
     background: rgba(30, 30, 47, 0.35);
     color: var(--text-on-primary);
-    border: 0.06em solid rgba(255, 255, 255, 0.2);
+    border: 0.06em solid var(--border-primary);
     border-left: none;
-    border-radius: 0 0.625em 0.625em 0;
+    border-radius: 0 0.5em 0.5em 0;
     width: 1.5em;
-    height: 3.38em;
+    height: 3em;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.69em;
-    padding: 0;
+    padding: 0 0.25em;
     transition: left 0.25s ease, background 0.15s ease;
     backdrop-filter: blur(0.25em);
 }
@@ -190,9 +190,9 @@
 
 .layout-main {
     flex: 1;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 0;
-
 }
 
 /* Responsive — Sidebar icons-only mode */
