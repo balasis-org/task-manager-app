@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.config.secret.azure;
+package io.github.balasis.taskmanager.maintenance.config.secret.azure;
 
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.security.keyvault.secrets.SecretClient;

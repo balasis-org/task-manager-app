@@ -92,8 +92,8 @@ export default function NewGroupPopup({ onClose, onCreated }) {
             }
 
             onCreated(group);
-        } catch {
-            setError("Failed to create group.");
+        } catch (err) {
+            setError(err?.message || "Failed to create group.");
         } finally {
             setBusy(false);
         }

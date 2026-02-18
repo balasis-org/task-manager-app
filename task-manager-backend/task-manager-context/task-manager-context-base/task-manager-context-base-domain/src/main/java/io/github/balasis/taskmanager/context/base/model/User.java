@@ -1,5 +1,7 @@
 package io.github.balasis.taskmanager.context.base.model;
 
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -42,6 +44,16 @@ public class User extends BaseModel{
     @Builder.Default
     private Boolean allowEmailNotification = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private SubscriptionPlan subscriptionPlan = SubscriptionPlan.FREE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    @Builder.Default
+    private SystemRole systemRole = SystemRole.USER;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<GroupMembership> memberships = new HashSet<>();
@@ -53,6 +65,9 @@ public class User extends BaseModel{
     @Column
     private Instant lastSeenInvites;
 
+    @Column
+    private Instant lastActiveAt;
+
     @Column(length = 64)
     private String cacheKey;
 
@@ -62,6 +77,7 @@ public class User extends BaseModel{
     @PrePersist
     protected void onCreate(){
         lastSeenInvites = Instant.now();
+        lastActiveAt = Instant.now();
         rotateCacheKey();
     }
 

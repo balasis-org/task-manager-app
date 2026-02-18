@@ -1,9 +1,9 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.service;
+package io.github.balasis.taskmanager.maintenance.service;
 
 import com.azure.storage.blob.models.BlobItem;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.maintenance.blobcleaner.base.BaseComponent;
-import io.github.balasis.taskmanager.maintenance.blobcleaner.repository.BlobCleanerRepository;
+import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
+import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class BlobCleanerService extends BaseComponent {
 
-    private final BlobCleanerRepository repository;
+    private final MaintenanceRepository repository;
     private final BlobAccessService blobAccessService;
 
     public void clean(BlobContainerType type) {

@@ -13,6 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 public class TaskCommentOutboundResource extends BaseOutboundResource {
     private UserOutboundResource creator;
+    private String creatorNameSnapshot;
     private String comment;
     private Instant createdAt;
 }

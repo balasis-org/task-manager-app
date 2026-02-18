@@ -2,7 +2,6 @@ import API_BASE from "@apiBase";
 
 let authHandlers = {
     onUnauthorized: null,
-    onForbidden: null,
 };
 
 export function registerAuthHandlers(handlers) {
@@ -60,12 +59,12 @@ async function apiRequest(path, options = {}, retry = true) {
         throw { status: 0, message: "Network error" };
     }
 
-    // auth errors
-    if (res.status === 401 || res.status === 403) {
+    // 401 — try token refresh once
+    if (res.status === 401) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
-    // other errors
+    // any other non-ok (including 403) → surface to caller as an error
     if (!res.ok) {
         let body = null;
         try { body = await res.text(); } catch {}
@@ -112,8 +111,8 @@ export async function apiMultipart(path, formData, options = {}) {
     } catch {
         // no body (rare)
     }
-    // HTTP auth errors
-    if (res.status === 401 || res.status === 403) {
+    // HTTP auth errors — only 401 triggers auth flow
+    if (res.status === 401) {
         return handleAuthStatus(res.status, path, fetchOptions, true);
     }
 
@@ -138,14 +137,9 @@ async function handleAuthStatus(status, path, options, retry) {
         }
     }
 
-    // 403 - forbidden
-    if (status === 403) {
-        authHandlers.onForbidden?.();
-    }
-
     throw {
         status,
-        message: status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : "Auth error",
+        message: "Unauthorized",
     };
 }
 

@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.resource.user.outbound;
 
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
 import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import lombok.*;
 
@@ -19,4 +20,5 @@ public class UserOutboundResource extends BaseOutboundResource {
     private Boolean allowEmailNotification;
     private String cacheKey;
     private Boolean sameOrg;
+    private SystemRole systemRole;
 }

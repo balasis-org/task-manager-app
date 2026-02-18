@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { FiCheck, FiX, FiTrash2 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
+import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import Spinner from "@components/Spinner";
@@ -18,6 +19,7 @@ function formatDate(iso) {
 
 export default function Invitations() {
     const { user, setUser } = useContext(AuthContext);
+    const { groups, reloadGroups } = useContext(GroupContext);
     const showToast = useToast();
 
     const [received, setReceived] = useState([]);
@@ -64,8 +66,9 @@ export default function Invitations() {
             setReceived((prev) =>
                 prev.map((inv) => (inv.id === invId ? updated : inv))
             );
-        } catch {
-            showToast("Failed to respond to invitation");
+            if (status === "ACCEPTED") reloadGroups();
+        } catch (err) {
+            showToast(err?.message || "Failed to respond to invitation");
         }
     }
 
@@ -96,6 +99,10 @@ export default function Invitations() {
     return (
         <div className="invitations-page">
             <h1 className="invitations-heading">Invitations</h1>
+
+            <div className="invitations-group-count">
+                Groups: {groups.length}/3
+            </div>
 
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Received</h2>

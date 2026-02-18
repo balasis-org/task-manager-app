@@ -52,7 +52,6 @@ public class DataLoader extends BaseComponent {
     public void onApplicationReady(ApplicationReadyEvent evt)  {
         logger.trace("=== Running DataLoader ===");
 
-        seedInitialUser();
 
         if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
             logger.trace("Seed users already exist; skipping DataLoader run.");
@@ -70,24 +69,6 @@ public class DataLoader extends BaseComponent {
         startupGate.markDataReady();
 
         logger.trace("=== DataLoader finished ===");
-    }
-
-    private User seedInitialUser() {
-        logger.trace("Seeding base user...");
-        String email = "admin@example.com";
-
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .azureKey("local-seed-user")
-                                .tenantId(SEED_TENANT_ID)
-                                .email(email)
-                                .isOrg(false)
-                                .allowEmailNotification(false)
-                                .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
-                                .name("System Seeder")
-                                .build()
-                ));
     }
 
     private Map<String, User> seedUsers() {

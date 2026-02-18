@@ -1,7 +1,7 @@
-package io.github.balasis.taskmanager.maintenance.blobcleaner.config.secret.azure;
+package io.github.balasis.taskmanager.maintenance.config.secret.azure;
 
 import com.azure.security.keyvault.secrets.SecretClient;
-import io.github.balasis.taskmanager.maintenance.blobcleaner.config.secret.SecretClientProvider;
+import io.github.balasis.taskmanager.maintenance.config.secret.SecretClientProvider;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 

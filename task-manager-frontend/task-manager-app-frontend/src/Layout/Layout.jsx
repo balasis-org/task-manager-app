@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut } from "react-icons/fi";
+import { useContext, useEffect, useRef, useState } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import Footer from "@components/footer/Footer";
@@ -10,43 +10,50 @@ import blobBase from "@blobBase";
 export default function Layout({ children }) {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [newInviteCount, setNewInviteCount] = useState(0);
+    const [hasNewInvites, setHasNewInvites] = useState(false);
+    const pollTimer = useRef(null);
 
-    // check if there are new invitations we havent seen
+    const INVITE_POLL_MS = 30_000; // 30 seconds
+
+    // lightweight invitation check — polls every 20s
+    // the backend returns 204 (no new) or 409 (has new invitations)
     useEffect(() => {
         if (!user) return;
+
+        // if user is on the invitations page, clear the badge and skip polling
+        const onInvitationsPage = location.pathname === "/invitations";
+        if (onInvitationsPage) {
+            setHasNewInvites(false);
+            return;
+        }
+
         let cancelled = false;
 
-        (async () => {
+        async function check() {
+            if (cancelled) return;
             try {
-                const lastSeen = user.lastSeenInvites
-                    ? new Date(user.lastSeenInvites)
-                    : null;
-
-                const invites = await apiGet("/api/group-invitations/me");
-                if (cancelled) return;
-
-                const pending = (Array.isArray(invites) ? invites : []).filter(
-                    (inv) => inv.invitationStatus === "PENDING"
-                );
-
-                if (!lastSeen) {
-                    // Never visited invitations page, all pending count as new
-                    setNewInviteCount(pending.length);
-                } else {
-                    const unseen = pending.filter(
-                        (inv) => inv.createdAt && new Date(inv.createdAt) > lastSeen
-                    );
-                    setNewInviteCount(unseen.length);
+                await apiGet("/api/group-invitations/check-new");
+                // 204 — no new invites
+                if (!cancelled) setHasNewInvites(false);
+            } catch (err) {
+                // 409 means new invitations exist
+                if (!cancelled && err?.status === 409) {
+                    setHasNewInvites(true);
                 }
-            } catch {
-                // silently ignore
+                // other errors silently ignored
             }
-        })();
+        }
 
-        return () => { cancelled = true; };
-    }, [user?.id]);
+        check(); // immediate first check
+        pollTimer.current = setInterval(check, INVITE_POLL_MS);
+
+        return () => {
+            cancelled = true;
+            if (pollTimer.current) clearInterval(pollTimer.current);
+        };
+    }, [user?.id, location.pathname]);
 
     const handleLogout = async () => {
         await logout();
@@ -104,8 +111,8 @@ export default function Layout({ children }) {
                         >
                             <span className="nav-icon"><FiMail size={16} /></span>
                             <span className="nav-label">Invitations</span>
-                            {newInviteCount > 0 && (
-                                <span className="nav-badge">{newInviteCount}</span>
+                            {hasNewInvites && (
+                                <span className="nav-badge">!</span>
                             )}
                         </NavLink>
                         <NavLink
@@ -122,6 +129,15 @@ export default function Layout({ children }) {
                             <span className="nav-icon"><FiInfo size={16} /></span>
                             <span className="nav-label">About us</span>
                         </NavLink>
+                        {user?.systemRole === "ADMIN" && (
+                            <NavLink
+                                to="/admin"
+                                className={({ isActive }) => (isActive ? "active" : "")}
+                            >
+                                <span className="nav-icon"><FiShield size={16} /></span>
+                                <span className="nav-label">Admin Panel</span>
+                            </NavLink>
+                        )}
                         <button onClick={handleLogout}>
                             <span className="nav-icon"><FiLogOut size={16} /></span>
                             <span className="nav-label">Logout</span>

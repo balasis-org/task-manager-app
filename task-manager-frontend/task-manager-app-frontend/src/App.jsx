@@ -11,6 +11,7 @@ import Login from "./pages/Login.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 import Settings from "./pages/Settings.jsx";
 import Task from "./pages/Task.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import AuthProvider from "@context/AuthProvider.jsx";
 import GroupProvider from "@context/GroupProvider.jsx";
@@ -32,6 +33,7 @@ export default function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+                    <Route path="/admin" element={<ProtectedRoute><Layout><AdminPanel /></Layout></ProtectedRoute>} />
                     <Route path="/task" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
                     <Route path="/group/:groupId/task/:taskId" element={<ProtectedRoute><Layout><Task /></Layout></ProtectedRoute>} />
                     <Route path="/group/:groupId/task/:taskId/comments" element={<ProtectedRoute><Layout><Comments /></Layout></ProtectedRoute>} />

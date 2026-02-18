@@ -19,7 +19,7 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
         setLoading(true);
         try {
             const data = await apiGet(
-                `/api/groups/${groupId}/events?page=${p}&size=10`
+                `/api/groups/${groupId}/events?page=${p}&size=10&sort=createdAt,desc`
             );
             setEvents(data?.content ?? []);
             setTotalPages(data?.totalPages ?? 0);

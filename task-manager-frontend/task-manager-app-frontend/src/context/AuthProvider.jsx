@@ -48,8 +48,6 @@ export default function AuthProvider({ children }) {
                     isRefreshing = false;
                 }
             },
-
-            onForbidden: () => setUser(null),
         });
     }, []);
 

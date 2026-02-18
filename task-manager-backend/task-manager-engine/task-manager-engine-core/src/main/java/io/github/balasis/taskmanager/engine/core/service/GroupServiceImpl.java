@@ -14,6 +14,8 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
+import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
 import io.github.balasis.taskmanager.context.base.model.*;
@@ -72,6 +74,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Group create(Group group){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(()->new UserNotFoundException("User not found"));
+
+        long groupCount = groupMembershipRepository.countByUser_Id(user.getId());
+        int maxGroups = PlanLimits.maxGroups(user.getSubscriptionPlan());
+        if (groupCount >= maxGroups) {
+            throw new LimitExceededException("Cannot create group. You have reached the max membership number (" + maxGroups + ")");
+        }
+
         groupValidator.validate(group);
         group.setOwner(user);
         group.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.GROUP_IMAGES));
@@ -402,6 +411,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .build();
         groupEventRepository.save(ge);
         touchGroupChange(gr, false);
+        taskCommentRepository.detachCreatorFromGroupComments(targetsId, groupId, targetsName);
         taskParticipantRepository.deleteByUserIdAndGroupId(targetsId, groupId);
         groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
     }
@@ -484,6 +494,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupValidator.validateRespondToGroupInvitation(groupInvitation);
 
         if (status == InvitationStatus.ACCEPTED) {
+            var invitedUser = groupInvitation.getUser();
+            long groupCount = groupMembershipRepository.countByUser_Id(invitedUser.getId());
+            int maxGroups = PlanLimits.maxGroups(invitedUser.getSubscriptionPlan());
+            if (groupCount >= maxGroups) {
+                throw new LimitExceededException("You can be a member of at most " + maxGroups + " groups");
+            }
             groupMembershipRepository.save(
                     GroupMembership.builder()
                             .user(groupInvitation.getUser())
@@ -549,6 +565,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
 
+        long taskCount = taskRepository.countByGroup_Id(groupId);
+        var currentUser = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+        int maxTasks = PlanLimits.maxTasksPerGroup(currentUser.getSubscriptionPlan());
+        if (taskCount >= maxTasks) {
+            throw new LimitExceededException("A group can have at most " + maxTasks + " tasks");
+        }
+
         // Guard: duplicate title check before hitting the DB constraint
         if (taskRepository.existsByTitle(task.getTitle())) {
             throw new BusinessRuleException("A task with this title already exists");
@@ -556,10 +580,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         task.setGroup(groupRepository.getReferenceById(groupId));
         task.setCreatorIdSnapshot(effectiveCurrentUser.getUserId());
-        task.setCreatorNameSnapshot(
-                userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow(
-                        ()-> new EntityNotFoundException("Can not find logged in user Id ;")).getName()
-        );
+        task.setCreatorNameSnapshot(currentUser.getName());
         var savedTask =  taskRepository.save(task);
 
         savedTask.getTaskParticipants().add(
@@ -890,10 +911,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupValidator.validateTaskComment(groupId,task,comment);
 
+        var creator = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+
         TaskComment saved = taskCommentRepository.save(
                 TaskComment.builder()
                 .task(taskRepository.getReferenceById(taskId))
-                .creator(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
+                .creator(creator)
+                .creatorNameSnapshot(creator.getName())
                 .comment(comment)
                 .build()
         );
@@ -1136,6 +1161,47 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (participants) task.setLastChangeDateInParticipants(now);
         if (comments) task.setLastChangeDateInComments(now);
         touchGroupChange(task.getGroup(), false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasNewInvitations() {
+        Long userId = effectiveCurrentUser.getUserId();
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Instant lastSeen = user.getLastSeenInvites();
+        if (lastSeen != null) {
+            return groupInvitationRepository.existsByUser_IdAndInvitationStatusAndCreatedAtAfter(
+                    userId, InvitationStatus.PENDING, lastSeen);
+        }
+        // never visited invitations page → any pending invitation counts
+        return groupInvitationRepository.existsByUser_IdAndInvitationStatus(
+                userId, InvitationStatus.PENDING);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasTaskChanged(Long groupId, Long taskId, Instant since) {
+        authorizationService.requireAnyRoleIn(groupId);
+        var task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+        if (!task.getGroup().getId().equals(groupId)) {
+            throw new TaskNotFoundException("Task not found in this group");
+        }
+        return task.getLastChangeDate() != null && task.getLastChangeDate().isAfter(since);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasCommentsChanged(Long groupId, Long taskId, Instant since) {
+        authorizationService.requireAnyRoleIn(groupId);
+        var task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+        if (!task.getGroup().getId().equals(groupId)) {
+            throw new TaskNotFoundException("Task not found in this group");
+        }
+        return task.getLastChangeDateInComments() != null && task.getLastChangeDateInComments().isAfter(since);
     }
 
 

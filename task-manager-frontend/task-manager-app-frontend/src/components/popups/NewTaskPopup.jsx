@@ -108,7 +108,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                 taskState,
             };
             if (priority !== "") payload.priority = Number(priority);
-            if (dueDate) payload.dueDate = dueDate + "T00:00:00";
+            if (dueDate) payload.dueDate = new Date(dueDate).toISOString();
             if (selectedAssignees.length) payload.assignedIds = selectedAssignees.map((m) => m.user?.id);
             if (selectedReviewers.length) payload.reviewerIds = selectedReviewers.map((m) => m.user?.id);
 

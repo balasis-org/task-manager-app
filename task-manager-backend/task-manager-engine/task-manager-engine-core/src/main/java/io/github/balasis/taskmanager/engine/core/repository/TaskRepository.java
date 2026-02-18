@@ -19,6 +19,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
 
     boolean existsByTitleAndIdNot(String title, Long id);
 
+    long countByGroup_Id(Long groupId);
+
     @Modifying
     void deleteAllByGroup_Id(Long groupId);
 
@@ -169,14 +171,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         AND (:priorityMax IS NULL OR t.priority <= :priorityMax)
         AND (:taskState IS NULL OR t.taskState = :taskState)
         AND (:hasFiles IS NULL
-            OR (:hasFiles = TRUE AND (
-                EXISTS (SELECT f FROM TaskFile f WHERE f.task.id = t.id)
-                OR EXISTS (SELECT af FROM TaskAssigneeFile af WHERE af.task.id = t.id)
-            ))
-            OR (:hasFiles = FALSE AND
-                NOT EXISTS (SELECT f FROM TaskFile f WHERE f.task.id = t.id)
-                AND NOT EXISTS (SELECT af FROM TaskAssigneeFile af WHERE af.task.id = t.id)
-            )
+            OR (:hasFiles = TRUE AND (SIZE(t.creatorFiles) > 0 OR SIZE(t.assigneeFiles) > 0))
+            OR (:hasFiles = FALSE AND SIZE(t.creatorFiles) = 0 AND SIZE(t.assigneeFiles) = 0)
         )
         AND (:creatorId IS NULL OR t.id IN (
             SELECT t1.id FROM Task t1 JOIN t1.taskParticipants tp1
@@ -196,15 +192,24 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         ))
     """)
     Set<Long> filterTaskIds(
-        @Param("groupId") Long groupId,
-        @Param("creatorId") Long creatorId,
-        @Param("reviewerId") Long reviewerId,
-        @Param("assigneeId") Long assigneeId,
-        @Param("participantUserId") Long participantUserId,
-        @Param("dueDateBefore") Instant dueDateBefore,
-        @Param("priorityMin") Integer priorityMin,
-        @Param("priorityMax") Integer priorityMax,
-        @Param("taskState") TaskState taskState,
-        @Param("hasFiles") Boolean hasFiles
+            @Param("groupId") Long groupId,
+            @Param("creatorId") Long creatorId,
+            @Param("reviewerId") Long reviewerId,
+            @Param("assigneeId") Long assigneeId,
+            @Param("participantUserId") Long participantUserId,
+            @Param("dueDateBefore") Instant dueDateBefore,
+            @Param("priorityMin") Integer priorityMin,
+            @Param("priorityMax") Integer priorityMax,
+            @Param("taskState") TaskState taskState,
+            @Param("hasFiles") Boolean hasFiles
     );
+
+    @Modifying
+    @Query("UPDATE Task t SET t.reviewedBy = null WHERE t.reviewedBy.id = :userId")
+    void nullifyReviewedByForUser(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.lastEditBy = null WHERE t.lastEditBy.id = :userId")
+    void nullifyLastEditByForUser(@Param("userId") Long userId);
+
 }

@@ -12,6 +12,17 @@
     margin-bottom: 1.5em;
 }
 
+.invitations-group-count {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border-radius: 0.375em;
+    margin-bottom: 1em;
+}
+
 /* Section */
 .invitations-section {
     margin-bottom: 2.25em;

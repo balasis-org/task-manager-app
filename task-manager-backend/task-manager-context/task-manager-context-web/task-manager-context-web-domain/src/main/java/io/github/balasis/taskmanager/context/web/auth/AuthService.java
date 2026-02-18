@@ -3,6 +3,9 @@ package io.github.balasis.taskmanager.context.web.auth;
 import com.nimbusds.jwt.SignedJWT;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
+import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.jwt.JwtService;
@@ -11,6 +14,7 @@ import io.github.balasis.taskmanager.engine.core.repository.RefreshTokenReposito
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.config.AuthConfig;
+import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +39,7 @@ public class AuthService extends BaseComponent {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     private final AuthConfig authConfig;
     private final WebClient webClient = WebClient.builder().build();
+    private final SecretClientProvider secretClientProvider;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
@@ -120,8 +125,29 @@ public class AuthService extends BaseComponent {
         var azureKey = tenantId.concat(azureId);
         var finalName = (name!=null) ? name : email.substring(0,email.indexOf("@"));
 
+        String adminEmail = secretClientProvider.getSecret("ADMIN_EMAIL");
+        System.out.println("Admin email is : " + adminEmail);
+        System.out.println("email is " + email);
+        boolean isAdmin = adminEmail != null && adminEmail.equalsIgnoreCase(email);
+        if(isAdmin){
+            System.out.println(adminEmail   + " is " + isAdmin);
+        }
+
         return  userRepository.findByAzureKey(azureKey)
+                .map(existing -> {
+                    existing.setLastActiveAt(java.time.Instant.now());
+                    // promote to admin if env says so (idempotent)
+                    if (isAdmin && existing.getSystemRole() != SystemRole.ADMIN) {
+                        existing.setSystemRole(SystemRole.ADMIN);
+                    }
+                    return userRepository.save(existing);
+                })
                 .orElseGet(() -> {
+                    // admin bypasses the user-count limit
+                    if (!isAdmin && userRepository.count() >= PlanLimits.MAX_USERS) {
+                        throw new LimitExceededException(
+                                "We apologize but currently the application has reached the maximum number of user");
+                    }
                     User u = new User();
                     u.setAzureKey(azureKey);
                     u.setTenantId(tenantId);
@@ -129,6 +155,9 @@ public class AuthService extends BaseComponent {
                     u.setOrg(isOrg);
                     u.setEmail(email);
                     u.setName(finalName);
+                    if (isAdmin) {
+                        u.setSystemRole(SystemRole.ADMIN);
+                    }
                     return userRepository.save(u);
                 });
 

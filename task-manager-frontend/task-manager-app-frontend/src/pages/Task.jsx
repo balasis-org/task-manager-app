@@ -1,14 +1,15 @@
 
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FiArrowLeft,FiMessageCircle,FiPlus,FiDownload,
-    FiTrash2,FiEdit2,FiChevronRight,FiChevronLeft} from "react-icons/fi";
+    FiTrash2,FiEdit2,FiChevronRight,FiChevronLeft,FiRefreshCw} from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { getFileIcon, isFileTooLarge } from "@assets/js/fileUtils";
+import useSmartPoll from "@hooks/useSmartPoll";
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Task.css";
@@ -53,6 +54,21 @@ export default function Task() {
     const [fileDragOver, setFileDragOver] = useState(false);
     const [assigneeDragOver, setAssigneeDragOver] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
+
+    // track when we last fetched the task for lightweight polling
+    const lastFetchRef = useRef(new Date().toISOString());
+
+    // lightweight change-detection poll
+    const taskPollCheck = useCallback(async () => {
+        if (!groupId || !taskId) return;
+        await apiGet(`/api/groups/${groupId}/task/${taskId}/has-changed?since=${encodeURIComponent(lastFetchRef.current)}`);
+    }, [groupId, taskId]);
+
+    const {
+        hasChanged: taskHasChanged,
+        isStale: taskIsStale,
+        reset: resetTaskPoll,
+    } = useSmartPoll(taskPollCheck, { enabled: !!groupId && !!taskId });
 
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const myParticipant = task?.taskParticipants
@@ -106,6 +122,8 @@ export default function Task() {
                 setEditTitle(data.title || "");
                 setEditDesc(data.description || "");
                 setEditState(data.taskState || "TODO");
+                lastFetchRef.current = new Date().toISOString();
+                resetTaskPoll();
             })
             .catch(() => {});
     }
@@ -127,6 +145,8 @@ export default function Task() {
                 setEditTitle(data.title || "");
                 setEditDesc(data.description || "");
                 setEditState(data.taskState || "TODO");
+                lastFetchRef.current = new Date().toISOString();
+                resetTaskPoll();
             })
             .catch(() => setError("Failed to load task"))
             .finally(() => setLoading(false));
@@ -332,6 +352,16 @@ export default function Task() {
                         </Link>
                     </div>
                 </div>
+
+                {/* Poll-detected changes banner */}
+                {(taskHasChanged || taskIsStale) && (
+                    <div className="task-stale-banner">
+                        <span>{taskHasChanged ? "This task has been updated." : "Data may be outdated."}</span>
+                        <button className="stale-refresh-btn" onClick={refetchTask}>
+                            <FiRefreshCw size={14} className="stale-refresh-icon" /> Refresh
+                        </button>
+                    </div>
+                )}
 
                 {/* State selector */}
                 <div className="task-state-bar">

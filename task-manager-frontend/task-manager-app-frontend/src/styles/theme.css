@@ -56,6 +56,7 @@
     --accent-violet:        #7c3aed;
     --accent-violet-bg:     #f3f0ff;
     --accent-violet-deep:   #ede9fe;
+    --accent: #577797;
 
     /* Status */
     --success:           #28a745;
@@ -152,6 +153,7 @@
     --accent-violet:        #a78bfa;
     --accent-violet-bg:     #2d2548;
     --accent-violet-deep:   #3a2d5e;
+    --accent: #697785;
 
     --success:           #34d058;
     --success-hover:     #2ea043;
