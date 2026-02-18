@@ -214,6 +214,11 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     @Override
+    public void validateInvitationRole(GroupInvitation groupInvitation) {
+        isTheRoleChosenValidAccordingToAppLogic(groupInvitation);
+    }
+
+    @Override
     public void validateRespondToGroupInvitation(GroupInvitation invitation) {
         isUserTheReceiverOfTheInvitation(invitation);
         isTheInvitationOnPendingStatus(invitation);

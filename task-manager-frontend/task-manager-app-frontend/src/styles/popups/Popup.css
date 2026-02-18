@@ -46,6 +46,14 @@
     margin-bottom: 0.75em;
 }
 
+.popup-hint {
+    font-size: 0.72em;
+    color: var(--text-faint, #999);
+    font-style: italic;
+    margin-top: 0.25em;
+    display: block;
+}
+
 .popup-success {
     background: var(--info-bg);
     color: var(--info-text);

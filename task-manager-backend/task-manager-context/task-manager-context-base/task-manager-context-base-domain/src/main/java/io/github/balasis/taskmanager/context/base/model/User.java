@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.security.SecureRandom;
 
 @Getter
 @Setter
@@ -66,6 +67,9 @@ public class User extends BaseModel{
     private Instant lastSeenInvites;
 
     @Column
+    private Instant lastInviteReceivedAt;
+
+    @Column
     private Instant lastActiveAt;
 
     @Column(length = 64)
@@ -74,16 +78,36 @@ public class User extends BaseModel{
     @Column
     private Instant cacheKeyCreatedAt;
 
+    @Column(unique = true, length = 8)
+    private String inviteCode;
+
+    @Column
+    private Instant inviteCodeCreatedAt;
+
     @PrePersist
     protected void onCreate(){
         lastSeenInvites = Instant.now();
         lastActiveAt = Instant.now();
         rotateCacheKey();
+        if (inviteCode == null) refreshInviteCode();
     }
 
     public void rotateCacheKey() {
         this.cacheKey = UUID.randomUUID().toString().replace("-", "");
         this.cacheKeyCreatedAt = Instant.now();
+    }
+
+    private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final SecureRandom CODE_RNG = new SecureRandom();
+    private static final int CODE_LEN = 8;
+
+    public void refreshInviteCode() {
+        StringBuilder sb = new StringBuilder(CODE_LEN);
+        for (int i = 0; i < CODE_LEN; i++) {
+            sb.append(CODE_CHARS.charAt(CODE_RNG.nextInt(CODE_CHARS.length())));
+        }
+        this.inviteCode = sb.toString();
+        this.inviteCodeCreatedAt = Instant.now();
     }
 
 

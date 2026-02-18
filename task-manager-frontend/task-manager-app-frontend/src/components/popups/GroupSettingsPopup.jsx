@@ -59,7 +59,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             onUpdated(updated);
             showToast("Description updated", "success");
             setEditDesc(false);
-        } catch { showToast("Failed to update description"); }
+        } catch (err) { showToast(err?.message || "Failed to update description"); }
         finally { setSavingDesc(false); }
     }
 
@@ -70,7 +70,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             onUpdated(updated);
             showToast("Announcement updated", "success");
             setEditAnn(false);
-        } catch { showToast("Failed to update announcement"); }
+        } catch (err) { showToast(err?.message || "Failed to update announcement"); }
         finally { setSavingAnn(false); }
     }
 
@@ -81,7 +81,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             onUpdated(updated);
             showToast("Email setting updated", "success");
             setEditEmail(false);
-        } catch { showToast("Failed to update email setting"); }
+        } catch (err) { showToast(err?.message || "Failed to update email setting"); }
         finally { setSavingEmail(false); }
     }
 
@@ -95,7 +95,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             onUpdated(updated);
             showToast("Group image updated", "success");
             setCoverImage(null);
-        } catch { showToast("Failed to upload image"); }
+        } catch (err) { showToast(err?.message || "Failed to upload image"); }
         finally { setUploadingImg(false); }
     }
 
@@ -109,7 +109,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             );
             showToast("Leadership transferred!", "success");
             onClose();
-        } catch { showToast("Failed to transfer leadership"); }
+        } catch (err) { showToast(err?.message || "Failed to transfer leadership"); }
         finally { setTransferring(false); }
     }
 
@@ -120,7 +120,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             await apiDelete(`/api/groups/${group.id}`);
             showToast("Group deleted", "success");
             if (onDeleted) onDeleted();
-        } catch { showToast("Failed to delete group"); }
+        } catch (err) { showToast(err?.message || "Failed to delete group"); }
         finally { setDeleting(false); }
     }
 

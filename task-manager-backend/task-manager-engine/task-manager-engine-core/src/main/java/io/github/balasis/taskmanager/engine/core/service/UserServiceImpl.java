@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
@@ -43,6 +44,11 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         if (user.getCacheKey() == null || user.getCacheKeyCreatedAt() == null
                 || Duration.between(user.getCacheKeyCreatedAt(), Instant.now()).toDays() >= 7) {
             user.rotateCacheKey();
+        }
+
+        // generate invite code for existing users who don't have one yet
+        if (user.getInviteCode() == null) {
+            user.refreshInviteCode();
         }
 
         return user;
@@ -97,6 +103,24 @@ public class UserServiceImpl extends BaseComponent implements UserService {
             }
         }
         return userRepository.searchUserForInvites(groupId, normalized, tenantId, pageable);
+    }
+
+    private static final Duration INVITE_CODE_COOLDOWN = Duration.ofMinutes(5);
+
+    @Override
+    @Transactional
+    public User refreshInviteCode() {
+        var user = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+
+        if (user.getInviteCodeCreatedAt() != null
+                && Duration.between(user.getInviteCodeCreatedAt(), Instant.now()).compareTo(INVITE_CODE_COOLDOWN) < 0) {
+            throw new BusinessRuleException("You can refresh your invite code once every "
+                    + INVITE_CODE_COOLDOWN.toMinutes() + " minutes");
+        }
+
+        user.refreshInviteCode();
+        return userRepository.save(user);
     }
 
 }

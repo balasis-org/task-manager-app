@@ -1,6 +1,8 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
 import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
+import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.EntityNotFoundException;
@@ -12,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -49,21 +53,131 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Group> listGroups(Pageable pageable) {
+    public Page<Group> listGroups(String q, Pageable pageable) {
         requireAdmin();
+        if (q != null && !q.isBlank()) {
+            return groupRepository.adminSearchGroups(q.trim(), pageable);
+        }
         return groupRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<Task> listTasks(Pageable pageable) {
+    public Page<Task> listTasks(String q, Pageable pageable) {
         requireAdmin();
+        if (q != null && !q.isBlank()) {
+            return taskRepository.adminSearchTasks(q.trim(), pageable);
+        }
         return taskRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<TaskComment> listComments(Pageable pageable) {
+    public Page<TaskComment> listComments(Long taskId, Long groupId, Long creatorId, Pageable pageable) {
         requireAdmin();
-        return taskCommentRepository.findAll(pageable);
+        return taskCommentRepository.adminFilterComments(taskId, groupId, creatorId, pageable);
+    }
+
+    /* ━━━━ single-entity detail ━━━━ */
+
+    @Transactional(readOnly = true)
+    public User getUser(Long userId) {
+        requireAdmin();
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public Group getGroup(Long groupId) {
+        requireAdmin();
+        return groupRepository.findByIdWithTasksAndParticipants(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public Task getTask(Long taskId) {
+        requireAdmin();
+        return taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public TaskComment getComment(Long commentId) {
+        requireAdmin();
+        return taskCommentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
+    }
+
+    /* ━━━━ admin update — bypasses all group-role checks ━━━━ */
+
+    @Transactional
+    public User updateUser(Long userId, String name, String email, SystemRole systemRole,
+                           SubscriptionPlan subscriptionPlan, Boolean allowEmailNotification) {
+        requireAdmin();
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        if (name != null && !name.isBlank()) user.setName(name);
+        if (email != null && !email.isBlank()) user.setEmail(email);
+        if (systemRole != null) user.setSystemRole(systemRole);
+        if (subscriptionPlan != null) user.setSubscriptionPlan(subscriptionPlan);
+        if (allowEmailNotification != null) user.setAllowEmailNotification(allowEmailNotification);
+
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public Group updateGroup(Long groupId, String name, String description, String announcement,
+                             Boolean allowEmailNotification) {
+        requireAdmin();
+        var group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found"));
+
+        if (name != null && !name.isBlank()) {
+            // check uniqueness for the same owner, excluding self
+            boolean dup = groupRepository.existsByNameAndOwner_IdAndIdNot(name, group.getOwner().getId(), groupId);
+            if (dup) throw new BusinessRuleException(
+                    "The owner already has another group named '" + name + "'. Rename that group first.");
+            group.setName(name);
+        }
+        if (description != null) group.setDescription(description);
+        if (announcement != null) group.setAnnouncement(announcement);
+        if (allowEmailNotification != null) group.setAllowEmailNotification(allowEmailNotification);
+
+        return groupRepository.save(group);
+    }
+
+    @Transactional
+    public Task updateTask(Long taskId, String title, String description,
+                           TaskState taskState, Integer priority, Instant dueDate) {
+        requireAdmin();
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+
+        if (title != null && !title.isBlank()) {
+            if (taskRepository.existsByTitleAndIdNot(title, taskId)) {
+                throw new BusinessRuleException(
+                        "A task with this title already exists. Choose a different title.");
+            }
+            task.setTitle(title);
+        }
+        if (description != null && !description.isBlank()) task.setDescription(description);
+        if (taskState != null) task.setTaskState(taskState);
+        if (priority != null) task.setPriority(priority);
+        if (dueDate != null) task.setDueDate(dueDate);
+
+        task.setLastEditDate(Instant.now());
+        return taskRepository.save(task);
+    }
+
+    @Transactional
+    public TaskComment updateComment(Long commentId, String comment) {
+        requireAdmin();
+        var existing = taskCommentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
+
+        if (comment != null && !comment.isBlank()) {
+            existing.setComment(comment);
+        }
+        return taskCommentRepository.save(existing);
     }
 
     /* ━━━━ delete user ━━━━ */

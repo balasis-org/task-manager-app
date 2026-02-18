@@ -106,6 +106,24 @@
     white-space: nowrap;
 }
 
+.sidebar-profile-code {
+    font-size: 0.62em;
+    font-family: "Consolas", "Courier New", monospace;
+    letter-spacing: 0.12em;
+    color: var(--sidebar-text);
+    opacity: 0.75;
+    text-align: center;
+    cursor: pointer;
+    user-select: all;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s;
+}
+.sidebar-profile-code:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.08);
+}
+
 .sidebar-nav {
     flex: 1;
     display: flex;

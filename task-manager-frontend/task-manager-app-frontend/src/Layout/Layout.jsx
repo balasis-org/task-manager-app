@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
@@ -14,33 +14,53 @@ export default function Layout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [hasNewInvites, setHasNewInvites] = useState(false);
     const pollTimer = useRef(null);
+    const lastActivityRef = useRef(Date.now());
 
-    const INVITE_POLL_MS = 30_000; // 30 seconds
+    // Refresh callback — exposed so Invitations page can trigger re-fetch via event
+    const inviteRefreshRef = useRef(null);
 
-    // lightweight invitation check — polls every 20s
-    // the backend returns 204 (no new) or 409 (has new invitations)
+    const INVITE_POLL_MS = 180_000; // 3 minutes
+    const IDLE_THRESHOLD_MS = 900_000; // 15 min — skip polling when idle
+
+    // track user activity to avoid polling when tab is backgrounded / idle
+    useEffect(() => {
+        const touch = () => { lastActivityRef.current = Date.now(); };
+        window.addEventListener("mousemove", touch, { passive: true });
+        window.addEventListener("keydown", touch, { passive: true });
+        return () => {
+            window.removeEventListener("mousemove", touch);
+            window.removeEventListener("keydown", touch);
+        };
+    }, []);
+
+    // Lightweight invitation polling — runs everywhere including the invitations page.
+    // When NOT on the invitations page and new invites exist → show badge.
+    // When ON the invitations page and new invites exist → dispatch custom event so the page re-fetches.
     useEffect(() => {
         if (!user) return;
 
-        // if user is on the invitations page, clear the badge and skip polling
-        const onInvitationsPage = location.pathname === "/invitations";
-        if (onInvitationsPage) {
-            setHasNewInvites(false);
-            return;
-        }
-
         let cancelled = false;
+        const onInvitationsPage = () => location.pathname === "/invitations";
 
         async function check() {
             if (cancelled) return;
+            // skip if user has been idle
+            if (Date.now() - lastActivityRef.current > IDLE_THRESHOLD_MS) return;
+
             try {
                 await apiGet("/api/group-invitations/check-new");
                 // 204 — no new invites
                 if (!cancelled) setHasNewInvites(false);
             } catch (err) {
-                // 409 means new invitations exist
-                if (!cancelled && err?.status === 409) {
-                    setHasNewInvites(true);
+                if (cancelled) return;
+                if (err?.status === 409) {
+                    if (onInvitationsPage()) {
+                        // don't show badge; tell the Invitations page to re-fetch
+                        setHasNewInvites(false);
+                        window.dispatchEvent(new CustomEvent("invites-changed"));
+                    } else {
+                        setHasNewInvites(true);
+                    }
                 }
                 // other errors silently ignored
             }
@@ -91,8 +111,16 @@ export default function Layout({ children }) {
                         {user?.name && (
                             <span className="sidebar-profile-name">{user.name}</span>
                         )}
-                        {user?.email && (
-                            <span className="sidebar-profile-email">{user.email}</span>
+                        {user?.inviteCode && (
+                            <span
+                                className="sidebar-profile-code"
+                                title="Your invite code — share it so others can invite you"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(user.inviteCode);
+                                }}
+                            >
+                                {user.inviteCode}
+                            </span>
                         )}
                     </div>
 

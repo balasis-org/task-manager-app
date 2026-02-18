@@ -448,26 +448,57 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
 
     @Override
-    public GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role userToBeInvitedRole, String comment){
-        authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+    public void createGroupInvitation(Long groupId, String inviteCode, Role userToBeInvitedRole, String comment){
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
 
         var group = groupRepository.findById(groupId).orElseThrow();
-        var targetUser = userRepository.findById(userToBeInvited)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Normalise code (uppercase, strip whitespace)
+        String code = (inviteCode == null) ? "" : inviteCode.trim().toUpperCase();
+
+        // Silent return if code is empty or target user not found — don't reveal whether code exists
+        var targetUserOpt = userRepository.findByInviteCode(code);
+        if (targetUserOpt.isEmpty()) {
+            logger.debug("Invite attempt with unknown code in group {}", groupId);
+            return;
+        }
+        var targetUser = targetUserOpt.get();
+
+        // Silent return if already a member
+        if (groupMembershipRepository.existsByGroupIdAndUserId(groupId, targetUser.getId())) {
+            logger.debug("Invite attempt for user {} who is already member of group {}", targetUser.getId(), groupId);
+            return;
+        }
+
+        // Silent return if pending invite already exists
+        if (groupInvitationRepository.existsByUser_IdAndGroup_IdAndInvitationStatus(
+                targetUser.getId(), groupId, InvitationStatus.PENDING)) {
+            logger.debug("Duplicate invite attempt for user {} in group {}", targetUser.getId(), groupId);
+            return;
+        }
+
         var inviter = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Inviter not found"));
 
+        var role = (userToBeInvitedRole == null) ? Role.MEMBER : userToBeInvitedRole;
+
         var groupInvitation = GroupInvitation.builder()
-                .user(userRepository.getReferenceById(userToBeInvited))
+                .user(targetUser)
                 .invitationStatus(InvitationStatus.PENDING)
-                .invitedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
+                .invitedBy(inviter)
                 .group(group)
-                .userToBeInvitedRole( (userToBeInvitedRole == null) ? Role.MEMBER : userToBeInvitedRole)
-            .comment((comment == null || comment.isBlank()) ? null : comment.trim())
+                .userToBeInvitedRole(role)
+                .comment((comment == null || comment.isBlank()) ? null : comment.trim())
                 .build();
-        groupValidator.validateCreateGroupInvitation(groupInvitation);
+
+        // Validate role assignment rules (still throws on illegal role choice)
+        groupValidator.validateInvitationRole(groupInvitation);
 
         GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+
+        // mark the target user so the lightweight polling check picks it up
+        targetUser.setLastInviteReceivedAt(Instant.now());
+        userRepository.save(targetUser);
 
         boolean groupAllows = Boolean.TRUE.equals(group.getAllowEmailNotification());
         boolean userAllows = Boolean.TRUE.equals(targetUser.getAllowEmailNotification());
@@ -483,8 +514,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 emailClient.sendEmail(targetUser.getEmail(), subject, body);
             }
         }
-
-        return saved;
     }
 
         @Override
@@ -1170,14 +1199,15 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        Instant lastSeen = user.getLastSeenInvites();
-        if (lastSeen != null) {
-            return groupInvitationRepository.existsByUser_IdAndInvitationStatusAndCreatedAtAfter(
-                    userId, InvitationStatus.PENDING, lastSeen);
+        Instant lastReceived = user.getLastInviteReceivedAt();
+        if (lastReceived == null) {
+            // no invitation has ever been received
+            return false;
         }
-        // never visited invitations page → any pending invitation counts
-        return groupInvitationRepository.existsByUser_IdAndInvitationStatus(
-                userId, InvitationStatus.PENDING);
+        Instant lastSeen = user.getLastSeenInvites();
+        // if user never visited invitations → any received invite is new
+        // otherwise compare timestamps
+        return lastSeen == null || lastReceived.isAfter(lastSeen);
     }
 
     @Override

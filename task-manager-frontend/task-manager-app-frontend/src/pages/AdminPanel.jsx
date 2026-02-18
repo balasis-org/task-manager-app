@@ -1,9 +1,14 @@
-import { useContext, useEffect, useState, useCallback } from "react";
+import { useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUsers, FiLayers, FiCheckSquare, FiMessageSquare, FiTrash2, FiChevronLeft, FiChevronRight, FiSearch } from "react-icons/fi";
+import {
+    FiUsers, FiLayers, FiCheckSquare, FiMessageSquare,
+    FiTrash2, FiChevronLeft, FiChevronRight, FiSearch,
+    FiX, FiEdit2, FiEye, FiFilter
+} from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
-import { apiGet, apiDelete } from "@assets/js/apiClient.js";
+import { apiGet, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
+import blobBase from "@blobBase";
 import "@styles/pages/AdminPanel.css";
 
 const TABS = [
@@ -14,6 +19,16 @@ const TABS = [
 ];
 
 const PAGE_SIZE = 15;
+const DEBOUNCE_MS = 400;
+
+function useDebounce(value, delay) {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const t = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(t);
+    }, [value, delay]);
+    return debounced;
+}
 
 export default function AdminPanel() {
     const { user } = useContext(AuthContext);
@@ -24,57 +39,111 @@ export default function AdminPanel() {
     const [data, setData] = useState(null);
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [searchQ, setSearchQ] = useState("");
-    const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, label }
 
-    // guard — redirect non-admins
+    // search / filters
+    const [searchQ, setSearchQ] = useState("");
+    const debouncedQ = useDebounce(searchQ, DEBOUNCE_MS);
+
+    // Comment multi-filters (applied on button click, not on change)
+    const [commentFilters, setCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
+    const [appliedCommentFilters, setAppliedCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
+
+    // Detail / edit modal
+    const [detailItem, setDetailItem] = useState(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [editFields, setEditFields] = useState({});
+    const [saving, setSaving] = useState(false);
+
+    // Delete confirm
+    const [confirmDelete, setConfirmDelete] = useState(null);
+
+    // guard
     useEffect(() => {
-        if (user && user.systemRole !== "ADMIN") {
-            navigate("/dashboard", { replace: true });
-        }
+        if (user && user.systemRole !== "ADMIN") navigate("/dashboard", { replace: true });
     }, [user, navigate]);
 
+    /* ── fetch list ── */
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             let url = `/api/admin/${tab}?page=${page}&size=${PAGE_SIZE}&sort=id,desc`;
-            if (tab === "users" && searchQ.trim()) {
-                url += `&q=${encodeURIComponent(searchQ.trim())}`;
+            if ((tab === "users" || tab === "groups" || tab === "tasks") && debouncedQ.trim()) {
+                url += `&q=${encodeURIComponent(debouncedQ.trim())}`;
+            }
+            if (tab === "comments") {
+                if (appliedCommentFilters.taskId) url += `&taskId=${appliedCommentFilters.taskId}`;
+                if (appliedCommentFilters.groupId) url += `&groupId=${appliedCommentFilters.groupId}`;
+                if (appliedCommentFilters.creatorId) url += `&creatorId=${appliedCommentFilters.creatorId}`;
             }
             const res = await apiGet(url);
             setData(res);
-        } catch (err) {
+        } catch {
             showToast("Failed to load data", "error");
             setData(null);
         } finally {
             setLoading(false);
         }
-    }, [tab, page, searchQ]);
+    }, [tab, page, debouncedQ, appliedCommentFilters, showToast]);
 
     useEffect(() => {
         if (!user || user.systemRole !== "ADMIN") return;
         fetchData();
     }, [fetchData, user]);
 
-    // when switching tabs reset page and search
     const switchTab = (key) => {
         setTab(key);
         setPage(0);
         setSearchQ("");
+        setCommentFilters({ taskId: "", groupId: "", creatorId: "" });
+        setAppliedCommentFilters({ taskId: "", groupId: "", creatorId: "" });
         setConfirmDelete(null);
+        setDetailItem(null);
     };
 
+    /* ── detail fetch ── */
+    const openDetail = async (type, id) => {
+        setDetailLoading(true);
+        setEditFields({});
+        try {
+            const item = await apiGet(`/api/admin/${type}/${id}`);
+            setDetailItem({ type, ...item });
+            setEditFields({});
+        } catch {
+            showToast("Failed to load details", "error");
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    /* ── save edit ── */
+    const saveEdit = async () => {
+        if (!detailItem || Object.keys(editFields).length === 0) return;
+        setSaving(true);
+        try {
+            const updated = await apiPatch(`/api/admin/${detailItem.type}/${detailItem.id}`, editFields);
+            setDetailItem({ type: detailItem.type, ...updated });
+            setEditFields({});
+            showToast("Saved", "success");
+            fetchData(); // refresh list behind
+        } catch (err) {
+            showToast(err?.message || "Save failed", "error");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /* ── delete ── */
     const handleDelete = async () => {
         if (!confirmDelete) return;
         const { type, id } = confirmDelete;
         try {
             await apiDelete(`/api/admin/${type}/${id}`);
-            showToast("Deleted successfully", "success");
+            showToast("Deleted", "success");
             setConfirmDelete(null);
+            if (detailItem?.id === id) setDetailItem(null);
             fetchData();
         } catch (err) {
-            const msg = err?.message || "Delete failed";
-            showToast(msg, "error");
+            showToast(err?.message || "Delete failed", "error");
             setConfirmDelete(null);
         }
     };
@@ -84,6 +153,34 @@ export default function AdminPanel() {
     const items = data?.content || [];
     const totalPages = data?.totalPages || 0;
     const totalElements = data?.totalElements || 0;
+
+    /* ── helper: editable field ── */
+    const ef = (fieldName, currentValue, type = "text") => (
+        <input
+            className="admin-edit-input"
+            type={type}
+            defaultValue={currentValue ?? ""}
+            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.value }))}
+        />
+    );
+
+    const efSelect = (fieldName, currentValue, options) => (
+        <select
+            className="admin-edit-input"
+            defaultValue={currentValue ?? ""}
+            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.value }))}
+        >
+            {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+    );
+
+    const efCheckbox = (fieldName, currentValue) => (
+        <input
+            type="checkbox"
+            defaultChecked={!!currentValue}
+            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.checked }))}
+        />
+    );
 
     return (
         <div className="admin-panel">
@@ -106,16 +203,64 @@ export default function AdminPanel() {
                 ))}
             </div>
 
-            {/* search (users only) */}
-            {tab === "users" && (
+            {/* search bar (users, groups, tasks) */}
+            {(tab === "users" || tab === "groups" || tab === "tasks") && (
                 <div className="admin-search">
                     <FiSearch size={14} />
                     <input
                         type="text"
-                        placeholder="Search by name or email..."
+                        placeholder={
+                            tab === "users" ? "Search by name or email..." :
+                            tab === "groups" ? "Search by group or owner name..." :
+                            "Search by title or group name..."
+                        }
                         value={searchQ}
                         onChange={(e) => { setSearchQ(e.target.value); setPage(0); }}
                     />
+                </div>
+            )}
+
+            {/* comment multi-filter */}
+            {tab === "comments" && (
+                <div className="admin-comment-filters">
+                    <FiFilter size={14} />
+                    <input
+                        type="number"
+                        placeholder="Task ID"
+                        value={commentFilters.taskId}
+                        onChange={(e) => setCommentFilters((f) => ({ ...f, taskId: e.target.value }))}
+                    />
+                    <input
+                        type="number"
+                        placeholder="Group ID"
+                        value={commentFilters.groupId}
+                        onChange={(e) => setCommentFilters((f) => ({ ...f, groupId: e.target.value }))}
+                    />
+                    <input
+                        type="number"
+                        placeholder="Creator ID"
+                        value={commentFilters.creatorId}
+                        onChange={(e) => setCommentFilters((f) => ({ ...f, creatorId: e.target.value }))}
+                    />
+                    <button
+                        className="admin-filter-btn"
+                        onClick={() => { setAppliedCommentFilters({ ...commentFilters }); setPage(0); }}
+                    >
+                        Search
+                    </button>
+                    {(appliedCommentFilters.taskId || appliedCommentFilters.groupId || appliedCommentFilters.creatorId) && (
+                        <button
+                            className="admin-filter-clear"
+                            onClick={() => {
+                                const empty = { taskId: "", groupId: "", creatorId: "" };
+                                setCommentFilters(empty);
+                                setAppliedCommentFilters(empty);
+                                setPage(0);
+                            }}
+                        >
+                            Clear
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -132,12 +277,12 @@ export default function AdminPanel() {
                                 {tab === "users" && <><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Plan</th><th>Last Active</th><th></th></>}
                                 {tab === "groups" && <><th>ID</th><th>Name</th><th>Owner</th><th>Members</th><th>Tasks</th><th>Created</th><th></th></>}
                                 {tab === "tasks" && <><th>ID</th><th>Title</th><th>State</th><th>Group</th><th>Creator</th><th>Due</th><th></th></>}
-                                {tab === "comments" && <><th>ID</th><th>Comment</th><th>Author</th><th>Task</th><th>Created</th><th></th></>}
+                                {tab === "comments" && <><th>ID</th><th>Comment</th><th>Author</th><th>Task</th><th>Group</th><th>Created</th><th></th></>}
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((item) => (
-                                <tr key={item.id}>
+                                <tr key={item.id} className="admin-row-clickable" onClick={() => openDetail(tab, item.id)}>
                                     {tab === "users" && (
                                         <>
                                             <td>{item.id}</td>
@@ -146,7 +291,7 @@ export default function AdminPanel() {
                                             <td><span className={`admin-badge ${item.systemRole === "ADMIN" ? "admin" : "user"}`}>{item.systemRole}</span></td>
                                             <td>{item.subscriptionPlan}</td>
                                             <td>{fmtDate(item.lastActiveAt)}</td>
-                                            <td>
+                                            <td onClick={(e) => e.stopPropagation()}>
                                                 {item.systemRole !== "ADMIN" && (
                                                     <button className="admin-delete-btn" onClick={() => setConfirmDelete({ type: "users", id: item.id, label: item.name || item.email })} title="Delete user">
                                                         <FiTrash2 size={14} />
@@ -163,7 +308,7 @@ export default function AdminPanel() {
                                             <td>{item.memberCount}</td>
                                             <td>{item.taskCount}</td>
                                             <td>{fmtDate(item.createdAt)}</td>
-                                            <td>
+                                            <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => setConfirmDelete({ type: "groups", id: item.id, label: item.name })} title="Delete group">
                                                     <FiTrash2 size={14} />
                                                 </button>
@@ -178,7 +323,7 @@ export default function AdminPanel() {
                                             <td>{item.groupName || `#${item.groupId}`}</td>
                                             <td>{item.creatorNameSnapshot || "—"}</td>
                                             <td>{fmtDate(item.dueDate)}</td>
-                                            <td>
+                                            <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => setConfirmDelete({ type: "tasks", id: item.id, label: item.title })} title="Delete task">
                                                     <FiTrash2 size={14} />
                                                 </button>
@@ -191,8 +336,9 @@ export default function AdminPanel() {
                                             <td className="admin-cell-clamp">{item.comment}</td>
                                             <td>{item.creatorName || "—"}</td>
                                             <td>{item.taskTitle || `#${item.taskId}`}</td>
+                                            <td>{item.groupName || (item.groupId ? `#${item.groupId}` : "—")}</td>
                                             <td>{fmtDate(item.createdAt)}</td>
-                                            <td>
+                                            <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => setConfirmDelete({ type: "comments", id: item.id, label: `Comment #${item.id}` })} title="Delete comment">
                                                     <FiTrash2 size={14} />
                                                 </button>
@@ -219,9 +365,172 @@ export default function AdminPanel() {
                 </div>
             )}
 
-            {/* confirm modal */}
+            {/* ── Detail / Edit Modal ── */}
+            {(detailItem || detailLoading) && (
+                <div className="admin-overlay" onClick={() => { setDetailItem(null); setEditFields({}); }}>
+                    <div className="admin-detail-modal" onClick={(e) => e.stopPropagation()}>
+                        {detailLoading ? (
+                            <div className="admin-loading">Loading details...</div>
+                        ) : detailItem && (
+                            <>
+                                <div className="admin-detail-header">
+                                    <h3>
+                                        <FiEye size={16} />
+                                        {detailItem.type === "users" && `User #${detailItem.id}`}
+                                        {detailItem.type === "groups" && `Group #${detailItem.id}`}
+                                        {detailItem.type === "tasks" && `Task #${detailItem.id}`}
+                                        {detailItem.type === "comments" && `Comment #${detailItem.id}`}
+                                    </h3>
+                                    <button className="admin-detail-close" onClick={() => { setDetailItem(null); setEditFields({}); }}>
+                                        <FiX size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="admin-detail-body">
+                                    {/* ── USER detail ── */}
+                                    {detailItem.type === "users" && (
+                                        <div className="admin-detail-grid">
+                                            <label>Name</label>{ef("name", detailItem.name)}
+                                            <label>Email</label>{ef("email", detailItem.email)}
+                                            <label>System Role</label>{efSelect("systemRole", detailItem.systemRole, ["USER", "ADMIN"])}
+                                            <label>Plan</label>{efSelect("subscriptionPlan", detailItem.subscriptionPlan, ["FREE", "PREMIUM"])}
+                                            <label>Email Notif.</label>{efCheckbox("allowEmailNotification", detailItem.allowEmailNotification)}
+                                            <label>Org</label><span>{detailItem.isOrg ? "Yes" : "No"}</span>
+                                            <label>Tenant ID</label><span>{detailItem.tenantId || "—"}</span>
+                                            <label>Last Active</label><span>{fmtDate(detailItem.lastActiveAt)}</span>
+                                        </div>
+                                    )}
+
+                                    {/* ── GROUP detail ── */}
+                                    {detailItem.type === "groups" && (
+                                        <>
+                                            <div className="admin-detail-grid">
+                                                <label>Name</label>{ef("name", detailItem.name)}
+                                                <label>Description</label>{ef("description", detailItem.description)}
+                                                <label>Announcement</label>{ef("announcement", detailItem.announcement)}
+                                                <label>Email Notif.</label>{efCheckbox("allowEmailNotification", detailItem.allowEmailNotification)}
+                                                <label>Owner</label><span>{detailItem.ownerName} ({detailItem.ownerEmail})</span>
+                                                <label>Created</label><span>{fmtDate(detailItem.createdAt)}</span>
+                                            </div>
+                                            {detailItem.members && detailItem.members.length > 0 && (
+                                                <div className="admin-detail-sub">
+                                                    <h4>Members ({detailItem.members.length})</h4>
+                                                    <table className="admin-sub-table">
+                                                        <thead><tr><th>User ID</th><th>Name</th><th>Role</th></tr></thead>
+                                                        <tbody>
+                                                            {detailItem.members.map((m) => (
+                                                                <tr key={m.id}><td>{m.userId}</td><td>{m.userName || "—"}</td><td>{m.role}</td></tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* ── TASK detail ── */}
+                                    {detailItem.type === "tasks" && (
+                                        <>
+                                            <div className="admin-detail-grid">
+                                                <label>Title</label>{ef("title", detailItem.title)}
+                                                <label>Description</label>
+                                                <textarea
+                                                    className="admin-edit-input admin-textarea"
+                                                    defaultValue={detailItem.description || ""}
+                                                    onChange={(e) => setEditFields((p) => ({ ...p, description: e.target.value }))}
+                                                />
+                                                <label>State</label>{efSelect("taskState", detailItem.taskState, ["TO_DO", "IN_PROGRESS", "TO_BE_REVIEWED", "IN_REVIEW", "DONE"])}
+                                                <label>Priority</label>{ef("priority", detailItem.priority, "number")}
+                                                <label>Due Date</label>{ef("dueDate", detailItem.dueDate ? detailItem.dueDate.substring(0, 10) : "", "date")}
+                                                <label>Group</label><span>{detailItem.groupName || `#${detailItem.groupId}`}</span>
+                                                <label>Creator</label><span>{detailItem.creatorNameSnapshot || "—"}</span>
+                                                <label>Reviewed by</label><span>{detailItem.reviewedBy || "—"}</span>
+                                                <label>Review decision</label><span>{detailItem.reviewersDecision || "—"}</span>
+                                                {detailItem.reviewComment && <><label>Review comment</label><span>{detailItem.reviewComment}</span></>}
+                                            </div>
+                                            {/* participants */}
+                                            {detailItem.participants && detailItem.participants.length > 0 && (
+                                                <div className="admin-detail-sub">
+                                                    <h4>Participants ({detailItem.participants.length})</h4>
+                                                    <table className="admin-sub-table">
+                                                        <thead><tr><th>User ID</th><th>Name</th><th>Role</th></tr></thead>
+                                                        <tbody>
+                                                            {detailItem.participants.map((p) => (
+                                                                <tr key={p.id}><td>{p.userId}</td><td>{p.userName || "—"}</td><td>{p.role}</td></tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                            {/* creator files */}
+                                            {detailItem.creatorFiles && detailItem.creatorFiles.length > 0 && (
+                                                <div className="admin-detail-sub">
+                                                    <h4>Creator Files ({detailItem.creatorFiles.length})</h4>
+                                                    <ul className="admin-file-list">
+                                                        {detailItem.creatorFiles.map((f) => (
+                                                            <li key={f.id}>
+                                                                <span>{f.name || f.fileUrl}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {/* assignee files */}
+                                            {detailItem.assigneeFiles && detailItem.assigneeFiles.length > 0 && (
+                                                <div className="admin-detail-sub">
+                                                    <h4>Assignee Files ({detailItem.assigneeFiles.length})</h4>
+                                                    <ul className="admin-file-list">
+                                                        {detailItem.assigneeFiles.map((f) => (
+                                                            <li key={f.id}>
+                                                                <span>{f.name || f.fileUrl}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* ── COMMENT detail ── */}
+                                    {detailItem.type === "comments" && (
+                                        <div className="admin-detail-grid">
+                                            <label>Comment</label>
+                                            <textarea
+                                                className="admin-edit-input admin-textarea"
+                                                defaultValue={detailItem.comment || ""}
+                                                onChange={(e) => setEditFields((p) => ({ ...p, comment: e.target.value }))}
+                                            />
+                                            <label>Author</label><span>{detailItem.creatorName || "—"} {detailItem.creatorEmail ? `(${detailItem.creatorEmail})` : ""}</span>
+                                            <label>Task</label><span>{detailItem.taskTitle || "—"} (#{detailItem.taskId})</span>
+                                            <label>Group</label><span>{detailItem.groupName || "—"} {detailItem.groupId ? `(#${detailItem.groupId})` : ""}</span>
+                                            <label>Created</label><span>{fmtDate(detailItem.createdAt)}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* actions */}
+                                <div className="admin-detail-actions">
+                                    {Object.keys(editFields).length > 0 && (
+                                        <button className="admin-btn-save" onClick={saveEdit} disabled={saving}>
+                                            <FiEdit2 size={14} /> {saving ? "Saving..." : "Save changes"}
+                                        </button>
+                                    )}
+                                    <button
+                                        className="admin-btn-danger"
+                                        onClick={() => setConfirmDelete({ type: detailItem.type, id: detailItem.id, label: detailItem.name || detailItem.title || `#${detailItem.id}` })}
+                                    >
+                                        <FiTrash2 size={14} /> Delete
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* confirm delete modal */}
             {confirmDelete && (
-                <div className="admin-overlay" onClick={() => setConfirmDelete(null)}>
+                <div className="admin-overlay" onClick={() => setConfirmDelete(null)} style={{ zIndex: 110 }}>
                     <div className="admin-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3>Confirm Delete</h3>
                         <p>Are you sure you want to delete <strong>{confirmDelete.label}</strong>?</p>

@@ -34,7 +34,7 @@ public interface GroupService{
     GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
 
     //GroupInvitations
-    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited, String comment);
+    void createGroupInvitation(Long groupId, String inviteCode, Role roleOfUserToBeInvited, String comment);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
     void cancelInvitation(Long invitationId);
     Set<GroupInvitation> findMyGroupInvitations();

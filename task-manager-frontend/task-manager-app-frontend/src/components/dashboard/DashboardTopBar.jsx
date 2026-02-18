@@ -99,8 +99,8 @@ export default function DashboardTopBar({
             setConfirmRemove(null);
             // Trigger a refresh
             if (onLeaveGroup) onLeaveGroup("refresh");
-        } catch {
-            showToast("Failed to remove member");
+        } catch (err) {
+            showToast(err?.message || "Failed to remove member");
         }
     }
 
@@ -111,8 +111,15 @@ export default function DashboardTopBar({
             showToast("You left the group", "success");
             setConfirmLeave(false);
             if (onLeaveGroup) onLeaveGroup("left");
-        } catch {
-            showToast("Failed to leave group");
+        } catch (err) {
+            // If 403/404 the user was already removed — treat it as "left"
+            if (err?.status === 403 || err?.status === 404) {
+                showToast("You are no longer a member of this group.", "info");
+                setConfirmLeave(false);
+                if (onLeaveGroup) onLeaveGroup("left");
+            } else {
+                showToast(err?.message || "Failed to leave group");
+            }
         }
     }
 
@@ -179,7 +186,6 @@ export default function DashboardTopBar({
                             📋
                             {hasUnseenEvents && (
                                 <>
-                                    <span className="topbar-notif-dot" />
                                     <span className="topbar-notif-badge">NEW</span>
                                 </>
                             )}
