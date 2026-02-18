@@ -1,41 +1,24 @@
+
 import { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-    FiArrowLeft,
-    FiMessageCircle,
-    FiPlus,
-    FiDownload,
-    FiTrash2,
-    FiEdit2,
-    FiChevronRight,
-    FiChevronLeft,
-} from "react-icons/fi";
+import { FiArrowLeft,FiMessageCircle,FiPlus,FiDownload,
+    FiTrash2,FiEdit2,FiChevronRight,FiChevronLeft} from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { getFileIcon, isFileTooLarge } from "@assets/js/fileUtils";
-
-const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
-const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Task.css";
 
-const STATE_LABELS = {
-    TODO: "TODO",
-    IN_PROGRESS: "In Progress",
-    TO_BE_REVIEWED: "To Be Reviewed",
-    DONE: "Done",
-};
+const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In Progress",
+    TO_BE_REVIEWED: "To Be Reviewed",DONE: "Done"};
 const STATE_OPTIONS = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const DECISION_OPTIONS = ["APPROVE", "REJECT"];
-
-function userImg(u) {
-    if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
-}
+const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
+const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
 export default function Task() {
     const { groupId, taskId } = useParams();
@@ -758,4 +741,11 @@ export default function Task() {
             </aside>
         </div>
     );
+}
+
+
+
+function userImg(u) {
+    if (!u) return "";
+    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
 }

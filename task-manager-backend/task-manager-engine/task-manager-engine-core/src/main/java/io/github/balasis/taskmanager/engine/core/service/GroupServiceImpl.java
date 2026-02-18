@@ -818,7 +818,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupValidator.validateAddAssigneeTaskFile(task, groupId, file);
 
-        String url = blobStorageService.uploadTaskFile(file, taskId);
+        String url = blobStorageService.uploadTaskAssigneeFile(file, taskId);
         task.getAssigneeFiles().add(TaskAssigneeFile.builder()
             .task(task)
             .name(file.getOriginalFilename())
@@ -861,7 +861,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .filter(f -> f.getId().equals(fileId))
             .findFirst()
             .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
-        byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
+        byte[] data = blobStorageService.downloadTaskAssigneeFile(file.getFileUrl());
         return new TaskFileDownload(data, file.getName());
         }
 

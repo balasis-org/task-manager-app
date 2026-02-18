@@ -43,6 +43,17 @@ public class BlobStorageService {
         }
     }
 
+
+    public byte[] downloadTaskAssigneeFile(String blobName){
+        return downloadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
+    }
+
+    public String uploadTaskAssigneeFile(MultipartFile file , Long prefixId){
+        assertTaskAssigneeFile(file);
+        return uploadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, file, prefixId);
+    }
+
+
     public byte[] downloadTaskFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_FILES, blobName);
     }
@@ -61,7 +72,7 @@ public class BlobStorageService {
         assertImage(file);
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
     }
-
+    // we have a garbage collector doing the deletes in stand-alone spring app
     public void deleteTaskFile(String blobName) {
         deleteInternal(BlobContainerType.TASK_FILES, blobName);
     }
@@ -107,6 +118,21 @@ public class BlobStorageService {
         BlobClient blobClient = container.getBlobClient(blobName);
         if (blobClient.exists()) {
             blobClient.delete();
+        }
+    }
+
+    private void assertTaskAssigneeFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BlobUploadTaskFileException("TaskAssignee file is empty");
+        }
+
+        long maxSize = 40L * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new BlobUploadTaskFileException("TaskAssignee file exceeds max size of 40MB");
+        }
+
+        if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+            throw new BlobUploadTaskFileException("TaskAssignee file must have a name");
         }
     }
 
