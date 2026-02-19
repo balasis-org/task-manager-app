@@ -227,7 +227,7 @@ public class GroupValidatorImpl implements GroupValidator{
     @Override
     public void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt) {
         if (currentMembershipOpt.isEmpty()) {
-            throw new RuntimeException("Not a member of the group");
+            throw new NotAGroupMemberException("Not a member of the group");
         }
 
         Role currentRole = currentMembershipOpt.get().getRole();
@@ -248,11 +248,11 @@ public class GroupValidatorImpl implements GroupValidator{
         var currentMembershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
 
         if (currentMembershipOpt.isEmpty()) {
-            throw new RuntimeException("Not a member of the group");
+            throw new NotAGroupMemberException("Not a member of the group");
         }
 
         if (currentMembershipOpt.get().getRole() != Role.GROUP_LEADER) {
-            throw new RuntimeException("Only group leader can change roles");
+            throw new UnauthorizedException("Only group leader can change roles");
         }
 
         if (newRole == null) {
@@ -261,7 +261,7 @@ public class GroupValidatorImpl implements GroupValidator{
 
         var targetOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, targetUserId);
         if (targetOpt.isEmpty()) {
-            throw new RuntimeException("Target user is not a member of the group");
+            throw new NotAGroupMemberException("Target user is not a member of the group");
         }
 
     }
@@ -321,13 +321,14 @@ public class GroupValidatorImpl implements GroupValidator{
 
     private void isUserTheReceiverOfTheInvitation(GroupInvitation invitation){
         if (!invitation.getUser().getId().equals(effectiveCurrentUser.getUserId())) {
-            throw new RuntimeException("You are not allowed to accept this invitation");
+            throw new UnauthorizedException("You are not the recipient of this invitation");
         }
     }
 
     private void isTheInvitationOnPendingStatus(GroupInvitation invitation){
         if (invitation.getInvitationStatus() != InvitationStatus.PENDING) {
-            throw new RuntimeException("Invitation is already processed");
+            throw new io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException(
+                    "This invitation has already been " + invitation.getInvitationStatus().name().toLowerCase());
         }
     }
 

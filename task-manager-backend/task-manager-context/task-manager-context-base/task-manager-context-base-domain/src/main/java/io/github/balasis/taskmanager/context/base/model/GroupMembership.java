@@ -17,9 +17,10 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "GroupMemberships", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id","group_id"})
-})
+@Table(name = "GroupMemberships",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id","group_id"}),
+        indexes = @Index(name = "idx_gm_group", columnList = "group_id")
+)
 public class GroupMembership extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)

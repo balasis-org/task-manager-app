@@ -19,8 +19,19 @@ export default function Layout({ children }) {
     // Refresh callback — exposed so Invitations page can trigger re-fetch via event
     const inviteRefreshRef = useRef(null);
 
-    const INVITE_POLL_MS = 180_000; // 3 minutes
-    const IDLE_THRESHOLD_MS = 900_000; // 15 min — skip polling when idle
+    // Tiered polling — same cadence as everywhere else
+    const TIER1_MS    = 20_000;          // 20 s active
+    const TIER1_UNTIL = 10 * 60_000;     // first 10 min
+    const TIER2_MS    = 60_000;          // 1 min mildly idle
+    const TIER2_UNTIL = 15 * 60_000;     // 10–15 min
+    const TIER3_MS    = 15 * 60_000;     // 15 min deep idle
+
+    function getInvitePollInterval() {
+        const idle = Date.now() - lastActivityRef.current;
+        if (idle < TIER1_UNTIL) return TIER1_MS;
+        if (idle < TIER2_UNTIL) return TIER2_MS;
+        return TIER3_MS;
+    }
 
     // track user activity to avoid polling when tab is backgrounded / idle
     useEffect(() => {
@@ -44,8 +55,6 @@ export default function Layout({ children }) {
 
         async function check() {
             if (cancelled) return;
-            // skip if user has been idle
-            if (Date.now() - lastActivityRef.current > IDLE_THRESHOLD_MS) return;
 
             try {
                 await apiGet("/api/group-invitations/check-new");
@@ -64,14 +73,20 @@ export default function Layout({ children }) {
                 }
                 // other errors silently ignored
             }
+
+            if (!cancelled) schedulePoll();   // chain the next tick
+        }
+
+        function schedulePoll() {
+            if (pollTimer.current) clearTimeout(pollTimer.current);
+            pollTimer.current = setTimeout(check, getInvitePollInterval());
         }
 
         check(); // immediate first check
-        pollTimer.current = setInterval(check, INVITE_POLL_MS);
 
         return () => {
             cancelled = true;
-            if (pollTimer.current) clearInterval(pollTimer.current);
+            if (pollTimer.current) clearTimeout(pollTimer.current);
         };
     }, [user?.id, location.pathname]);
 

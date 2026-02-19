@@ -23,6 +23,9 @@ public class GroupRefreshDto {
     /** True when anything in the group changed since lastSeen. If false, everything below is empty/null. */
     private boolean changed;
 
+    /** True when the membership list changed since lastSeen (member added/removed/role changed). */
+    private boolean membersChanged;
+
     // ── Group-level fields (only populated when the group itself changed) ──
     private String name;
     private String description;

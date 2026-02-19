@@ -27,12 +27,12 @@ public class RedisRateLimitService extends BaseComponent implements RateLimitSer
      * Estimation (100-user task-manager, 67 endpoints):
      * <ul>
      *   <li>4 lightweight polling endpoints × ~1 req/min = 4 req/min passive</li>
-     *   <li>Active CRUD / navigation bursts ≈ 30-40 req/min peak</li>
+     *   <li>Active CRUD / navigation bursts ≈ 15-20 req/min peak</li>
      *   <li>Authentication refresh, invite-code refresh, file uploads ≈ occasional</li>
      * </ul>
-     * 80 req/min gives comfortable headroom for active use + polling.
+     * 40 req/min is sufficient for normal use while dampening abuse.
      */
-    private static final int MAX_REQUESTS_PER_MINUTE = 80;
+    private static final int MAX_REQUESTS_PER_MINUTE = 40;
     // ───────────────────────────────────────────────────────
 
     private final ProxyManager<byte[]> proxyManager;

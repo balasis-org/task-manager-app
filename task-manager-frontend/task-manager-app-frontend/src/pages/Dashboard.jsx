@@ -54,6 +54,7 @@ export default function Dashboard() {
         removeGroupFromState,
         reloadGroups,
         manualRefresh,
+        markGroupEventsSeen,
     } = useContext(GroupContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -472,7 +473,7 @@ export default function Dashboard() {
                     }
                     onClose={() => {
                         setShowGroupEvents(false);
-                        refreshActiveGroup();
+                        markGroupEventsSeen();
                     }}
                 />
             )}

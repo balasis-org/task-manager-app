@@ -16,7 +16,9 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "GroupEvent")
+@Table(name = "GroupEvent", indexes = {
+        @Index(name = "idx_ge_group", columnList = "group_id")
+})
 public class GroupEvent extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)
