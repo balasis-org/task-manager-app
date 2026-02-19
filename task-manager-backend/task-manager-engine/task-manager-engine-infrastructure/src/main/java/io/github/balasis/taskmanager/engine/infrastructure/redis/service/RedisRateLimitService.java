@@ -16,29 +16,38 @@ import java.util.concurrent.TimeUnit;
 /**
  * Distributed token-bucket rate limiter backed by Redis (via Bucket4j + Lettuce).
  * <p>
- * Adjust {@link #MAX_REQUESTS_PER_MINUTE} to raise / lower the global per-IP limit.
+ * Two bandwidth limits are enforced <b>atomically</b> in a single Redis
+ * round-trip (Bucket4j multi-bandwidth bucket):
+ * <ol>
+ *   <li><b>Short window</b> — {@link #MAX_PER_MINUTE} tokens per minute.
+ *       Catches instant bursts.</li>
+ *   <li><b>Sustained window</b> — {@link #MAX_PER_15MIN} tokens per 15 minutes.
+ *       Set to 70 % of what a user could consume if they maxed out every single
+ *       minute for 15 min (40 × 15 × 0.70 = 420).  Catches sustained abuse
+ *       that stays just under the per-minute ceiling.</li>
+ * </ol>
+ * Both counters are incremented together; if <i>either</i> is exhausted the
+ * request is rejected.  15 min was chosen over 30 min to limit Redis memory
+ * occupancy for short-lived sessions.
  */
 public class RedisRateLimitService extends BaseComponent implements RateLimitService {
 
-    // ──────────────────── tunable limit ────────────────────
+    // ──────────────────── tunable limits ───────────────────
+    /** Burst ceiling — max requests per minute per IP. */
+    private static final int MAX_PER_MINUTE = 40;
+
     /**
-     * Maximum requests any single IP may make per minute.
-     * <p>
-     * Estimation (100-user task-manager, 67 endpoints):
-     * <ul>
-     *   <li>4 lightweight polling endpoints × ~1 req/min = 4 req/min passive</li>
-     *   <li>Active CRUD / navigation bursts ≈ 15-20 req/min peak</li>
-     *   <li>Authentication refresh, invite-code refresh, file uploads ≈ occasional</li>
-     * </ul>
-     * 40 req/min is sufficient for normal use while dampening abuse.
+     * Sustained ceiling — max requests per 15 min per IP.
+     * 70 % of theoretical maximum (40 × 15 = 600 → 420).
      */
-    private static final int MAX_REQUESTS_PER_MINUTE = 40;
+    private static final int MAX_PER_15MIN = 420;
     // ───────────────────────────────────────────────────────
 
     private final ProxyManager<byte[]> proxyManager;
 
     private final BucketConfiguration bucketConfiguration = BucketConfiguration.builder()
-            .addLimit(Bandwidth.simple(MAX_REQUESTS_PER_MINUTE, Duration.ofMinutes(1)))
+            .addLimit(Bandwidth.simple(MAX_PER_MINUTE, Duration.ofMinutes(1)))
+            .addLimit(Bandwidth.simple(MAX_PER_15MIN, Duration.ofMinutes(15)))
             .build();
 
     public RedisRateLimitService(ProxyManager<byte[]> proxyManager) {
