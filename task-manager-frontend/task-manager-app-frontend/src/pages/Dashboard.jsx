@@ -52,7 +52,6 @@ export default function Dashboard() {
         updateGroup,
         refreshActiveGroup,
         removeGroupFromState,
-        reloadGroups,
         manualRefresh,
         markGroupEventsSeen,
     } = useContext(GroupContext);
@@ -63,7 +62,6 @@ export default function Dashboard() {
     // refresh when coming back to dashboard
     useEffect(() => {
         if (activeGroup) refreshActiveGroup();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // listen for group-access-lost (fired by GroupProvider when a 403/404 on refresh)
@@ -215,7 +213,6 @@ export default function Dashboard() {
         if (isFilterAppliedRef.current && !isFilterEmpty(filtersRef.current) && activeGroup?.id && groupDetail) {
             fetchFilterIds(activeGroup.id, filtersRef.current);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupDetail]);
 
     // Reset filters when switching groups

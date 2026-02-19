@@ -283,7 +283,7 @@ function MemberPicker({
     label,
     value,
     onSelect,
-    members,
+    members: _members,
     search,
     onSearchChange,
     memberName,
