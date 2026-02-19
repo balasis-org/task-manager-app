@@ -984,13 +984,6 @@ document.querySelector("#findMyInvitesBtn").addEventListener("click",async ()=>{
 // Find invites I sent
 const findMySentInvitesOutput = document.getElementById("findMySentInvitesOutput");
 
-async function cancelInvitationById(invitationId) {
-    const res = await fetch(`/api/group-invitations/${invitationId}`, { method: "DELETE" });
-    if (!res.ok) {
-        throw new Error(await res.text());
-    }
-}
-
 function renderSentInvites(invites) {
     if (!Array.isArray(invites) || invites.length === 0) {
         findMySentInvitesOutput.innerHTML = "(none)";
@@ -1020,23 +1013,8 @@ function renderSentInvites(invites) {
   <div><strong>Role</strong>: ${escapeHtml(role)}</div>
   <div><strong>Created</strong>: ${escapeHtml(createdAt)}</div>
   <div><strong>Comment</strong>: ${escapeHtml(comment)}</div>
-  <button type="button" data-cancel-invite-id="${escapeHtml(id)}">Cancel</button>
 </div>`;
     }).join("");
-
-    // Attach handlers
-    findMySentInvitesOutput.querySelectorAll("button[data-cancel-invite-id]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const id = btn.getAttribute("data-cancel-invite-id");
-            try {
-                await cancelInvitationById(id);
-                btn.textContent = "Canceled";
-                btn.disabled = true;
-            } catch (err) {
-                alert(`Cancel failed: ${err.message}`);
-            }
-        });
-    });
 }
 
 document.querySelector("#findMySentInvitesBtn").addEventListener("click", async () => {
@@ -1049,20 +1027,6 @@ document.querySelector("#findMySentInvitesBtn").addEventListener("click", async 
         findMySentInvitesOutput.innerHTML = `Error: ${err.message}`;
     }
 });
-
-
-// Cancel invite (manual)
-document.getElementById("cancelSentInvitationForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const invitationId = e.target.invitationId.value;
-    try {
-        await cancelInvitationById(invitationId);
-        alert(`Invitation ${invitationId} canceled.`);
-    } catch (err) {
-        alert(`Cancel failed: ${err.message}`);
-    }
-});
-
 
 
 

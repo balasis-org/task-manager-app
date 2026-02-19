@@ -46,14 +46,6 @@ public class GroupInvitationController extends BaseComponent {
             ));
     }
 
-    @DeleteMapping("/{groupInvitationId}")
-    public ResponseEntity<Void> cancelInvitation(
-                    @PathVariable("groupInvitationId") Long groupInvitationId
-    ) {
-            groupService.cancelInvitation(groupInvitationId);
-            return ResponseEntity.noContent().build();
-    }
-
     /**
      * Lightweight poll endpoint.  Returns 204 when there are NO new invitations.
      * Throws a 409 (BusinessRuleException) when the user has unseen pending invitations,

@@ -3,7 +3,7 @@ import { FiCheck, FiX, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
-import { apiGet, apiPatch, apiDelete } from "@assets/js/apiClient.js";
+import { apiGet, apiPatch } from "@assets/js/apiClient.js";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Invitations.css";
 
@@ -31,9 +31,10 @@ export default function Invitations() {
     const fetchInvitations = useCallback(async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true); else setLoading(true);
         try {
-            const profile = await apiGet("/api/users/me");
-            const lsBefore = profile?.lastSeenInvites
-                ? new Date(profile.lastSeenInvites)
+            // Use lastSeenInvites from the already-loaded user context
+            // instead of re-fetching the profile every time.
+            const lsBefore = user?.lastSeenInvites
+                ? new Date(user.lastSeenInvites)
                 : null;
             setLastSeenBefore(lsBefore);
 
@@ -53,7 +54,7 @@ export default function Invitations() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [setUser, showToast]);
+    }, [user?.lastSeenInvites, setUser, showToast]);
 
     // initial load
     useEffect(() => { fetchInvitations(); }, [fetchInvitations]);
@@ -75,16 +76,10 @@ export default function Invitations() {
             );
             if (status === "ACCEPTED") reloadGroups();
         } catch (err) {
-            showToast(err?.message || "Failed to respond to invitation");
-        }
-    }
-
-    async function handleCancel(invId) {
-        try {
-            await apiDelete(`/api/group-invitations/${invId}`);
-            setSent((prev) => prev.filter((inv) => inv.id !== invId));
-        } catch (err) {
-            showToast(err?.message || "Failed to cancel invitation");
+            showToast(err?.message || "Failed to respond to invitation", "error");
+            // Refetch invitations so the UI stays in sync
+            // (e.g. invitation was already processed, or no longer exists)
+            setTimeout(() => fetchInvitations(true), 600);
         }
     }
 
@@ -215,7 +210,6 @@ export default function Invitations() {
                                     <th>To</th>
                                     <th>Comment</th>
                                     <th>Status</th>
-                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -243,17 +237,6 @@ export default function Invitations() {
                                             <span className={`invitation-status ${inv.invitationStatus?.toLowerCase()}`}>
                                                 {inv.invitationStatus}
                                             </span>
-                                        </td>
-                                        <td>
-                                            {inv.invitationStatus === "PENDING" && (
-                                                <button
-                                                    className="btn-abort"
-                                                    onClick={() => handleCancel(inv.id)}
-                                                    title="Cancel invitation"
-                                                >
-                                                    Abort
-                                                </button>
-                                            )}
                                         </td>
                                     </tr>
                                 ))}

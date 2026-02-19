@@ -68,6 +68,9 @@ public class Group extends BaseModel{
     private Instant lastDeleteTaskDate;
 
     @Column
+    private Instant lastMemberChangeDate;
+
+    @Column
     private Instant lastMaintenanceDate;
 
 

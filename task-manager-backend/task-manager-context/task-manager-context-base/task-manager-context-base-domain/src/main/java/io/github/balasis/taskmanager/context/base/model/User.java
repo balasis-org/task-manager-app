@@ -18,7 +18,9 @@ import java.security.SecureRandom;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Users")
+@Table(name = "Users", indexes = {
+        @Index(name = "idx_user_email", columnList = "email")
+})
 public class User extends BaseModel{
     @Column(nullable = false, unique = true, length = 128)
     private String azureKey;

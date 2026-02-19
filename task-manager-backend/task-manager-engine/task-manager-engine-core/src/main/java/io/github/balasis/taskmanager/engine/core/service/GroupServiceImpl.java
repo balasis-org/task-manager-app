@@ -411,6 +411,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .build();
         groupEventRepository.save(ge);
         touchGroupChange(gr, false);
+        touchMemberChange(gr);
         taskCommentRepository.detachCreatorFromGroupComments(targetsId, groupId, targetsName);
         taskParticipantRepository.deleteByUserIdAndGroupId(targetsId, groupId);
         groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
@@ -442,6 +443,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
         target.setRole(newRole);
         touchGroupChange(groupRepository.getReferenceById(groupId), false);
+        touchMemberChange(groupRepository.getReferenceById(groupId));
         GroupMembership saved = groupMembershipRepository.save(target);
         return saved;
     }
@@ -520,7 +522,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         @Override
         public GroupInvitation respondToInvitation(Long groupInvitationId, InvitationStatus status) {
         var groupInvitation = groupInvitationRepository.findByIdWithGroup(groupInvitationId)
-            .orElseThrow(() -> new RuntimeException("Invitation not found"));
+            .orElseThrow(() -> new io.github.balasis.taskmanager.context.base.exception.notfound.EntityNotFoundException("Invitation not found"));
         groupValidator.validateRespondToGroupInvitation(groupInvitation);
 
         if (status == InvitationStatus.ACCEPTED) {
@@ -537,14 +539,15 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                             .role(groupInvitation.getUserToBeInvitedRole())
                             .build()
             );
-        }
 
-        touchLastGroupEventDate(groupInvitation.getGroup());
-        touchGroupChange(groupInvitation.getGroup(), false);
-        groupEventRepository.save(GroupEvent.builder()
-                .group(groupInvitation.getGroup())
-                .description(groupInvitation.getUser().getName() + " has been added to the group")
-                .build());
+            touchLastGroupEventDate(groupInvitation.getGroup());
+            touchGroupChange(groupInvitation.getGroup(), false);
+            touchMemberChange(groupInvitation.getGroup());
+            groupEventRepository.save(GroupEvent.builder()
+                    .group(groupInvitation.getGroup())
+                    .description(groupInvitation.getUser().getName() + " has been added to the group")
+                    .build());
+        }
 
         groupInvitation.setInvitationStatus(status);
         return groupInvitationRepository.save(groupInvitation);
@@ -561,23 +564,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         return groupInvitationRepository.findIncomingByUserIdAndStatusWithFetch(
                 userId, InvitationStatus.PENDING);
-    }
-
-    @Override
-    public void cancelInvitation(Long invitationId) {
-        var invitation = groupInvitationRepository.findById(invitationId)
-                .orElseThrow(() -> new RuntimeException("Invitation not found"));
-
-        if (invitation.getInvitationStatus() != InvitationStatus.PENDING) {
-            throw new RuntimeException("Invitation is already processed");
-        }
-
-        Long currentUserId = effectiveCurrentUser.getUserId();
-        if (invitation.getInvitedBy() == null || !Objects.equals(invitation.getInvitedBy().getId(), currentUserId)) {
-            throw new UnauthorizedException("You are not allowed to cancel this invitation");
-        }
-
-        groupInvitationRepository.delete(invitation);
     }
 
     @Override
@@ -999,17 +985,20 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         boolean groupChanged = group.getLastChangeInGroup() != null && group.getLastChangeInGroup().isAfter(lastSeen);
         boolean groupNoJoinsChanged = group.getLastChangeInGroupNoJoins() != null && group.getLastChangeInGroupNoJoins().isAfter(lastSeen);
         boolean tasksDeleted = group.getLastDeleteTaskDate() != null && group.getLastDeleteTaskDate().isAfter(lastSeen);
+        boolean membersChanged = group.getLastMemberChangeDate() != null && group.getLastMemberChangeDate().isAfter(lastSeen);
 
         if (!groupChanged && !tasksDeleted) {
             return GroupRefreshDto.builder()
                     .serverNow(serverNow)
                     .changed(false)
+                    .membersChanged(membersChanged)
                     .build();
         }
 
         GroupRefreshDto.GroupRefreshDtoBuilder builder = GroupRefreshDto.builder()
                 .serverNow(serverNow)
-                .changed(true);
+                .changed(true)
+                .membersChanged(membersChanged);
 
         // Populate group-level fields only if the group itself changed (non-join fields)
         if (groupNoJoinsChanged) {
@@ -1182,6 +1171,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (noJoins) {
             group.setLastChangeInGroupNoJoins(now);
         }
+    }
+
+    private void touchMemberChange(Group group) {
+        group.setLastMemberChangeDate(Instant.now());
     }
 
     private void touchTaskChange(Task task, boolean noJoins, boolean participants, boolean comments) {

@@ -157,15 +157,19 @@ export default function GroupProvider({ children }) {
         if (cachedDetail) setGroupDetail(cachedDetail);
 
         try {
-            const membersPromise = apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`);
-
             if (cachedDetail && cachedLastSeen) {
                 // delta refresh — small request
-                const [delta, membersPage] = await Promise.all([
-                    apiGet(`/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`),
-                    membersPromise,
-                ]);
-                setMembers(membersPage?.content ?? []);
+                const delta = await apiGet(
+                    `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`
+                );
+
+                // only hit /groupMemberships when the server says members actually changed
+                if (delta.membersChanged) {
+                    const membersPage = await apiGet(
+                        `/api/groups/${groupId}/groupMemberships?page=0&size=100`
+                    );
+                    setMembers(membersPage?.content ?? []);
+                }
 
                 const final_ = delta.changed ? mergeRefresh(cachedDetail, delta) : cachedDetail;
                 setGroupDetail(final_);
@@ -177,10 +181,10 @@ export default function GroupProvider({ children }) {
                 }
                 lsSet(kLastSeen(user.id, groupId), delta.serverNow);
             } else {
-                // no usable cache — full load
+                // no usable cache — full load (always fetch members)
                 const [detail, membersPage] = await Promise.all([
                     apiGet(`/api/groups/${groupId}`),
-                    membersPromise,
+                    apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`),
                 ]);
                 setGroupDetail(detail);
                 setMembers(membersPage?.content ?? []);
@@ -271,15 +275,40 @@ export default function GroupProvider({ children }) {
         if (user) loadGroups();
     }, [user]);
 
-    // --- Smart polling with progressive backoff ---
-    const BASE_POLL_MS   = 60_000;       // 1 minute
-    const MAX_POLL_MS    = 5 * 60_000;   // 5 minutes ceiling
-    const STALE_AFTER_MS = 20 * 60_000;  // show refresh button after 20 min inactivity
+    // Optimistically update the current user's lastSeenGroupEvents in the local members array
+    // so we don't need to re-fetch the whole group detail + members just for this timestamp.
+    const markGroupEventsSeen = useCallback(() => {
+        if (!user) return;
+        setMembers(prev =>
+            prev.map(m =>
+                m.user?.id === user.id
+                    ? { ...m, lastSeenGroupEvents: new Date().toISOString() }
+                    : m
+            )
+        );
+    }, [user]);
+
+    // --- Smart polling with tiered backoff ---
+    // Tier 1: 20 s   for the first 10 min of inactivity
+    // Tier 2: 1 min   from 10 → 15 min of inactivity
+    // Tier 3: 15 min  after 15 min of inactivity (+ refresh button)
+    const TIER1_MS    = 20_000;
+    const TIER1_UNTIL = 10 * 60_000;
+    const TIER2_MS    = 60_000;
+    const TIER2_UNTIL = 15 * 60_000;
+    const TIER3_MS    = 15 * 60_000;
+
     const [isStale, setIsStale]     = useState(false);
 
     const pollTimer       = useRef(null);
-    const currentInterval = useRef(BASE_POLL_MS);
     const lastActivity    = useRef(Date.now());
+
+    function getPollInterval() {
+        const idle = Date.now() - lastActivity.current;
+        if (idle < TIER1_UNTIL) return TIER1_MS;
+        if (idle < TIER2_UNTIL) return TIER2_MS;
+        return TIER3_MS;
+    }
 
     const schedulePoll = useCallback(() => {
         if (pollTimer.current) clearTimeout(pollTimer.current);
@@ -287,21 +316,16 @@ export default function GroupProvider({ children }) {
         pollTimer.current = setTimeout(() => {
             const idle = Date.now() - lastActivity.current;
 
-            if (idle >= STALE_AFTER_MS) {
-                // user has been idle too long — stop polling, mark stale
-                setIsStale(true);
-                return;
-            }
+            // show refresh button once we enter tier 3
+            if (idle >= TIER2_UNTIL) setIsStale(true);
 
             if (activeGroup) loadOrRefreshDetail(activeGroup.id);
 
-            // double the interval (capped)
-            currentInterval.current = Math.min(currentInterval.current * 2, MAX_POLL_MS);
-            schedulePoll();
-        }, currentInterval.current);
+            schedulePoll();   // re-schedule at the (possibly new) tier
+        }, getPollInterval());
     }, [activeGroup]);
 
-    // reset on user interaction — restart from base interval
+    // reset on user interaction — restart from tier 1
     const onUserActivity = useCallback(() => {
         lastActivity.current = Date.now();
         if (isStale) {
@@ -309,7 +333,6 @@ export default function GroupProvider({ children }) {
             // user came back — do an immediate refresh
             if (activeGroup) loadOrRefreshDetail(activeGroup.id);
         }
-        currentInterval.current = BASE_POLL_MS;
         schedulePoll();
     }, [activeGroup, isStale, schedulePoll]);
 
@@ -317,7 +340,6 @@ export default function GroupProvider({ children }) {
     const manualRefresh = useCallback(() => {
         lastActivity.current = Date.now();
         setIsStale(false);
-        currentInterval.current = BASE_POLL_MS;
         if (activeGroup) loadOrRefreshDetail(activeGroup.id);
         schedulePoll();
     }, [activeGroup, schedulePoll]);
@@ -328,7 +350,6 @@ export default function GroupProvider({ children }) {
             if (pollTimer.current) clearTimeout(pollTimer.current);
             return;
         }
-        currentInterval.current = BASE_POLL_MS;
         lastActivity.current = Date.now();
         setIsStale(false);
         schedulePoll();
@@ -360,6 +381,7 @@ export default function GroupProvider({ children }) {
             removeGroupFromState,
             reloadGroups,
             manualRefresh,
+            markGroupEventsSeen,
         }}>
             {children}
         </GroupContext.Provider>

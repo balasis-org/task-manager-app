@@ -40,6 +40,7 @@ public class MaintenanceRepository {
             WHERE NOT EXISTS (
                 SELECT 1 FROM GroupMemberships gm WHERE gm.user_id = u.id
             )
+            AND (u.systemRole IS NULL OR u.systemRole <> 'ADMIN')
             AND (
                 (u.imgUrl IS NULL     AND u.lastActiveAt < DATEADD(DAY, -7,  GETUTCDATE()))
                 OR
