@@ -369,10 +369,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     @Transactional
     public Page<TaskComment> findAllTaskComments(Long groupId, Long taskId ,Pageable pageable){
-        var taskParticipant = taskParticipantRepository.findAllByTask_idAndUser_id(taskId,effectiveCurrentUser.getUserId());
-        if (taskParticipant!=null){
-            taskParticipant.setLastSeenTaskComments(Instant.now());
-            taskParticipantRepository.save(taskParticipant);
+        var taskParticipants = taskParticipantRepository.findAllByTask_idAndUser_id(taskId, effectiveCurrentUser.getUserId());
+        if (!taskParticipants.isEmpty()) {
+            Instant now = Instant.now();
+            for (var tp : taskParticipants) {
+                tp.setLastSeenTaskComments(now);
+            }
+            taskParticipantRepository.saveAll(taskParticipants);
         }
         return taskCommentRepository.findAllByTask_id(taskId,pageable);
     }
@@ -550,6 +553,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         groupInvitation.setInvitationStatus(status);
+
+        // Update lastSeenInvites so the badge clears for the responding user
+        var respondingUser = userRepository.findById(effectiveCurrentUser.getUserId()).orElse(null);
+        if (respondingUser != null) {
+            respondingUser.setLastSeenInvites(Instant.now());
+            userRepository.save(respondingUser);
+        }
+
         return groupInvitationRepository.save(groupInvitation);
         }
 

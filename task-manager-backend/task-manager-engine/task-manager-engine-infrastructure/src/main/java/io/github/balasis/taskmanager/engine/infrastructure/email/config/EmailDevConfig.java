@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile({"dev-h2","dev-mssql"})
+@Profile({"dev-h2","dev-mssql","dev-flyway-mssql"})
 public class EmailDevConfig {
 
     private static final Logger log = LoggerFactory.getLogger(EmailDevConfig.class);

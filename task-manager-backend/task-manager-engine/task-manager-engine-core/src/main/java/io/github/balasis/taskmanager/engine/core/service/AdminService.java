@@ -6,9 +6,12 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.EntityNotFoundException;
+import io.github.balasis.taskmanager.context.base.exception.notfound.TaskFileNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.engine.core.repository.*;
+import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,7 @@ public class AdminService {
     private final DeletedTaskRepository deletedTaskRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TaskParticipantRepository taskParticipantRepository;
+    private final BlobStorageService blobStorageService;
 
     /* ━━━━ guard ━━━━ */
 
@@ -104,6 +108,36 @@ public class AdminService {
         requireAdmin();
         return taskCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
+    }
+
+    /* ━━━━ file downloads ━━━━ */
+
+    @Transactional(readOnly = true)
+    public TaskFileDownload downloadTaskFile(Long taskId, Long fileId) {
+        requireAdmin();
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+
+        TaskFile file = task.getCreatorFiles().stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+        byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
+        return new TaskFileDownload(data, file.getName());
+    }
+
+    @Transactional(readOnly = true)
+    public TaskFileDownload downloadAssigneeTaskFile(Long taskId, Long fileId) {
+        requireAdmin();
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found"));
+
+        TaskAssigneeFile file = task.getAssigneeFiles().stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+        byte[] data = blobStorageService.downloadTaskAssigneeFile(file.getFileUrl());
+        return new TaskFileDownload(data, file.getName());
     }
 
     /* ━━━━ admin update — bypasses all group-role checks ━━━━ */

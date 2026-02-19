@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Set;
+import java.util.List;
 
 @Repository
 public interface TaskParticipantRepository extends JpaRepository<TaskParticipant, Long> {
@@ -25,5 +25,5 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
     """)
     void deleteReviewersByUserIdAndGroupId(@Param("userId") Long userId, @Param("groupId") Long groupId);
 
-    TaskParticipant findAllByTask_idAndUser_id(Long taskId,Long userId);
+    List<TaskParticipant> findAllByTask_idAndUser_id(Long taskId, Long userId);
 }

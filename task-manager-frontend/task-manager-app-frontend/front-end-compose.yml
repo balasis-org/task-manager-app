@@ -1,0 +1,8 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: taskmanager_frontend_dev
+    ports:
+      - "8081:80"

@@ -126,9 +126,9 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("TaskAssignee file is empty");
         }
 
-        long maxSize = 40L * 1024 * 1024;
+        long maxSize = 20L * 1024 * 1024;
         if (file.getSize() > maxSize) {
-            throw new BlobUploadTaskFileException("TaskAssignee file exceeds max size of 40MB");
+            throw new BlobUploadTaskFileException("TaskAssignee file exceeds max size of 20 MB");
         }
 
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
@@ -143,9 +143,9 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("Task file is empty");
         }
 
-        long maxSize = 40L * 1024 * 1024;
+        long maxSize = 20L * 1024 * 1024;
         if (file.getSize() > maxSize) {
-            throw new BlobUploadTaskFileException("Task file exceeds max size of 40MB");
+            throw new BlobUploadTaskFileException("Task file exceeds max size of 20 MB");
         }
 
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
@@ -157,7 +157,8 @@ public class BlobStorageService {
 
     private void assertContentSafetyIfImage(MultipartFile file) {
         String ct = file.getContentType();
-        if (ct != null && ct.startsWith("image/")) {
+        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
+        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
             try {
                 if (!contentSafetyService.isSafe(file.getInputStream())) {
                     throw new BlobUploadTaskFileException(
@@ -180,6 +181,9 @@ public class BlobStorageService {
             throw new BlobUploadImageException("Only image files are allowed");
         }
 
+        if ("image/gif".equals(contentType)) {
+            throw new BlobUploadImageException("GIF images are not supported. Please use PNG or JPG.");
+        }
 
         long maxSize = 5 * 1024 * 1024;
         if (file.getSize() > maxSize) {

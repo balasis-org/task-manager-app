@@ -62,6 +62,10 @@ export default function Settings() {
             showToast("Only image files are allowed");
             return;
         }
+        if (file.type === "image/gif") {
+            showToast("GIF images are not supported. Please use PNG or JPG.");
+            return;
+        }
         if (isImageTooLarge(file)) {
             showToast(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB`);
             return;
@@ -174,7 +178,7 @@ export default function Settings() {
                         <input
                             ref={fileRef}
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/webp"
                             hidden
                             onChange={(e) => {
                                 handleImagePick(e.target.files?.[0]);
