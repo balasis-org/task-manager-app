@@ -77,7 +77,6 @@ export default function Task() {
     const myTaskRole = myParticipant?.taskParticipantRole || null;
     const isReviewer = myTaskRole === "REVIEWER";
     const isAssignee = myTaskRole === "ASSIGNEE";
-    const isCreator = myTaskRole === "CREATOR";
     const canEdit = isLeaderOrManager;
     const canReview = isReviewer || isLeaderOrManager;
     const canMoveToBeReviewed = isAssignee;
@@ -110,7 +109,6 @@ export default function Task() {
     // refresh the members list so the pickers stay current
     useEffect(() => {
         if (groupId) refreshActiveGroup();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupId]);
 
     // auto-redirect to dashboard if the user loses access to this group
