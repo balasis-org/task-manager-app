@@ -37,7 +37,7 @@ public class AuthorizationService {
     }
 
     /**
-     * Verifies that the current user is a member of the given group
+     * verifies that the current user is a member of the given group
      * and returns their membership entity.
      */
     public GroupMembership requireAnyRoleInAndGet(Long groupId) {
