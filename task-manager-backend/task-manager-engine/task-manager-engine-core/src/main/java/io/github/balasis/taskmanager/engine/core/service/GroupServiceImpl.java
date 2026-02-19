@@ -506,6 +506,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (groupAllows && userAllows && targetUser.getEmail() != null && !targetUser.getEmail().isBlank()) {
             EmailClient emailClient = emailClientProvider.getIfAvailable();
             if (emailClient != null) {
+
                 String subject = "Group invitation: " + group.getName();
                 String body = "You have been invited to join the group '" + group.getName() + "' by " + inviter.getName() + ".";
                 if (saved.getComment() != null && !saved.getComment().isBlank()) {

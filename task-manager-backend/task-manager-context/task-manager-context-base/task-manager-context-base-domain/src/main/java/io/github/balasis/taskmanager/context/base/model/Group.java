@@ -55,6 +55,7 @@ public class Group extends BaseModel{
     private Instant lastGroupEventDate;
 
     @Column
+    @Builder.Default
     private Boolean allowEmailNotification = true;
 
     @Column
