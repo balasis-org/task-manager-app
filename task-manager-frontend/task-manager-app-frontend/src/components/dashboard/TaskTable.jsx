@@ -49,60 +49,60 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols }) {
         <div className="task-rows">
             {tasks.map((t) => (
                 <div
-                    key={t.id}
-                    className={`task-row${t.accessible === false ? " task-row-locked" : ""}${flashId === t.id ? " task-row-denied" : ""}`}
+                    key={t.i}
+                    className={`task-row${t.a === false ? " task-row-locked" : ""}${flashId === t.i ? " task-row-denied" : ""}`}
                     style={gridStyle}
                     onClick={() => {
-                        if (t.accessible === false) {
-                            flashRow(t.id);
+                        if (t.a === false) {
+                            flashRow(t.i);
                         } else {
-                            navigate(`/group/${groupId}/task/${t.id}`);
+                            navigate(`/group/${groupId}/task/${t.i}`);
                         }
                     }}
                 >
                     {visSet.has(0) && (
-                        <span className="task-cell cell-title" title={t.title}>
-                            {t.title}
+                        <span className="task-cell cell-title" title={t.t}>
+                            {t.t}
                         </span>
                     )}
                     {visSet.has(1) && (
                         <span className="task-cell cell-creator">
-                            {t.creatorName || "—"}
+                            {t.cn || "—"}
                         </span>
                     )}
                     {visSet.has(2) && (
                         <span className="task-cell cell-priority">
-                            {priorityTag(t.priority)}
+                            {priorityTag(t.p)}
                         </span>
                     )}
                     {visSet.has(3) && (
                         <span className="task-cell cell-due">
-                            {formatDate(t.dueDate)}
+                            {formatDate(t.dd)}
                         </span>
                     )}
                     {visSet.has(4) && (
                         <span className="task-cell cell-access">
-                            {t.accessible ? "✓" : <FiLock size={14} className="lock-icon" title="Not accessible" />}
+                            {t.a ? "✓" : <FiLock size={14} className="lock-icon" title="Not accessible" />}
                         </span>
                     )}
                     {visSet.has(5) && (
                         <span
                             className="task-cell cell-comments"
-                            onClick={(e) => goToComments(e, t.id, t.accessible)}
+                            onClick={(e) => goToComments(e, t.i, t.a)}
                             title="Go to comments"
                         >
                             <span
-                                className={`comment-icon${t.newCommentsToBeRead ? " has-new" : ""}`}
+                                className={`comment-icon${t.nc ? " has-new" : ""}`}
                                 title={
-                                    t.newCommentsToBeRead
+                                    t.nc
                                         ? "New comments"
-                                        : `${t.commentCount ?? 0} comments`
+                                        : `${t.cc ?? 0} comments`
                                 }
                             >
                                 <FiMessageCircle size={16} />
-                                {(t.commentCount ?? 0) > 0 && (
+                                {(t.cc ?? 0) > 0 && (
                                     <span className="comment-count">
-                                        {t.commentCount}
+                                        {t.cc}
                                     </span>
                                 )}
                             </span>

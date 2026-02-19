@@ -269,14 +269,14 @@ export default function Dashboard() {
     // group tasks by state + filter IDs whitelist + search filter
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
-    if (groupDetail?.taskPreviews) {
+    if (groupDetail?.tp) {                                          // tp = taskPreviews
         const q = searchQuery.toLowerCase().trim();
-        for (const task of groupDetail.taskPreviews) {
+        for (const task of groupDetail.tp) {
             // 1. Filter by backend IDs whitelist (when filter is active)
-            if (filterIds && !filterIds.has(task.id)) continue;
+            if (filterIds && !filterIds.has(task.i)) continue;      // i = id
             // 2. Then local search
-            if (q && !task.title?.toLowerCase().includes(q)) continue;
-            const state = task.taskState || "TODO";
+            if (q && !task.t?.toLowerCase().includes(q)) continue;  // t = title
+            const state = task.ts || "TODO";                        // ts = taskState
             if (tasksByState[state]) {
                 tasksByState[state].push(task);
             }
@@ -338,10 +338,10 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {groupDetail?.announcement !== undefined && groupDetail?.announcement !== null && (
-                <div className={`dashboard-announcement${groupDetail.announcement ? " has-text" : " empty"}`}>
+            {groupDetail?.an !== undefined && groupDetail?.an !== null && (
+                <div className={`dashboard-announcement${groupDetail.an ? " has-text" : " empty"}`}>
                     <strong>Announcement:</strong>{" "}
-                    {groupDetail.announcement || <em>No announcement</em>}
+                    {groupDetail.an || <em>No announcement</em>}
                 </div>
             )}
 
@@ -372,7 +372,7 @@ export default function Dashboard() {
                             Groups: {groups.length}/3
                         </span>
                         <span className="dashboard-limit-tag" title="Tasks in this group">
-                            Tasks: {groupDetail?.taskPreviews?.length ?? 0}/50
+                            Tasks: {groupDetail?.tp?.length ?? 0}/50
                         </span>
                     </div>
 

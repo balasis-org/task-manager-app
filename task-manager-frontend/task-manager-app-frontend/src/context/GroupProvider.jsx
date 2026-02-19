@@ -22,38 +22,39 @@ function kDetail(uid, gid)        { return `${pfx(uid)}gd_${gid}`; }       // en
 function kLastSeen(uid, gid)      { return `${pfx(uid)}ls_${gid}`; }
 
 // merge a delta from the refresh endpoint into an existing detail object
+// JSON keys use short names from @JsonProperty (see GroupRefreshDto / GroupWithPreviewDto)
 function mergeRefresh(cached, delta) {
-    if (!delta.changed) return cached;
+    if (!delta.c) return cached;                          // c = changed
     const merged = { ...cached };
 
-    if (delta.name        !== undefined && delta.name        !== null) merged.name        = delta.name;
-    if (delta.description !== undefined && delta.description !== null) merged.description = delta.description;
-    if (delta.announcement !== undefined)   merged.announcement = delta.announcement;
-    if (delta.defaultImgUrl !== undefined)  merged.defaultImgUrl = delta.defaultImgUrl;
-    if (delta.imgUrl       !== undefined)   merged.imgUrl       = delta.imgUrl;
-    if (delta.allowEmailNotification !== undefined && delta.allowEmailNotification !== null)
-        merged.allowEmailNotification = delta.allowEmailNotification;
-    if (delta.lastGroupEventDate !== undefined)
-         merged.lastGroupEventDate = delta.lastGroupEventDate;
+    if (delta.n   !== undefined && delta.n   !== null) merged.n   = delta.n;    // name
+    if (delta.d   !== undefined && delta.d   !== null) merged.d   = delta.d;    // description
+    if (delta.an  !== undefined)   merged.an  = delta.an;                       // announcement
+    if (delta.diu !== undefined)   merged.diu = delta.diu;                      // defaultImgUrl
+    if (delta.iu  !== undefined)   merged.iu  = delta.iu;                       // imgUrl
+    if (delta.aen !== undefined && delta.aen !== null)
+        merged.aen = delta.aen;                                                 // allowEmailNotification
+    if (delta.lged !== undefined)
+         merged.lged = delta.lged;                                              // lastGroupEventDate
 
     // remove deleted tasks
-    let tasks = [...(merged.taskPreviews ?? [])];
-    if (delta.deletedTaskIds?.length) {
-        const gone = new Set(delta.deletedTaskIds);
-        tasks = tasks.filter(t => !gone.has(t.id));
+    let tasks = [...(merged.tp ?? [])];                                         // tp = taskPreviews
+    if (delta.dti?.length) {                                                    // dti = deletedTaskIds
+        const gone = new Set(delta.dti);
+        tasks = tasks.filter(t => !gone.has(t.i));                              // i = id
     }
 
     // upsert changed / new tasks
-    if (delta.changedTasks?.length) {
-        const map = new Map(delta.changedTasks.map(t => [t.id, t]));
-        tasks = tasks.map(t => map.has(t.id) ? map.get(t.id) : t);
-        const existing = new Set(tasks.map(t => t.id));
-        for (const t of delta.changedTasks) {
-            if (!existing.has(t.id)) tasks.push(t);
+    if (delta.ct?.length) {                                                     // ct = changedTasks
+        const map = new Map(delta.ct.map(t => [t.i, t]));
+        tasks = tasks.map(t => map.has(t.i) ? map.get(t.i) : t);
+        const existing = new Set(tasks.map(t => t.i));
+        for (const t of delta.ct) {
+            if (!existing.has(t.i)) tasks.push(t);
         }
     }
 
-    merged.taskPreviews = tasks;
+    merged.tp = tasks;
     return merged;
 }
 
@@ -75,6 +76,9 @@ export default function GroupProvider({ children }) {
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [myRole, setMyRole]           = useState(null);
+
+    // tracks which group we've already loaded members for this session
+    const membersLoadedForGroupRef = useRef(null);
 
     // user changed? reload everything
     useEffect(() => {
@@ -154,6 +158,12 @@ export default function GroupProvider({ children }) {
         }
 
         // if we got something, show it right away while we refresh in the background
+        // migrate old cache format (long key names) → force full reload
+        if (cachedDetail && cachedDetail.taskPreviews !== undefined && cachedDetail.tp === undefined) {
+            cachedDetail = null;
+            lsRemove(kDetail(user.id, groupId));
+            lsRemove(kLastSeen(user.id, groupId));
+        }
         if (cachedDetail) setGroupDetail(cachedDetail);
 
         try {
@@ -163,15 +173,16 @@ export default function GroupProvider({ children }) {
                     `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`
                 );
 
-                // only hit /groupMemberships when the server says members actually changed
-                if (delta.membersChanged) {
+                // fetch members when they changed OR when not yet loaded for this group
+                if (delta.mc || membersLoadedForGroupRef.current !== groupId) {     // mc = membersChanged
                     const membersPage = await apiGet(
                         `/api/groups/${groupId}/groupMemberships?page=0&size=100`
                     );
                     setMembers(membersPage?.content ?? []);
+                    membersLoadedForGroupRef.current = groupId;
                 }
 
-                const final_ = delta.changed ? mergeRefresh(cachedDetail, delta) : cachedDetail;
+                const final_ = delta.c ? mergeRefresh(cachedDetail, delta) : cachedDetail;  // c = changed
                 setGroupDetail(final_);
 
                 // encrypt and save back
@@ -179,7 +190,7 @@ export default function GroupProvider({ children }) {
                     const enc = await encryptForCache(ck, final_);
                     lsSetRaw(kDetail(user.id, groupId), enc);
                 }
-                lsSet(kLastSeen(user.id, groupId), delta.serverNow);
+                lsSet(kLastSeen(user.id, groupId), delta.sn);    // sn = serverNow
             } else {
                 // no usable cache — full load (always fetch members)
                 const [detail, membersPage] = await Promise.all([
@@ -188,6 +199,7 @@ export default function GroupProvider({ children }) {
                 ]);
                 setGroupDetail(detail);
                 setMembers(membersPage?.content ?? []);
+                membersLoadedForGroupRef.current = groupId;
 
                 // encrypt and save
                 if (ck) {
@@ -205,6 +217,7 @@ export default function GroupProvider({ children }) {
                 lsRemove(kLastSeen(user.id, groupId));
                 setGroupDetail(null);
                 setMembers([]);
+                membersLoadedForGroupRef.current = null;
                 // reload will drop the missing group and auto-select another
                 await loadGroups();
                 window.dispatchEvent(
@@ -289,40 +302,54 @@ export default function GroupProvider({ children }) {
     }, [user]);
 
     // --- Smart polling with tiered backoff ---
-    // Tier 1: 20 s   for the first 10 min of inactivity
-    // Tier 2: 1 min   from 10 → 15 min of inactivity
-    // Tier 3: 15 min  after 15 min of inactivity (+ refresh button)
-    const TIER1_MS    = 20_000;
-    const TIER1_UNTIL = 10 * 60_000;
-    const TIER2_MS    = 60_000;
-    const TIER2_UNTIL = 15 * 60_000;
-    const TIER3_MS    = 15 * 60_000;
+    // Tier 1: 30 s   for the first 10 min of inactivity (1 min if session > 30 min)
+    // Tier 2: 1 min  from 10 → 15 min of inactivity
+    // Tier 3: STOP   after 15 min (show refresh button only)
+    const TIER1_MS         = 30_000;
+    const TIER1_LONG_MS    = 60_000;          // after 30 min active session
+    const TIER1_UNTIL      = 10 * 60_000;
+    const TIER2_MS         = 60_000;
+    const TIER2_UNTIL      = 15 * 60_000;
+    const LONG_SESSION_MS  = 30 * 60_000;
 
     const [isStale, setIsStale]     = useState(false);
 
     const pollTimer       = useRef(null);
     const lastActivity    = useRef(Date.now());
+    const sessionStart    = useRef(Date.now());
 
     function getPollInterval() {
         const idle = Date.now() - lastActivity.current;
-        if (idle < TIER1_UNTIL) return TIER1_MS;
-        if (idle < TIER2_UNTIL) return TIER2_MS;
-        return TIER3_MS;
+        if (idle >= TIER2_UNTIL) return null;            // stop polling
+        if (idle >= TIER1_UNTIL) return TIER2_MS;        // 1 min
+
+        // Tier 1 — use longer base after 30 min of session
+        const sessionAge = Date.now() - sessionStart.current;
+        return sessionAge > LONG_SESSION_MS ? TIER1_LONG_MS : TIER1_MS;
     }
 
     const schedulePoll = useCallback(() => {
         if (pollTimer.current) clearTimeout(pollTimer.current);
 
-        pollTimer.current = setTimeout(() => {
-            const idle = Date.now() - lastActivity.current;
+        const interval = getPollInterval();
+        if (interval === null) {
+            // idle too long — stop polling, show refresh button
+            setIsStale(true);
+            return;
+        }
 
-            // show refresh button once we enter tier 3
-            if (idle >= TIER2_UNTIL) setIsStale(true);
+        pollTimer.current = setTimeout(() => {
+            // re-check idle right before firing
+            const idle = Date.now() - lastActivity.current;
+            if (idle >= TIER2_UNTIL) {
+                setIsStale(true);
+                return;
+            }
 
             if (activeGroup) loadOrRefreshDetail(activeGroup.id);
 
             schedulePoll();   // re-schedule at the (possibly new) tier
-        }, getPollInterval());
+        }, interval);
     }, [activeGroup]);
 
     // reset on user interaction — restart from tier 1

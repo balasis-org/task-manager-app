@@ -19,12 +19,12 @@ export default function Layout({ children }) {
     // Refresh callback — exposed so Invitations page can trigger re-fetch via event
     const inviteRefreshRef = useRef(null);
 
-    // Tiered polling — same cadence as everywhere else
-    const TIER1_MS    = 20_000;          // 20 s active
+    // Tiered polling for invitations — tripled cadence (there's a manual refresh)
+    const TIER1_MS    = 60_000;          // 1 min active
     const TIER1_UNTIL = 10 * 60_000;     // first 10 min
-    const TIER2_MS    = 60_000;          // 1 min mildly idle
+    const TIER2_MS    = 3 * 60_000;      // 3 min mildly idle
     const TIER2_UNTIL = 15 * 60_000;     // 10–15 min
-    const TIER3_MS    = 15 * 60_000;     // 15 min deep idle
+    const TIER3_MS    = 45 * 60_000;     // 45 min deep idle
 
     function getInvitePollInterval() {
         const idle = Date.now() - lastActivityRef.current;
