@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.config;
 
+import io.github.balasis.taskmanager.context.web.interceptor.RateLimitInterceptor;
 import io.github.balasis.taskmanager.context.web.jwt.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +13,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
     private final JwtInterceptor jwtInterceptor;
+    private final RateLimitInterceptor rateLimitInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
+        // rate limiter runs FIRST — catches all requests (incl. /auth/**) by IP
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/h2-console");
+
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/auth/**","/h2-console");
@@ -38,11 +45,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // Single-segment SPA paths  (e.g.  /dashboard, /login)
+        // single-segment SPA paths  (e.g.  /dashboard, /login)
         registry.addViewController("/{path:^(?!api|auth|uploads)[^\\.]*}")
                 .setViewName("forward:/index.html");
 
-        // Multi-segment SPA paths   (e.g.  /auth/callback, /group/1/task/2)
+        // multi-segment SPA paths   (e.g.   /auth/callback, /group/1/task/2)
         registry.addViewController("/{seg1:^(?!api|uploads)[^\\.]*}/{seg2:[^\\.]*}")
                 .setViewName("forward:/index.html");
 

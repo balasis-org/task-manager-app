@@ -8,10 +8,10 @@ import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
-import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.engine.core.repository.GroupInvitationRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -28,9 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -44,6 +42,7 @@ public class DataLoader extends BaseComponent {
     private static final String GROUP_A_LEADER_AZURE_KEY = "dev-fake:alice.dev@example.com";
 
     private final UserRepository userRepository;
+    private final GroupInvitationRepository groupInvitationRepository;
     private final GroupService groupService;
     private final UserContext userContext;
     private final DefaultImageService defaultImageService;
@@ -54,42 +53,24 @@ public class DataLoader extends BaseComponent {
     public void onApplicationReady(ApplicationReadyEvent evt)  {
         logger.trace("=== Running DataLoader ===");
 
-        seedInitialUser();
-
-        if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
-            logger.trace("Seed users already exist; skipping DataLoader run.");
-            return;
-        }
-
-        Map<String, User> users = seedUsers();
         try {
-            seedGroupA(users);
-            seedGroupB(users);
+            if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
+                logger.trace("Seed users already exist; skipping DataLoader run.");
+                return;
+            }
+
+            Map<String, User> users = seedUsers();
+            try {
+                seedGroupA(users);
+                seedGroupB(users);
+            } finally {
+                userContext.clear();
+            }
+
+            logger.trace("=== DataLoader finished ===");
         } finally {
-            userContext.clear();
+            startupGate.markDataReady();
         }
-
-        startupGate.markDataReady();
-
-        logger.trace("=== DataLoader finished ===");
-    }
-
-    private User seedInitialUser() {
-        logger.trace("Seeding base user...");
-        String email = "admin@example.com";
-
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .azureKey("local-seed-user")
-                                .tenantId(SEED_TENANT_ID)
-                                .email(email)
-                                .isOrg(false)
-                                .allowEmailNotification(false)
-                                .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
-                                .name("System Seeder")
-                                .build()
-                ));
     }
 
     private Map<String, User> seedUsers() {
@@ -97,7 +78,6 @@ public class DataLoader extends BaseComponent {
 
         Map<String, SeedUser> seeds = new LinkedHashMap<>();
 
-        // These first 10 users match the frontend fake-login dropdown.
         seeds.put("ALICE", new SeedUser(devAzureKey("alice.dev@example.com"), "alice.dev@example.com", "Alice Dev"));
         seeds.put("BOB", new SeedUser(devAzureKey("bob.dev@example.com"), "bob.dev@example.com", "Bob Dev"));
         seeds.put("CAROL", new SeedUser(devAzureKey("carol.dev@example.com"), "carol.dev@example.com", "Carol Dev"));
@@ -111,6 +91,15 @@ public class DataLoader extends BaseComponent {
         seeds.put("MALLORY", new SeedUser(devAzureKey("mallory.dev@example.com"), "mallory.dev@example.com", "Mallory Dev"));
         seeds.put("OSCAR", new SeedUser(devAzureKey("oscar.dev@example.com"), "oscar.dev@example.com", "Oscar Dev"));
 
+        var whitelistOtherTenant = new HashSet<>(
+                Set.of(
+                        seeds.get("ALICE").name,
+                        seeds.get("GRACE").name,
+                        seeds.get("JUDY").name,
+                        seeds.get("BOB").name
+                )
+        );
+
         Map<String, User> created = new LinkedHashMap<>();
         for (Map.Entry<String, SeedUser> entry : seeds.entrySet()) {
             SeedUser seed = entry.getValue();
@@ -118,7 +107,7 @@ public class DataLoader extends BaseComponent {
                     .orElseGet(() -> userRepository.save(
                             User.builder()
                                     .azureKey(seed.azureKey)
-                                    .tenantId(SEED_TENANT_ID)
+                                    .tenantId((whitelistOtherTenant.contains(seed.name)) ? "OtherTenant" :SEED_TENANT_ID)
                                     .email(seed.email)
                                     .name(seed.name)
                                     .isOrg(false)
@@ -143,6 +132,8 @@ public class DataLoader extends BaseComponent {
         User member2 = users.get("ERIN");
         User guest = users.get("FRANK");
 
+        User reviewer2 = users.get("GRACE");
+
         withUser(leader, () -> {
             Group group = groupService.create(Group.builder()
                     .name("Seed Group A")
@@ -156,11 +147,13 @@ public class DataLoader extends BaseComponent {
             inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
             inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
 
+            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
+
             seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
 
             patchGroupForEvents(group.getId(), leader,
                     "Seeded group A (patched)",
-                    "Welcome to Seed Group A (patched)");
+                    "Welcome to dev Group A (patched)");
         });
     }
 
@@ -173,6 +166,9 @@ public class DataLoader extends BaseComponent {
         User member1 = users.get("JUDY");
         User member2 = users.get("MALLORY");
         User guest = users.get("OSCAR");
+
+
+        User reviewer2 = users.get("ALICE");
 
         withUser(leader, () -> {
             Group group = groupService.create(Group.builder()
@@ -187,18 +183,37 @@ public class DataLoader extends BaseComponent {
             inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
             inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
 
+            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
+
             seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
 
             patchGroupForEvents(group.getId(), leader,
                     "Seeded group B (patched)",
-                    "Welcome to Seed Group B (patched)");
+                    "Welcome to dev Group B (patched)");
         });
     }
 
-    private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
-        GroupInvitation invitation = groupService.createGroupInvitation(groupId, invitee.getId(), role, comment);
-        withUser(invitee, () -> groupService.respondToInvitation(invitation.getId(), InvitationStatus.ACCEPTED));
-    }
+        private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
+        User inviteeWithCode = userRepository.findById(invitee.getId()).orElseThrow();
+        if (inviteeWithCode.getInviteCode() == null || inviteeWithCode.getInviteCode().isBlank()) {
+            inviteeWithCode.refreshInviteCode();
+            userRepository.save(inviteeWithCode);
+        }
+
+        groupService.createGroupInvitation(groupId, inviteeWithCode.getInviteCode(), role, comment);
+
+        groupInvitationRepository
+            .findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
+                groupId,
+                inviteeWithCode.getId(),
+                InvitationStatus.PENDING)
+            .ifPresentOrElse(
+                invitation -> withUser(inviteeWithCode, () ->
+                    groupService.respondToInvitation(invitation.getId(), InvitationStatus.ACCEPTED)
+                ),
+                () -> logger.warn("Seed invite missing for user {} in group {}", inviteeWithCode.getId(), groupId)
+            );
+        }
 
     private void seedTasksForGroup(Long groupId, User manager, User reviewer, User member1, User member2) {
         logger.trace("Seeding tasks for groupId={}...", groupId);

@@ -22,38 +22,39 @@ function kDetail(uid, gid)        { return `${pfx(uid)}gd_${gid}`; }       // en
 function kLastSeen(uid, gid)      { return `${pfx(uid)}ls_${gid}`; }
 
 // merge a delta from the refresh endpoint into an existing detail object
+// JSON keys use short names from @JsonProperty (see GroupRefreshDto / GroupWithPreviewDto)
 function mergeRefresh(cached, delta) {
-    if (!delta.changed) return cached;
+    if (!delta.c) return cached;                          // c = changed
     const merged = { ...cached };
 
-    if (delta.name        !== undefined && delta.name        !== null) merged.name        = delta.name;
-    if (delta.description !== undefined && delta.description !== null) merged.description = delta.description;
-    if (delta.announcement !== undefined)   merged.announcement = delta.announcement;
-    if (delta.defaultImgUrl !== undefined)  merged.defaultImgUrl = delta.defaultImgUrl;
-    if (delta.imgUrl       !== undefined)   merged.imgUrl       = delta.imgUrl;
-    if (delta.allowEmailNotification !== undefined && delta.allowEmailNotification !== null)
-        merged.allowEmailNotification = delta.allowEmailNotification;
-    if (delta.lastGroupEventDate !== undefined)
-         merged.lastGroupEventDate = delta.lastGroupEventDate;
+    if (delta.n   !== undefined && delta.n   !== null) merged.n   = delta.n;    // name
+    if (delta.d   !== undefined && delta.d   !== null) merged.d   = delta.d;    // description
+    if (delta.an  !== undefined)   merged.an  = delta.an;                       // announcement
+    if (delta.diu !== undefined)   merged.diu = delta.diu;                      // defaultImgUrl
+    if (delta.iu  !== undefined)   merged.iu  = delta.iu;                       // imgUrl
+    if (delta.aen !== undefined && delta.aen !== null)
+        merged.aen = delta.aen;                                                 // allowEmailNotification
+    if (delta.lged !== undefined)
+         merged.lged = delta.lged;                                              // lastGroupEventDate
 
     // remove deleted tasks
-    let tasks = [...(merged.taskPreviews ?? [])];
-    if (delta.deletedTaskIds?.length) {
-        const gone = new Set(delta.deletedTaskIds);
-        tasks = tasks.filter(t => !gone.has(t.id));
+    let tasks = [...(merged.tp ?? [])];                                         // tp = taskPreviews
+    if (delta.dti?.length) {                                                    // dti = deletedTaskIds
+        const gone = new Set(delta.dti);
+        tasks = tasks.filter(t => !gone.has(t.i));                              // i = id
     }
 
     // upsert changed / new tasks
-    if (delta.changedTasks?.length) {
-        const map = new Map(delta.changedTasks.map(t => [t.id, t]));
-        tasks = tasks.map(t => map.has(t.id) ? map.get(t.id) : t);
-        const existing = new Set(tasks.map(t => t.id));
-        for (const t of delta.changedTasks) {
-            if (!existing.has(t.id)) tasks.push(t);
+    if (delta.ct?.length) {                                                     // ct = changedTasks
+        const map = new Map(delta.ct.map(t => [t.i, t]));
+        tasks = tasks.map(t => map.has(t.i) ? map.get(t.i) : t);
+        const existing = new Set(tasks.map(t => t.i));
+        for (const t of delta.ct) {
+            if (!existing.has(t.i)) tasks.push(t);
         }
     }
 
-    merged.taskPreviews = tasks;
+    merged.tp = tasks;
     return merged;
 }
 
@@ -75,6 +76,9 @@ export default function GroupProvider({ children }) {
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [myRole, setMyRole]           = useState(null);
+
+    // tracks which group we've already loaded members for this session
+    const membersLoadedForGroupRef = useRef(null);
 
     // user changed? reload everything
     useEffect(() => {
@@ -140,7 +144,6 @@ export default function GroupProvider({ children }) {
 
     // full detail - encrypted in localstorage
     async function loadOrRefreshDetail(groupId) {
-        setLoadingDetail(true);
         const ck = cacheKeyRef.current;
 
         // try to read + decrypt cached detail
@@ -154,20 +157,31 @@ export default function GroupProvider({ children }) {
         }
 
         // if we got something, show it right away while we refresh in the background
+        // migrate old cache format (long key names) → force full reload
+        if (cachedDetail && cachedDetail.taskPreviews !== undefined && cachedDetail.tp === undefined) {
+            cachedDetail = null;
+            lsRemove(kDetail(user.id, groupId));
+            lsRemove(kLastSeen(user.id, groupId));
+        }
         if (cachedDetail) setGroupDetail(cachedDetail);
 
         try {
-            const membersPromise = apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`);
-
             if (cachedDetail && cachedLastSeen) {
                 // delta refresh — small request
-                const [delta, membersPage] = await Promise.all([
-                    apiGet(`/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`),
-                    membersPromise,
-                ]);
-                setMembers(membersPage?.content ?? []);
+                const delta = await apiGet(
+                    `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`
+                );
 
-                const final_ = delta.changed ? mergeRefresh(cachedDetail, delta) : cachedDetail;
+                // fetch members when they changed OR when not yet loaded for this group
+                if (delta.mc || membersLoadedForGroupRef.current !== groupId) {     // mc = membersChanged
+                    const membersPage = await apiGet(
+                        `/api/groups/${groupId}/groupMemberships?page=0&size=100`
+                    );
+                    setMembers(membersPage?.content ?? []);
+                    membersLoadedForGroupRef.current = groupId;
+                }
+
+                const final_ = delta.c ? mergeRefresh(cachedDetail, delta) : cachedDetail;  // c = changed
                 setGroupDetail(final_);
 
                 // encrypt and save back
@@ -175,15 +189,17 @@ export default function GroupProvider({ children }) {
                     const enc = await encryptForCache(ck, final_);
                     lsSetRaw(kDetail(user.id, groupId), enc);
                 }
-                lsSet(kLastSeen(user.id, groupId), delta.serverNow);
+                lsSet(kLastSeen(user.id, groupId), delta.sn);    // sn = serverNow
             } else {
-                // no usable cache — full load
+                // no usable cache — full load (always fetch members)
+                setLoadingDetail(true);
                 const [detail, membersPage] = await Promise.all([
                     apiGet(`/api/groups/${groupId}`),
-                    membersPromise,
+                    apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`),
                 ]);
                 setGroupDetail(detail);
                 setMembers(membersPage?.content ?? []);
+                membersLoadedForGroupRef.current = groupId;
 
                 // encrypt and save
                 if (ck) {
@@ -192,8 +208,24 @@ export default function GroupProvider({ children }) {
                 }
                 lsSet(kLastSeen(user.id, groupId), new Date().toISOString());
             }
-        } catch {
-            if (!cachedDetail) {
+        } catch (err) {
+            // If 403 or 404 the user was likely removed from the group (or group deleted).
+            // Auto-recover by reloading the groups list so the stale group disappears.
+            if (err?.status === 403 || err?.status === 404) {
+                // wipe local cache for this group
+                lsRemove(kDetail(user.id, groupId));
+                lsRemove(kLastSeen(user.id, groupId));
+                setGroupDetail(null);
+                setMembers([]);
+                membersLoadedForGroupRef.current = null;
+                // reload will drop the missing group and auto-select another
+                await loadGroups();
+                window.dispatchEvent(
+                    new CustomEvent("group-access-lost", {
+                        detail: { groupId, message: err?.message || "You no longer have access to this group." },
+                    })
+                );
+            } else if (!cachedDetail) {
                 setGroupDetail(null);
                 setMembers([]);
             }
@@ -222,11 +254,8 @@ export default function GroupProvider({ children }) {
             return next;
         });
         setActiveGroup(updatedGroup);
-        // wipe old cache so we do a full re-load next time
-        if (user?.id) {
-            lsRemove(kDetail(user.id, updatedGroup.id));
-            lsRemove(kLastSeen(user.id, updatedGroup.id));
-        }
+        // Delta-refresh instead of full reload so the UI doesn't flash a spinner
+        // (e.g. group settings popup stays smooth after a save).
         loadOrRefreshDetail(updatedGroup.id);
     }, [user]);
 
@@ -256,18 +285,88 @@ export default function GroupProvider({ children }) {
         if (user) loadGroups();
     }, [user]);
 
-    // poll every 5min, resets on user activity
-    const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    const pollTimer = useRef(null);
+    // Optimistically update the current user's lastSeenGroupEvents in the local members array
+    // so we don't need to re-fetch the whole group detail + members just for this timestamp.
+    const markGroupEventsSeen = useCallback(() => {
+        if (!user) return;
+        setMembers(prev =>
+            prev.map(m =>
+                m.user?.id === user.id
+                    ? { ...m, lastSeenGroupEvents: new Date().toISOString() }
+                    : m
+            )
+        );
+    }, [user]);
 
-    const resetPollTimer = useCallback(() => {
+    // --- Smart polling with tiered backoff ---
+    // Tier 1: 30 s   for the first 10 min of inactivity (1 min if session > 30 min)
+    // Tier 2: 1 min  from 10 → 15 min of inactivity
+    // Tier 3: STOP   after 15 min (show refresh button only)
+    const TIER1_MS         = 30_000;
+    const TIER1_LONG_MS    = 60_000;          // after 30 min active session
+    const TIER1_UNTIL      = 10 * 60_000;
+    const TIER2_MS         = 60_000;
+    const TIER2_UNTIL      = 15 * 60_000;
+    const LONG_SESSION_MS  = 30 * 60_000;
+
+    const [isStale, setIsStale]     = useState(false);
+
+    const pollTimer       = useRef(null);
+    const lastActivity    = useRef(Date.now());
+    const sessionStart    = useRef(Date.now());
+
+    function getPollInterval() {
+        const idle = Date.now() - lastActivity.current;
+        if (idle >= TIER2_UNTIL) return null;            // stop polling
+        if (idle >= TIER1_UNTIL) return TIER2_MS;        // 1 min
+
+        // Tier 1 — use longer base after 30 min of session
+        const sessionAge = Date.now() - sessionStart.current;
+        return sessionAge > LONG_SESSION_MS ? TIER1_LONG_MS : TIER1_MS;
+    }
+
+    const schedulePoll = useCallback(() => {
         if (pollTimer.current) clearTimeout(pollTimer.current);
+
+        const interval = getPollInterval();
+        if (interval === null) {
+            // idle too long — stop polling, show refresh button
+            setIsStale(true);
+            return;
+        }
+
         pollTimer.current = setTimeout(() => {
+            // re-check idle right before firing
+            const idle = Date.now() - lastActivity.current;
+            if (idle >= TIER2_UNTIL) {
+                setIsStale(true);
+                return;
+            }
+
             if (activeGroup) loadOrRefreshDetail(activeGroup.id);
-            // after the refresh fires, start the timer again
-            resetPollTimer();
-        }, POLL_INTERVAL);
+
+            schedulePoll();   // re-schedule at the (possibly new) tier
+        }, interval);
     }, [activeGroup]);
+
+    // reset on user interaction — restart from tier 1
+    const onUserActivity = useCallback(() => {
+        lastActivity.current = Date.now();
+        if (isStale) {
+            setIsStale(false);
+            // user came back — do an immediate refresh
+            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        }
+        schedulePoll();
+    }, [activeGroup, isStale, schedulePoll]);
+
+    // manual refresh (from the stale banner button)
+    const manualRefresh = useCallback(() => {
+        lastActivity.current = Date.now();
+        setIsStale(false);
+        if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        schedulePoll();
+    }, [activeGroup, schedulePoll]);
 
     // kick off / restart polling when group changes
     useEffect(() => {
@@ -275,18 +374,19 @@ export default function GroupProvider({ children }) {
             if (pollTimer.current) clearTimeout(pollTimer.current);
             return;
         }
-        resetPollTimer();
+        lastActivity.current = Date.now();
+        setIsStale(false);
+        schedulePoll();
         return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
-    }, [activeGroup, user, resetPollTimer]);
+    }, [activeGroup, user, schedulePoll]);
 
-    // any user interaction resets the poll timer
+    // listen for user-interaction events to reset backoff
     useEffect(() => {
         if (!activeGroup || !user) return;
-        const handler = () => resetPollTimer();
         const events = ["click", "keydown", "scroll", "pointerdown"];
-        events.forEach((ev) => window.addEventListener(ev, handler, { passive: true }));
-        return () => events.forEach((ev) => window.removeEventListener(ev, handler));
-    }, [activeGroup, user, resetPollTimer]);
+        events.forEach((ev) => window.addEventListener(ev, onUserActivity, { passive: true }));
+        return () => events.forEach((ev) => window.removeEventListener(ev, onUserActivity));
+    }, [activeGroup, user, onUserActivity]);
 
     return (
         <GroupContext.Provider value={{
@@ -297,12 +397,15 @@ export default function GroupProvider({ children }) {
             myRole,
             loadingGroups,
             loadingDetail,
+            isStale,
             selectGroup,
             addGroup,
             updateGroup,
             refreshActiveGroup,
             removeGroupFromState,
             reloadGroups,
+            manualRefresh,
+            markGroupEventsSeen,
         }}>
             {children}
         </GroupContext.Provider>

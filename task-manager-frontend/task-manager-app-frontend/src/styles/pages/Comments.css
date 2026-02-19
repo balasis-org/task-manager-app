@@ -154,6 +154,22 @@
     flex-shrink: 0;
 }
 
+.comment-avatar-deleted {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    color: var(--text-faint);
+    font-size: 0.75em;
+}
+
+.comment-deleted-tag {
+    font-weight: 400;
+    color: var(--text-faint);
+    font-size: 0.82em;
+    font-style: italic;
+}
+
 .comment-body {
     flex: 1;
     min-width: 0;
@@ -499,6 +515,25 @@
     padding: 0.25em 0.75em;
     font-size: 0.75em;
 }
+
+/* ── Stale / refresh banner ── */
+.comments-stale-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625em;
+    padding: 0.5em 1em;
+    background: var(--warning-bg, #fff3cd);
+    color: var(--warning-text, #856404);
+    border: 1px solid var(--warning-border, #ffc107);
+    border-radius: 6px;
+    margin: 0.5em 0;
+    font-size: 0.82em;
+    font-weight: 500;
+    animation: commentsStaleFadeIn 0.3s ease;
+}
+
+@keyframes commentsStaleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Responsive — Comments Page */
 @media (max-width: 768px) {

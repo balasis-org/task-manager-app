@@ -7,8 +7,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
     User getMyProfile();
+    User findCurrentUser();
     User patchMyProfile(User user);
     User updateProfileImage(MultipartFile file);
     Page<User> searchUser(String q, Pageable pageable);
-    Page<User> searchUserForInvites(Long groupId,String q , Pageable pageable);
+    Page<User> searchUserForInvites(Long groupId, String q, boolean sameOrgOnly, Pageable pageable);
+    User refreshInviteCode();
 }

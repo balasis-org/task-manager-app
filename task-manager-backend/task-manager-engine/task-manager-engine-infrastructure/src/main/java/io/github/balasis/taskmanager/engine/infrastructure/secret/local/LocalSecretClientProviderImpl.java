@@ -4,7 +4,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientPr
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-@Profile({"dev-h2","dev-mssql"})
+@Profile({"dev-h2","dev-mssql","dev-flyway-mssql"})
 @Component
 public class LocalSecretClientProviderImpl implements SecretClientProvider {
 

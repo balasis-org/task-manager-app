@@ -11,7 +11,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "TaskFiles")
+@Table(name = "TaskFiles", indexes = {
+        @Index(name = "idx_tf_task", columnList = "task_id")
+})
 public class TaskFile extends BaseModel{
     @Column(length = 500)
     private String fileUrl;

@@ -1,0 +1,19 @@
+services:
+  mssql-flyway:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskmanager_mssql_flyway
+    restart: always
+    env_file:
+      - .env
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${FLYWAY_DB_PASSWORD}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1434:1433"
+    volumes:
+      - mssql-flyway-data:/var/opt/mssql
+# recreate db ->
+# docker exec -it taskmanager_mssql_flyway /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P '82468246aA!!!Fw' -C -Q "CREATE DATABASE taskmanager_flyway_db;"
+volumes:
+  mssql-flyway-data:

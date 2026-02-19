@@ -172,6 +172,49 @@
     font-style: italic;
 }
 
+/* --- invite code row --- */
+.settings-invite-code-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.settings-invite-code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.05em;
+    letter-spacing: 0.15em;
+    user-select: all;
+    padding: 0.25em 0.5em;
+    background: #f3f3f3;
+    border-radius: 4px;
+}
+.settings-code-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 0.3em;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+}
+.settings-code-btn:hover:not(:disabled) {
+    background: #eee;
+    color: var(--text-primary);
+}
+.settings-code-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.settings-code-btn .spin {
+    animation: settings-spin 0.8s linear infinite;
+}
+@keyframes settings-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* --- toggle rows --- */
 .settings-toggle-row {
     display: flex;

@@ -1,8 +1,8 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { FiCamera, FiUser, FiMail, FiBell, FiMoon, FiCheck, FiX } from "react-icons/fi";
+import { FiCamera, FiUser, FiMail, FiBell, FiMoon, FiCheck, FiX, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
 import { useToast } from "@context/ToastContext";
-import { apiGet, apiPatch, apiMultipart } from "@assets/js/apiClient.js";
+import { apiGet, apiPatch, apiMultipart, apiPost } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
 import blobBase from "@blobBase";
@@ -26,6 +26,7 @@ export default function Settings() {
     const [saving, setSaving] = useState(false);
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
+    const [refreshingCode, setRefreshingCode] = useState(false);
     const fileRef = useRef(null);
 
     // sync when user context changes (e.g. after login)
@@ -61,6 +62,10 @@ export default function Settings() {
             showToast("Only image files are allowed");
             return;
         }
+        if (file.type === "image/gif") {
+            showToast("GIF images are not supported. Please use PNG or JPG.");
+            return;
+        }
         if (isImageTooLarge(file)) {
             showToast(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB`);
             return;
@@ -76,8 +81,8 @@ export default function Settings() {
             const updated = await apiMultipart("/api/users/me/profile-image", fd);
             setUser((prev) => (prev ? { ...prev, imgUrl: updated.imgUrl } : prev));
             showToast("Profile image updated!", "success");
-        } catch {
-            showToast("Failed to upload image");
+        } catch (err) {
+            showToast(err?.message || "Failed to upload image");
         } finally {
             setUploadingImg(false);
         }
@@ -99,8 +104,8 @@ export default function Settings() {
             setServerName(updated.name);
             setServerNotif(updated.allowEmailNotification);
             showToast("Settings saved!", "success");
-        } catch {
-            showToast("Failed to save settings");
+        } catch (err) {
+            showToast(err?.message || "Failed to save settings");
         } finally {
             setSaving(false);
         }
@@ -109,6 +114,26 @@ export default function Settings() {
     function handleRevert() {
         setName(serverName);
         setEmailNotif(serverNotif);
+    }
+
+    async function handleRefreshCode() {
+        setRefreshingCode(true);
+        try {
+            const updated = await apiPost("/api/users/me/refresh-invite-code");
+            setUser((prev) => (prev ? { ...prev, inviteCode: updated.inviteCode } : prev));
+            showToast("Invite code refreshed!", "success");
+        } catch (err) {
+            showToast(err?.message || "Failed to refresh invite code");
+        } finally {
+            setRefreshingCode(false);
+        }
+    }
+
+    function handleCopyCode() {
+        if (user?.inviteCode) {
+            navigator.clipboard.writeText(user.inviteCode);
+            showToast("Invite code copied!", "success");
+        }
     }
 
     const imgSrc = user?.imgUrl
@@ -153,7 +178,7 @@ export default function Settings() {
                         <input
                             ref={fileRef}
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/webp"
                             hidden
                             onChange={(e) => {
                                 handleImagePick(e.target.files?.[0]);
@@ -191,6 +216,35 @@ export default function Settings() {
                         </span>
                         <span className="settings-value-ro">{user?.email || "—"}</span>
                         <span className="settings-hint">Managed by your identity provider</span>
+                    </div>
+
+                    <div className="settings-field">
+                        <span className="settings-label">Invite code</span>
+                        <div className="settings-invite-code-row">
+                            <span className="settings-invite-code">{user?.inviteCode || "—"}</span>
+                            <button
+                                type="button"
+                                className="settings-code-btn"
+                                onClick={handleCopyCode}
+                                title="Copy code"
+                                disabled={!user?.inviteCode}
+                            >
+                                <FiCopy size={14} />
+                            </button>
+                            <button
+                                type="button"
+                                className="settings-code-btn"
+                                onClick={handleRefreshCode}
+                                title="Generate a new code"
+                                disabled={refreshingCode}
+                            >
+                                <FiRefreshCw size={14} className={refreshingCode ? "spin" : ""} />
+                            </button>
+                        </div>
+                        <span className="settings-hint">
+                            Share this code with others so they can invite you to a group.
+                            Refresh it to invalidate the old one.
+                        </span>
                     </div>
                 </section>
 

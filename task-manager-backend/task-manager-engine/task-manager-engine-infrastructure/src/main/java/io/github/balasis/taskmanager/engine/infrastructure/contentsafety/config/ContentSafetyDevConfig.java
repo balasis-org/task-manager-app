@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile({"dev-mssql", "dev-h2"})
+@Profile({"dev-mssql", "dev-h2", "dev-flyway-mssql"})
 @RequiredArgsConstructor
 public class ContentSafetyDevConfig {
 private final SecretClientProvider secretClientProvider;

@@ -25,6 +25,11 @@ export default function NewGroupPopup({ onClose, onCreated }) {
 
     const handleCoverChange = (e) => {
         const file = e.target.files?.[0] || null;
+        if (file) {
+            if (file.type === "image/gif") { setError("GIF images are not supported. Please use PNG or JPG."); e.target.value = ""; return; }
+            if (isImageTooLarge(file)) { setError(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB.`); e.target.value = ""; return; }
+        }
+        setError("");
         updateCover(file);
         e.target.value = "";
     };
@@ -48,6 +53,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
         if (!file.type.startsWith("image/")) { setError("Only image files are allowed."); return; }
+        if (file.type === "image/gif") { setError("GIF images are not supported. Please use PNG or JPG."); return; }
         if (isImageTooLarge(file)) { setError(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB.`); return; }
         setError("");
         updateCover(file);
@@ -66,6 +72,21 @@ export default function NewGroupPopup({ onClose, onCreated }) {
 
         setBusy(true);
         setError("");
+
+        // Validate cover image before creating the group
+        if (coverImage) {
+            if (coverImage.type === "image/gif") {
+                setError("GIF images are not supported. Please use PNG or JPG.");
+                setBusy(false);
+                return;
+            }
+            if (isImageTooLarge(coverImage)) {
+                setError(`Image must be under ${LIMITS.MAX_IMAGE_SIZE_MB} MB.`);
+                setBusy(false);
+                return;
+            }
+        }
+
         try {
             // Create group
             const group = await apiPost("/api/groups", {
@@ -92,8 +113,8 @@ export default function NewGroupPopup({ onClose, onCreated }) {
             }
 
             onCreated(group);
-        } catch {
-            setError("Failed to create group.");
+        } catch (err) {
+            setError(err?.message || "Failed to create group.");
         } finally {
             setBusy(false);
         }
@@ -172,7 +193,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                                 <>
                                     <FiImage size={28} />
                                     <strong>Upload a banner</strong>
-                                    <span>PNG or JPG, up to 5 MB.</span>
+                                    <span>PNG, JPG or WebP, up to 5 MB.</span>
                                 </>
                             )}
                         </div>
@@ -187,7 +208,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/webp"
                             hidden
                             onChange={handleCoverChange}
                         />

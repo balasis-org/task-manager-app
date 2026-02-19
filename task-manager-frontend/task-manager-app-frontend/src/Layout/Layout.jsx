@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut } from "react-icons/fi";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import Footer from "@components/footer/Footer";
@@ -10,43 +10,85 @@ import blobBase from "@blobBase";
 export default function Layout({ children }) {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [newInviteCount, setNewInviteCount] = useState(0);
+    const [hasNewInvites, setHasNewInvites] = useState(false);
+    const pollTimer = useRef(null);
+    const lastActivityRef = useRef(Date.now());
 
-    // check if there are new invitations we havent seen
+    // Refresh callback — exposed so Invitations page can trigger re-fetch via event
+    const inviteRefreshRef = useRef(null);
+
+    // Tiered polling for invitations — tripled cadence (there's a manual refresh)
+    const TIER1_MS    = 60_000;          // 1 min active
+    const TIER1_UNTIL = 10 * 60_000;     // first 10 min
+    const TIER2_MS    = 3 * 60_000;      // 3 min mildly idle
+    const TIER2_UNTIL = 15 * 60_000;     // 10–15 min
+    const TIER3_MS    = 45 * 60_000;     // 45 min deep idle
+
+    function getInvitePollInterval() {
+        const idle = Date.now() - lastActivityRef.current;
+        if (idle < TIER1_UNTIL) return TIER1_MS;
+        if (idle < TIER2_UNTIL) return TIER2_MS;
+        return TIER3_MS;
+    }
+
+    // track user activity to avoid polling when tab is backgrounded / idle
+    useEffect(() => {
+        const touch = () => { lastActivityRef.current = Date.now(); };
+        window.addEventListener("mousemove", touch, { passive: true });
+        window.addEventListener("keydown", touch, { passive: true });
+        return () => {
+            window.removeEventListener("mousemove", touch);
+            window.removeEventListener("keydown", touch);
+        };
+    }, []);
+
+    // Lightweight invitation polling — runs everywhere including the invitations page.
+    // When NOT on the invitations page and new invites exist → show badge.
+    // When ON the invitations page and new invites exist → dispatch custom event so the page re-fetches.
     useEffect(() => {
         if (!user) return;
+
         let cancelled = false;
+        const onInvitationsPage = () => location.pathname === "/invitations";
 
-        (async () => {
+        async function check() {
+            if (cancelled) return;
+
             try {
-                const lastSeen = user.lastSeenInvites
-                    ? new Date(user.lastSeenInvites)
-                    : null;
-
-                const invites = await apiGet("/api/group-invitations/me");
+                await apiGet("/api/group-invitations/check-new");
+                // 204 — no new invites
+                if (!cancelled) setHasNewInvites(false);
+            } catch (err) {
                 if (cancelled) return;
-
-                const pending = (Array.isArray(invites) ? invites : []).filter(
-                    (inv) => inv.invitationStatus === "PENDING"
-                );
-
-                if (!lastSeen) {
-                    // Never visited invitations page, all pending count as new
-                    setNewInviteCount(pending.length);
-                } else {
-                    const unseen = pending.filter(
-                        (inv) => inv.createdAt && new Date(inv.createdAt) > lastSeen
-                    );
-                    setNewInviteCount(unseen.length);
+                if (err?.status === 409) {
+                    if (onInvitationsPage()) {
+                        // don't show badge; tell the Invitations page to re-fetch
+                        setHasNewInvites(false);
+                        window.dispatchEvent(new CustomEvent("invites-changed"));
+                    } else {
+                        setHasNewInvites(true);
+                    }
                 }
-            } catch {
-                // silently ignore
+                // other errors silently ignored
             }
-        })();
 
-        return () => { cancelled = true; };
-    }, [user?.id]);
+            if (!cancelled) schedulePoll();   // chain the next tick
+        }
+
+        function schedulePoll() {
+            if (pollTimer.current) clearTimeout(pollTimer.current);
+            pollTimer.current = setTimeout(check, getInvitePollInterval());
+        }
+
+        check(); // immediate first check
+
+        return () => {
+            cancelled = true;
+            if (pollTimer.current) clearTimeout(pollTimer.current);
+        };
+    }, [user?.id, location.pathname]);
 
     const handleLogout = async () => {
         await logout();
@@ -84,8 +126,16 @@ export default function Layout({ children }) {
                         {user?.name && (
                             <span className="sidebar-profile-name">{user.name}</span>
                         )}
-                        {user?.email && (
-                            <span className="sidebar-profile-email">{user.email}</span>
+                        {user?.inviteCode && (
+                            <span
+                                className="sidebar-profile-code"
+                                title="Your invite code — share it so others can invite you"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(user.inviteCode);
+                                }}
+                            >
+                                {user.inviteCode}
+                            </span>
                         )}
                     </div>
 
@@ -104,8 +154,8 @@ export default function Layout({ children }) {
                         >
                             <span className="nav-icon"><FiMail size={16} /></span>
                             <span className="nav-label">Invitations</span>
-                            {newInviteCount > 0 && (
-                                <span className="nav-badge">{newInviteCount}</span>
+                            {hasNewInvites && (
+                                <span className="nav-badge">!</span>
                             )}
                         </NavLink>
                         <NavLink
@@ -122,6 +172,15 @@ export default function Layout({ children }) {
                             <span className="nav-icon"><FiInfo size={16} /></span>
                             <span className="nav-label">About us</span>
                         </NavLink>
+                        {user?.systemRole === "ADMIN" && (
+                            <NavLink
+                                to="/admin"
+                                className={({ isActive }) => (isActive ? "active" : "")}
+                            >
+                                <span className="nav-icon"><FiShield size={16} /></span>
+                                <span className="nav-label">Admin Panel</span>
+                            </NavLink>
+                        )}
                         <button onClick={handleLogout}>
                             <span className="nav-icon"><FiLogOut size={16} /></span>
                             <span className="nav-label">Logout</span>
