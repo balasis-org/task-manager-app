@@ -2,6 +2,8 @@ package io.github.balasis.taskmanager.engine.core.repository;
 
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Task;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +20,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     boolean existsByTitle(String title);
 
     boolean existsByTitleAndIdNot(String title, Long id);
+
+    long countByGroup_Id(Long groupId);
 
     @Modifying
     void deleteAllByGroup_Id(Long groupId);
@@ -159,4 +163,64 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         @Param("groupId") Long groupId,
         @Param("since") Instant since
     );
+
+    @Query("""
+        SELECT DISTINCT t.id
+        FROM Task t
+        WHERE t.group.id = :groupId
+        AND (:dueDateBefore IS NULL OR (t.dueDate IS NOT NULL AND t.dueDate <= :dueDateBefore))
+        AND (:priorityMin IS NULL OR t.priority >= :priorityMin)
+        AND (:priorityMax IS NULL OR t.priority <= :priorityMax)
+        AND (:taskState IS NULL OR t.taskState = :taskState)
+        AND (:hasFiles IS NULL
+            OR (:hasFiles = TRUE AND (SIZE(t.creatorFiles) > 0 OR SIZE(t.assigneeFiles) > 0))
+            OR (:hasFiles = FALSE AND SIZE(t.creatorFiles) = 0 AND SIZE(t.assigneeFiles) = 0)
+        )
+        AND (:creatorId IS NULL OR t.id IN (
+            SELECT t1.id FROM Task t1 JOIN t1.taskParticipants tp1
+            WHERE tp1.taskParticipantRole = 'CREATOR' AND tp1.user.id = :creatorId
+        ))
+        AND (:reviewerId IS NULL OR t.id IN (
+            SELECT t2.id FROM Task t2 JOIN t2.taskParticipants tp2
+            WHERE tp2.taskParticipantRole = 'REVIEWER' AND tp2.user.id = :reviewerId
+        ))
+        AND (:assigneeId IS NULL OR t.id IN (
+            SELECT t3.id FROM Task t3 JOIN t3.taskParticipants tp3
+            WHERE tp3.taskParticipantRole = 'ASSIGNEE' AND tp3.user.id = :assigneeId
+        ))
+        AND (:participantUserId IS NULL OR t.id IN (
+            SELECT t4.id FROM Task t4 JOIN t4.taskParticipants tp4
+            WHERE tp4.user.id = :participantUserId
+        ))
+    """)
+    Set<Long> filterTaskIds(
+            @Param("groupId") Long groupId,
+            @Param("creatorId") Long creatorId,
+            @Param("reviewerId") Long reviewerId,
+            @Param("assigneeId") Long assigneeId,
+            @Param("participantUserId") Long participantUserId,
+            @Param("dueDateBefore") Instant dueDateBefore,
+            @Param("priorityMin") Integer priorityMin,
+            @Param("priorityMax") Integer priorityMax,
+            @Param("taskState") TaskState taskState,
+            @Param("hasFiles") Boolean hasFiles
+    );
+
+    @Modifying
+    @Query("UPDATE Task t SET t.reviewedBy = null WHERE t.reviewedBy.id = :userId")
+    void nullifyReviewedByForUser(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.lastEditBy = null WHERE t.lastEditBy.id = :userId")
+    void nullifyLastEditByForUser(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT t
+        FROM Task t
+        LEFT JOIN t.group g
+        WHERE lower(t.title) LIKE lower(concat('%', :q, '%'))
+           OR lower(g.name) LIKE lower(concat('%', :q, '%'))
+    """)
+    Page<Task> adminSearchTasks(@Param("q") String q, Pageable pageable);
+
 }

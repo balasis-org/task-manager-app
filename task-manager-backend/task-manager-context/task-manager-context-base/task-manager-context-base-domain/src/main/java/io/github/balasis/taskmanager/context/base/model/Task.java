@@ -16,7 +16,10 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Tasks")
+@Table(name = "Tasks", indexes = {
+        @Index(name = "idx_task_group",             columnList = "group_id"),
+        @Index(name = "idx_task_group_lastchange",   columnList = "group_id, lastChangeDate")
+})
 public class Task extends BaseModel{
     @Column(nullable = false, unique = true, length = 150)
     private String title;

@@ -55,6 +55,7 @@ public class Group extends BaseModel{
     private Instant lastGroupEventDate;
 
     @Column
+    @Builder.Default
     private Boolean allowEmailNotification = true;
 
     @Column
@@ -65,6 +66,9 @@ public class Group extends BaseModel{
 
     @Column
     private Instant lastDeleteTaskDate;
+
+    @Column
+    private Instant lastMemberChangeDate;
 
     @Column
     private Instant lastMaintenanceDate;

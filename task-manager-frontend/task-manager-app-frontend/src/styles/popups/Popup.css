@@ -46,6 +46,14 @@
     margin-bottom: 0.75em;
 }
 
+.popup-hint {
+    font-size: 0.72em;
+    color: var(--text-faint, #999);
+    font-style: italic;
+    margin-top: 0.25em;
+    display: block;
+}
+
 .popup-success {
     background: var(--info-bg);
     color: var(--info-text);
@@ -173,6 +181,32 @@
     font-size: 0.81em;
     color: var(--text-primary);
     padding: 0.25em 0;
+}
+
+.popup-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.81em;
+    cursor: pointer;
+    user-select: none;
+}
+.popup-checkbox-label input[type="checkbox"] {
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.popup-org-badge {
+    margin-left: auto;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.1em 0.45em;
+    border-radius: 0.3em;
+    background: var(--accent);
+    color: #fff;
+    line-height: 1.4;
+    flex-shrink: 0;
 }
 
 .char-count {
@@ -351,6 +385,7 @@
     color: var(--danger);
 }
 .popup-chip-add {
+    font-size:1.5em;
     background: none;
     border: 0.06em solid var(--border-input);
     border-radius: 50%;
@@ -534,6 +569,7 @@
 
 /* Picker inline search */
 .popup-picker-search {
+    width:100%;
     display: inline-flex;
     align-items: center;
     gap: 0.25em;
@@ -545,11 +581,12 @@
     font-weight: 400;
 }
 .popup-picker-search input {
+    width:100%;
     border: none;
     background: transparent;
     outline: none;
     font-size: 0.75em;
-    width: 6.25em;
+
     color: var(--text-primary);
 }
 .popup-picker-search svg {

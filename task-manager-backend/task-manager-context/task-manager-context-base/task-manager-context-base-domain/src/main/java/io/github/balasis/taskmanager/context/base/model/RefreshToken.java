@@ -16,7 +16,9 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "RefreshTokens")
+@Table(name = "RefreshTokens", indexes = {
+        @Index(name = "idx_rt_user", columnList = "user_id")
+})
 public class RefreshToken extends BaseModel{
     @Column(nullable = false, length = 128)
     private String refreshCode;

@@ -13,7 +13,10 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "DeletedTasks" , uniqueConstraints = @UniqueConstraint(columnNames = {"group_id","deletedTaskId"}))
+@Table(name = "DeletedTasks",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"group_id","deletedTaskId"}),
+        indexes = @Index(name = "idx_dt_group_deleted", columnList = "group_id, deletedAt")
+)
 public class DeletedTask extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)

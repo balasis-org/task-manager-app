@@ -1,8 +1,9 @@
-import { useState, useEffect, useContext } from "react";
-import { FiCheck, FiX, FiTrash2 } from "react-icons/fi";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
+import { FiCheck, FiX, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
+import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
-import { apiGet, apiPatch, apiDelete } from "@assets/js/apiClient.js";
+import { apiGet, apiPatch } from "@assets/js/apiClient.js";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Invitations.css";
 
@@ -18,43 +19,54 @@ function formatDate(iso) {
 
 export default function Invitations() {
     const { user, setUser } = useContext(AuthContext);
+    const { groups, reloadGroups } = useContext(GroupContext);
     const showToast = useToast();
 
     const [received, setReceived] = useState([]);
     const [sent, setSent] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [lastSeenBefore, setLastSeenBefore] = useState(null);
 
+    // keep a ref so the callback never depends on user state directly
+    const userRef = useRef(user);
+    userRef.current = user;
+
+    const fetchInvitations = useCallback(async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true); else setLoading(true);
+        try {
+            const lsBefore = userRef.current?.lastSeenInvites
+                ? new Date(userRef.current.lastSeenInvites)
+                : null;
+            setLastSeenBefore(lsBefore);
+
+            const [inv, sentInv] = await Promise.all([
+                apiGet("/api/group-invitations/me"),
+                apiGet("/api/group-invitations/sent"),
+            ]);
+            setReceived(Array.isArray(inv) ? inv : []);
+            setSent(Array.isArray(sentInv) ? sentInv : []);
+
+            setUser((prev) =>
+                prev ? { ...prev, lastSeenInvites: new Date().toISOString() } : prev
+            );
+        } catch (err) {
+            showToast(err?.message || "Failed to load invitations");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, [setUser, showToast]);
+
+    // initial load — runs once
+    useEffect(() => { fetchInvitations(); }, []);
+
+    // listen for the custom event dispatched by the Layout polling when new invites arrive
     useEffect(() => {
-        (async () => {
-            setLoading(true);
-            try {
-                // get profile first because the /me endpoint updates lastSeen
-                const profile = await apiGet("/api/users/me");
-                const lsBefore = profile?.lastSeenInvites
-                    ? new Date(profile.lastSeenInvites)
-                    : null;
-                setLastSeenBefore(lsBefore);
-
-                const [inv, sentInv] = await Promise.all([
-                    apiGet("/api/group-invitations/me"),
-                    apiGet("/api/group-invitations/sent"),
-                ]);
-                setReceived(Array.isArray(inv) ? inv : []);
-                setSent(Array.isArray(sentInv) ? sentInv : []);
-
-                // backend already marked as seen, update sidebar badge
-                setUser((prev) =>
-                    prev ? { ...prev, lastSeenInvites: new Date().toISOString() } : prev
-                );
-            } catch {
-                showToast("Failed to load invitations");
-            } finally {
-                setLoading(false);
-            }
-        })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        const handler = () => fetchInvitations(true);
+        window.addEventListener("invites-changed", handler);
+        return () => window.removeEventListener("invites-changed", handler);
+    }, [fetchInvitations]);
 
     async function handleRespond(invId, status) {
         try {
@@ -64,17 +76,12 @@ export default function Invitations() {
             setReceived((prev) =>
                 prev.map((inv) => (inv.id === invId ? updated : inv))
             );
-        } catch {
-            showToast("Failed to respond to invitation");
-        }
-    }
-
-    async function handleCancel(invId) {
-        try {
-            await apiDelete(`/api/group-invitations/${invId}`);
-            setSent((prev) => prev.filter((inv) => inv.id !== invId));
-        } catch {
-            showToast("Failed to cancel invitation");
+            if (status === "ACCEPTED") reloadGroups();
+        } catch (err) {
+            showToast(err?.message || "Failed to respond to invitation", "error");
+            // Refetch invitations so the UI stays in sync
+            // (e.g. invitation was already processed, or no longer exists)
+            setTimeout(() => fetchInvitations(true), 600);
         }
     }
 
@@ -95,7 +102,22 @@ export default function Invitations() {
 
     return (
         <div className="invitations-page">
-            <h1 className="invitations-heading">Invitations</h1>
+            <div className="invitations-header-row">
+                <h1 className="invitations-heading">Invitations</h1>
+                <button
+                    className="btn-secondary btn-sm invitations-refresh-btn"
+                    onClick={() => fetchInvitations(true)}
+                    disabled={refreshing}
+                    title="Refresh invitations"
+                >
+                    <FiRefreshCw size={14} className={refreshing ? "spin" : ""} />
+                    {refreshing ? "Refreshing…" : "Refresh"}
+                </button>
+            </div>
+
+            <div className="invitations-group-count">
+                Groups: {groups.length}/3
+            </div>
 
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Received</h2>
@@ -190,7 +212,6 @@ export default function Invitations() {
                                     <th>To</th>
                                     <th>Comment</th>
                                     <th>Status</th>
-                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -218,17 +239,6 @@ export default function Invitations() {
                                             <span className={`invitation-status ${inv.invitationStatus?.toLowerCase()}`}>
                                                 {inv.invitationStatus}
                                             </span>
-                                        </td>
-                                        <td>
-                                            {inv.invitationStatus === "PENDING" && (
-                                                <button
-                                                    className="btn-abort"
-                                                    onClick={() => handleCancel(inv.id)}
-                                                    title="Cancel invitation"
-                                                >
-                                                    Abort
-                                                </button>
-                                            )}
                                         </td>
                                     </tr>
                                 ))}

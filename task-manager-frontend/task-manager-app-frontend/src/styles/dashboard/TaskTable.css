@@ -3,7 +3,6 @@
 /* Column header (rendered once) */
 .task-col-header {
     display: grid;
-    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
     padding: 0.5em 1em;
     border-bottom: 0.125em solid var(--border-primary);
     font-weight: 600;
@@ -16,6 +15,8 @@
     top: 0;
     background: var(--bg-primary);
     z-index: 2;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .col-header-cell {
@@ -61,12 +62,13 @@
 /* Task row */
 .task-row {
     display: grid;
-    grid-template-columns: 1fr 8.125em 5.62em 7.5em 5.62em 3.75em;
     align-items: center;
     padding: 0 1em;
     cursor: pointer;
     transition: background 0.12s;
     border-bottom: 0.06em solid var(--border-secondary);
+    overflow: hidden;
+    min-width: 0;
 }
 
 .task-row:hover {
@@ -98,6 +100,7 @@
 
 .cell-title {
     min-width: 0;          /* allow shrink inside grid */
+    max-width: 100%;       /* fill the entire 1fr track */
 }
 
 .cell-creator,
@@ -181,13 +184,9 @@
     color: var(--danger-text-alt);
 }
 
-/* Responsive — Task Table */
-@media (max-width: 1024px) {
-    .task-col-header,
-    .task-row {
-        grid-template-columns: 1fr 6.88em 5em 6.25em 4.38em 3.12em !important;
-    }
+/* Responsive — Task Table\n   Column visibility is now driven by JS (visCols prop).\n   Only adjust spacing at breakpoints. */
 
+@media (max-width: 1024px) {
     .task-cell {
         padding: 0.375em 0.5em;
         font-size: 0.75em;
@@ -195,23 +194,6 @@
 }
 
 @media (max-width: 768px) {
-    /* Hide lesser columns on narrow screens */
-    .task-col-header,
-    .task-row {
-        grid-template-columns: 1fr 5em 4.38em 3.12em !important;
-    }
-
-    /* Hide creator & due-date columns */
-    .cell-creator,
-    .cell-due {
-        display: none;
-    }
-
-    .task-col-header > .col-header-cell:nth-child(2),
-    .task-col-header > .col-header-cell:nth-child(4) {
-        display: none;
-    }
-
     .task-col-header {
         padding: 0.375em 0.625em;
     }
@@ -227,21 +209,6 @@
 }
 
 @media (max-width: 480px) {
-    /* On very small screens keep just title + priority + chat */
-    .task-col-header,
-    .task-row {
-        grid-template-columns: 1fr 4.38em 2.5em !important;
-    }
-
-    /* Additionally hide accessible (creator & due already hidden at 48em) */
-    .cell-access {
-        display: none;
-    }
-
-    .task-col-header > .col-header-cell:nth-child(5) {
-        display: none;
-    }
-
     .task-col-header {
         padding: 0.375em 0.5em;
         font-size: 0.625em;

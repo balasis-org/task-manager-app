@@ -11,7 +11,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "default_images")
+@Table(name = "default_images", indexes = {
+        @Index(name = "idx_di_type", columnList = "type")
+})
 public class DefaultImage extends BaseModel{
     @Enumerated(EnumType.STRING)
     @Column

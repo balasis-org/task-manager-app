@@ -1,6 +1,8 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.jwt.JwtService;
@@ -21,7 +23,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@Profile({"dev-h2", "dev-mssql"})
+@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequestMapping("/auth")
 public class DevAuthController extends BaseComponent {
 
@@ -51,23 +53,31 @@ public class DevAuthController extends BaseComponent {
             name = at > 0 ? email.substring(0, at) : email;
         }
 
-        // Keep this deterministic and clearly "fake".
         String tenantId = "dev-fake-tenant";
         String azureKey = "dev-fake:" + email;
 
         User user = userRepository.findByEmail(email)
             .or(() -> userRepository.findByAzureKey(azureKey))
-            .orElseGet(() -> userRepository.save(
-                User.builder()
-                    .azureKey(azureKey)
-                    .tenantId(tenantId)
-                    .email(email)
-                    .name(name)
-                    .isOrg(false)
-                    .allowEmailNotification(false)
-                    .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
-                    .build()
-            ));
+            .map(existing -> {
+                existing.setLastActiveAt(java.time.Instant.now());
+                return userRepository.save(existing);
+            })
+            .orElseGet(() -> {
+                if (userRepository.count() >= PlanLimits.MAX_USERS) {
+                    throw new LimitExceededException("Maximum number of users (" + PlanLimits.MAX_USERS + ") reached");
+                }
+                return userRepository.save(
+                    User.builder()
+                        .azureKey(azureKey)
+                        .tenantId(tenantId)
+                        .email(email)
+                        .name(name)
+                        .isOrg(false)
+                        .allowEmailNotification(false)
+                        .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
+                        .build()
+                );
+            });
 
         String refreshCode = generateRandomRefreshToken(32);
         Long refreshTokenId = refreshTokenRepository.save(

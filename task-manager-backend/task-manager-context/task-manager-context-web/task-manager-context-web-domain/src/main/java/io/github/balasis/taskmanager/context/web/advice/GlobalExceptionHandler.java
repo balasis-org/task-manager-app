@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.context.web.advice;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
+import io.github.balasis.taskmanager.context.base.exception.ratelimit.RateLimitExceededException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
@@ -63,7 +64,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleInvalidEnum(HttpMessageNotReadableException ex) {
         String message = ex.getCause() instanceof InvalidFormatException
-                ? "Invalid value for enum field: " + ((InvalidFormatException) ex.getCause()).getValue()
+                ? "Invalid value for field: " + ((InvalidFormatException) ex.getCause()).getValue()
                 : "Malformed request";
 
         Map<String, String> error = Map.of("error", message);
@@ -93,6 +94,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMissingBlob(TaskFileBlobNotFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.GONE)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<String> handleRateLimitExceeded(RateLimitExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
                 .body(ex.getMessage());
     }
 }

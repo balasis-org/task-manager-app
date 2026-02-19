@@ -6,18 +6,21 @@ import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
 import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
-
+//matching backend Dataloader roles given,
+// Leaders also cross roles as reviewers in each others group
 const DEV_USERS = [
-    { label: "Alice Dev",  email: "alice.dev@example.com" },
-    { label: "Bob Dev",    email: "bob.dev@example.com" },
-    { label: "Carol Dev",  email: "carol.dev@example.com" },
-    { label: "Dave Dev",   email: "dave.dev@example.com" },
-    { label: "Erin Dev",   email: "erin.dev@example.com" },
-    { label: "Frank Dev",  email: "frank.dev@example.com" },
-    { label: "Grace Dev",  email: "grace.dev@example.com" },
-    { label: "Heidi Dev",  email: "heidi.dev@example.com" },
-    { label: "Ivan Dev",   email: "ivan.dev@example.com" },
-    { label: "Judy Dev",   email: "judy.dev@example.com" },
+    { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader)" },
+    { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager)"},
+    { label: "Carol Dev",  email: "carol.dev@example.com" ,role:"(GA reviewer)"},
+    { label: "Dave Dev",   email: "dave.dev@example.com" ,role:"(GA member1)"},
+    { label: "Erin Dev",   email: "erin.dev@example.com" ,role:"(GA member2)"},
+    { label: "Frank Dev",  email: "frank.dev@example.com" ,role:"(GA guest)"},
+    { label: "Grace Dev",  email: "grace.dev@example.com" ,role:"(GB leader)"},
+    { label: "Heidi Dev",  email: "heidi.dev@example.com" ,role:"(GB manager)"},
+    { label: "Ivan Dev",   email: "ivan.dev@example.com" ,role:"(GB reviewer)"},
+    { label: "Judy Dev",   email: "judy.dev@example.com" ,role:"(GB member1)"},
+    { label: "Mallory dev",   email: "mallory.dev@example.com" ,role:"(GB member2)"},
+    { label: "OSCAR Dev",   email: "oscar.dev@example.com" ,role:"(GB guest)"},
 ];
 
 export default function Login() {
@@ -108,7 +111,7 @@ export default function Login() {
                                 >
                                     {DEV_USERS.map((u) => (
                                         <option key={u.email} value={u.email}>
-                                            {u.label}
+                                            {u.label} {u.role}
                                         </option>
                                     ))}
                                 </select>

@@ -19,7 +19,7 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
         setLoading(true);
         try {
             const data = await apiGet(
-                `/api/groups/${groupId}/events?page=${p}&size=10`
+                `/api/groups/${groupId}/events?page=${p}&size=10&sort=createdAt,desc`
             );
             setEvents(data?.content ?? []);
             setTotalPages(data?.totalPages ?? 0);
@@ -39,12 +39,13 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
         <div className="popup-overlay" onClick={onClose}>
             <div
                 className="popup-card popup-card-wide"
+                style={{ minHeight: "22em" }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2>Group Events</h2>
 
                 {loading ? (
-                    <p>Loading…</p>
+                    <p style={{ textAlign: "center", paddingTop: "4em", color: "var(--text-muted)" }}>Loading…</p>
                 ) : events.length === 0 ? (
                     <p className="muted">No events yet.</p>
                 ) : (

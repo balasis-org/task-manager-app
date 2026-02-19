@@ -2,7 +2,6 @@ import API_BASE from "@apiBase";
 
 let authHandlers = {
     onUnauthorized: null,
-    onForbidden: null,
 };
 
 export function registerAuthHandlers(handlers) {
@@ -60,18 +59,42 @@ async function apiRequest(path, options = {}, retry = true) {
         throw { status: 0, message: "Network error" };
     }
 
-    // auth errors
-    if (res.status === 401 || res.status === 403) {
+    // 401 — try token refresh once
+    if (res.status === 401) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
-    // other errors
-    if (!res.ok) {
+    // 429 — rate limited
+    if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
         let body = null;
         try { body = await res.text(); } catch {}
         throw {
+            status: 429,
+            message: body || "Too many requests. Please slow down.",
+            retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
+    }
+
+    // any other non-ok (including 403) → surface to caller as an error
+    if (!res.ok) {
+        let body = null;
+        try { body = await res.text(); } catch {}
+
+        // The backend may return plain text OR a JSON object with "message" / "error".
+        // Try to extract the human-readable message from either format.
+        let message = body || "HTTP error";
+        if (body) {
+            try {
+                const parsed = JSON.parse(body);
+                if (typeof parsed === "object" && parsed !== null) {
+                    message = parsed.message || parsed.error || body;
+                }
+            } catch { /* not JSON — keep raw text */ }
+        }
+        throw {
             status: res.status,
-            message: body || "HTTP error",
+            message,
         };
     }
 
@@ -106,26 +129,50 @@ export async function apiMultipart(path, formData, options = {}) {
         throw { status: 0, message: "Network error" };
     }
 
-    let json = null;
-    try {
-        json = await res.json();
-    } catch {
-        // no body (rare)
-    }
-    // HTTP auth errors
-    if (res.status === 401 || res.status === 403) {
+    // HTTP auth errors — only 401 triggers auth flow
+    if (res.status === 401) {
         return handleAuthStatus(res.status, path, fetchOptions, true);
     }
 
+    // 429 — rate limited
+    if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
+        let raw = null;
+        try { raw = await res.text(); } catch {}
+        throw {
+            status: 429,
+            message: raw || "Too many requests. Please slow down.",
+            retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
+    }
+
+    // Read the body as text first, then attempt JSON parse.
+    // The backend returns plain-text error messages for most exceptions,
+    // so res.json() would fail and we'd lose the real message.
+    let raw = null;
+    try { raw = await res.text(); } catch { /* empty body */ }
+
     if (!res.ok) {
-        // json was already parsed above; use it for the error message
-        const errMsg = (json && typeof json === "object") ? (json.message || json.error || JSON.stringify(json))
-                     : (json && typeof json === "string") ? json
-                     : "HTTP error";
+        let errMsg = "HTTP error";
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                errMsg = (typeof parsed === "object")
+                    ? (parsed.message || parsed.error || JSON.stringify(parsed))
+                    : String(parsed);
+            } catch {
+                // not JSON — use the raw text as-is (backend plain-text error)
+                errMsg = raw;
+            }
+        }
         throw { status: res.status, message: errMsg };
     }
 
-    // Return raw JSON body (no wrapper unwrapping)
+    // Return parsed JSON body
+    let json = null;
+    if (raw) {
+        try { json = JSON.parse(raw); } catch { /* non-JSON success body */ }
+    }
     return json;
 }
 
@@ -138,14 +185,9 @@ async function handleAuthStatus(status, path, options, retry) {
         }
     }
 
-    // 403 - forbidden
-    if (status === 403) {
-        authHandlers.onForbidden?.();
-    }
-
     throw {
         status,
-        message: status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : "Auth error",
+        message: "Unauthorized",
     };
 }
 

@@ -1,41 +1,25 @@
-import { useState, useEffect, useContext, useRef } from "react";
+
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-    FiArrowLeft,
-    FiMessageCircle,
-    FiPlus,
-    FiDownload,
-    FiTrash2,
-    FiEdit2,
-    FiChevronRight,
-    FiChevronLeft,
-} from "react-icons/fi";
+import { FiArrowLeft,FiMessageCircle,FiPlus,FiDownload,
+    FiTrash2,FiEdit2,FiChevronRight,FiChevronLeft,FiRefreshCw} from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { getFileIcon, isFileTooLarge } from "@assets/js/fileUtils";
-
-const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
-const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
+import useSmartPoll from "@hooks/useSmartPoll";
 import blobBase from "@blobBase";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Task.css";
 
-const STATE_LABELS = {
-    TODO: "TODO",
-    IN_PROGRESS: "In Progress",
-    TO_BE_REVIEWED: "To Be Reviewed",
-    DONE: "Done",
-};
+const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In Progress",
+    TO_BE_REVIEWED: "To Be Reviewed",DONE: "Done"};
 const STATE_OPTIONS = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const DECISION_OPTIONS = ["APPROVE", "REJECT"];
-
-function userImg(u) {
-    if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
-}
+const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
+const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
 export default function Task() {
     const { groupId, taskId } = useParams();
@@ -70,6 +54,21 @@ export default function Task() {
     const [fileDragOver, setFileDragOver] = useState(false);
     const [assigneeDragOver, setAssigneeDragOver] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
+
+    // track when we last fetched the task for lightweight polling
+    const lastFetchRef = useRef(new Date().toISOString());
+
+    // lightweight change-detection poll
+    const taskPollCheck = useCallback(async () => {
+        if (!groupId || !taskId) return;
+        await apiGet(`/api/groups/${groupId}/task/${taskId}/has-changed?since=${encodeURIComponent(lastFetchRef.current)}`);
+    }, [groupId, taskId]);
+
+    const {
+        hasChanged: taskHasChanged,
+        isStale: taskIsStale,
+        reset: resetTaskPoll,
+    } = useSmartPoll(taskPollCheck, { enabled: !!groupId && !!taskId });
 
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const myParticipant = task?.taskParticipants
@@ -114,6 +113,18 @@ export default function Task() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupId]);
 
+    // auto-redirect to dashboard if the user loses access to this group
+    useEffect(() => {
+        const handler = (e) => {
+            if (String(e.detail?.groupId) === String(groupId)) {
+                showToast(e.detail?.message || "You no longer have access to this group.", "error");
+                navigate("/dashboard", { replace: true });
+            }
+        };
+        window.addEventListener("group-access-lost", handler);
+        return () => window.removeEventListener("group-access-lost", handler);
+    }, [groupId, navigate, showToast]);
+
     // re-fetch task data (called after errors to fix stale UI)
     function refetchTask() {
         if (!groupId || !taskId) return;
@@ -123,6 +134,8 @@ export default function Task() {
                 setEditTitle(data.title || "");
                 setEditDesc(data.description || "");
                 setEditState(data.taskState || "TODO");
+                lastFetchRef.current = new Date().toISOString();
+                resetTaskPoll();
             })
             .catch(() => {});
     }
@@ -144,6 +157,8 @@ export default function Task() {
                 setEditTitle(data.title || "");
                 setEditDesc(data.description || "");
                 setEditState(data.taskState || "TODO");
+                lastFetchRef.current = new Date().toISOString();
+                resetTaskPoll();
             })
             .catch(() => setError("Failed to load task"))
             .finally(() => setLoading(false));
@@ -349,6 +364,16 @@ export default function Task() {
                         </Link>
                     </div>
                 </div>
+
+                {/* Poll-detected changes banner */}
+                {(taskHasChanged || taskIsStale) && (
+                    <div className="task-stale-banner">
+                        <span>{taskHasChanged ? "This task has been updated." : "Data may be outdated."}</span>
+                        <button className="stale-refresh-btn" onClick={refetchTask}>
+                            <FiRefreshCw size={14} className="stale-refresh-icon" /> Refresh
+                        </button>
+                    </div>
+                )}
 
                 {/* State selector */}
                 <div className="task-state-bar">
@@ -758,4 +783,11 @@ export default function Task() {
             </aside>
         </div>
     );
+}
+
+
+
+function userImg(u) {
+    if (!u) return "";
+    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
 }

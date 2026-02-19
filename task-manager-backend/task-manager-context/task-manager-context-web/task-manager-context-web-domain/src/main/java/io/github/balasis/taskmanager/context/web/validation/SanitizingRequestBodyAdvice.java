@@ -14,7 +14,6 @@ import java.lang.reflect.Type;
  * Automatically sanitises every {@link String} field on incoming
  * {@link BaseInboundResource} request bodies <b>before</b> validation
  * and controller logic run.
- * <p>
  * project-wide XSS protection
  */
 @RestControllerAdvice

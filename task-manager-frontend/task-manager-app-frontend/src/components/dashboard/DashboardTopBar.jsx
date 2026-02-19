@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiMinus } from "react-icons/fi";
+import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiMinus, FiFilter } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
+import FilterPanel from "@components/dashboard/FilterPanel";
 import "@styles/dashboard/DashboardTopBar.css";
 import blobBase from "@blobBase";
 
@@ -20,6 +21,12 @@ export default function DashboardTopBar({
     onLeaveGroup,
     user,
     groupDetail,
+    filters,
+    isFilterApplied,
+    onDraftChange,
+    onApplyFilters,
+    onEditFilters,
+    onFiltersClear,
 }) {
     const showToast = useToast();
     const [groupDropdown, setGroupDropdown] = useState(false);
@@ -27,9 +34,11 @@ export default function DashboardTopBar({
     const [memberSearch, setMemberSearch] = useState("");
     const [confirmRemove, setConfirmRemove] = useState(null); // membershipId
     const [confirmLeave, setConfirmLeave] = useState(false);
+    const [filterOpen, setFilterOpen] = useState(false);
     const groupRef = useRef(null);
     const membersRef = useRef(null);
     const memberSearchRef = useRef(null);
+    const filterRef = useRef(null);
 
     const canInvite = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const canSettings = myRole === "GROUP_LEADER";
@@ -43,7 +52,7 @@ export default function DashboardTopBar({
         ? members.find((m) => m.user?.id === user.id)
         : null;
     const hasUnseenEvents = (() => {
-        const lastEvent = groupDetail?.lastGroupEventDate;
+        const lastEvent = groupDetail?.lged;
         const lastSeen = myMembership?.lastSeenGroupEvents;
         if (!lastEvent) return false;
         if (!lastSeen) return true;
@@ -90,8 +99,8 @@ export default function DashboardTopBar({
             setConfirmRemove(null);
             // Trigger a refresh
             if (onLeaveGroup) onLeaveGroup("refresh");
-        } catch {
-            showToast("Failed to remove member");
+        } catch (err) {
+            showToast(err?.message || "Failed to remove member");
         }
     }
 
@@ -102,8 +111,15 @@ export default function DashboardTopBar({
             showToast("You left the group", "success");
             setConfirmLeave(false);
             if (onLeaveGroup) onLeaveGroup("left");
-        } catch {
-            showToast("Failed to leave group");
+        } catch (err) {
+            // If 403/404 the user was already removed — treat it as "left"
+            if (err?.status === 403 || err?.status === 404) {
+                showToast("You are no longer a member of this group.", "info");
+                setConfirmLeave(false);
+                if (onLeaveGroup) onLeaveGroup("left");
+            } else {
+                showToast(err?.message || "Failed to leave group");
+            }
         }
     }
 
@@ -143,11 +159,33 @@ export default function DashboardTopBar({
                     </div>
 
                     <div className="topbar-right">
+                        <div className="topbar-dropdown-wrapper" ref={filterRef}>
+                            <button
+                                className={`topbar-icon-btn topbar-filter-btn${isFilterApplied ? " filter-active" : ""}`}
+                                onClick={() => setFilterOpen((v) => !v)}
+                                title="Filter tasks"
+                            >
+                                <FiFilter size={15} />
+                                {isFilterApplied && <span className="topbar-filter-dot" />}
+                            </button>
+                            {filterOpen && (
+                                <FilterPanel
+                                    members={members}
+                                    filters={filters}
+                                    isApplied={isFilterApplied}
+                                    onDraftChange={onDraftChange}
+                                    onApply={onApplyFilters}
+                                    onEdit={onEditFilters}
+                                    onClear={onFiltersClear}
+                                    onClose={() => setFilterOpen(false)}
+                                />
+                            )}
+                        </div>
+
                         <button className="topbar-icon-btn topbar-events-btn" onClick={onOpenGroupEvents} title="Group Events">
                             📋
                             {hasUnseenEvents && (
                                 <>
-                                    <span className="topbar-notif-dot" />
                                     <span className="topbar-notif-badge">NEW</span>
                                 </>
                             )}
@@ -194,6 +232,7 @@ export default function DashboardTopBar({
                                                         className="topbar-member-img"
                                                     />
                                                     <span className="topbar-member-name">{m.user?.name || m.user?.email}</span>
+                                                    {m.user?.sameOrg && <span className="topbar-org-badge" title="Same organisation">ORG</span>}
                                                     <span className="topbar-member-role">
                                                         {m.role}
                                                     </span>
