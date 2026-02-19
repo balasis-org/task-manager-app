@@ -15,19 +15,24 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "TaskComments")
+@Table(name = "TaskComments", indexes = {
+        @Index(name = "idx_tc_task",    columnList = "task_id"),
+        @Index(name = "idx_tc_creator", columnList = "creator_id")
+})
 public class TaskComment extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn
     private Task task;
 
-    @ManyToOne
-    @JoinColumn
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
     private User creator;
 
-    @Lob
     @Column
+    private String creatorNameSnapshot;
+
+    @Column(columnDefinition = "nvarchar(800)")
     private String comment;
 
     @Column

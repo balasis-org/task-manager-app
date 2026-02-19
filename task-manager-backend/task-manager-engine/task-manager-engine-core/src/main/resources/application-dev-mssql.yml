@@ -19,6 +19,9 @@ spring:
         generate_statistics: false
     show-sql: false
 
+  flyway:
+    enabled: false
+
 logging:
   level:
     root: info

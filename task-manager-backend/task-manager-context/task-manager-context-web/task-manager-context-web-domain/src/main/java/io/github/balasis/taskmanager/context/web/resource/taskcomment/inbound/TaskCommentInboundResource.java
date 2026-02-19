@@ -14,6 +14,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class TaskCommentInboundResource extends BaseInboundResource {
     @NotBlank(message = "Comment cannot be blank")
-    @Size(max = 250)
+    @Size(max = 400, message = "Comment must be at most 400 characters")
     private String comment;
 }

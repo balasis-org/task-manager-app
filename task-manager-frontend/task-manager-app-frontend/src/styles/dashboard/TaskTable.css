@@ -1,0 +1,225 @@
+/* Shared column grid  –  single header */
+
+/* Column header (rendered once) */
+.task-col-header {
+    display: grid;
+    padding: 0.5em 1em;
+    border-bottom: 0.125em solid var(--border-primary);
+    font-weight: 600;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    z-index: 2;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.col-header-cell {
+    position: relative;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Centre every header except the first (Title) */
+.col-header-cell:not(:first-child) {
+    justify-content: center;
+    text-align: center;
+}
+
+/* Drag handle between column headers */
+.col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -0.25em;
+    width: 0.5em;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 5;
+}
+
+.col-resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 0.19em;
+    width: 0.125em;
+    height: 60%;
+    background: #ccc;
+    border-radius: 0.06em;
+    transition: background 0.15s;
+}
+
+.col-resize-handle:hover::after {
+    background: #888;
+}
+
+/* Task row */
+.task-row {
+    display: grid;
+    align-items: center;
+    padding: 0 1em;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 0.06em solid var(--border-secondary);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.task-row:hover {
+    background: var(--bg-hover);
+}
+
+.task-row-locked {
+    cursor: not-allowed;
+}
+
+.task-row-denied {
+    animation: row-denied-flash 0.5s ease;
+}
+
+@keyframes row-denied-flash {
+    0%   { background: #ffdddd; }
+    50%  { background: #ffaaaa; }
+    100% { background: transparent; }
+}
+
+/* Cells */
+.task-cell {
+    padding: 0.5em 0.75em;
+    font-size: 0.81em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cell-title {
+    min-width: 0;          /* allow shrink inside grid */
+    max-width: 100%;       /* fill the entire 1fr track */
+}
+
+.cell-creator,
+.cell-priority,
+.cell-due,
+.cell-access {
+    text-align: center;
+    justify-self: center;
+}
+
+.lock-icon {
+    color: var(--text-disabled);
+}
+
+.cell-comments {
+    text-align: center;
+    justify-self: center;
+    cursor: pointer;
+}
+
+.cell-comments:hover .comment-icon {
+    color: var(--accent-primary);
+}
+
+.col-center {
+    justify-content: center;
+}
+
+/* Empty state */
+.task-table-empty {
+    padding: 0.75em 1.25em;
+    color: var(--text-placeholder);
+    font-size: 0.81em;
+    font-style: italic;
+}
+
+.task-rows {
+    /* group of rows — no extra styling needed */
+}
+
+/* Comment icon */
+.comment-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.19em;
+    color: var(--text-placeholder);
+    position: relative;
+}
+
+.comment-icon.has-new {
+    color: var(--warning);
+}
+
+.comment-count {
+    font-size: 0.69em;
+    font-weight: 600;
+}
+
+/* Priority tags */
+.priority-tag {
+    display: inline-block;
+    padding: 0.125em 0.5em;
+    border-radius: 0.625em;
+    font-size: 0.69em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.priority-low {
+    background: var(--success-bg-alt);
+    color: var(--success-text-alt);
+}
+
+.priority-med {
+    background: #fff3e0;
+    color: var(--priority-med-text);
+}
+
+.priority-high {
+    background: var(--danger-bg-alt);
+    color: var(--danger-text-alt);
+}
+
+/* Responsive — Task Table\n   Column visibility is now driven by JS (visCols prop).\n   Only adjust spacing at breakpoints. */
+
+@media (max-width: 1024px) {
+    .task-cell {
+        padding: 0.375em 0.5em;
+        font-size: 0.75em;
+    }
+}
+
+@media (max-width: 768px) {
+    .task-col-header {
+        padding: 0.375em 0.625em;
+    }
+
+    .task-row {
+        padding: 0 0.625em;
+    }
+
+    .task-cell {
+        padding: 0.375em 0.375em;
+        font-size: 0.75em;
+    }
+}
+
+@media (max-width: 480px) {
+    .task-col-header {
+        padding: 0.375em 0.5em;
+        font-size: 0.625em;
+    }
+
+    .task-row {
+        padding: 0 0.5em;
+    }
+
+    .task-cell {
+        padding: 0.25em 0.25em;
+        font-size: 0.69em;
+    }
+}

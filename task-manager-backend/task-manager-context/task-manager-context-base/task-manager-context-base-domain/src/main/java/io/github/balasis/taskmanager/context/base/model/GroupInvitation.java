@@ -14,7 +14,11 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "GroupInvitations")
+@Table(name = "GroupInvitations", indexes = {
+        @Index(name = "idx_gi_user_status",  columnList = "user_id, invitationStatus"),
+        @Index(name = "idx_gi_group",        columnList = "group_id"),
+        @Index(name = "idx_gi_invited_by",   columnList = "invited_by_id")
+})
 public class GroupInvitation extends BaseModel{
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,7 +41,7 @@ public class GroupInvitation extends BaseModel{
     @Column(nullable = false)
     private InvitationStatus invitationStatus;
 
-    @Column(length = 500)
+    @Column(length = 400)
     private String comment;
 
     @Column(nullable = false, updatable = false)
