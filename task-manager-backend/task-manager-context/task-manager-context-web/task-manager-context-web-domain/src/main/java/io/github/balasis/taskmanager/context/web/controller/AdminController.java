@@ -20,7 +20,7 @@ public class AdminController extends BaseComponent {
     private final AdminService adminService;
     private final AdminOutboundMapper adminOutboundMapper;
 
-    /* ───── users ───── */
+    /* ─────  users ───── */
 
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserResource>> listUsers(

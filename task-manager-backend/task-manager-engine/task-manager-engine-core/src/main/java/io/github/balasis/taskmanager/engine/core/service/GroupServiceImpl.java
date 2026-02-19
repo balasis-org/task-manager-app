@@ -1174,7 +1174,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return now;
     }
 
-    /* ── Date-tracking helpers ── */
+    /* ── date-tracking helpers ── */
 
     private void touchGroupChange(Group group, boolean noJoins) {
         Instant now = Instant.now();

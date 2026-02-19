@@ -17,7 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
-        // Rate limiter runs FIRST — catches all requests (incl. /auth/**) by IP
+        // rate limiter runs FIRST — catches all requests (incl. /auth/**) by IP
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/h2-console");
@@ -45,11 +45,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // Single-segment SPA paths  (e.g.  /dashboard, /login)
+        // single-segment SPA paths  (e.g.  /dashboard, /login)
         registry.addViewController("/{path:^(?!api|auth|uploads)[^\\.]*}")
                 .setViewName("forward:/index.html");
 
-        // Multi-segment SPA paths   (e.g.  /auth/callback, /group/1/task/2)
+        // multi-segment SPA paths   (e.g.   /auth/callback, /group/1/task/2)
         registry.addViewController("/{seg1:^(?!api|uploads)[^\\.]*}/{seg2:[^\\.]*}")
                 .setViewName("forward:/index.html");
 

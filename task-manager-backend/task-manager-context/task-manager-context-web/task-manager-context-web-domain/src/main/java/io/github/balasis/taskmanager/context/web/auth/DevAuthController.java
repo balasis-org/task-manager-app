@@ -53,7 +53,6 @@ public class DevAuthController extends BaseComponent {
             name = at > 0 ? email.substring(0, at) : email;
         }
 
-        // Keep this deterministic and clearly "fake".
         String tenantId = "dev-fake-tenant";
         String azureKey = "dev-fake:" + email;
 

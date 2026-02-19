@@ -18,7 +18,7 @@ public interface AdminOutboundMapper {
     @Mapping(source = "defaultImgUrl", target = "defaultImgUrl", qualifiedByName = "convertUserDefaultImgUrl")
     AdminUserResource toUserResource(User user);
 
-    /* ───── Groups ───── */
+    /* ───── Groups  ───── */
 
     @Named("groupList")
     @Mapping(source = "owner.name", target = "ownerName")
@@ -43,7 +43,7 @@ public interface AdminOutboundMapper {
     @Mapping(source = "user.name", target = "userName")
     AdminGroupMemberResource toGroupMemberResource(GroupMembership membership);
 
-    /* ───── Tasks ───── */
+    /* ───── Tasks   ───── */
 
     @Named("taskList")
     @Mapping(source = "group.id", target = "groupId")
@@ -75,7 +75,7 @@ public interface AdminOutboundMapper {
     @Mapping(source = "fileUrl", target = "fileUrl", qualifiedByName = "convertAssigneeFileUrl")
     AdminTaskFileResource toAssigneeFileResource(TaskAssigneeFile file);
 
-    /* ───── Comments ───── */
+    /* ───── comments ───── */
 
     @Mapping(target = "creatorName", expression = "java(comment.getCreator() != null ? comment.getCreator().getName() : comment.getCreatorNameSnapshot())")
     @Mapping(target = "creatorEmail", expression = "java(comment.getCreator() != null ? comment.getCreator().getEmail() : null)")
@@ -86,7 +86,7 @@ public interface AdminOutboundMapper {
     @Mapping(target = "groupName", expression = "java(comment.getTask() != null && comment.getTask().getGroup() != null ? comment.getTask().getGroup().getName() : null)")
     AdminCommentResource toCommentResource(TaskComment comment);
 
-    /* ───── Blob URL converters ───── */
+    /* ───── Blob URL COnverters ───── */
 
     @Named("convertUserImgUrl")
     default String convertUserImgUrl(String imgUrl) {

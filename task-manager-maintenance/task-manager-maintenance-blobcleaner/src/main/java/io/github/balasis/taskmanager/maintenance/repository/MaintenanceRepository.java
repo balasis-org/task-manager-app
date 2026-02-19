@@ -67,16 +67,16 @@ public class MaintenanceRepository {
      */
     public boolean tryDeleteUser(Long userId) {
         try {
-            // App-level artefacts not tied to group-leave
+            //  app-level artefacts not tied to group-leave
             jdbcTemplate.update("DELETE FROM GroupInvitations WHERE user_id = ?", userId);
             jdbcTemplate.update("DELETE FROM GroupInvitations WHERE invited_by_id = ?", userId);
             jdbcTemplate.update("DELETE FROM RefreshTokens    WHERE user_id = ?", userId);
 
-            // Final delete — FK violation here means the user re-activated
+            //  final delete — FK violation here means the user re-activated
             jdbcTemplate.update("DELETE FROM Users WHERE id = ?", userId);
             return true;
         } catch (DataAccessException e) {
-            // FK violation or other constraint — skip this user
+            // FK violation or other constraint , skip da user
             return false;
         }
     }

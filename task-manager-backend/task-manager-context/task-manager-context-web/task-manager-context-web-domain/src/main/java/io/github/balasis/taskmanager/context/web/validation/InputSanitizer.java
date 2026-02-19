@@ -4,7 +4,6 @@ import org.springframework.web.util.HtmlUtils;
 
 /**
  * Simple HTML / XSS sanitizer for user-provided strings.
- * <p>
  * being alergic to fake spaces ==
  */
 public final class InputSanitizer {

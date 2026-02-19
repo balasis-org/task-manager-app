@@ -21,9 +21,9 @@ import java.time.Duration;
 /**
  * Wires the Redis-backed rate limiter for <b>dev</b> profiles.
  * <p>
- * If the Redis env vars are missing or the connection fails the bean is
+ * if the Redis env vars are missing or the connection fails the bean is
  * <b>not</b> created — the {@code RateLimitInterceptor} will simply
- * skip enforcement (fail-open).
+ * skip enforcement (fail to open).
  */
 @Configuration
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
