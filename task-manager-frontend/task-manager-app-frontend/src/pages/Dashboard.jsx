@@ -24,14 +24,10 @@ const COL_CLASSES = ["col-title", "col-creator", "col-priority", "col-due", "col
 const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
 const COL_MIN      = [120, 70, 60, 80, 60, 40];
 
-// Which column indices are visible at each breakpoint
+// column indices are visible at each breakpoint
 function visibleCols(width) {
     if (width <= 480) return [0, 2, 5];                // title + priority + comments
     if (width <= 768) return [0, 2, 3, 4, 5];          // hide creator + due => actually hide creator(1) and due(3)
-    // Wait — at 768 we hid creator(1) and due(3), so visible = [0, 2, 4, 5]
-    // Let me re-check: the CSS hides .cell-creator and .cell-due at 768
-    // So visible columns at <=768: title(0), priority(2), accessible(4), comments(5)
-    // At <=480 additionally hide accessible: title(0), priority(2), comments(5)
     if (width <= 768) return [0, 2, 4, 5];
     return [0, 1, 2, 3, 4, 5];                         // all
 }
