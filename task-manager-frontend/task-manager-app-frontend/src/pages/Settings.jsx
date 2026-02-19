@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { FiCamera, FiUser, FiMail, FiBell, FiMoon, FiCheck, FiX, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
 import { useToast } from "@context/ToastContext";
-import { apiGet, apiPatch, apiMultipart, apiPost } from "@assets/js/apiClient.js";
+import { apiPatch, apiMultipart, apiPost } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
 import blobBase from "@blobBase";
