@@ -56,6 +56,47 @@ The tags themselves are repo-wide, but the notes below focus on **backend** chan
     - Adds blob garbage-collector groundwork and content-safety hooks for uploads.
     - Adds refresh-token support and JWT/auth hardening.
 
+### v0.5.0 — Full React SPA + admin panel + rate limiting + Flyway baseline
+- Date: 2026-02-19
+- Tag object: `b044998d8313494b8a4b8494ea5c5d14e1210053` (annotated)
+- Tag target (commit): `d28ad184624004f5ec0b6be909295173989aac3b`
+- Highlights:
+
+    **Frontend — complete SPA built from scratch (replaces old frontend-demo):**
+    - Vite 7.3 + React 19.2 SPA with full page set: Dashboard, Task, Comments, Settings, AdminPanel, Invitations, Login, AuthCallback, AboutUs, TermsOfService, CookiePolicy.
+    - `GroupProvider` context with AES-256-GCM encrypted localStorage cache (`cacheCrypto.js`) — group detail encrypted with per-user backend-issued `cacheKey`, held only in memory.
+    - `useSmartPoll` hook — tiered backoff polling (30s/60s active, 60s mild idle, stops at 15 min + stale indicator).
+    - `apiClient.js` — centralized fetch wrapper with auto-retry on 401, 429 handling, file upload and blob download support.
+    - Full component set: `DashboardTopBar`, `FilterPanel`, `TaskTable`, popup suite (NewGroup, GroupSettings, NewTask, InviteToGroup, GroupEvents).
+    - Toast notification system (`ToastContext`).
+    - Layout with tiered invitation polling (60s/3min/45min based on idle duration).
+    - Protected routes, SPA nginx config, Docker + dev Dockerfile.
+
+    **Backend — admin, rate limiting, startup hardening, XSS sanitization:**
+    - `AdminController` + `AdminService` (302 lines): full admin CRUD over users, groups, tasks, comments with paginated search. Complete admin DTO layer (7 outbound resource types) and `AdminOutboundMapper`.
+    - Redis-backed distributed rate limiting: `RateLimitService` interface, `RedisRateLimitService` (Bucket4j + Lettuce, dual-window: 40 req/min + 420 req/15min), `RateLimitInterceptor` (runs before JWT), dev/prod configs. Fails-open if Redis unavailable.
+    - `StartupGate` + `StartupBlockingFilter`: two-gate startup (images ready + data ready), returns HTTP 503 until both gates are open.
+    - `InputSanitizer` + `SanitizingRequestBodyAdvice`: automatic XSS sanitization of all `BaseInboundResource` fields (strips HTML, trims invisible Unicode, preserves ZWJ/ZWNJ).
+    - `DeletedTask` entity + tombstone repository: soft-delete tracking required for the differential refresh endpoint to report deletions to clients.
+    - `GroupRefreshDto` with minimized JSON keys + full differential refresh logic in `GroupServiceImpl` (delta endpoint `GET /groups/{id}/refresh?lastSeen=`).
+    - `PlanLimits` utility: enforces max users (100), max groups per user, max tasks per group.
+    - `User` model expansion: `cacheKey`, invite code, `isOrg`, allow email notifications.
+    - Mini dropdown DTOs: `UserMiniForDropdownResource`, `GroupMiniForDropdownResource`, `TaskPreviewDto` + `TaskPreviewParticipantDto` refactors for payload minimization.
+    - `DataLoader` overhaul: richer seed data covering all roles and task states.
+    - Repository expansions across `TaskRepository`, `UserRepository`, `GroupInvitationRepository`, `TaskCommentRepository`, `DeletedTaskRepository` — delta queries, admin queries, soft-delete lookups.
+    - `DevAuthController` + `AuthService` hardening: refresh token rotation, `@Profile` annotations extended throughout infrastructure beans.
+
+    **Flyway migration baseline:**
+    - `V1__baseline.sql` — complete schema with 13 tables, clean constraint names, all indexes and FK constraints.
+    - `application-dev-flyway-mssql.yml` profile (`ddl-auto: validate` + Flyway enabled) for testing migrations locally before prod deploy.
+    - `backend-flyway-db-compose.yml` — second isolated MSSQL container (port 1434) for Flyway testing.
+
+    **CI/CD and maintenance:**
+    - `maintenance-ci-cd.yml` GitHub Action added for the maintenance module.
+    - `frontend-ci-cd.yml` fully reworked for the new Vite SPA structure.
+    - Maintenance module refactored into a proper Spring Boot app (`MaintenanceCore`, `MaintenanceRunner`), new Dockerfile.
+    - Old `task-manager-frontend-demo` (vanilla HTML/JS) removed; replaced entirely by the new React SPA.
+
 ---
 
 ## Notes
