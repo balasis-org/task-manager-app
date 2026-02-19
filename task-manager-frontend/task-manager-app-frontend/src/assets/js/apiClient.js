@@ -64,6 +64,18 @@ async function apiRequest(path, options = {}, retry = true) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
+    // 429 — rate limited
+    if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
+        let body = null;
+        try { body = await res.text(); } catch {}
+        throw {
+            status: 429,
+            message: body || "Too many requests. Please slow down.",
+            retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
+    }
+
     // any other non-ok (including 403) → surface to caller as an error
     if (!res.ok) {
         let body = null;
@@ -120,6 +132,18 @@ export async function apiMultipart(path, formData, options = {}) {
     // HTTP auth errors — only 401 triggers auth flow
     if (res.status === 401) {
         return handleAuthStatus(res.status, path, fetchOptions, true);
+    }
+
+    // 429 — rate limited
+    if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
+        let raw = null;
+        try { raw = await res.text(); } catch {}
+        throw {
+            status: 429,
+            message: raw || "Too many requests. Please slow down.",
+            retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
     }
 
     // Read the body as text first, then attempt JSON parse.
