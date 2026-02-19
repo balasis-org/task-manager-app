@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.GroupInvitationOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
@@ -45,12 +46,17 @@ public class GroupInvitationController extends BaseComponent {
             ));
     }
 
-    @DeleteMapping("/{groupInvitationId}")
-    public ResponseEntity<Void> cancelInvitation(
-                    @PathVariable("groupInvitationId") Long groupInvitationId
-    ) {
-            groupService.cancelInvitation(groupInvitationId);
-            return ResponseEntity.noContent().build();
+    /**
+     * Lightweight poll endpoint.  Returns 204 when there are NO new invitations.
+     * Throws a 409 (BusinessRuleException) when the user has unseen pending invitations,
+     * so the frontend can catch the non-2xx status and show a notification badge.
+     */
+    @GetMapping("/check-new")
+    public ResponseEntity<Void> checkNewInvitations() {
+        if (groupService.hasNewInvitations()) {
+            throw new BusinessRuleException("NEW_INVITATIONS");
+        }
+        return ResponseEntity.noContent().build();
     }
 
 }

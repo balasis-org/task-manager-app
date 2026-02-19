@@ -31,15 +31,11 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
 
             List<ImageCategoriesAnalysis> categories = result.getCategoriesAnalysis();
 
-            //log only, delete after use.
-            categories.stream()
-                    .filter(c -> ImageCategory.SEXUAL.equals(c.getCategory()))
-                    .map(ImageCategoriesAnalysis::getSeverity)
-                    .forEach(severity -> logger.trace("SEXUAL severity: {}" , severity));
-
+            for (ImageCategoriesAnalysis c : categories) {
+                logger.trace("{} severity: {}", c.getCategory(), c.getSeverity());
+            }
 
             return categories.stream()
-                    .filter(c -> ImageCategory.SEXUAL.equals(c.getCategory()))
                     .map(ImageCategoriesAnalysis::getSeverity)
                     .allMatch(severity -> severity == null || severity < 3);
 

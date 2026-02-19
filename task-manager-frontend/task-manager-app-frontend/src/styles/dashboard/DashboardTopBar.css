@@ -1,0 +1,579 @@
+/* Top Bar */
+.topbar {
+    background: var(--bg-secondary);
+    border-bottom: 0.06em solid var(--border-primary);
+    position: relative;
+    transition: max-height 0.25s ease;
+    max-height: 20em;       /* generous to accommodate wrap at narrow widths */
+    overflow: visible;
+}
+
+.topbar-collapsed {
+    max-height: 0;
+    overflow: visible;
+    border-bottom: none;
+}
+
+.topbar-toggle {
+    position: absolute;
+    bottom: -1.38em;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: var(--bg-secondary);
+    border: 0.06em solid var(--border-primary);
+    border-top: none;
+    border-radius: 0 0 0.5em 0.5em;
+    width: 2.5em;
+    height: 1.38em;
+    cursor: pointer;
+    font-size: 0.625em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15em 0 0.1em;
+    color: var(--text-muted);
+}
+
+.topbar-toggle:hover {
+    background: var(--bg-active);
+}
+
+.topbar-content {
+    display: flex;
+    align-items: center;
+    padding: 0.625em 1em 0.625em 2.25em;
+    gap: 1.5em;
+    min-width: 0;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+/* Icon buttons */
+.topbar-icon-btn {
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 50%;
+    width: 1.88em;
+    height: 1.88em;
+    cursor: pointer;
+    font-size: 0.875em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.topbar-icon-btn:hover {
+    background: var(--bg-active);
+}
+
+/* Events button — notification dot */
+.topbar-events-btn {
+    position: relative;
+}
+
+/* Filter button */
+.topbar-filter-btn {
+    position: relative;
+}
+
+.topbar-filter-btn.filter-active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.topbar-filter-dot {
+    position: absolute;
+    top: 0.06em;
+    right: 0.06em;
+    width: 0.44em;
+    height: 0.44em;
+    border-radius: 50%;
+    background: var(--accent-primary);
+}
+
+.topbar-notif-dot {
+    position: absolute;
+    top: 0.06em;
+    right: 0.06em;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: notif-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .45; transform: scale(0.75); }
+}
+
+/* Badge outside the button — more visible indicator */
+.topbar-notif-badge {
+    position: absolute;
+    top: -0.44em;
+    right: -1.12em;
+    font-size: 0.56em;
+    font-weight: 700;
+    color: var(--text-on-primary);
+    background: var(--danger);
+    padding: 0.1em 0.31em;
+    border-radius: 0.375em;
+    letter-spacing: 0.03em;
+    line-height: 0.875em;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 0.06em 0.25em rgba(231, 76, 60, 0.4);
+    animation: badge-bounce 2s ease-in-out infinite;
+}
+
+@keyframes badge-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-0.125em); }
+}
+
+/* Role tag next to settings */
+.topbar-role-tag {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Dropdown wrapper */
+.topbar-dropdown-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.topbar-dropdown-btn {
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    padding: 0.375em 0.75em;
+    cursor: pointer;
+    font-size: 0.81em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+}
+
+.topbar-dropdown-btn:hover {
+    background: var(--bg-active);
+}
+
+/* Dropdown menu */
+.topbar-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 50;
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    box-shadow: var(--shadow-md);
+    width: 15em;
+    max-height: 18.75em;
+    overflow-y: auto;
+    margin-top: 0.25em;
+}
+
+/* Members dropdown — fixed structure with sticky search */
+.topbar-members-dropdown {
+    display: flex;
+    flex-direction: column;
+    max-height: 21.25em;
+    overflow: hidden;
+    width: 17.5em;
+}
+
+.topbar-member-search {
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+    padding: 0.5em 0.625em;
+    border-bottom: 0.06em solid var(--border-secondary);
+    flex-shrink: 0;
+}
+
+.topbar-member-search-icon {
+    color: var(--text-placeholder);
+    flex-shrink: 0;
+}
+
+.topbar-member-search-input {
+    border: none;
+    outline: none;
+    font-size: 0.81em;
+    color: var(--text-primary);
+    background: transparent;
+    width: 100%;
+}
+
+.topbar-members-list {
+    overflow-y: auto;
+    max-height: 17.5em;
+    flex: 1;
+}
+
+/* Member row with remove button */
+.topbar-member-row {
+    position: relative;
+}
+
+.topbar-member-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-member-remove {
+    font-size:1.2em;
+    background: none;
+    border: 0.06em solid var(--border-primary);
+    border-radius: 50%;
+    width: 1.25em;
+    height: 1.25em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-placeholder);
+    flex-shrink: 0;
+    margin-left: 0.25em;
+    transition: all 0.15s;
+}
+
+.topbar-member-remove:hover {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.topbar-member-confirm {
+    display: inline-flex;
+    gap: 0.19em;
+    margin-left: 0.25em;
+    flex-shrink: 0;
+}
+
+/* Leave group button */
+.topbar-leave-btn {
+    color: var(--danger);
+    border-color: var(--danger-bg-light);
+}
+
+.topbar-leave-btn:hover {
+    background: var(--danger-bg);
+}
+
+/* Inline confirm (leave group / remove member) */
+.topbar-confirm-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    font-size: 0.75em;
+    animation: topbarFadeSlide 0.15s ease;
+}
+
+.topbar-confirm-text {
+    color: var(--danger);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.topbar-confirm-yes,
+.topbar-confirm-no {
+    border: none;
+    border-radius: 0.25em;
+    padding: 0.125em 0.5em;
+    font-size: 0.69em;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.topbar-confirm-yes {
+    background: var(--danger);
+    color: var(--text-on-primary);
+}
+
+.topbar-confirm-yes:hover {
+    background: var(--danger-hover);
+}
+
+.topbar-confirm-no {
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+}
+
+.topbar-confirm-no:hover {
+    background: var(--bg-active);
+}
+
+@keyframes topbarFadeSlide {
+    from { opacity: 0; transform: translateX(-0.25em); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.topbar-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5em 0.75em;
+    cursor: pointer;
+    font-size: 0.81em;
+    transition: background 0.12s;
+}
+
+.topbar-dropdown-item:hover {
+    background: var(--bg-active);
+}
+
+.topbar-dropdown-item.active {
+    background: var(--bg-accent-subtle);
+    font-weight: 600;
+}
+
+.topbar-dropdown-item.muted {
+    color: var(--text-placeholder);
+    cursor: default;
+}
+
+/* Combo wrappers for dropdown + plus */
+.topbar-combo {
+    display: flex;
+    align-items: stretch;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.5em;
+    background: var(--bg-primary);
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.topbar-combo .topbar-dropdown-btn {
+    border: none;
+    border-radius: 0.5em 0 0 0.5em;
+    padding: 0.375em 0.75em;
+    height: 2.12em;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.topbar-members-btn svg {
+    color: #4a4a4a;
+}
+
+.topbar-group-btn {
+    min-width: 0;
+}
+
+.topbar-group-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-dropdown-group-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.topbar-plus-combo {
+    border: none;
+    background: var(--bg-secondary);
+    border-left: 0.06em solid var(--border-primary);
+    border-radius: 0 0.5em 0.5em 0;
+    width: 2.38em;
+    height: 2.12em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.topbar-plus-combo:hover {
+    background: var(--bg-active);
+}
+
+.topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
+    margin-left: 0.75em;
+}
+
+.caret {
+    font-size: 1em;
+    color: var(--text-tertiary);
+}
+
+/* Member images in dropdown */
+.topbar-member-img {
+    width: 1.5em;
+    height: 1.5em;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--border-primary);
+}
+
+.topbar-member-role {
+    margin-left: auto;
+    font-size: 0.69em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+}
+
+.topbar-org-badge {
+    font-size: 0.6em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.1em 0.4em;
+    border-radius: 0.3em;
+    background: var(--accent);
+    color: #fff;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+/* Group image */
+.topbar-group-img-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: 0.5em;
+}
+
+.topbar-group-img {
+    width: 1.75em;
+    height: 1.75em;
+    border-radius: 0.375em;
+    object-fit: cover;
+    background: var(--border-primary);
+}
+
+.topbar-group-img.placeholder {
+    display: inline-block;
+    width: 1.75em;
+    height: 1.75em;
+    border-radius: 0.375em;
+    background: var(--bg-active);
+}
+
+.topbar-group-img-small {
+    width: 1.38em;
+    height: 1.38em;
+    border-radius: 0.25em;
+    object-fit: cover;
+    background: var(--border-primary);
+}
+
+.topbar-group-img-small.placeholder {
+    display: inline-block;
+    width: 1.38em;
+    height: 1.38em;
+    border-radius: 0.25em;
+    background: var(--bg-active);
+}
+
+.topbar-group-btn {
+    font-weight: 600;
+}
+
+/* Responsive — Dashboard Top Bar */
+
+/* At 768px: allow the topbar-content and topbar-right to wrap.
+   Left items stay on the first line; right items flow to a second line. */
+@media (max-width: 768px) {
+    .topbar-content {
+        padding: 0.5em 0.625em;
+        gap: 0.5em 0.8em;
+        flex-wrap: wrap;
+    }
+
+    /* Let left take full width so right wraps to next line */
+    .topbar-left {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .topbar-right {
+        flex: 1 1 100%;
+        gap: 0.5em;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .topbar-group-btn {
+        min-width: 0;
+    }
+
+    .topbar-role-tag {
+        font-size: 0.69em;
+    }
+}
+
+/* At 480px: everything compact, still wrapping */
+@media (max-width: 480px) {
+    .topbar-content {
+        padding: 0.375em 0.5em;
+        gap: 0.375em 0.5em;
+    }
+
+    .topbar-combo .topbar-dropdown-btn {
+        padding: 0.25em 0.5em;
+        font-size: 0.75em;
+        height: 1.88em;
+    }
+
+    .topbar-plus-combo {
+        width: 1.88em;
+        height: 1.88em;
+    }
+
+    .topbar-icon-btn {
+        width: 1.62em;
+        height: 1.62em;
+        font-size: 0.75em;
+    }
+
+    .topbar-group-btn {
+        min-width: 0;
+    }
+
+    .topbar-right {
+        gap: 0.375em;
+    }
+
+    .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
+        margin-left: 0;
+    }
+
+    /* Hide text labels on small screens, keep icons */
+    .topbar-members-btn span:not(.caret) {
+        display: none;
+    }
+}

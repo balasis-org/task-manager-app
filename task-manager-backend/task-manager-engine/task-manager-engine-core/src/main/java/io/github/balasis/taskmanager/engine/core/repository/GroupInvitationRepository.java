@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 
@@ -61,5 +62,28 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
     Set<GroupInvitation> findAllSentByInvitedByIdAndStatusWithFetch(
         @Param("invitedById") Long invitedById,
         @Param("status") InvitationStatus status
+    );
+
+    /**
+     * Lightweight check: are there any PENDING invitations for this user
+     * created after the given timestamp?
+     */
+    boolean existsByUser_IdAndInvitationStatusAndCreatedAtAfter(
+        Long userId, InvitationStatus status, Instant since
+    );
+
+    /**
+     * Lightweight check: are there any PENDING invitations for this user at all?
+     */
+    boolean existsByUser_IdAndInvitationStatus(Long userId, InvitationStatus status);
+
+    void deleteAllByGroup_Id(Long groupId);
+
+    void deleteAllByUser_IdOrInvitedBy_Id(Long userId, Long invitedById);
+
+    Optional<GroupInvitation> findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
+        Long groupId,
+        Long userId,
+        InvitationStatus status
     );
 }

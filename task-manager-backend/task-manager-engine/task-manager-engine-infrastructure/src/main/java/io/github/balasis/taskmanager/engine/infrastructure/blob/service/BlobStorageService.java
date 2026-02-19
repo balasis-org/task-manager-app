@@ -43,6 +43,17 @@ public class BlobStorageService {
         }
     }
 
+
+    public byte[] downloadTaskAssigneeFile(String blobName){
+        return downloadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
+    }
+
+    public String uploadTaskAssigneeFile(MultipartFile file , Long prefixId){
+        assertTaskAssigneeFile(file);
+        return uploadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, file, prefixId);
+    }
+
+
     public byte[] downloadTaskFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_FILES, blobName);
     }
@@ -61,7 +72,7 @@ public class BlobStorageService {
         assertImage(file);
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
     }
-
+    // we have a garbage collector doing the deletes in stand-alone spring app
     public void deleteTaskFile(String blobName) {
         deleteInternal(BlobContainerType.TASK_FILES, blobName);
     }
@@ -110,18 +121,53 @@ public class BlobStorageService {
         }
     }
 
+    private void assertTaskAssigneeFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BlobUploadTaskFileException("TaskAssignee file is empty");
+        }
+
+        long maxSize = 20L * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new BlobUploadTaskFileException("TaskAssignee file exceeds max size of 20 MB");
+        }
+
+        if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+            throw new BlobUploadTaskFileException("TaskAssignee file must have a name");
+        }
+
+        assertContentSafetyIfImage(file);
+    }
+
     private void assertTaskFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BlobUploadTaskFileException("Task file is empty");
         }
 
-        long maxSize = 40L * 1024 * 1024;
+        long maxSize = 20L * 1024 * 1024;
         if (file.getSize() > maxSize) {
-            throw new BlobUploadTaskFileException("Task file exceeds max size of 40MB");
+            throw new BlobUploadTaskFileException("Task file exceeds max size of 20 MB");
         }
 
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new BlobUploadTaskFileException("Task file must have a name");
+        }
+
+        assertContentSafetyIfImage(file);
+    }
+
+    private void assertContentSafetyIfImage(MultipartFile file) {
+        String ct = file.getContentType();
+        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
+        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
+            try {
+                if (!contentSafetyService.isSafe(file.getInputStream())) {
+                    throw new BlobUploadTaskFileException(
+                            "File failed content safety check (potential adult or violent content)");
+                }
+            } catch (IOException e) {
+                throw new BlobUploadTaskFileException(
+                        "Failed reading file for safety check: " + e.getMessage());
+            }
         }
     }
 
@@ -135,6 +181,9 @@ public class BlobStorageService {
             throw new BlobUploadImageException("Only image files are allowed");
         }
 
+        if ("image/gif".equals(contentType)) {
+            throw new BlobUploadImageException("GIF images are not supported. Please use PNG or JPG.");
+        }
 
         long maxSize = 5 * 1024 * 1024;
         if (file.getSize() > maxSize) {

@@ -17,7 +17,7 @@ public class OpenTelemetryConfig {
     private final SecretClientProvider secretClientProvider;
 
     @Bean
-    @Profile({"dev-h2","dev-mssql"})
+    @Profile({"dev-h2","dev-mssql","dev-flyway-mssql"})
     public OpenTelemetry openTelemetryDev() {
         return buildOpenTelemetryDev();
     }

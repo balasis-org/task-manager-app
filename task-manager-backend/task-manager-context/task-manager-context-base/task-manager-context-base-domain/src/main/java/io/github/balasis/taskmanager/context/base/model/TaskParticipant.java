@@ -14,9 +14,10 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "TaskParticipants", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id","task_id","task_participant_role"})
-})
+@Table(name = "TaskParticipants",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id","task_id","task_participant_role"}),
+        indexes = @Index(name = "idx_tp_task", columnList = "task_id")
+)
 public class TaskParticipant extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY, optional=false)
     @JoinColumn(name ="user_id")

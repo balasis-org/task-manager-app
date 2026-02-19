@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.*;
+import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.model.TaskComment;
@@ -33,9 +34,8 @@ public interface GroupService{
     GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
 
     //GroupInvitations
-    GroupInvitation createGroupInvitation(Long groupId, Long userToBeInvited , Role roleOfUserToBeInvited, String comment);
+    void createGroupInvitation(Long groupId, String inviteCode, Role roleOfUserToBeInvited, String comment);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
-    void cancelInvitation(Long invitationId);
     Set<GroupInvitation> findMyGroupInvitations();
     Set<GroupInvitation> findInvitationsSentByMe();
 
@@ -79,4 +79,32 @@ public interface GroupService{
     Task markTaskToBeReviewed(Long groupId, Long taskId);
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
 
+    //Refresh (delta polling)
+    GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
+
+    void deleteTask(Long groupId, Long taskId);
+
+    Set<Long> findAccessibleTaskIds(Long groupId);
+
+    Set<Long> findFilteredTaskIds(
+        Long groupId,
+        Long creatorId,
+        Boolean creatorIsMe,
+        Long reviewerId,
+        Boolean reviewerIsMe,
+        Long assigneeId,
+        Boolean assigneeIsMe,
+        Instant dueDateBefore,
+        Integer priorityMin,
+        Integer priorityMax,
+        TaskState taskState,
+        Boolean hasFiles
+    );
+
+    //Invitation polling
+    boolean hasNewInvitations();
+
+    //Task / comments lightweight change check
+    boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
+    boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 }
