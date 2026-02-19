@@ -67,7 +67,7 @@ public class RateLimitProdConfig {
                     .builderFor(connection)
                     .withExpirationStrategy(
                             ExpirationAfterWriteStrategy
-                                    .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(2))
+                                    .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(16))
                     )
                     .build();
 
