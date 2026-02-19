@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { FiCheck, FiX, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
@@ -28,13 +28,15 @@ export default function Invitations() {
     const [refreshing, setRefreshing] = useState(false);
     const [lastSeenBefore, setLastSeenBefore] = useState(null);
 
+    // keep a ref so the callback never depends on user state directly
+    const userRef = useRef(user);
+    userRef.current = user;
+
     const fetchInvitations = useCallback(async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true); else setLoading(true);
         try {
-            // Use lastSeenInvites from the already-loaded user context
-            // instead of re-fetching the profile every time.
-            const lsBefore = user?.lastSeenInvites
-                ? new Date(user.lastSeenInvites)
+            const lsBefore = userRef.current?.lastSeenInvites
+                ? new Date(userRef.current.lastSeenInvites)
                 : null;
             setLastSeenBefore(lsBefore);
 
@@ -54,10 +56,10 @@ export default function Invitations() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [user?.lastSeenInvites, setUser, showToast]);
+    }, [setUser, showToast]);
 
-    // initial load
-    useEffect(() => { fetchInvitations(); }, [fetchInvitations]);
+    // initial load — runs once
+    useEffect(() => { fetchInvitations(); }, []);
 
     // listen for the custom event dispatched by the Layout polling when new invites arrive
     useEffect(() => {

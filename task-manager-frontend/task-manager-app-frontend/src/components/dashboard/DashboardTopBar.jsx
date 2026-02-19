@@ -52,7 +52,7 @@ export default function DashboardTopBar({
         ? members.find((m) => m.user?.id === user.id)
         : null;
     const hasUnseenEvents = (() => {
-        const lastEvent = groupDetail?.lastGroupEventDate;
+        const lastEvent = groupDetail?.lged;
         const lastSeen = myMembership?.lastSeenGroupEvents;
         if (!lastEvent) return false;
         if (!lastSeen) return true;

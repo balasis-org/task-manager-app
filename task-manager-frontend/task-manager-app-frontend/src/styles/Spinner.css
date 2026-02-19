@@ -4,11 +4,13 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--spinner-overlay);
+    background: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 999;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .spinner {
