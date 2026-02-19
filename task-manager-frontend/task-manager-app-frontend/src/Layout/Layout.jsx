@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
@@ -15,9 +15,6 @@ export default function Layout({ children }) {
     const [hasNewInvites, setHasNewInvites] = useState(false);
     const pollTimer = useRef(null);
     const lastActivityRef = useRef(Date.now());
-
-    // Refresh callback — exposed so Invitations page can trigger re-fetch via event
-    const inviteRefreshRef = useRef(null);
 
     // Tiered polling for invitations — tripled cadence (there's a manual refresh)
     const TIER1_MS    = 60_000;          // 1 min active
