@@ -26,7 +26,7 @@ import java.time.Duration;
  * skip enforcement (fail-open).
  */
 @Configuration
-@Profile({"dev-h2", "dev-mssql"})
+@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor
 public class RateLimitDevConfig {
 

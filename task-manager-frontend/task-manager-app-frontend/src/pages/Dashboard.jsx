@@ -231,7 +231,7 @@ export default function Dashboard() {
     }
 
     function handleGroupUpdated(updatedGroup) {
-        setShowGroupSettings(false);
+        // Do NOT close the settings popup — let the user keep editing
         updateGroup(updatedGroup);
     }
 

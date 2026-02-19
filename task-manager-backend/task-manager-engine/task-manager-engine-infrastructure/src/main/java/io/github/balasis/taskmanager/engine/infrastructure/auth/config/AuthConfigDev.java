@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Profile;
 
 @Getter
 @Configuration
-@Profile({"dev-mssql", "dev-h2"})
+@Profile({"dev-mssql", "dev-h2", "dev-flyway-mssql"})
 public class AuthConfigDev implements AuthConfig {
 
     private final String clientId = System.getenv("client-id");

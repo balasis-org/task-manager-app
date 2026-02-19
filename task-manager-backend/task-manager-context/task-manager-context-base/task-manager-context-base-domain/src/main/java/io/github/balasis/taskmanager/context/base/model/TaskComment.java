@@ -32,8 +32,7 @@ public class TaskComment extends BaseModel{
     @Column
     private String creatorNameSnapshot;
 
-    @Lob
-    @Column(length = 400)
+    @Column(columnDefinition = "nvarchar(800)")
     private String comment;
 
     @Column

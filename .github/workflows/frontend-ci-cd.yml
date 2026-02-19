@@ -3,7 +3,7 @@ name: frontend-ci-cd
 on:
   push:
     paths:
-      - '../../task-manager-frontend-demo/**'
+      - 'task-manager-frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -14,14 +14,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-        #Placeholder for now...
-      - name: Verify frontend placeholder
-        run: |
-          if [ ! -f "task-manager-frontend/index.html" ]; then
-            echo "index.html not found in task-manager-frontend/"
-            exit 1
-          fi
-          echo "Frontend placeholder verified."
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: task-manager-frontend/task-manager-app-frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: task-manager-frontend/task-manager-app-frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: task-manager-frontend/task-manager-app-frontend
+        run: npm run build
 
   deploy_frontend:
     runs-on: ubuntu-latest
@@ -55,7 +63,12 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-frontend:$IMAGE_TAG task-manager-frontend
+          docker build \
+            --build-arg VITE_API_BASE=${{ secrets.VITE_API_BASE }} \
+            --build-arg VITE_BLOB_BASE=${{ secrets.VITE_BLOB_BASE }} \
+            --build-arg VITE_CDN_BASE=${{ secrets.VITE_CDN_BASE }} \
+            -t anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-frontend:$IMAGE_TAG \
+            task-manager-frontend/task-manager-app-frontend
 
       - name: Push Docker image
         run: |

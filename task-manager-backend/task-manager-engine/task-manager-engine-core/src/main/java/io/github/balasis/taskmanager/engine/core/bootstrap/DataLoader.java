@@ -53,23 +53,24 @@ public class DataLoader extends BaseComponent {
     public void onApplicationReady(ApplicationReadyEvent evt)  {
         logger.trace("=== Running DataLoader ===");
 
-
-        if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
-            logger.trace("Seed users already exist; skipping DataLoader run.");
-            return;
-        }
-
-        Map<String, User> users = seedUsers();
         try {
-            seedGroupA(users);
-            seedGroupB(users);
+            if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
+                logger.trace("Seed users already exist; skipping DataLoader run.");
+                return;
+            }
+
+            Map<String, User> users = seedUsers();
+            try {
+                seedGroupA(users);
+                seedGroupB(users);
+            } finally {
+                userContext.clear();
+            }
+
+            logger.trace("=== DataLoader finished ===");
         } finally {
-            userContext.clear();
+            startupGate.markDataReady();
         }
-
-        startupGate.markDataReady();
-
-        logger.trace("=== DataLoader finished ===");
     }
 
     private Map<String, User> seedUsers() {

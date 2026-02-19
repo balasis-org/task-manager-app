@@ -144,7 +144,6 @@ export default function GroupProvider({ children }) {
 
     // full detail - encrypted in localstorage
     async function loadOrRefreshDetail(groupId) {
-        setLoadingDetail(true);
         const ck = cacheKeyRef.current;
 
         // try to read + decrypt cached detail
@@ -193,6 +192,7 @@ export default function GroupProvider({ children }) {
                 lsSet(kLastSeen(user.id, groupId), delta.sn);    // sn = serverNow
             } else {
                 // no usable cache — full load (always fetch members)
+                setLoadingDetail(true);
                 const [detail, membersPage] = await Promise.all([
                     apiGet(`/api/groups/${groupId}`),
                     apiGet(`/api/groups/${groupId}/groupMemberships?page=0&size=100`),
@@ -254,11 +254,8 @@ export default function GroupProvider({ children }) {
             return next;
         });
         setActiveGroup(updatedGroup);
-        // wipe old cache so we do a full re-load next time
-        if (user?.id) {
-            lsRemove(kDetail(user.id, updatedGroup.id));
-            lsRemove(kLastSeen(user.id, updatedGroup.id));
-        }
+        // Delta-refresh instead of full reload so the UI doesn't flash a spinner
+        // (e.g. group settings popup stays smooth after a save).
         loadOrRefreshDetail(updatedGroup.id);
     }, [user]);
 

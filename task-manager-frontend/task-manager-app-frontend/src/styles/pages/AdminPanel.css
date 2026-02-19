@@ -26,6 +26,26 @@
     color: var(--text-faint);
 }
 
+.admin-refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    border: none;
+    border-radius: 0.3em;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-left: auto;
+}
+
+.admin-refresh-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
 /* tabs */
 .admin-tabs {
     display: flex;
@@ -427,6 +447,39 @@
     gap: 0.4em;
 }
 
+.admin-detail-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.admin-detail-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    border: none;
+    border-radius: 0.3em;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.admin-detail-refresh:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.admin-user-avatar {
+    width: 3em;
+    height: 3em;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 0.06em solid var(--border-light);
+}
+
 .admin-detail-close {
     display: flex;
     align-items: center;
@@ -550,6 +603,27 @@
 
 .admin-file-list li:last-child {
     border-bottom: none;
+}
+
+.admin-file-link {
+    color: var(--accent-primary);
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.admin-file-link:hover {
+    text-decoration: underline;
+}
+
+.admin-cell-clamp-long {
+    white-space: normal;
+    word-break: break-word;
+    max-height: 6em;
+    overflow-y: auto;
+    line-height: 1.4;
 }
 
 /* detail actions */

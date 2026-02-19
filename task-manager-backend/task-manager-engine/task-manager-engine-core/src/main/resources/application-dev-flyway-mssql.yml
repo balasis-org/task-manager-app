@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: ${DB_URL}
+    url: ${FLYWAY_DB_URL}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${FLYWAY_DB_USERNAME}
+    password: ${FLYWAY_DB_PASSWORD}
     hikari:
       maximum-pool-size: 4
       minimum-idle: 2
@@ -13,18 +13,20 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     properties:
       hibernate:
         generate_statistics: false
     show-sql: false
 
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
 
 logging:
   level:
     root: info
     io.github.balasis.taskmanager: TRACE
     org.springframework.transaction.interceptor: info
-    io.opentelemetry.exporter.otlp=DEBUG: DEBUG
+    org.flywaydb: DEBUG

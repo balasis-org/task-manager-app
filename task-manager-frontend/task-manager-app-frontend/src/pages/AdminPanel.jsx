@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import {
     FiUsers, FiLayers, FiCheckSquare, FiMessageSquare,
     FiTrash2, FiChevronLeft, FiChevronRight, FiSearch,
-    FiX, FiEdit2, FiEye, FiFilter
+    FiX, FiEye, FiFilter, FiDownload, FiRefreshCw
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
-import { apiGet, apiPatch, apiDelete } from "@assets/js/apiClient.js";
+import { apiGet, apiDelete } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
 import blobBase from "@blobBase";
 import "@styles/pages/AdminPanel.css";
@@ -48,14 +48,15 @@ export default function AdminPanel() {
     const [commentFilters, setCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
     const [appliedCommentFilters, setAppliedCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
 
-    // Detail / edit modal
+    // Detail modal (read-only)
     const [detailItem, setDetailItem] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
-    const [editFields, setEditFields] = useState({});
-    const [saving, setSaving] = useState(false);
 
     // Delete confirm
     const [confirmDelete, setConfirmDelete] = useState(null);
+
+    // File download
+    const [downloadingId, setDownloadingId] = useState(null);
 
     // guard
     useEffect(() => {
@@ -103,32 +104,13 @@ export default function AdminPanel() {
     /* ── detail fetch ── */
     const openDetail = async (type, id) => {
         setDetailLoading(true);
-        setEditFields({});
         try {
             const item = await apiGet(`/api/admin/${type}/${id}`);
             setDetailItem({ type, ...item });
-            setEditFields({});
         } catch {
             showToast("Failed to load details", "error");
         } finally {
             setDetailLoading(false);
-        }
-    };
-
-    /* ── save edit ── */
-    const saveEdit = async () => {
-        if (!detailItem || Object.keys(editFields).length === 0) return;
-        setSaving(true);
-        try {
-            const updated = await apiPatch(`/api/admin/${detailItem.type}/${detailItem.id}`, editFields);
-            setDetailItem({ type: detailItem.type, ...updated });
-            setEditFields({});
-            showToast("Saved", "success");
-            fetchData(); // refresh list behind
-        } catch (err) {
-            showToast(err?.message || "Save failed", "error");
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -150,43 +132,39 @@ export default function AdminPanel() {
 
     if (!user || user.systemRole !== "ADMIN") return null;
 
+    /* ── admin file download ── */
+    async function handleAdminDownload(taskId, fileId, filename, isAssignee) {
+        setDownloadingId(fileId);
+        try {
+            const endpoint = isAssignee
+                ? `/api/admin/tasks/${taskId}/assignee-files/${fileId}/download`
+                : `/api/admin/tasks/${taskId}/files/${fileId}/download`;
+            const blob = await apiGet(endpoint, { responseType: "blob" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast(err?.message || "Failed to download file", "error");
+        } finally {
+            setDownloadingId(null);
+        }
+    }
+
     const items = data?.content || [];
     const totalPages = data?.totalPages || 0;
     const totalElements = data?.totalElements || 0;
-
-    /* ── helper: editable field ── */
-    const ef = (fieldName, currentValue, type = "text") => (
-        <input
-            className="admin-edit-input"
-            type={type}
-            defaultValue={currentValue ?? ""}
-            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.value }))}
-        />
-    );
-
-    const efSelect = (fieldName, currentValue, options) => (
-        <select
-            className="admin-edit-input"
-            defaultValue={currentValue ?? ""}
-            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.value }))}
-        >
-            {options.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-    );
-
-    const efCheckbox = (fieldName, currentValue) => (
-        <input
-            type="checkbox"
-            defaultChecked={!!currentValue}
-            onChange={(e) => setEditFields((prev) => ({ ...prev, [fieldName]: e.target.checked }))}
-        />
-    );
 
     return (
         <div className="admin-panel">
             <header className="admin-header">
                 <h1>Admin Panel</h1>
                 <span className="admin-record-count">{totalElements} records</span>
+                <button className="admin-refresh-btn" onClick={fetchData} title="Refresh">
+                    <FiRefreshCw size={15} />
+                </button>
             </header>
 
             {/* tabs */}
@@ -367,7 +345,7 @@ export default function AdminPanel() {
 
             {/* ── Detail / Edit Modal ── */}
             {(detailItem || detailLoading) && (
-                <div className="admin-overlay" onClick={() => { setDetailItem(null); setEditFields({}); }}>
+                <div className="admin-overlay" onClick={() => setDetailItem(null)}>
                     <div className="admin-detail-modal" onClick={(e) => e.stopPropagation()}>
                         {detailLoading ? (
                             <div className="admin-loading">Loading details...</div>
@@ -381,34 +359,53 @@ export default function AdminPanel() {
                                         {detailItem.type === "tasks" && `Task #${detailItem.id}`}
                                         {detailItem.type === "comments" && `Comment #${detailItem.id}`}
                                     </h3>
-                                    <button className="admin-detail-close" onClick={() => { setDetailItem(null); setEditFields({}); }}>
-                                        <FiX size={18} />
-                                    </button>
+                                    <div className="admin-detail-header-actions">
+                                        <button
+                                            className="admin-detail-refresh"
+                                            onClick={() => openDetail(detailItem.type, detailItem.id)}
+                                            title="Refresh"
+                                        >
+                                            <FiRefreshCw size={15} />
+                                        </button>
+                                        <button className="admin-detail-close" onClick={() => setDetailItem(null)}>
+                                            <FiX size={18} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="admin-detail-body">
-                                    {/* ── USER detail ── */}
+                                    {/* ── USER detail (read-only) ── */}
                                     {detailItem.type === "users" && (
                                         <div className="admin-detail-grid">
-                                            <label>Name</label>{ef("name", detailItem.name)}
-                                            <label>Email</label>{ef("email", detailItem.email)}
-                                            <label>System Role</label>{efSelect("systemRole", detailItem.systemRole, ["USER", "ADMIN"])}
-                                            <label>Plan</label>{efSelect("subscriptionPlan", detailItem.subscriptionPlan, ["FREE", "PREMIUM"])}
-                                            <label>Email Notif.</label>{efCheckbox("allowEmailNotification", detailItem.allowEmailNotification)}
+                                            {(detailItem.imgUrl || detailItem.defaultImgUrl) && (
+                                                <>
+                                                    <label>Image</label>
+                                                    <img
+                                                        src={blobBase + (detailItem.imgUrl || detailItem.defaultImgUrl)}
+                                                        alt="User"
+                                                        className="admin-user-avatar"
+                                                    />
+                                                </>
+                                            )}
+                                            <label>Name</label><span>{detailItem.name || "—"}</span>
+                                            <label>Email</label><span>{detailItem.email || "—"}</span>
+                                            <label>System Role</label><span>{detailItem.systemRole || "—"}</span>
+                                            <label>Plan</label><span>{detailItem.subscriptionPlan || "—"}</span>
+                                            <label>Email Notif.</label><span>{detailItem.allowEmailNotification ? "Yes" : "No"}</span>
                                             <label>Org</label><span>{detailItem.isOrg ? "Yes" : "No"}</span>
                                             <label>Tenant ID</label><span>{detailItem.tenantId || "—"}</span>
                                             <label>Last Active</label><span>{fmtDate(detailItem.lastActiveAt)}</span>
                                         </div>
                                     )}
 
-                                    {/* ── GROUP detail ── */}
+                                    {/* ── GROUP detail (read-only) ── */}
                                     {detailItem.type === "groups" && (
                                         <>
                                             <div className="admin-detail-grid">
-                                                <label>Name</label>{ef("name", detailItem.name)}
-                                                <label>Description</label>{ef("description", detailItem.description)}
-                                                <label>Announcement</label>{ef("announcement", detailItem.announcement)}
-                                                <label>Email Notif.</label>{efCheckbox("allowEmailNotification", detailItem.allowEmailNotification)}
+                                                <label>Name</label><span>{detailItem.name || "—"}</span>
+                                                <label>Description</label><span>{detailItem.description || "—"}</span>
+                                                <label>Announcement</label><span>{detailItem.announcement || "—"}</span>
+                                                <label>Email Notif.</label><span>{detailItem.allowEmailNotification ? "Yes" : "No"}</span>
                                                 <label>Owner</label><span>{detailItem.ownerName} ({detailItem.ownerEmail})</span>
                                                 <label>Created</label><span>{fmtDate(detailItem.createdAt)}</span>
                                             </div>
@@ -428,20 +425,15 @@ export default function AdminPanel() {
                                         </>
                                     )}
 
-                                    {/* ── TASK detail ── */}
+                                    {/* ── TASK detail (read-only) ── */}
                                     {detailItem.type === "tasks" && (
                                         <>
                                             <div className="admin-detail-grid">
-                                                <label>Title</label>{ef("title", detailItem.title)}
-                                                <label>Description</label>
-                                                <textarea
-                                                    className="admin-edit-input admin-textarea"
-                                                    defaultValue={detailItem.description || ""}
-                                                    onChange={(e) => setEditFields((p) => ({ ...p, description: e.target.value }))}
-                                                />
-                                                <label>State</label>{efSelect("taskState", detailItem.taskState, ["TO_DO", "IN_PROGRESS", "TO_BE_REVIEWED", "IN_REVIEW", "DONE"])}
-                                                <label>Priority</label>{ef("priority", detailItem.priority, "number")}
-                                                <label>Due Date</label>{ef("dueDate", detailItem.dueDate ? detailItem.dueDate.substring(0, 10) : "", "date")}
+                                                <label>Title</label><span>{detailItem.title || "—"}</span>
+                                                <label>Description</label><span className="admin-cell-clamp-long">{detailItem.description || "—"}</span>
+                                                <label>State</label><span>{detailItem.taskState || "—"}</span>
+                                                <label>Priority</label><span>{detailItem.priority ?? "—"}</span>
+                                                <label>Due Date</label><span>{detailItem.dueDate ? fmtDate(detailItem.dueDate) : "—"}</span>
                                                 <label>Group</label><span>{detailItem.groupName || `#${detailItem.groupId}`}</span>
                                                 <label>Creator</label><span>{detailItem.creatorNameSnapshot || "—"}</span>
                                                 <label>Reviewed by</label><span>{detailItem.reviewedBy || "—"}</span>
@@ -469,7 +461,14 @@ export default function AdminPanel() {
                                                     <ul className="admin-file-list">
                                                         {detailItem.creatorFiles.map((f) => (
                                                             <li key={f.id}>
-                                                                <span>{f.name || f.fileUrl}</span>
+                                                                <button
+                                                                    className="admin-file-link"
+                                                                    onClick={() => handleAdminDownload(detailItem.id, f.id, f.name || f.fileUrl, false)}
+                                                                    disabled={downloadingId === f.id}
+                                                                >
+                                                                    <FiDownload size={13} /> {f.name || f.fileUrl}
+                                                                    {downloadingId === f.id && <span className="admin-file-downloading">↓</span>}
+                                                                </button>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -482,7 +481,14 @@ export default function AdminPanel() {
                                                     <ul className="admin-file-list">
                                                         {detailItem.assigneeFiles.map((f) => (
                                                             <li key={f.id}>
-                                                                <span>{f.name || f.fileUrl}</span>
+                                                                <button
+                                                                    className="admin-file-link"
+                                                                    onClick={() => handleAdminDownload(detailItem.id, f.id, f.name || f.fileUrl, true)}
+                                                                    disabled={downloadingId === f.id}
+                                                                >
+                                                                    <FiDownload size={13} /> {f.name || f.fileUrl}
+                                                                    {downloadingId === f.id && <span className="admin-file-downloading">↓</span>}
+                                                                </button>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -491,15 +497,10 @@ export default function AdminPanel() {
                                         </>
                                     )}
 
-                                    {/* ── COMMENT detail ── */}
+                                    {/* ── COMMENT detail (read-only) ── */}
                                     {detailItem.type === "comments" && (
                                         <div className="admin-detail-grid">
-                                            <label>Comment</label>
-                                            <textarea
-                                                className="admin-edit-input admin-textarea"
-                                                defaultValue={detailItem.comment || ""}
-                                                onChange={(e) => setEditFields((p) => ({ ...p, comment: e.target.value }))}
-                                            />
+                                            <label>Comment</label><span className="admin-cell-clamp-long">{detailItem.comment || "—"}</span>
                                             <label>Author</label><span>{detailItem.creatorName || "—"} {detailItem.creatorEmail ? `(${detailItem.creatorEmail})` : ""}</span>
                                             <label>Task</label><span>{detailItem.taskTitle || "—"} (#{detailItem.taskId})</span>
                                             <label>Group</label><span>{detailItem.groupName || "—"} {detailItem.groupId ? `(#${detailItem.groupId})` : ""}</span>
@@ -508,13 +509,8 @@ export default function AdminPanel() {
                                     )}
                                 </div>
 
-                                {/* actions */}
+                                {/* actions — delete only (no edit) */}
                                 <div className="admin-detail-actions">
-                                    {Object.keys(editFields).length > 0 && (
-                                        <button className="admin-btn-save" onClick={saveEdit} disabled={saving}>
-                                            <FiEdit2 size={14} /> {saving ? "Saving..." : "Save changes"}
-                                        </button>
-                                    )}
                                     <button
                                         className="admin-btn-danger"
                                         onClick={() => setConfirmDelete({ type: detailItem.type, id: detailItem.id, label: detailItem.name || detailItem.title || `#${detailItem.id}` })}
