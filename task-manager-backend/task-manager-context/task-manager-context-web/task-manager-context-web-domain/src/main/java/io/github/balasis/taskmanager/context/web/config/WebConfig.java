@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.config;
 
+import io.github.balasis.taskmanager.context.web.interceptor.RateLimitInterceptor;
 import io.github.balasis.taskmanager.context.web.jwt.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +13,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
     private final JwtInterceptor jwtInterceptor;
+    private final RateLimitInterceptor rateLimitInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
+        // Rate limiter runs FIRST — catches all requests (incl. /auth/**) by IP
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/h2-console");
+
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/auth/**","/h2-console");
