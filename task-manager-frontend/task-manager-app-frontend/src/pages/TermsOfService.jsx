@@ -151,8 +151,7 @@ export default function TermsOfService() {
                 </ol>
 
                 <div className="legal-highlight">
-                    <strong>Submission:</strong> Send your takedown notice to the contact
-                    email listed in the Contact section below.
+                    <strong>Submission:</strong> Send your takedown notice to rebuildarch5@gmail.com.
                 </div>
 
                 <p>

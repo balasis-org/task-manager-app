@@ -13,10 +13,10 @@ export default function Footer() {
             <div className="footer-contact">
                 <span className="footer-contact-label">Contact us</span>
                 <div className="footer-icons">
-                    <a href="mailto:support@taskmanager.io" title="Email" className="footer-icon-link">
+                    <a href="mailto:rebuildarch5@gmail.com" title="Email" className="footer-icon-link">
                         <FiMail size={14} />
                     </a>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" title="GitHub" className="footer-icon-link">
+                    <a href="https://github.com/Balasis" target="_blank" rel="noopener noreferrer" title="GitHub" className="footer-icon-link">
                         <FiGithub size={14} />
                     </a>
                 </div>
