@@ -9,6 +9,15 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
 logging:
   level:
     root: info

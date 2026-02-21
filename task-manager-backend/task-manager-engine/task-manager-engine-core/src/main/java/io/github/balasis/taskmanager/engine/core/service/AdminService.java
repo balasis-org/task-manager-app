@@ -224,7 +224,7 @@ public class AdminService {
 
         if (user.getSystemRole() == SystemRole.ADMIN) {
             throw new BusinessRuleException(
-                    "Cannot delete an admin user. Demote the user first by changing the ADMIN_EMAIL env variable.");
+                    "Cannot delete an admin user. Demote the user first by changing the ADMIN-EMAIL env variable.");
         }
 
         // check if user owns any groups — those must be deleted first
