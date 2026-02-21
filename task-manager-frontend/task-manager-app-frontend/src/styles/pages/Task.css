@@ -7,6 +7,16 @@
     position: relative;
 }
 
+.task-page .spinner {
+    opacity:1;
+    border: 0.25em solid var(--spinner-track);
+    border-top: 0.25em solid var(--spinner-accent);
+    border-radius: 50%;
+    width: 2.5em;
+    height: 2.5em;
+    animation: spin 1s linear infinite;
+}
+
 /* Left / main area */
 .task-main {
     flex: 1;
