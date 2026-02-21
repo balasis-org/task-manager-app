@@ -37,8 +37,8 @@ public class RateLimitDevConfig {
     @Bean
     public RateLimitService rateLimitService() {
         try {
-            String endpoint  = secretClientProvider.getSecret("RedisEndpoint");
-            String accessKey = secretClientProvider.getSecret("RedisAccessKey");
+            String endpoint  = secretClientProvider.getSecret("TASKMANAGER-REDIS-ENDPOINT");
+            String accessKey = secretClientProvider.getSecret("TASKMANAGER-REDIS-ACCESS-KEY");
 
             if (endpoint == null || endpoint.isBlank()
                     || accessKey == null || accessKey.isBlank()) {

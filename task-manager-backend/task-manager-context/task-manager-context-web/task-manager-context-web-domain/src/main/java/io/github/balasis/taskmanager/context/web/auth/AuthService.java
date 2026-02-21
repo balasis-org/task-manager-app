@@ -125,7 +125,7 @@ public class AuthService extends BaseComponent {
         var azureKey = tenantId.concat(azureId);
         var finalName = (name!=null) ? name : email.substring(0,email.indexOf("@"));
 
-        String adminEmail = secretClientProvider.getSecret("ADMIN_EMAIL");
+        String adminEmail = secretClientProvider.getSecret("ADMIN-EMAIL");
         System.out.println("Admin email is : " + adminEmail);
         System.out.println("email is " + email);
         boolean isAdmin = adminEmail != null && adminEmail.equalsIgnoreCase(email);

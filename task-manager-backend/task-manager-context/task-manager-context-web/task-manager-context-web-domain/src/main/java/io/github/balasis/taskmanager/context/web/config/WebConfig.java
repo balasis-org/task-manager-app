@@ -43,21 +43,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true);
     }
 
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        // single-segment SPA paths  (e.g.  /dashboard, /login)
-        registry.addViewController("/{path:^(?!api|auth|uploads)[^\\.]*}")
-                .setViewName("forward:/index.html");
-
-        // multi-segment SPA paths   (e.g.   /auth/callback, /group/1/task/2)
-        registry.addViewController("/{seg1:^(?!api|uploads)[^\\.]*}/{seg2:[^\\.]*}")
-                .setViewName("forward:/index.html");
-
-        registry.addViewController("/{seg1:^(?!api|uploads)[^\\.]*}/{seg2:[^\\.]*}/{seg3:[^\\.]*}")
-                .setViewName("forward:/index.html");
-
-        registry.addViewController("/{seg1:^(?!api|uploads)[^\\.]*}/{seg2:[^\\.]*}/{seg3:[^\\.]*}/{seg4:[^\\.]*}")
-                .setViewName("forward:/index.html");
-    }
-
 }
