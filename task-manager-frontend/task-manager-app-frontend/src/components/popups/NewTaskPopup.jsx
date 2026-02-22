@@ -98,7 +98,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
         e.preventDefault();
         if (!title.trim()) { setError("Title is required."); return; }
         if (!description.trim()) { setError("Description is required."); return; }
-
+        console.log("HandleSubmit" + description);
         setBusy(true);
         setError("");
         try {
@@ -115,7 +115,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
             const fd = new FormData();
             fd.append(
                 "data",
-                new Blob([JSON.stringify(payload)], { type: "application/json" })
+                new Blob([JSON.stringify(payload)], { type: "application/json; charset=UTF-8"})
             );
             for (const f of files) fd.append("files", f);
 
@@ -154,7 +154,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         Description
                         <textarea
                             value={description}
-                            onChange={(e) => setDescription(e.target.value)}
+                            onChange={(e) => {setDescription(e.target.value) ; console.log("The textareaField" + description)}}
                             rows={3}
                             maxLength={LIMITS.TASK_DESCRIPTION}
                             required

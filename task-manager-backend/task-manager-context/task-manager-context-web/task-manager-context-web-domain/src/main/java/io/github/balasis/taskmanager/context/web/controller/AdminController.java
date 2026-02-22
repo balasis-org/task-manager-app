@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.AdminOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.admin.outbound.*;
 import io.github.balasis.taskmanager.engine.core.service.AdminService;
@@ -87,7 +88,7 @@ public class AdminController extends BaseComponent {
         TaskFileDownload download = adminService.downloadTaskFile(taskId, fileId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename())  + "\"")
                 .body(download.content());
     }
 
@@ -98,7 +99,7 @@ public class AdminController extends BaseComponent {
         TaskFileDownload download = adminService.downloadAssigneeTaskFile(taskId, fileId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
                 .body(download.content());
     }
 

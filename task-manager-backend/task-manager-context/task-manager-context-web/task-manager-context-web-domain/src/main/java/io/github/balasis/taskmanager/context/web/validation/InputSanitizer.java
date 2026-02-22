@@ -37,7 +37,6 @@ public final class InputSanitizer {
         if (input == null) return null;
         String clean = input.replaceAll(INVISIBLE_REGEX, " ");
         clean = clean.trim();
-        clean = HtmlUtils.htmlEscape(clean);
         return clean;
     }
 }
