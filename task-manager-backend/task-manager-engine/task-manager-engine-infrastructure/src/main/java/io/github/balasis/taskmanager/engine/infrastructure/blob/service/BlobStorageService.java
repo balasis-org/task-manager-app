@@ -7,6 +7,7 @@ import com.azure.storage.blob.models.PublicAccessType;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
 import lombok.RequiredArgsConstructor;
@@ -87,7 +88,7 @@ public class BlobStorageService {
 
     private String uploadInternal(BlobContainerType type, MultipartFile file, Long prefixId){
         BlobContainerClient container = containers.get(type);
-        String blobName = prefixId + "-" + file.getOriginalFilename();
+        String blobName = StringSanitizer.toSafeBlobKey(prefixId,file.getOriginalFilename());
         BlobClient blobClient = container.getBlobClient(blobName);
         try {
             blobClient.upload(file.getInputStream(), file.getSize(), true);
@@ -135,7 +136,6 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("TaskAssignee file must have a name");
         }
 
-        assertContentSafetyIfImage(file);
     }
 
     private void assertTaskFile(MultipartFile file) {
@@ -152,24 +152,23 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("Task file must have a name");
         }
 
-        assertContentSafetyIfImage(file);
     }
-
-    private void assertContentSafetyIfImage(MultipartFile file) {
-        String ct = file.getContentType();
-        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
-        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
-            try {
-                if (!contentSafetyService.isSafe(file.getInputStream())) {
-                    throw new BlobUploadTaskFileException(
-                            "File failed content safety check (potential adult or violent content)");
-                }
-            } catch (IOException e) {
-                throw new BlobUploadTaskFileException(
-                        "Failed reading file for safety check: " + e.getMessage());
-            }
-        }
-    }
+// disabled for the files, they can upload in zip anyway so its pointless ;...
+//    private void assertContentSafetyIfImage(MultipartFile file) {
+//        String ct = file.getContentType();
+//        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
+//        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
+//            try {
+//                if (!contentSafetyService.isSafe(file.getInputStream())) {
+//                    throw new BlobUploadTaskFileException(
+//                            "File failed content safety check (potential adult or violent content)");
+//                }
+//            } catch (IOException e) {
+//                throw new BlobUploadTaskFileException(
+//                        "Failed reading file for safety check: " + e.getMessage());
+//            }
+//        }
+//    }
 
     private void assertImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {

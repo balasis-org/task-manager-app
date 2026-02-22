@@ -95,7 +95,7 @@ export default function AboutUs() {
                 <p>
                     Have questions, feedback, or want to contribute? Reach out via the
                     project repository or email us at&nbsp;
-                    <strong>placeholder@example.com</strong>.
+                    <strong>rebuildarch5@gmail.com</strong>.
                 </p>
             </section>
         </div>

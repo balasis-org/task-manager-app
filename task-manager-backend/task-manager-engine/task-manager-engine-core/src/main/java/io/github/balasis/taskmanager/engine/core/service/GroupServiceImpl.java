@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
@@ -591,7 +592,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForCreateTask(groupId, assignedIds, reviewerIds);
-
         long taskCount = taskRepository.countByGroup_Id(groupId);
         var currentUser = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
@@ -650,7 +650,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
                 var taskFile = TaskFile.builder()
                         .fileUrl(url)
-                        .name(file.getOriginalFilename())
+                        .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                         .task(savedTask)
                         .build();
                 savedTask.getCreatorFiles().add(taskFile);
@@ -810,7 +810,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         String url = blobStorageService.uploadTaskFile(file,taskId);
         task.getCreatorFiles().add(TaskFile.builder()
                 .task(task)
-                .name(file.getOriginalFilename())
+                .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                 .fileUrl(url)
                 .build());
         touchTaskChange(task, false, false, false);
@@ -869,7 +869,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         String url = blobStorageService.uploadTaskAssigneeFile(file, taskId);
         task.getAssigneeFiles().add(TaskAssigneeFile.builder()
             .task(task)
-            .name(file.getOriginalFilename())
+            .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
             .fileUrl(url)
             .build());
         touchTaskChange(task, false, false, false);

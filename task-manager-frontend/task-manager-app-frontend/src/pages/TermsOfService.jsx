@@ -137,7 +137,7 @@ export default function TermsOfService() {
                         material, including its location on the Service (e.g.&nbsp;URL or
                         description sufficient for us to locate it).</li>
                     <li><strong>Your contact information</strong>, including name,
-                        address, telephone number, and email address.</li>
+                        address, telephone number(optional), and email address.</li>
                     <li><strong>A good-faith statement</strong> that the use of the
                         material is not authorised by the copyright owner, its agent, or
                         the law.</li>
@@ -274,7 +274,7 @@ export default function TermsOfService() {
                 </p>
                 <div className="legal-contact">
                     <FiMail size={18} />
-                    <a href="mailto:support@taskmanager.io">support@taskmanager.io</a>
+                    <a href="mailto:rebuildarch5@gmail.com">rebuildarch5@gmail.com</a>
                 </div>
             </section>
         </div>

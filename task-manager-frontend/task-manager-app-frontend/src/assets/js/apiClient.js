@@ -117,7 +117,6 @@ export async function apiMultipart(path, formData, options = {}) {
         credentials: "include", // keep cookies
         headers: {
             ...(options.headers || {}),
-            // dont set Content-Type, browser adds multipart boundary automatically
         },
         ...options,
     };

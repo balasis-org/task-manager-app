@@ -121,7 +121,7 @@ export default function CookiePolicy() {
                 </p>
                 <div className="legal-contact">
                     <FiMail size={18} />
-                    <a href="mailto:support@taskmanager.io">support@taskmanager.io</a>
+                    <a href="mailto:rebuildarch5@gmail.com">rebuildarch5@gmail.com</a>
                 </div>
             </section>
         </div>

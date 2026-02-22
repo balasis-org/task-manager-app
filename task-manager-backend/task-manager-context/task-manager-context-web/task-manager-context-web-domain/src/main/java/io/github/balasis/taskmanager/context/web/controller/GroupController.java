@@ -1,9 +1,11 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
@@ -30,6 +32,9 @@ import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidato
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +44,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
@@ -225,11 +233,13 @@ public class GroupController extends BaseComponent {
             @PathVariable Long groupId,
             @RequestPart("data") TaskInboundResource inbound,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
+
     ) {
+        System.out.println("TaskInboundDescriptionText: " + inbound.getDescription());
         resourceDataValidator.validateResourceData(inbound);
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
         var partialTask = taskInboundMapper.toDomain(inbound);
-
+        System.out.println("partialTaskDescriptionText: " + partialTask.getDescription());
         return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
                         inbound.getReviewerIds(), filesSet)
@@ -491,7 +501,7 @@ public class GroupController extends BaseComponent {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
                 .body(download.content());
     }
 
@@ -505,7 +515,7 @@ public class GroupController extends BaseComponent {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
                 .body(download.content());
     }
 
