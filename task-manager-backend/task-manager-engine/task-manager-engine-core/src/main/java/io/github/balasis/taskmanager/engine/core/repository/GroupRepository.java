@@ -30,8 +30,8 @@ public interface GroupRepository extends JpaRepository<Group,Long> {
         SELECT g
         FROM Group g
         LEFT JOIN g.owner o
-        WHERE lower(g.name) LIKE lower(concat('%', :q, '%'))
-           OR lower(o.name) LIKE lower(concat('%', :q, '%'))
+        WHERE g.name LIKE concat('%', :q, '%')
+           OR o.name LIKE concat('%', :q, '%')
     """)
     Page<Group> adminSearchGroups(@Param("q") String q, Pageable pageable);
 }

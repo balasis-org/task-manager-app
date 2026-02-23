@@ -44,7 +44,7 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
         select gm
         from GroupMembership gm
         where gm.group.id = :groupId
-            and (:q IS NULL OR lower(gm.user.name) like lower(concat('%', :q, '%')) OR lower(gm.user.email) like lower(concat('%', :q, '%')))
+            and (:q IS NULL OR gm.user.name like concat('%', :q, '%') OR gm.user.email like concat('%', :q, '%'))
 """)
         Page<GroupMembership> searchByGroupIdAndUser(@Param("groupId") Long groupId, @Param("q") String q, Pageable pageable);
 
