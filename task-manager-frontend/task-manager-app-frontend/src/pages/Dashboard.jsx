@@ -249,6 +249,8 @@ export default function Dashboard() {
     }
 
     const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
+    // Only show the delete column when at least one task is actually deletable
+    const showDeleteColumn = canManageTasks && groupDetail?.tp?.some(t => t.dl !== false);
 
     function handleOpenNewTask(e, state) {
         e.stopPropagation();
@@ -376,7 +378,7 @@ export default function Dashboard() {
                     {/* column headers + resize handles */}
                     <div
                         className="task-col-header"
-                        style={{ gridTemplateColumns: gridCols(colWidths, visCols) }}
+                        style={{ gridTemplateColumns: gridCols(colWidths, visCols) + (showDeleteColumn ? " 42px" : "") }}
                     >
                         {visCols.map((ci) => (
                             <span key={ci} className={`col-header-cell ${COL_CLASSES[ci]}`}>
@@ -397,6 +399,9 @@ export default function Dashboard() {
                                 )}
                             </span>
                         ))}
+                        {showDeleteColumn && (
+                            <span className="col-header-cell col-delete" />
+                        )}
                     </div>
 
                     {TASK_STATES.map((state) => (
@@ -430,6 +435,8 @@ export default function Dashboard() {
                                     groupId={activeGroup?.id}
                                     colWidths={colWidths}
                                     visCols={visCols}
+                                    canManageTasks={showDeleteColumn}
+                                    onDeleted={refreshActiveGroup}
                                 />
                             )}
                         </div>

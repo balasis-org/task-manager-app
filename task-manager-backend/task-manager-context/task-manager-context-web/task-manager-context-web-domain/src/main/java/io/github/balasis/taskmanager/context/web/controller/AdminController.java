@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequiredArgsConstructor
@@ -82,25 +84,39 @@ public class AdminController extends BaseComponent {
     }
 
     @GetMapping("/tasks/{taskId}/files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadTaskFile(taskId, fileId);
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                in.transferTo(out);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename())  + "\"")
-                .body(download.content());
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @GetMapping("/tasks/{taskId}/assignee-files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadAssigneeTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadAssigneeTaskFile(
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadAssigneeTaskFile(taskId, fileId);
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                in.transferTo(out);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
-                .body(download.content());
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     /* ───── comments ───── */

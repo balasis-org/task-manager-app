@@ -40,8 +40,6 @@ export default ({ mode }) => {
       '@assets': path.resolve(__dirname, './src/assets'),
       '@context': path.resolve(__dirname,'./src/context'),
       '@hooks': path.resolve(__dirname,'./src/hooks'),
-      "@apiBase": path.resolve(__dirname,'./src/api-base'),
-      "@blobBase": path.resolve(__dirname,'./src/blob-base')
     },
   },
   });

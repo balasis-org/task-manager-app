@@ -4,7 +4,6 @@ import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.RateLimitService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisRateLimitService;
-import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -19,11 +18,17 @@ import org.springframework.context.annotation.Profile;
 import java.time.Duration;
 
 /**
- * Wires the Redis-backed rate limiter for <b>dev</b> profiles.
+ * Wires the Redis-backed rate limiter for <b>dev</b> profiles using a
+ * local Docker Redis container (no SSL, password auth via env vars).
  * <p>
- * if the Redis env vars are missing or the connection fails the bean is
- * <b>not</b> created — the {@code RateLimitInterceptor} will simply
- * skip enforcement (fail to open).
+ * Expected env vars:
+ * <ul>
+ *   <li>{@code REDIS_HOST} — defaults to {@code localhost}</li>
+ *   <li>{@code REDIS_PORT} — defaults to {@code 6379}</li>
+ *   <li>{@code REDIS_PASSWORD} — optional; when blank, no auth is used</li>
+ * </ul>
+ * If the Redis connection fails the bean falls back to a no-op
+ * implementation so the application still starts.
  */
 @Configuration
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
@@ -32,30 +37,30 @@ public class RateLimitDevConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitDevConfig.class);
 
-    private final SecretClientProvider secretClientProvider;
-
     @Bean
     public RateLimitService rateLimitService() {
         try {
-            String endpoint  = secretClientProvider.getSecret("TASKMANAGER-REDIS-ENDPOINT");
-            String accessKey = secretClientProvider.getSecret("TASKMANAGER-REDIS-ACCESS-KEY");
+            String host = System.getenv("REDIS_HOST");
+            String portStr = System.getenv("REDIS_PORT");
+            String password = System.getenv("REDIS_PASSWORD");
 
-            if (endpoint == null || endpoint.isBlank()
-                    || accessKey == null || accessKey.isBlank()) {
-                log.warn("Redis endpoint or access key not configured — rate limiting disabled");
-                return key -> {}; // no-op
+            if (host == null || host.isBlank()) host = "localhost";
+            int port;
+            try {
+                port = (portStr != null && !portStr.isBlank()) ? Integer.parseInt(portStr) : 6379;
+            } catch (NumberFormatException e) {
+                port = 6379;
             }
 
-            String[] parts = endpoint.split(":", 2);
-            String host = parts[0];
-            int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
-
-            RedisURI uri = RedisURI.builder()
+            RedisURI.Builder uriBuilder = RedisURI.builder()
                     .withHost(host)
-                    .withPort(port)
-                    .withSsl(true)
-                    .withAuthentication("default", accessKey)
-                    .build();
+                    .withPort(port);
+
+            if (password != null && !password.isBlank()) {
+                uriBuilder.withPassword(password.toCharArray());
+            }
+
+            RedisURI uri = uriBuilder.build();
 
             RedisClient client = RedisClient.create(uri);
             StatefulRedisConnection<byte[], byte[]> connection =
@@ -73,8 +78,8 @@ public class RateLimitDevConfig {
             return new RedisRateLimitService(proxyManager);
 
         } catch (Exception e) {
-            log.warn("Failed to connect to Redis — rate limiting disabled: {}", e.getMessage());
-            return key -> {}; // no-op
+            throw new IllegalStateException(
+                "Redis is required for rate limiting but failed to connect: " + e.getMessage(), e);
         }
     }
 }

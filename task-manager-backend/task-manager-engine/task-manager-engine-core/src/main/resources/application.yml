@@ -9,7 +9,7 @@ spring:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
-    open-in-view: true
+    open-in-view: false
   jackson:
     time-zone: UTC
 

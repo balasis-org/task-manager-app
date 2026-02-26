@@ -122,8 +122,8 @@ public class AdminService {
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
-        byte[] data = blobStorageService.downloadTaskFile(file.getFileUrl());
-        return new TaskFileDownload(data, file.getName());
+        var download = blobStorageService.downloadTaskFile(file.getFileUrl());
+        return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
     }
 
     @Transactional(readOnly = true)
@@ -136,8 +136,8 @@ public class AdminService {
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
-        byte[] data = blobStorageService.downloadTaskAssigneeFile(file.getFileUrl());
-        return new TaskFileDownload(data, file.getName());
+        var download = blobStorageService.downloadTaskAssigneeFile(file.getFileUrl());
+        return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
     }
 
     /* ━━━━ admin update — bypasses all group-role checks ━━━━ */
@@ -187,7 +187,7 @@ public class AdminService {
                 .orElseThrow(() -> new EntityNotFoundException("Task not found"));
 
         if (title != null && !title.isBlank()) {
-            if (taskRepository.existsByTitleAndIdNot(title, taskId)) {
+            if (taskRepository.existsByTitleAndGroup_IdAndIdNot(title, task.getGroup().getId(), taskId)) {
                 throw new BusinessRuleException(
                         "A task with this title already exists. Choose a different title.");
             }
@@ -228,9 +228,7 @@ public class AdminService {
         }
 
         // check if user owns any groups — those must be deleted first
-        long ownedGroups = groupRepository.findAll().stream()
-                .filter(g -> g.getOwner().getId().equals(userId))
-                .count();
+        long ownedGroups = groupRepository.countByOwner_Id(userId);
         if (ownedGroups > 0) {
             throw new BusinessRuleException(
                     "Cannot delete user: they own " + ownedGroups + " group(s). Delete those groups first.");

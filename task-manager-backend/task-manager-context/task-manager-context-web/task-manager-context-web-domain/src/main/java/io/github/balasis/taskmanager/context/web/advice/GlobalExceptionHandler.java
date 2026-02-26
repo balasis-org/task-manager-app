@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.github.balasis.taskmanager.context.base.exception.TaskManagerException;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.exception.ratelimit.RateLimitExceededException;
+import io.github.balasis.taskmanager.context.base.exception.ratelimit.ServiceOverloadedException;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.context.base.exception.blob.download.BlobDownloadTaskFileException;
@@ -19,10 +20,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(TaskManagerException.class)
     public ResponseEntity<String> handleTaskManagerException(TaskManagerException e) {
@@ -72,8 +78,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationIntegrityException.class)
-    public ResponseEntity<String> AuthenticationIntegrityException(AuthenticationIntegrityException e){
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    public ResponseEntity<String> handleAuthenticationIntegrityException(AuthenticationIntegrityException e){
+        logger.warn("Authentication integrity failure: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Authentication error — please try again or contact support");
     }
 
     @ExceptionHandler(BlobUploadException.class)
@@ -103,5 +111,20 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
                 .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceOverloadedException.class)
+    public ResponseEntity<String> handleServiceOverloaded(ServiceOverloadedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleUnexpected(Exception ex) {
+        logger.error("Unhandled exception", ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("An unexpected error occurred — please try again later");
     }
 }

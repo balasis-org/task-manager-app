@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { apiMultipart } from "@assets/js/apiClient";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isFileTooLarge, getFileIcon } from "@assets/js/fileUtils";
-import blobBase from "@blobBase";
+import { useBlobUrl } from "@context/BlobSasContext";
 import { FiX, FiPlus, FiSearch } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 
@@ -16,12 +16,13 @@ const STATE_OPTIONS = [
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
-function userImg(u) {
+function userImg(u, blobUrl) {
     if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
+    return u.imgUrl ? blobUrl(u.imgUrl) : u.defaultImgUrl ? blobUrl(u.defaultImgUrl) : "";
 }
 
 export default function NewTaskPopup({ groupId, initialState, members, onClose, onCreated, onRefresh }) {
+    const blobUrl = useBlobUrl();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [taskState, setTaskState] = useState(initialState || "TODO");
@@ -98,7 +99,6 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
         e.preventDefault();
         if (!title.trim()) { setError("Title is required."); return; }
         if (!description.trim()) { setError("Description is required."); return; }
-        console.log("HandleSubmit" + description);
         setBusy(true);
         setError("");
         try {
@@ -154,7 +154,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         Description
                         <textarea
                             value={description}
-                            onChange={(e) => {setDescription(e.target.value) ; console.log("The textareaField" + description)}}
+                            onChange={(e) => {setDescription(e.target.value)}}
                             rows={3}
                             maxLength={LIMITS.TASK_DESCRIPTION}
                             required
@@ -212,7 +212,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                             <div className="popup-chip-list">
                                 {selectedReviewers.map((m) => (
                                     <span key={m.user?.id} className="popup-chip" title={m.user?.email}>
-                                        <img src={userImg(m.user)} alt="" className="popup-chip-img" />
+                                        <img src={userImg(m.user, blobUrl)} alt="" className="popup-chip-img" />
                                         {m.user?.name || m.user?.email}
                                         <button type="button" className="popup-chip-rm" onClick={() => removeReviewer(m.user?.id)}><FiX size={10} /></button>
                                     </span>
@@ -223,7 +223,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                             <div className="popup-picker-dropdown">
                                 {eligibleReviewers.map((m) => (
                                     <div key={m.user?.id} className="popup-picker-item" onClick={() => addReviewer(m)}>
-                                        <img src={userImg(m.user)} alt="" className="popup-search-img" />
+                                        <img src={userImg(m.user, blobUrl)} alt="" className="popup-search-img" />
                                         <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                         <span className="popup-picker-role">{m.role.replace(/_/g, " ")}</span>
                                     </div>
@@ -250,7 +250,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                             <div className="popup-chip-list">
                                 {selectedAssignees.map((m) => (
                                     <span key={m.user?.id} className="popup-chip" title={m.user?.email}>
-                                        <img src={userImg(m.user)} alt="" className="popup-chip-img" />
+                                        <img src={userImg(m.user, blobUrl)} alt="" className="popup-chip-img" />
                                         {m.user?.name || m.user?.email}
                                         <button type="button" className="popup-chip-rm" onClick={() => removeAssignee(m.user?.id)}><FiX size={10} /></button>
                                     </span>
@@ -261,7 +261,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                             <div className="popup-picker-dropdown">
                                 {eligibleAssignees.map((m) => (
                                     <div key={m.user?.id} className="popup-picker-item" onClick={() => addAssignee(m)}>
-                                        <img src={userImg(m.user)} alt="" className="popup-search-img" />
+                                        <img src={userImg(m.user, blobUrl)} alt="" className="popup-search-img" />
                                         <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                         <span className="popup-picker-role">{m.role.replace(/_/g, " ")}</span>
                                     </div>

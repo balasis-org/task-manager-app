@@ -29,6 +29,9 @@ jobs:
 
       - name: Build
         working-directory: task-manager-frontend/task-manager-app-frontend
+        env:
+          VITE_FD_BLOB_PREFIX: /blob/
+          VITE_BLOB_BASE: ""
         run: npm run build
 
       - name: Upload dist artifact
@@ -54,38 +57,42 @@ jobs:
               "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
             }
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: Download dist artifact
         uses: actions/download-artifact@v3
         with:
           name: frontend-dist
-          path: task-manager-frontend/task-manager-app-frontend/dist
+          path: dist
 
-      - name: UploadAssets
-        run: az storage blob upload-batch \
-          --account-name anstaskmanagerstorage \
-          --source task-manager-frontend/task-manager-app-frontend/dist/assets \
-          --destination assets \
-          --overwrite \
-          --auth-mode login
-     #FD will redirect assets -> assets
+      # ── Upload hashed Vite assets to 'assets' container ──
+      - name: Upload assets to blob
+        run: |
+          az storage blob upload-batch \
+            --account-name anstaskmanagerstorage \
+            --account-key "${{ secrets.STORAGE_ACCOUNT_KEY }}" \
+            --source dist/assets \
+            --destination assets \
+            --overwrite
 
-      - name: UploadStaticOnes
-        run: az storage blob upload-batch \
-          --account-name anstaskmanagerstorage \
-          --source task-manager-frontend/task-manager-app-frontend/dist/static_frontend \
-          --destination staticfrontendfiles \
-          --overwrite \
-          --auth-mode login
-      #FD redirect static_frontend -> staticfrontendfiles
+      # ── Upload static_frontend (favicons, icons, etc.) to 'staticfrontend' container ──
+      - name: Upload static_frontend to blob
+        run: |
+          if [ -d "dist/static_frontend" ]; then
+            az storage blob upload-batch \
+              --account-name anstaskmanagerstorage \
+              --account-key "${{ secrets.STORAGE_ACCOUNT_KEY }}" \
+              --source dist/static_frontend \
+              --destination staticfrontend \
+              --overwrite
+          fi
 
-      - name: UploadIndex
-        run: az storage blob upload \
-          --account-name anstaskmanagerstorage \
-          --container-name $web \
-          --name index.html \
-          --file dist/index.html \
-          --overwrite \
-          --auth-mode login
+      # ── Upload remaining files (index.html, etc.) to 'web' container ──
+      - name: Upload web root to blob
+        run: |
+          # Remove folders already uploaded as separate containers
+          rm -rf dist/assets dist/static_frontend
+          az storage blob upload-batch \
+            --account-name anstaskmanagerstorage \
+            --account-key "${{ secrets.STORAGE_ACCOUNT_KEY }}" \
+            --source dist \
+            --destination web \
+            --overwrite

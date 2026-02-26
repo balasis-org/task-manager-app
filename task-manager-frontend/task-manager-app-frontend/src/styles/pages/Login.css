@@ -98,26 +98,27 @@
 /* Dev toggle button — small pill in top-right corner */
 .login-dev-toggle {
     position: absolute;
-    top: 0.75em;
-    right: 0.75em;
-    background: var(--bg-active);
+    top: 2.75em;
+    right: 2.75em;
+    background: #ffab09;
     border: 0.06em solid var(--border-secondary);
     border-radius: 0.375em;
-    width: 2em;
-    height: 2em;
+    width: 3em;
+    height: 3em;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--text-faint);
-    opacity: 0.45;
-    transition: opacity 0.2s, background 0.2s;
-}
-
-.login-dev-toggle:hover {
+    color: white;
     opacity: 1;
-    background: var(--bg-hover);
-    color: var(--text-secondary);
+
+}
+.login-dev-toggle svg{
+    height:2em;
+    width:2em;
+}
+.login-dev-toggle:hover {
+    scale:1.05;
 }
 
 /* Dev panel (shown on toggle) */

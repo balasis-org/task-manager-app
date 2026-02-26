@@ -1,0 +1,17 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: taskmanager_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    tmpfs:
+      - /data
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:-redispass}
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru

@@ -14,7 +14,7 @@ import { useToast } from "@context/ToastContext";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import useSmartPoll from "@hooks/useSmartPoll";
-import blobBase from "@blobBase";
+import { useBlobUrl } from "@context/BlobSasContext";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Comments.css";
 
@@ -23,9 +23,9 @@ const EMOJIS = ["😀","😂","😍","👍","👎","🎉","🔥","❤️","😢"
 const MAX_LEN = LIMITS.COMMENT;
 const PAGE_SIZE = 5;
 
-function userImg(u) {
+function userImg(u, blobUrl) {
     if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
+    return u.imgUrl ? blobUrl(u.imgUrl) : u.defaultImgUrl ? blobUrl(u.defaultImgUrl) : "";
 }
 
 function formatDate(iso) {
@@ -47,6 +47,7 @@ export default function Comments() {
     const { user } = useContext(AuthContext);
     const { activeGroup, myRole, refreshActiveGroup } = useContext(GroupContext);
     const showToast = useToast();
+    const blobUrl = useBlobUrl();
 
     // URL-driven page (1-indexed in URL, 0-indexed for API)
     const urlPage = searchParams.get("page"); // string or null
@@ -334,7 +335,7 @@ export default function Comments() {
                                     <div className="comment-avatar comment-avatar-deleted" title="Deleted user" />
                                 ) : (
                                     <img
-                                        src={userImg(c.creator)}
+                                        src={userImg(c.creator, blobUrl)}
                                         alt=""
                                         className="comment-avatar"
                                     />

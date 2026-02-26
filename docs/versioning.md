@@ -74,7 +74,7 @@ The tags themselves are repo-wide, but the notes below focus on **backend** chan
 
     **Backend — admin, rate limiting, startup hardening, XSS sanitization:**
     - `AdminController` + `AdminService` (302 lines): full admin CRUD over users, groups, tasks, comments with paginated search. Complete admin DTO layer (7 outbound resource types) and `AdminOutboundMapper`.
-    - Redis-backed distributed rate limiting: `RateLimitService` interface, `RedisRateLimitService` (Bucket4j + Lettuce, dual-window: 40 req/min + 420 req/15min), `RateLimitInterceptor` (runs before JWT), dev/prod configs. Fails-open if Redis unavailable.
+    - Redis-backed distributed rate limiting: `RateLimitService` interface, `RedisRateLimitService` (Bucket4j + Lettuce, dual-window: 40 req/min + 420 req/15min), `RateLimitInterceptor` (runs after JWT), dev/prod configs. Fails-closed if Redis unavailable.
     - `StartupGate` + `StartupBlockingFilter`: two-gate startup (images ready + data ready), returns HTTP 503 until both gates are open.
     - `InputSanitizer` + `SanitizingRequestBodyAdvice`: automatic XSS sanitization of all `BaseInboundResource` fields (strips HTML, trims invisible Unicode, preserves ZWJ/ZWNJ).
     - `DeletedTask` entity + tombstone repository: soft-delete tracking required for the differential refresh endpoint to report deletions to clients.

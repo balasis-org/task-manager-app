@@ -43,6 +43,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -90,6 +91,22 @@ public class GroupController extends BaseComponent {
 
         return ResponseEntity.ok(groupOutboundMapper.toResource(
                 groupService.updateGroupImage(groupId, file)));
+    }
+
+    /**
+     * Applies a seeded default image as the group's cover picture.
+     * Clears any previously uploaded custom image and sets the chosen
+     * default as {@code defaultImgUrl}.
+     *
+     * @param fileName bare file name (e.g. {@code "group3.png"} — without container prefix)
+     */
+    @PatchMapping("/{groupId}/image/pick-default")
+    public ResponseEntity<GroupOutboundResource> pickDefaultGroupImage(
+            @PathVariable Long groupId,
+            @RequestParam String fileName) {
+
+        return ResponseEntity.ok(groupOutboundMapper.toResource(
+                groupService.pickDefaultGroupImage(groupId, fileName)));
     }
 
     @GetMapping
@@ -235,11 +252,9 @@ public class GroupController extends BaseComponent {
             @RequestPart(value = "files", required = false) List<MultipartFile> files
 
     ) {
-        System.out.println("TaskInboundDescriptionText: " + inbound.getDescription());
         resourceDataValidator.validateResourceData(inbound);
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
         var partialTask = taskInboundMapper.toDomain(inbound);
-        System.out.println("partialTaskDescriptionText: " + partialTask.getDescription());
         return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
                         inbound.getReviewerIds(), filesSet)
@@ -362,7 +377,7 @@ public class GroupController extends BaseComponent {
         );
     }
 
-    @DeleteMapping("/groupId/{groupId}/task/{taskId}")
+    @DeleteMapping("/{groupId}/task/{taskId}")
     public ResponseEntity<Void> deleteTask(
             @PathVariable Long groupId,
             @PathVariable Long taskId
@@ -492,31 +507,43 @@ public class GroupController extends BaseComponent {
     }
 
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
             @PathVariable Long fileId
     ) {
         TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
-
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                in.transferTo(out);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
-                .body(download.content());
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @GetMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadAssigneeTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadAssigneeTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
             @PathVariable Long fileId
     ) {
         TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
-
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                in.transferTo(out);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
-                .body(download.content());
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @DeleteMapping("/{groupId}/task/{taskId}/taskParticipant/{taskParticipantId}")

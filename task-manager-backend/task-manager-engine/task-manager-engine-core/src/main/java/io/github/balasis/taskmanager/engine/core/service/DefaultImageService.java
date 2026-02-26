@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,5 +21,17 @@ public class DefaultImageService {
         if (images.isEmpty()) return null;
         int idx = new Random().nextInt(images.size());
         return images.get(idx).getFileName();
+    }
+
+    /**
+     * Returns the bare file names of all seeded default images for the given type
+     * (e.g. {@code "profile1.png"}).  Callers prepend the container name when
+     * constructing a full blob path (e.g. {@code "default-images/profile1.png"}).
+     */
+    public List<String> findAll(BlobContainerType type) {
+        return defaultImageRepository.findByType(type)
+                .stream()
+                .map(DefaultImage::getFileName)
+                .collect(Collectors.toList());
     }
 }

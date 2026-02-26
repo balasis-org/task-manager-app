@@ -7,6 +7,7 @@ import io.github.bucket4j.distributed.BucketProxy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.ratelimit.RateLimitExceededException;
+import io.github.balasis.taskmanager.context.base.exception.ratelimit.ServiceOverloadedException;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.RateLimitService;
 
 import java.nio.charset.StandardCharsets;
@@ -73,8 +74,14 @@ public class RedisRateLimitService extends BaseComponent implements RateLimitSer
         } catch (RateLimitExceededException e) {
             throw e; // propagate our own exception
         } catch (Exception e) {
-            // Fail-open: if Redis is down we allow the request and log a warning.
-            logger.warn("Rate limiter unavailable — allowing request: {}", e.getMessage());
+            // Fail-closed: any Redis error (OOM, connection, timeout) blocks the request.
+            // With allkeys-lru Redis evicts cold keys itself, so OOM here means
+            // truly catastrophic memory pressure — reject to protect the system.
+            logger.error("Rate limiter unavailable — rejecting request: {}",
+                    e.getMessage() != null ? e.getMessage() : "");
+            throw new ServiceOverloadedException(
+                "We are sorry but currently we are under heavy traffic. " +
+                "We cannot accept your request at this time, please try again later.");
         }
     }
 }

@@ -19,11 +19,13 @@ public class EmailProdConfig {
 
     @Bean
     public EmailClient emailClient(){
+        String senderAddress = secretClientProvider.getSecret("TASKMANAGER-EMAIL-SENDER-ADDRESS");
         return new AzureEmailClient(
                 new EmailClientBuilder()
                         .endpoint(secretClientProvider.getSecret("TASKMANAGER-ACS-ENDPOINT"))
                         .credential(managedIdentityCredential)
-                        .buildClient(),secretClientProvider
+                        .buildClient(),
+                senderAddress
         );
     }
 }

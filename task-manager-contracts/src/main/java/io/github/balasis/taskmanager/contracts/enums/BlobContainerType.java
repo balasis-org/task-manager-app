@@ -7,8 +7,8 @@ public enum BlobContainerType {
 
     TASK_ASSIGNEE_FILES("task-assignee-files","TaskAssigneeFiles","fileUrl",false),
     TASK_FILES("task-files", "TaskFiles", "fileUrl", false),
-    PROFILE_IMAGES("profile-images", "Users", "imgUrl", true),
-    GROUP_IMAGES("group-images", "Groups", "imgUrl", true);
+    PROFILE_IMAGES("profile-images", "Users", "imgUrl", false),
+    GROUP_IMAGES("group-images", "Groups", "imgUrl", false);
 
     private final String containerName;
     private final String tableName;

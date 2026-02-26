@@ -3,15 +3,22 @@ package io.github.balasis.taskmanager.engine.core.repository;
 import io.github.balasis.taskmanager.context.base.model.TaskComment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> {
     long countByTask_Id(Long taskId);
 
+    @EntityGraph(attributePaths = {"creator"})
     Page<TaskComment> findAllByTask_id(Long taskId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"creator"})
+    Optional<TaskComment> findWithCreatorById(Long id);
 
     /**
      * Detaches the creator from all comments they wrote on tasks belonging

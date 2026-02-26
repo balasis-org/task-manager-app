@@ -8,12 +8,15 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
 @AllArgsConstructor
 public class ApiResponseTimes {
+    private static final Logger logger = LoggerFactory.getLogger(ApiResponseTimes.class);
     private final @Nullable OpenTelemetry openTelemetry;
 
     @Around("execution(public * io.github.balasis.taskmanager..*Controller.*(..))")
@@ -26,7 +29,7 @@ public class ApiResponseTimes {
         Object result = joinPoint.proceed();
         long executionTime = System.currentTimeMillis() - start;
 
-        System.out.println("Execution time of " + controllerName + "." + methodName + ": " + executionTime + "ms");
+        logger.debug("Execution time of {}.{}: {}ms", controllerName, methodName, executionTime);
 
         if (openTelemetry != null) {
             var tracer = openTelemetry.getTracer("task-manager-tracer");

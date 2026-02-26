@@ -1,9 +1,12 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 public interface UserService {
     User getMyProfile();
@@ -13,4 +16,6 @@ public interface UserService {
     Page<User> searchUser(String q, Pageable pageable);
     Page<User> searchUserForInvites(Long groupId, String q, boolean sameOrgOnly, Pageable pageable);
     User refreshInviteCode();
+    List<String> findDefaultImages(BlobContainerType type);
+    User pickDefaultProfileImage(String fileName);
 }

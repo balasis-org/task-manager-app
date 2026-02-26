@@ -20,20 +20,24 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
-        // rate limiter runs FIRST — catches all requests (incl. /auth/**) by IP
-        registry.addInterceptor(rateLimitInterceptor)
-                .addPathPatterns("/**")
-                .excludePathPatterns("/h2-console");
-
+        // JWT runs FIRST — populates CurrentUser for authenticated endpoints
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
+                .order(1)
                 .excludePathPatterns("/auth/**","/h2-console");
+
+        // Rate limiter runs SECOND — uses userId from CurrentUser (skips public endpoints)
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/**")
+                .order(2)
+                .excludePathPatterns("/auth/**", "/h2-console", "/");
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
+                        "https://www.myteamtasks.net",
                         "http://localhost:8080",
                         "http://127.0.0.1:5500",
                         "http://127.0.0.1:8080",

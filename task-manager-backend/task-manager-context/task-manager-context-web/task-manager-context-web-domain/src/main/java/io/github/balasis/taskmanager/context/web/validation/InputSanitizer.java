@@ -1,10 +1,12 @@
 package io.github.balasis.taskmanager.context.web.validation;
 
-import org.springframework.web.util.HtmlUtils;
-
 /**
- * Simple HTML / XSS sanitizer for user-provided strings.
- * being alergic to fake spaces ==
+ * Input sanitizer for user-provided strings.
+ * <p>
+ * Handles invisible/exotic Unicode whitespace that can bypass visual inspection.
+ * <b>HTML/XSS escaping is NOT performed here</b> — it is the responsibility
+ * of the rendering layer (React's JSX auto-escaping handles this for the frontend).
+ * Storing raw text avoids double-escaping issues across consumers.
  */
 public final class InputSanitizer {
 
@@ -30,8 +32,8 @@ public final class InputSanitizer {
      *   <li>Return null unchanged (so optional fields stay null).</li>
      *   <li>Replace invisible/exotic Unicode whitespace with regular space.</li>
      *   <li>Trim leading/trailing whitespace.</li>
-     *   <li>HTML-escape any remaining markup (&amp; &lt; &gt; &quot; &#39;).</li>
      * </ol>
+     * Greek, Cyrillic, CJK and other non-ASCII scripts pass through unmodified.
      */
     public static String sanitize(String input) {
         if (input == null) return null;

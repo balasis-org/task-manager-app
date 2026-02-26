@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiMinus, FiFilter } from "react-icons/fi";
+import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiFilter } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import FilterPanel from "@components/dashboard/FilterPanel";
+import MemberDetailPopup from "@components/popups/MemberDetailPopup";
+import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/dashboard/DashboardTopBar.css";
-import blobBase from "@blobBase";
 
 export default function DashboardTopBar({
     groups,
@@ -29,10 +30,11 @@ export default function DashboardTopBar({
     onFiltersClear,
 }) {
     const showToast = useToast();
+    const blobUrl = useBlobUrl();
     const [groupDropdown, setGroupDropdown] = useState(false);
     const [membersDropdown, setMembersDropdown] = useState(false);
     const [memberSearch, setMemberSearch] = useState("");
-    const [confirmRemove, setConfirmRemove] = useState(null); // membershipId
+    const [selectedMember, setSelectedMember] = useState(null); // member object for popup
     const [confirmLeave, setConfirmLeave] = useState(false);
     const [filterOpen, setFilterOpen] = useState(false);
     const groupRef = useRef(null);
@@ -74,7 +76,6 @@ export default function DashboardTopBar({
         }
         if (!membersDropdown) {
             setMemberSearch("");
-            setConfirmRemove(null);
         }
     }, [membersDropdown]);
 
@@ -91,18 +92,6 @@ export default function DashboardTopBar({
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
-
-    async function handleRemoveMember(membershipId) {
-        try {
-            await apiDelete(`/api/groups/${activeGroup.id}/groupMembership/${membershipId}`);
-            showToast("Member removed", "success");
-            setConfirmRemove(null);
-            // Trigger a refresh
-            if (onLeaveGroup) onLeaveGroup("refresh");
-        } catch (err) {
-            showToast(err?.message || "Failed to remove member");
-        }
-    }
 
     async function handleLeaveGroup() {
         if (!myMembership) return;
@@ -224,10 +213,17 @@ export default function DashboardTopBar({
                                             <div className="topbar-dropdown-item muted">No members found</div>
                                         ) : (
                                             filteredMembers.map((m) => (
-                                                <div key={m.id} className="topbar-dropdown-item topbar-member-row">
+                                                <div
+                                                    key={m.id}
+                                                    className="topbar-dropdown-item topbar-member-row topbar-member-clickable"
+                                                    onClick={() => {
+                                                        setSelectedMember(m);
+                                                        setMembersDropdown(false);
+                                                    }}
+                                                >
                                                     <img
-                                                        src={ (m.user?.imgUrl) ? blobBase+m.user.imgUrl : (m.user?.defaultImgUrl)
-                                                            ? blobBase + m.user.defaultImgUrl : ""}
+                                                        src={ (m.user?.imgUrl) ? blobUrl(m.user.imgUrl) : (m.user?.defaultImgUrl)
+                                                            ? blobUrl(m.user.defaultImgUrl) : ""}
                                                         alt=""
                                                         className="topbar-member-img"
                                                     />
@@ -236,23 +232,6 @@ export default function DashboardTopBar({
                                                     <span className="topbar-member-role">
                                                         {m.role}
                                                     </span>
-                                                    {/* remove btn */}
-                                                    {canRemoveMembers && m.user?.id !== user?.id && (
-                                                        confirmRemove === m.id ? (
-                                                            <span className="topbar-member-confirm">
-                                                                <button className="topbar-confirm-yes" onClick={() => handleRemoveMember(m.id)} title="Confirm remove">✓</button>
-                                                                <button className="topbar-confirm-no" onClick={() => setConfirmRemove(null)} title="Cancel">✕</button>
-                                                            </span>
-                                                        ) : (
-                                                            <button
-                                                                className="topbar-member-remove"
-                                                                onClick={(e) => { e.stopPropagation(); setConfirmRemove(m.id); }}
-                                                                title="Remove from group"
-                                                            >
-                                                                <FiMinus size={12} />
-                                                            </button>
-                                                        )
-                                                    )}
                                                 </div>
                                             ))
                                         )}
@@ -269,7 +248,7 @@ export default function DashboardTopBar({
                                 <span className="topbar-group-img-wrapper">
                                     {activeGroup?.imgUrl || activeGroup?.defaultImgUrl ? (
                                         <img
-                                            src={(activeGroup.imgUrl) ? blobBase + activeGroup.imgUrl : blobBase+ activeGroup.defaultImgUrl}
+                                            src={(activeGroup.imgUrl) ? blobUrl(activeGroup.imgUrl) : blobUrl(activeGroup.defaultImgUrl)}
                                             alt=""
                                             className="topbar-group-img"
                                         />
@@ -299,7 +278,7 @@ export default function DashboardTopBar({
                                         >
                                             {g.imgUrl || g.defaultImgUrl ? (
                                                 <img
-                                                    src={(g.imgUrl)? blobBase+g.imgUrl : blobBase + g.defaultImgUrl}
+                                                    src={(g.imgUrl)? blobUrl(g.imgUrl) : blobUrl(g.defaultImgUrl)}
                                                     alt=""
                                                     className="topbar-group-img-small"
                                                 />
@@ -318,7 +297,21 @@ export default function DashboardTopBar({
 
             <button className="topbar-toggle" onClick={onToggle} title={open ? "Hide top bar" : "Show top bar"}>
                 {open ? "▲" : "▼"}
-            </button></div>
+            </button>
+
+            {/* Member detail popup */}
+            {selectedMember && (
+                <MemberDetailPopup
+                    member={selectedMember}
+                    groupId={activeGroup?.id}
+                    isGroupLeader={isLeader}
+                    isSelf={selectedMember.user?.id === user?.id}
+                    taskPreviews={groupDetail?.tp}
+                    onClose={() => setSelectedMember(null)}
+                    onRefresh={() => { if (onLeaveGroup) onLeaveGroup("refresh"); }}
+                />
+            )}
+        </div>
 )
 }
 

@@ -8,7 +8,7 @@ import {
 import { AuthContext } from "@context/AuthContext.jsx";
 import { apiGet, apiDelete } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
-import blobBase from "@blobBase";
+import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/pages/AdminPanel.css";
 
 const TABS = [
@@ -34,6 +34,7 @@ export default function AdminPanel() {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const showToast = useToast();
+    const blobUrl = useBlobUrl();
 
     const [tab, setTab] = useState("users");
     const [data, setData] = useState(null);
@@ -381,7 +382,7 @@ export default function AdminPanel() {
                                                 <>
                                                     <label>Image</label>
                                                     <img
-                                                        src={blobBase + (detailItem.imgUrl || detailItem.defaultImgUrl)}
+                                                        src={blobUrl(detailItem.imgUrl || detailItem.defaultImgUrl)}
                                                         alt="User"
                                                         className="admin-user-avatar"
                                                     />
