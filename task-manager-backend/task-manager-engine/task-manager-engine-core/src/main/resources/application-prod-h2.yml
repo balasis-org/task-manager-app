@@ -6,7 +6,7 @@ spring:
       hibernate:
         generate_statistics: true
         dialect: org.hibernate.dialect.H2Dialect
-    show-sql: true
+    show-sql: false
 
   flyway:
     enabled: false
@@ -33,5 +33,5 @@ spring:
 logging:
   level:
     root: info
-    io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    io.github.balasis.taskmanager: INFO
+    org.springframework.transaction.interceptor: WARN

@@ -5,7 +5,8 @@ import io.github.balasis.taskmanager.context.base.exception.auth.Unauthenticated
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import lombok.AllArgsConstructor;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -15,15 +16,23 @@ import java.util.Base64;
 import java.util.Date;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class JwtService extends BaseComponent {
     private final SecretClientProvider secretClientProvider;
-    private static final long EXPIRATION_MS = 1000L * 60 * 60 * 24; // 24 hours
+    private static final long EXPIRATION_MS = 1000L * 60 * 15; // 15 minutes (matches cookie maxAge)
 
-    private SecretKey getSignInKey() {
+    /** Cached at startup — avoids a Key Vault round-trip on every request. */
+    private SecretKey cachedSignInKey;
+
+    @PostConstruct
+    void initSignInKey() {
         String secret_key = secretClientProvider.getSecret("TASKMANAGER-JWT-SECRET");
         byte[] bytes = Base64.getDecoder().decode(secret_key.getBytes(StandardCharsets.UTF_8));
-        return new SecretKeySpec(bytes, "HmacSHA256");
+        cachedSignInKey = new SecretKeySpec(bytes, "HmacSHA256");
+    }
+
+    private SecretKey getSignInKey() {
+        return cachedSignInKey;
     }
 
     public String generateToken(String subject) {

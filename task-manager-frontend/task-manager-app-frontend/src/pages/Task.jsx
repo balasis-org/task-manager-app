@@ -10,7 +10,7 @@ import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { getFileIcon, isFileTooLarge } from "@assets/js/fileUtils";
 import useSmartPoll from "@hooks/useSmartPoll";
-import blobBase from "@blobBase";
+import { useBlobUrl } from "@context/BlobSasContext";
 import Spinner from "@components/Spinner";
 import "@styles/pages/Task.css";
 
@@ -26,6 +26,7 @@ export default function Task() {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const { activeGroup, myRole, members, refreshActiveGroup } = useContext(GroupContext);
+    const blobUrl = useBlobUrl();
     const showToast = useToast();
 
     const [task, setTask] = useState(null);
@@ -33,6 +34,7 @@ export default function Task() {
     const [error, setError] = useState(null);
     const [editing, setEditing] = useState(false);
     const [rightOpen, setRightOpen] = useState(true);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Editable fields
     const [editTitle, setEditTitle] = useState("");
@@ -78,6 +80,20 @@ export default function Task() {
     const isReviewer = myTaskRole === "REVIEWER";
     const isAssignee = myTaskRole === "ASSIGNEE";
     const canEdit = isLeaderOrManager;
+    // TASK_MANAGER can delete only if the creator is no longer GL or TM in the group,
+    // OR if the creator is the current user themselves (self-delete always allowed).
+    const canDelete = (() => {
+        if (!isLeaderOrManager || !task) return false;
+        if (myRole === "GROUP_LEADER") return true;
+        // TASK_MANAGER path
+        const creatorParticipant = task.taskParticipants?.find(p => p.taskParticipantRole === "CREATOR");
+        if (!creatorParticipant) return true;
+        // Self-created → always deletable
+        if (creatorParticipant.user?.id === user?.id) return true;
+        const creatorMember = (members || []).find(m => m.user?.id === creatorParticipant.user?.id);
+        if (!creatorMember) return true; // creator left group
+        return creatorMember.role !== "GROUP_LEADER" && creatorMember.role !== "TASK_MANAGER";
+    })();
     const canReview = isReviewer || isLeaderOrManager;
     const canMoveToBeReviewed = isAssignee;
     const canChangeState = isLeaderOrManager;
@@ -161,6 +177,17 @@ export default function Task() {
             .catch(() => setError("Failed to load task"))
             .finally(() => setLoading(false));
     }, [groupId, taskId]);
+
+    async function handleDeleteTask() {
+        try {
+            await apiDelete(`/api/groups/${groupId}/task/${taskId}`);
+            showToast("Task deleted.", "success");
+            navigate("/dashboard");
+        } catch (err) {
+            showToast(err?.message || "Failed to delete task");
+            setShowDeleteConfirm(false);
+        }
+    }
 
     async function handleSave() {
         try {
@@ -345,6 +372,11 @@ export default function Task() {
                         {canEdit && !editing && (
                             <button className="task-edit-btn" onClick={() => setEditing(true)} title="Edit task">
                                 <FiEdit2 size={14} /> Edit
+                            </button>
+                        )}
+                        {canDelete && (
+                            <button className="task-delete-btn" onClick={() => setShowDeleteConfirm(true)} title="Delete task">
+                                <FiTrash2 size={14} /> Delete
                             </button>
                         )}
                         <span className="task-meta-group" title={groupName}>Group: {groupName}</span>
@@ -553,7 +585,7 @@ export default function Task() {
                                                 className="task-participant-picker-item"
                                                 onClick={() => handleAddParticipant(m.user?.id, "REVIEWER")}
                                             >
-                                                <img src={userImg(m.user)} alt="" className="task-participant-img" />
+                                                <img src={userImg(m.user, blobUrl)} alt="" className="task-participant-img" />
                                                 <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                                 <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
                                             </div>
@@ -569,7 +601,7 @@ export default function Task() {
                                     reviewers.map((r) => (
                                         <div key={r.id} className="task-participant-row">
                                             <img
-                                                src={userImg(r.user)}
+                                                src={userImg(r.user, blobUrl)}
                                                 alt=""
                                                 className="task-participant-img"
                                             />
@@ -668,7 +700,7 @@ export default function Task() {
                                                 className="task-participant-picker-item"
                                                 onClick={() => handleAddParticipant(m.user?.id, "ASSIGNEE")}
                                             >
-                                                <img src={userImg(m.user)} alt="" className="task-participant-img" />
+                                                <img src={userImg(m.user, blobUrl)} alt="" className="task-participant-img" />
                                                 <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                                 <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
                                             </div>
@@ -684,7 +716,7 @@ export default function Task() {
                                     assignees.map((a) => (
                                         <div key={a.id} className="task-participant-row">
                                             <img
-                                                src={userImg(a.user)}
+                                                src={userImg(a.user, blobUrl)}
                                                 alt=""
                                                 className="task-participant-img"
                                             />
@@ -779,13 +811,35 @@ export default function Task() {
                     </div>
                 )}
             </aside>
+
+            {showDeleteConfirm && (
+                <DeleteConfirmModal
+                    onConfirm={handleDeleteTask}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
         </div>
     );
 }
 
 
 
-function userImg(u) {
+function userImg(u, blobUrl) {
     if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
+    return u.imgUrl ? blobUrl(u.imgUrl) : u.defaultImgUrl ? blobUrl(u.defaultImgUrl) : "";
+}
+
+function DeleteConfirmModal({ onConfirm, onCancel }) {
+    return (
+        <div className="task-delete-overlay" onClick={onCancel}>
+            <div className="task-delete-modal" onClick={(e) => e.stopPropagation()}>
+                <h3>Delete task?</h3>
+                <p>This action cannot be undone. The task and all its files and comments will be permanently deleted.</p>
+                <div className="task-delete-modal-actions">
+                    <button className="btn-danger" onClick={onConfirm}>Delete</button>
+                    <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+                </div>
+            </div>
+        </div>
+    );
 }

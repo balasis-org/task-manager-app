@@ -45,7 +45,7 @@ public class BlobStorageService {
     }
 
 
-    public byte[] downloadTaskAssigneeFile(String blobName){
+    public BlobDownload downloadTaskAssigneeFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
     }
 
@@ -55,7 +55,7 @@ public class BlobStorageService {
     }
 
 
-    public byte[] downloadTaskFile(String blobName){
+    public BlobDownload downloadTaskFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_FILES, blobName);
     }
 
@@ -99,20 +99,19 @@ public class BlobStorageService {
         return blobName;
     }
 
-    private byte[] downloadInternal(BlobContainerType type, String blobName){
+    private BlobDownload downloadInternal(BlobContainerType type, String blobName){
         BlobContainerClient container = containers.get(type);
         BlobClient blobClient = container.getBlobClient(blobName);
         if (!blobClient.exists()) {
             throw new RuntimeException("Blob not found: " + blobName);
         }
-        try (var inputStream = blobClient.openInputStream()) {
-            try {
-                return inputStream.readAllBytes();
-            } catch (IOException e) {
-                throw new BlobUploadException(e.getMessage());
-            }
-        }
+        long size = blobClient.getProperties().getBlobSize();
+        var inputStream = blobClient.openInputStream();
+        return new BlobDownload(inputStream, size);
     }
+
+    /** Lightweight holder for a streamable blob download. */
+    public record BlobDownload(java.io.InputStream inputStream, long size) {}
 
     private void deleteInternal(BlobContainerType type, String blobName) {
         BlobContainerClient container = containers.get(type);

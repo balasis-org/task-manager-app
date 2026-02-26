@@ -20,6 +20,8 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
         SELECT gi
         FROM GroupInvitation gi
         JOIN FETCH gi.group
+        JOIN FETCH gi.user
+        JOIN FETCH gi.invitedBy
         WHERE gi.id = :id
         """)
     Optional<GroupInvitation> findByIdWithGroup(@Param("id") Long id);

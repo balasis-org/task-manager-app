@@ -4,11 +4,13 @@ import { apiPatch, apiDelete, apiMultipart } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
+import { useBlobUrl } from "@context/BlobSasContext";
+import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/popups/Popup.css";
-import blobBase from "@blobBase";
 
 export default function GroupSettingsPopup({ group, members, user, onClose, onUpdated, onDeleted }) {
     const showToast = useToast();
+    const blobUrl = useBlobUrl();
 
     /* description */
     const [editDesc, setEditDesc] = useState(false);
@@ -29,6 +31,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
     const [coverImage, setCoverImage] = useState(null);
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
+    const [showDefaultPicker, setShowDefaultPicker] = useState(false);
     const fileRef = useRef(null);
 
     /* Transfer leadership */
@@ -96,6 +99,16 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             showToast("Group image updated", "success");
             setCoverImage(null);
         } catch (err) { showToast(err?.message || "Failed to upload image"); }
+        finally { setUploadingImg(false); }
+    }
+
+    async function pickDefaultImage(fileName) {
+        setUploadingImg(true);
+        try {
+            const updated = await apiPatch(`/api/groups/${group.id}/image/pick-default?fileName=${encodeURIComponent(fileName)}`);
+            onUpdated(updated);
+            showToast("Group image updated", "success");
+        } catch (err) { showToast(err?.message || "Failed to apply default image"); }
         finally { setUploadingImg(false); }
     }
 
@@ -252,7 +265,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     >
                         {(group.imgUrl || group.defaultImgUrl) && (
                             <img
-                                src={group.imgUrl ? blobBase + group.imgUrl : blobBase + group.defaultImgUrl}
+                                src={group.imgUrl ? blobUrl(group.imgUrl) : blobUrl(group.defaultImgUrl)}
                                 alt="Group"
                                 className="gs-group-thumb"
                             />
@@ -270,7 +283,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                                 e.target.value = "";
                             }}
                         />
-                        <button className="gs-upload-btn" onClick={() => fileRef.current?.click()}>
+                        <button className="gs-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploadingImg}>
                             {coverImage ? coverImage.name : "Choose file"}
                         </button>
                         {coverImage && (
@@ -279,6 +292,20 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                             </button>
                         )}
                     </div>
+                    <button
+                        className="gs-defaults-btn"
+                        onClick={() => setShowDefaultPicker(true)}
+                        disabled={uploadingImg}
+                    >
+                        Pick from defaults
+                    </button>
+                    {showDefaultPicker && (
+                        <DefaultImagePicker
+                            type="GROUP_IMAGES"
+                            onPick={pickDefaultImage}
+                            onClose={() => setShowDefaultPicker(false)}
+                        />
+                    )}
                 </section>
 
                 {/* Transfer leadership */}
@@ -315,7 +342,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                                         onClick={() => { setTransferTarget(m); setConfirmTransfer(false); }}
                                     >
                                         <img
-                                            src={m.user?.imgUrl ? blobBase + m.user.imgUrl : (m.user?.defaultImgUrl ? blobBase + m.user.defaultImgUrl : "")}
+                                            src={m.user?.imgUrl ? blobUrl(m.user.imgUrl) : (m.user?.defaultImgUrl ? blobUrl(m.user.defaultImgUrl) : "")}
                                             alt=""
                                             className="topbar-member-img"
                                         />

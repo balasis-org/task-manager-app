@@ -24,7 +24,7 @@ const DEV_USERS = [
 ];
 
 export default function Login() {
-    const { user, loading } = useContext(AuthContext);
+    const { user, loading, authError } = useContext(AuthContext);
 
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
@@ -42,8 +42,12 @@ export default function Login() {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
             window.location.reload();
-        } catch {
-            setError("Login failed. Please check your credentials.");
+        } catch (err) {
+            setError(
+                err?.status === 503
+                    ? err.message
+                    : "Login failed. Please check your credentials."
+            );
         } finally {
             setBusy(false);
         }
@@ -83,7 +87,7 @@ export default function Login() {
                     <p className="login-subtitle">Sign in to your account</p>
                 </div>
 
-                {error && <div className="login-error">{error}</div>}
+                {(error || authError) && <div className="login-error">{error || authError}</div>}
 
                 <button
                     type="button"

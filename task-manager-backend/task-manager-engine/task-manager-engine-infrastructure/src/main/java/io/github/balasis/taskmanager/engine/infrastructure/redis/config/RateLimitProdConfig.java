@@ -44,8 +44,8 @@ public class RateLimitProdConfig {
 
             if (endpoint == null || endpoint.isBlank()
                     || accessKey == null || accessKey.isBlank()) {
-                log.warn("Redis endpoint or access key not configured — rate limiting disabled");
-                return key -> {};
+                throw new IllegalStateException(
+                    "Redis endpoint and access key must be configured for rate limiting");
             }
 
             String[] parts = endpoint.split(":", 2);
@@ -75,8 +75,8 @@ public class RateLimitProdConfig {
             return new RedisRateLimitService(proxyManager);
 
         } catch (Exception e) {
-            log.warn("Failed to connect to Redis — rate limiting disabled: {}", e.getMessage());
-            return key -> {};
+            throw new IllegalStateException(
+                "Redis is required for rate limiting but failed to connect: " + e.getMessage(), e);
         }
     }
 }

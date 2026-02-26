@@ -241,6 +241,16 @@
     position: relative;
 }
 
+/* Clickable member rows */
+.topbar-member-clickable {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.topbar-member-clickable:hover {
+    background: var(--bg-active);
+}
+
 .topbar-member-name {
     flex: 1;
     min-width: 0;

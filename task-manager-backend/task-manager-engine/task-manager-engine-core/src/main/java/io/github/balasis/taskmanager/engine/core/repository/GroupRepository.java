@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface GroupRepository extends JpaRepository<Group,Long> {
     boolean existsByNameAndOwner_Id(String name, Long ownerId);
     boolean existsByNameAndOwner_IdAndIdNot(String name, Long ownerId, Long id);
+    long countByOwner_Id(Long ownerId);
 
     @Query("""
         SELECT DISTINCT g
@@ -25,6 +26,9 @@ public interface GroupRepository extends JpaRepository<Group,Long> {
         WHERE g.id = :groupId
     """)
     Optional<Group> findByIdWithTasksAndParticipants(@Param("groupId") Long groupId);
+
+    @Query("SELECT g FROM Group g LEFT JOIN FETCH g.owner WHERE g.id = :id")
+    Optional<Group> findByIdWithOwner(@Param("id") Long id);
 
     @Query("""
         SELECT g

@@ -124,6 +124,80 @@
     background: var(--bg-active);
 }
 
+/* Delete task button (breadcrumb bar) */
+.task-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    background: none;
+    border: 0.06em solid var(--danger);
+    border-radius: 0.375em;
+    padding: 0.19em 0.625em;
+    cursor: pointer;
+    font-size: 0.75em;
+    color: var(--danger);
+    transition: background 0.12s;
+}
+
+.task-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.08);
+}
+
+/* Delete confirmation modal */
+.task-delete-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.task-delete-modal {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-card);
+    border-radius: 0.75em;
+    padding: 1.5em 2em;
+    max-width: 26em;
+    width: 90%;
+    box-shadow: 0 0.5em 2em rgba(0, 0, 0, 0.25);
+}
+
+.task-delete-modal h3 {
+    margin: 0 0 0.5em;
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.task-delete-modal p {
+    margin: 0 0 1.25em;
+    font-size: 0.81em;
+    color: var(--text-secondary);
+}
+
+.task-delete-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75em;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 0.375em;
+    padding: 0.44em 1.25em;
+    font-size: 0.81em;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover, #b91c1c);
+}
+
 .task-chat-btn {
     display: inline-flex;
     align-items: center;

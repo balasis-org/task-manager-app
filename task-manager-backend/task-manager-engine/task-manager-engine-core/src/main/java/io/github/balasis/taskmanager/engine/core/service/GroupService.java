@@ -25,6 +25,7 @@ public interface GroupService{
     void delete(Long groupId);
     Set<Group> findAllByCurrentUser();
     Group updateGroupImage(Long groupId, MultipartFile file);
+    Group pickDefaultGroupImage(Long groupId, String fileName);
 
     //GroupMemberships
     Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable);

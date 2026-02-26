@@ -37,7 +37,11 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     @Modifying
     void deleteAllByGroup_Id(Long groupId);
 
+    @EntityGraph(attributePaths = {"user"})
     Page<GroupMembership> findByGroup_Id(Long groupId, Pageable pageable);
+
+    @Query("SELECT gm FROM GroupMembership gm JOIN FETCH gm.user WHERE gm.id = :id")
+    Optional<GroupMembership> findByIdWithUser(@Param("id") Long id);
 
         @EntityGraph(attributePaths = {"user"})
         @Query("""

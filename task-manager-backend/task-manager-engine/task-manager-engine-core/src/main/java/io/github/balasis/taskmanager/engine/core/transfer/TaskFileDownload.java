@@ -1,3 +1,5 @@
 package io.github.balasis.taskmanager.engine.core.transfer;
 
-public record TaskFileDownload(byte[] content, String filename) {}
+import java.io.InputStream;
+
+public record TaskFileDownload(InputStream content, String filename, long size) {}

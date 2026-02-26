@@ -1,5 +1,3 @@
-import API_BASE from "@apiBase";
-
 let authHandlers = {
     onUnauthorized: null,
 };
@@ -54,7 +52,7 @@ async function apiRequest(path, options = {}, retry = true) {
 
     let res;
     try {
-        res = await fetch(`${API_BASE}${path}`, fetchOptions);
+        res = await fetch(path, fetchOptions);
     } catch {
         throw { status: 0, message: "Network error" };
     }
@@ -73,6 +71,14 @@ async function apiRequest(path, options = {}, retry = true) {
             status: 429,
             message: body || "Too many requests. Please slow down.",
             retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
+    }
+
+    // 503 — service overloaded (Redis unavailable / out of memory)
+    if (res.status === 503) {
+        throw {
+            status: 503,
+            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
         };
     }
 
@@ -123,7 +129,7 @@ export async function apiMultipart(path, formData, options = {}) {
 
     let res;
     try {
-        res = await fetch(`${API_BASE}${path}`, fetchOptions);
+        res = await fetch(path, fetchOptions);
     } catch {
         throw { status: 0, message: "Network error" };
     }
@@ -142,6 +148,14 @@ export async function apiMultipart(path, formData, options = {}) {
             status: 429,
             message: raw || "Too many requests. Please slow down.",
             retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        };
+    }
+
+    // 503 — service overloaded (Redis unavailable / out of memory)
+    if (res.status === 503) {
+        throw {
+            status: 503,
+            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
         };
     }
 

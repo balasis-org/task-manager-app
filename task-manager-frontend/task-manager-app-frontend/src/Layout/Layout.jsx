@@ -4,11 +4,12 @@ import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-ico
 import { AuthContext } from "@context/AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import Footer from "@components/footer/Footer";
+import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/Layout.css";
-import blobBase from "@blobBase";
 
 export default function Layout({ children }) {
     const { user, logout } = useContext(AuthContext);
+    const blobUrl = useBlobUrl();
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -93,7 +94,7 @@ export default function Layout({ children }) {
     };
 
     const profileImgNoPrefix = user?.imgUrl || user?.defaultImgUrl  || null;
-    const profileImg = blobBase + profileImgNoPrefix;
+    const profileImg = profileImgNoPrefix ? blobUrl(profileImgNoPrefix) : null;
 
     return (
         <div className="layout">

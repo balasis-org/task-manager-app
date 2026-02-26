@@ -29,7 +29,7 @@ export default defineConfig([
       // ── Everything else silenced ─────────────────────────────────
       'no-empty': 'off',
       'no-misleading-character-class': 'off',
-      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',

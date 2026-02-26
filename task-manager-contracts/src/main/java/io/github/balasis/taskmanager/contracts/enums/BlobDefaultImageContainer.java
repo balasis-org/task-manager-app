@@ -9,7 +9,7 @@ public enum BlobDefaultImageContainer {
             "default_images",
             BlobContainerType.PROFILE_IMAGES,
             "fileName",
-            true,
+            false,
             "profile",
             4
     ),
@@ -18,7 +18,7 @@ public enum BlobDefaultImageContainer {
             "default_images",
             BlobContainerType.GROUP_IMAGES,
             "fileName",
-            true,
+            false,
             "group",
             4
     );

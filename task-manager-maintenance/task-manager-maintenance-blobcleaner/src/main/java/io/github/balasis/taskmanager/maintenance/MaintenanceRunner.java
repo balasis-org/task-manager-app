@@ -2,6 +2,7 @@ package io.github.balasis.taskmanager.maintenance;
 
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
+import io.github.balasis.taskmanager.maintenance.service.AssetCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.BlobCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.UserCleanupService;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
 
     private final BlobCleanerService blobCleanerService;
     private final UserCleanupService userCleanupService;
+    private final AssetCleanerService assetCleanerService;
 
     @Override
     public void run(String... args) {
@@ -37,5 +39,6 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
             blobCleanerService.clean(type);
         }
         userCleanupService.cleanInactiveUsers();
+        assetCleanerService.cleanOldAssets();
     }
 }

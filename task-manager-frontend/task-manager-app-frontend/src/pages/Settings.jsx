@@ -5,12 +5,14 @@ import { useToast } from "@context/ToastContext";
 import { apiPatch, apiMultipart, apiPost } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
-import blobBase from "@blobBase";
+import { useBlobUrl } from "@context/BlobSasContext";
+import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/pages/Settings.css";
 
 export default function Settings() {
     const { user, setUser } = useContext(AuthContext);
     const showToast = useToast();
+    const blobUrl = useBlobUrl();
 
     // local form state
     const [name, setName] = useState(user?.name || "");
@@ -27,6 +29,7 @@ export default function Settings() {
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
     const [refreshingCode, setRefreshingCode] = useState(false);
+    const [showDefaultPicker, setShowDefaultPicker] = useState(false);
     const fileRef = useRef(null);
 
     // sync when user context changes (e.g. after login)
@@ -88,6 +91,19 @@ export default function Settings() {
         }
     }
 
+    async function pickDefaultImage(fileName) {
+        setUploadingImg(true);
+        try {
+            const updated = await apiPatch(`/api/users/me/profile-image/pick-default?fileName=${encodeURIComponent(fileName)}`);
+            setUser((prev) => (prev ? { ...prev, imgUrl: updated.imgUrl, defaultImgUrl: updated.defaultImgUrl } : prev));
+            showToast("Profile image updated!", "success");
+        } catch (err) {
+            showToast(err?.message || "Failed to apply default image");
+        } finally {
+            setUploadingImg(false);
+        }
+    }
+
     // --- save name + email notif ---
     async function handleSave() {
         if (!name.trim()) {
@@ -137,9 +153,9 @@ export default function Settings() {
     }
 
     const imgSrc = user?.imgUrl
-        ? blobBase + user.imgUrl
+        ? blobUrl(user.imgUrl)
         : user?.defaultImgUrl
-            ? blobBase + user.defaultImgUrl
+            ? blobUrl(user.defaultImgUrl)
             : null;
 
     return (
@@ -187,6 +203,21 @@ export default function Settings() {
                         />
                     </div>
                     <span className="settings-avatar-hint">Click or drag to change photo</span>
+                    <button
+                        type="button"
+                        className="settings-btn settings-btn-secondary settings-defaults-btn"
+                        onClick={() => setShowDefaultPicker(true)}
+                        disabled={uploadingImg}
+                    >
+                        Pick from defaults
+                    </button>
+                    {showDefaultPicker && (
+                        <DefaultImagePicker
+                            type="PROFILE_IMAGES"
+                            onPick={pickDefaultImage}
+                            onClose={() => setShowDefaultPicker(false)}
+                        />
+                    )}
                 </section>
 
                 {/* account details card */}
