@@ -506,6 +506,9 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
+    /** Maximum time allowed for a single file download (protects against slow clients holding resources). */
+    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
+
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")
     public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long groupId,
@@ -515,7 +518,7 @@ public class GroupController extends BaseComponent {
         TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                in.transferTo(out);
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
             }
         };
         return ResponseEntity.ok()
@@ -535,7 +538,7 @@ public class GroupController extends BaseComponent {
         TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                in.transferTo(out);
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
             }
         };
         return ResponseEntity.ok()

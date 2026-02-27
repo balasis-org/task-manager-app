@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Scans the {@code assets} Azure Blob container and removes any
@@ -31,21 +29,25 @@ public class AssetCleanerService extends BaseComponent {
 
     private final BlobServiceClient blobServiceClient;
 
+    /**
+     * Iterates the blob listing lazily — only one page (~5 000 items) is in
+     * memory at a time, so this stays safe even with very large containers.
+     */
     public void cleanOldAssets() {
         Instant cutoff = Instant.now().minus(MAX_AGE);
 
-        List<BlobItem> blobs = new ArrayList<>();
-        blobServiceClient
+        Iterable<BlobItem> blobs = blobServiceClient
                 .getBlobContainerClient(ASSETS_CONTAINER)
-                .listBlobs()
-                .forEach(blobs::add);
+                .listBlobs();
 
-        logger.info("AssetCleaner: scanning {} blobs in container '{}'", blobs.size(), ASSETS_CONTAINER);
+        logger.info("AssetCleaner: starting scan of container '{}'", ASSETS_CONTAINER);
 
         int deleted = 0;
         int skipped = 0;
+        int scanned = 0;
 
         for (BlobItem blob : blobs) {
+            scanned++;
             String name = blob.getName();
             if (!name.endsWith(".js") && !name.endsWith(".css")) {
                 continue; // leave other file types alone
@@ -76,6 +78,6 @@ public class AssetCleanerService extends BaseComponent {
             }
         }
 
-        logger.info("AssetCleaner: finished. deleted={}, skipped={}", deleted, skipped);
+        logger.info("AssetCleaner: finished. scanned={}, deleted={}, skipped={}", scanned, deleted, skipped);
     }
 }
