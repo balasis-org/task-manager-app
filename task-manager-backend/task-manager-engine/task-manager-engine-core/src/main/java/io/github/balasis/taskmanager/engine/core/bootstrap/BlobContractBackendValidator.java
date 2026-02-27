@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.engine.core.bootstrap;
 
-
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
@@ -16,15 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
-/**
- * NOTE:
- * This validation relies on Hibernate using
- * PhysicalNamingStrategyStandardImpl.
- * If a different naming strategy is configured, this check
- * no longer guarantees physical table existence.
- * (We might swap to db queries later on if we deem that we
- * need 100% safety)
- */
 @Component
 @RequiredArgsConstructor
 public class BlobContractBackendValidator extends BaseComponent {
@@ -124,7 +114,5 @@ public class BlobContractBackendValidator extends BaseComponent {
             );
         }
     }
-
-
 
 }

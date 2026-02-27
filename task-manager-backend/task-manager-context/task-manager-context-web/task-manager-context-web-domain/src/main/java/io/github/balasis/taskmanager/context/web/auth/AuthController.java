@@ -48,7 +48,6 @@ public class AuthController extends BaseComponent {
         authService.verifyState(body.get("state"), stateCookie);
         boolean secure = isHttps(request);
 
-        // Clear the state cookie
         response.addHeader(HttpHeaders.SET_COOKIE,
                 ResponseCookie.from("oauth_state", "")
                         .httpOnly(true).secure(secure).path("/")
@@ -66,7 +65,6 @@ public class AuthController extends BaseComponent {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        // Invalidate refresh token in DB (best-effort)
         if (refreshCookieValue != null) {
             try {
                 String[] parts = refreshCookieValue.split(":", 2);
@@ -74,13 +72,12 @@ public class AuthController extends BaseComponent {
                     authService.invalidateRefreshToken(Long.parseLong(parts[0]));
                 }
             } catch (Exception ignored) {
-                // Cookie may already be invalid or expired
+
             }
         }
 
         boolean secure = isHttps(request);
 
-        // Clear cookies with SameSite (ResponseCookie instead of servlet Cookie)
         response.addHeader(HttpHeaders.SET_COOKIE,
                 ResponseCookie.from("jwt", "")
                         .httpOnly(true).secure(secure).path("/")
@@ -93,7 +90,6 @@ public class AuthController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /** True when the original client request was HTTPS (direct or via reverse proxy). */
     private boolean isHttps(HttpServletRequest request) {
         return request.isSecure()
                 || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));

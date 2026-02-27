@@ -21,18 +21,16 @@ const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "T
 
 const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
 const COL_CLASSES = ["col-title", "col-creator", "col-priority", "col-due", "col-access", "col-comments"];
-const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];  // first col is flex
+const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];
 const COL_MIN      = [120, 70, 60, 80, 60, 40];
 
-// column indices are visible at each breakpoint
 function visibleCols(width) {
-    if (width <= 480) return [0, 2, 5];                // title + priority + comments
-    if (width <= 768) return [0, 2, 3, 4, 5];          // hide creator + due => actually hide creator(1) and due(3)
+    if (width <= 480) return [0, 2, 5];
+    if (width <= 768) return [0, 2, 3, 4, 5];
     if (width <= 768) return [0, 2, 4, 5];
-    return [0, 1, 2, 3, 4, 5];                         // all
+    return [0, 1, 2, 3, 4, 5];
 }
 
-// builds the grid-template-columns css value for visible columns only
 function gridCols(w, vis) {
     return vis.map((ci) => (ci === 0 ? "minmax(0,1fr)" : w[ci] + "px")).join(" ");
 }
@@ -59,12 +57,10 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const showToast = useToast();
 
-    // refresh when coming back to dashboard
     useEffect(() => {
         if (activeGroup) refreshActiveGroup();
     }, []);
 
-    // listen for group-access-lost (fired by GroupProvider when a 403/404 on refresh)
     useEffect(() => {
         const handler = (e) => {
             const msg = e.detail?.message || "You no longer have access to this group.";
@@ -74,7 +70,6 @@ export default function Dashboard() {
         return () => window.removeEventListener("group-access-lost", handler);
     }, [showToast]);
 
-    // track viewport width for responsive column visibility
     const [vpWidth, setVpWidth] = useState(() => window.innerWidth);
     useEffect(() => {
         const onResize = () => setVpWidth(window.innerWidth);
@@ -83,13 +78,12 @@ export default function Dashboard() {
     }, []);
     const visCols = visibleCols(vpWidth);
 
-    // resizable columns — dragging a handle grows one side and shrinks the other
     const [colWidths, setColWidths] = useState(COL_DEFAULTS);
 
     const onPointerDown = useCallback((leftIdx, e) => {
         e.preventDefault();
         const rightIdx = leftIdx + 1;
-        if (rightIdx >= COL_DEFAULTS.length) return; // last col has no right neighbor
+        if (rightIdx >= COL_DEFAULTS.length) return;
         const startX = e.clientX;
         const startL = colWidths[leftIdx];
         const startR = colWidths[rightIdx];
@@ -100,7 +94,7 @@ export default function Dashboard() {
                 const next = [...prev];
                 const newL = Math.max(COL_MIN[leftIdx], startL + dx);
                 const newR = Math.max(COL_MIN[rightIdx], startR - dx);
-                // only apply if both sides stay >= min
+
                 if (newL >= COL_MIN[leftIdx] && newR >= COL_MIN[rightIdx]) {
                     next[leftIdx] = newL;
                     next[rightIdx] = newR;
@@ -116,8 +110,6 @@ export default function Dashboard() {
         window.addEventListener("pointerup", onUp);
     }, [colWidths]);
 
-    // Resize handle for the title column's right edge.
-    // Since title is 1fr (flexible), dragging adjusts the adjacent fixed column.
     const onTitleHandleDown = useCallback((nextColIdx, e) => {
         e.preventDefault();
         const startX = e.clientX;
@@ -150,13 +142,11 @@ export default function Dashboard() {
     const [showNewTask, setShowNewTask] = useState(false);
     const [newTaskState, setNewTaskState] = useState("TODO");
 
-    // ── Filter state ──
     const [filters, setFilters] = useState({ ...FILTER_EMPTY });
-    const [filterIds, setFilterIds] = useState(null);   // Set<number> or null
+    const [filterIds, setFilterIds] = useState(null);
     const [isFilterApplied, setIsFilterApplied] = useState(false);
     const filterVersionRef = useRef(0);
 
-    // Build query string from filter criteria
     function buildFilterParams(f) {
         const p = new URLSearchParams();
         if (f.creatorId)     p.set("creatorId", f.creatorId);
@@ -185,26 +175,22 @@ export default function Dashboard() {
         }
     }
 
-    // Explicit apply — called by FilterPanel's Apply button
     const handleApplyFilters = useCallback(() => {
         if (!activeGroup?.id || isFilterEmpty(filters)) return;
         setIsFilterApplied(true);
         fetchFilterIds(activeGroup.id, filters);
     }, [activeGroup?.id, filters]);
 
-    // Unlock fields for editing (keep current filterIds visible)
     const handleEditFilters = useCallback(() => {
         setIsFilterApplied(false);
     }, []);
 
-    // Clear everything
     const handleClearFilters = useCallback(() => {
         setFilters({ ...FILTER_EMPTY });
         setFilterIds(null);
         setIsFilterApplied(false);
     }, []);
 
-    // Re-fetch filter IDs when groupDetail changes (polling) and filter is applied
     const filtersRef = useRef(filters);
     filtersRef.current = filters;
     const isFilterAppliedRef = useRef(isFilterApplied);
@@ -215,7 +201,6 @@ export default function Dashboard() {
         }
     }, [groupDetail]);
 
-    // Reset filters when switching groups
     useEffect(() => {
         setFilters({ ...FILTER_EMPTY });
         setFilterIds(null);
@@ -228,11 +213,10 @@ export default function Dashboard() {
     }
 
     function handleGroupUpdated(updatedGroup) {
-        // Do NOT close the settings popup — let the user keep editing
+
         updateGroup(updatedGroup);
     }
 
-    // "left" or "deleted" => remove group, "refresh" => just reload
     function handleLeaveGroup(action) {
         if (action === "left" || action === "deleted") {
             removeGroupFromState(activeGroup?.id);
@@ -249,7 +233,7 @@ export default function Dashboard() {
     }
 
     const canManageTasks = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
-    // Only show the delete column when at least one task is actually deletable
+
     const showDeleteColumn = canManageTasks && groupDetail?.tp?.some(t => t.dl !== false);
 
     function handleOpenNewTask(e, state) {
@@ -265,17 +249,16 @@ export default function Dashboard() {
         navigate(`/group/${activeGroup.id}/task/${created.id}`);
     }
 
-    // group tasks by state + filter IDs whitelist + search filter
     const tasksByState = {};
     for (const s of TASK_STATES) tasksByState[s] = [];
-    if (groupDetail?.tp) {                                          // tp = taskPreviews
+    if (groupDetail?.tp) {
         const q = searchQuery.toLowerCase().trim();
         for (const task of groupDetail.tp) {
-            // 1. Filter by backend IDs whitelist (when filter is active)
-            if (filterIds && !filterIds.has(task.i)) continue;      // i = id
-            // 2. Then local search
-            if (q && !task.t?.toLowerCase().includes(q)) continue;  // t = title
-            const state = task.ts || "TODO";                        // ts = taskState
+
+            if (filterIds && !filterIds.has(task.i)) continue;
+
+            if (q && !task.t?.toLowerCase().includes(q)) continue;
+            const state = task.ts || "TODO";
             if (tasksByState[state]) {
                 tasksByState[state].push(task);
             }
@@ -375,7 +358,7 @@ export default function Dashboard() {
                         </span>
                     </div>
 
-                    {/* column headers + resize handles */}
+                    { }
                     <div
                         className="task-col-header"
                         style={{ gridTemplateColumns: gridCols(colWidths, visCols) + (showDeleteColumn ? " 42px" : "") }}
@@ -383,14 +366,14 @@ export default function Dashboard() {
                         {visCols.map((ci) => (
                             <span key={ci} className={`col-header-cell ${COL_CLASSES[ci]}`}>
                                 {COL_NAMES[ci]}
-                                {/* Title column: resize handle on the right, adjusts the next fixed column */}
+                                { }
                                 {ci === 0 && visCols.length > 1 && (
                                     <span
                                         className="col-resize-handle"
                                         onPointerDown={(e) => onTitleHandleDown(visCols[1], e)}
                                     />
                                 )}
-                                {/* Other columns: resize handle between adjacent visible columns (skip last) */}
+                                { }
                                 {ci !== 0 && ci !== visCols[visCols.length - 1] && (
                                     <span
                                         className="col-resize-handle"

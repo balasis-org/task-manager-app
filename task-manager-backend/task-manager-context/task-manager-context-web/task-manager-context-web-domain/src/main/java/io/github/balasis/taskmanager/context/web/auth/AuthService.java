@@ -54,12 +54,10 @@ public class AuthService extends BaseComponent {
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
-    /** Cached Azure AD JWKS (public signing keys). Refreshed hourly. */
     private volatile JWKSet cachedJwkSet;
     private volatile long jwkSetFetchedAt;
     private static final long JWKS_CACHE_MS = 1000L * 60 * 60;
 
-    /** Cached at startup — avoids a Key Vault round-trip on every login. */
     private String cachedAdminEmail;
 
     @jakarta.annotation.PostConstruct
@@ -79,7 +77,6 @@ public class AuthService extends BaseComponent {
                 .toUriString();
     }
 
-    /** Constant-time comparison of OAuth state values (prevents CSRF on the auth flow). */
     public void verifyState(String stateFromRequest, String stateFromCookie) {
         if (stateFromRequest == null || stateFromCookie == null
                 || !MessageDigest.isEqual(
@@ -89,11 +86,9 @@ public class AuthService extends BaseComponent {
         }
     }
 
-    /** Invalidate a refresh token row on logout. */
     public void invalidateRefreshToken(Long refreshTokenId) {
         refreshTokenRepository.deleteById(refreshTokenId);
     }
-
 
     public Map<String,Object> authenticateThroughAzureCode(String code, boolean secureCookies){
         validateAuthorizationCode(code);
@@ -166,14 +161,14 @@ public class AuthService extends BaseComponent {
         return  userRepository.findByAzureKey(azureKey)
                 .map(existing -> {
                     existing.setLastActiveAt(java.time.Instant.now());
-                    // promote to admin if env says so (idempotent)
+
                     if (isAdmin && existing.getSystemRole() != SystemRole.ADMIN) {
                         existing.setSystemRole(SystemRole.ADMIN);
                     }
                     return userRepository.save(existing);
                 })
                 .orElseGet(() -> {
-                    // admin bypasses the user-count limit
+
                     if (!isAdmin && userRepository.count() >= PlanLimits.MAX_USERS) {
                         throw new LimitExceededException(
                                 "We apologize but currently the application has reached the maximum number of user");
@@ -246,13 +241,12 @@ public class AuthService extends BaseComponent {
         try {
             SignedJWT jwt = SignedJWT.parse(idToken);
 
-            // Verify Azure AD RSA signature using their published JWKS
             JWKSet jwkSet = getJwkSet();
             String kid = jwt.getHeader().getKeyID();
             JWK jwk = jwkSet.getKeyByKeyId(kid);
 
             if (jwk == null) {
-                // Key may have rotated — force refresh and retry once
+
                 cachedJwkSet = null;
                 jwkSet = getJwkSet();
                 jwk = jwkSet.getKeyByKeyId(kid);
@@ -269,8 +263,6 @@ public class AuthService extends BaseComponent {
             var claimsSet = jwt.getJWTClaimsSet();
             Map<String, Object> claims = claimsSet.getClaims();
 
-            // Validate audience matches our application
-            // aud is a List<String> per JWT spec — use getAudience() for safe comparison
             if (!claimsSet.getAudience().contains(authConfig.getClientId())) {
                 throw new AuthenticationIntegrityException("ID token audience mismatch");
             }
@@ -283,7 +275,6 @@ public class AuthService extends BaseComponent {
         }
     }
 
-    /** Fetches Azure AD JWKS with 1-hour caching. */
     private JWKSet getJwkSet() {
         JWKSet cached = this.cachedJwkSet;
         if (cached != null && (System.currentTimeMillis() - jwkSetFetchedAt) < JWKS_CACHE_MS) {

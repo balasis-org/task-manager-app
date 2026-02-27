@@ -10,12 +10,6 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAd
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
-/**
- * Automatically sanitises every {@link String} field on incoming
- * {@link BaseInboundResource} request bodies <b>before</b> validation
- * and controller logic run.
- * project-wide XSS protection
- */
 @RestControllerAdvice
 public class SanitizingRequestBodyAdvice extends RequestBodyAdviceAdapter {
 
@@ -53,7 +47,7 @@ public class SanitizingRequestBodyAdvice extends RequestBodyAdviceAdapter {
                             field.set(obj, InputSanitizer.sanitize(value));
                         }
                     } catch (IllegalAccessException e) {
-                        // should not happen after setAccessible(true)
+
                     }
                 }
             }

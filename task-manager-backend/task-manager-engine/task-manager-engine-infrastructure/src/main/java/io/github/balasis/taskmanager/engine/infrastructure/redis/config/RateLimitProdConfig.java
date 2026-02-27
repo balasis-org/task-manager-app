@@ -18,15 +18,6 @@ import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
-/**
- * Wires the Redis-backed rate limiter for <b>prod</b> profiles.
- * <p>
- * Identical to the dev config for now — when prod needs a different
- * Redis instance or different credentials just update this class.
- * <p>
- * If the Redis connection fails the bean falls back to a no-op
- * implementation so the application still starts.
- */
 @Configuration
 @Profile({"prod-h2", "prod-azuresql"})
 @RequiredArgsConstructor

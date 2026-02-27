@@ -1,6 +1,3 @@
--- V1__baseline.sql
--- Flyway baseline migration — schema originally created by Hibernate ddl-auto.
--- Extracted from dev-mssql (SQL Server 2022) on 2/22/2026.
 
 CREATE TABLE [default_images](
     [id] BIGINT IDENTITY(1,1) NOT NULL,
@@ -156,7 +153,6 @@ CREATE TABLE [Users](
     CONSTRAINT PK_Users PRIMARY KEY ([id])
     );
 
--- INDEXES
 CREATE NONCLUSTERED INDEX [idx_di_type] ON [default_images] ([type] ASC);
 CREATE NONCLUSTERED INDEX [idx_dt_group_deleted] ON [DeletedTasks] ([group_id] ASC, [deletedAt] ASC);
 CREATE UNIQUE NONCLUSTERED INDEX [UKrwlk3ited1kvno38urknlwk02] ON [DeletedTasks]([group_id] ASC,[deletedTaskId] ASC)
@@ -178,7 +174,6 @@ CREATE NONCLUSTERED INDEX [idx_user_email] ON [Users]([email] ASC);
 CREATE UNIQUE NONCLUSTERED INDEX [UKefj2sfg983kmiwhkwra4f4w3x] ON [Users]([inviteCode] ASC)
     WHERE ([inviteCode] IS NOT NULL);
 
--- FOREIGN KEYS
 ALTER TABLE [Groups] ADD CONSTRAINT [FK_Groups_owner] FOREIGN KEY ([owner_id]) REFERENCES [Users] ([id]);
 ALTER TABLE [DeletedTasks] ADD CONSTRAINT [FK_DeletedTasks_group] FOREIGN KEY ([group_id]) REFERENCES [Groups] ([id]);
 ALTER TABLE [GroupEvent] ADD CONSTRAINT [FK_GroupEvent_group] FOREIGN KEY ([group_id]) REFERENCES [Groups] ([id]);
@@ -198,7 +193,6 @@ ALTER TABLE [Tasks] ADD CONSTRAINT [FK_Tasks_group] FOREIGN KEY ([group_id]) REF
 ALTER TABLE [Tasks] ADD CONSTRAINT [FK_Tasks_lastEditBy] FOREIGN KEY ([lastEditBy_id]) REFERENCES [Users] ([id]);
 ALTER TABLE [Tasks] ADD CONSTRAINT [FK_Tasks_reviewedBy] FOREIGN KEY ([reviewedBy_id]) REFERENCES [Users] ([id]);
 
--- CHECK CONSTRAINTS
 ALTER TABLE [default_images]  WITH CHECK ADD CONSTRAINT CK_default_images_type CHECK ([type] IN ('GROUP_IMAGES','PROFILE_IMAGES','TASK_FILES','TASK_ASSIGNEE_FILES'));
 ALTER TABLE [GroupInvitations]  WITH CHECK ADD CONSTRAINT CK_GroupInvitations_status CHECK ([invitationStatus] IN ('DECLINED','ACCEPTED','PENDING'));
 ALTER TABLE [GroupInvitations]  WITH CHECK ADD CONSTRAINT CK_GroupInvitations_role CHECK ([userToBeInvitedRole] IN ('GROUP_LEADER','TASK_MANAGER','REVIEWER','MEMBER','GUEST'));

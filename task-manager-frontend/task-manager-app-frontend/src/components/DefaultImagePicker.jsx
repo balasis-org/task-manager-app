@@ -3,15 +3,6 @@ import { FiX } from "react-icons/fi";
 import { apiGet } from "@assets/js/apiClient.js";
 import { useBlobUrl } from "@context/BlobSasContext";
 
-/**
- * A small overlay panel that fetches the seeded default images for a given
- * container type and lets the user click one to select it.
- *
- * Props:
- *  - type:       "PROFILE_IMAGES" | "GROUP_IMAGES"
- *  - onPick:     (fileName: string) => void  — called with the bare filename
- *  - onClose:    () => void
- */
 export default function DefaultImagePicker({ type, onPick, onClose }) {
     const blobUrl = useBlobUrl();
     const [images, setImages] = useState([]);

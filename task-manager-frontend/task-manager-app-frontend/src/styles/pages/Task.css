@@ -1,4 +1,3 @@
-/* Task Page */
 
 .task-page {
     display: flex;
@@ -17,7 +16,6 @@
     animation: spin 1s linear infinite;
 }
 
-/* Left / main area */
 .task-main {
     flex: 1;
     min-width: 0;
@@ -31,7 +29,6 @@
     margin-right: 0;
 }
 
-/* Breadcrumb bar */
 .task-breadcrumb {
     display: flex;
     align-items: center;
@@ -124,7 +121,6 @@
     background: var(--bg-active);
 }
 
-/* Delete task button (breadcrumb bar) */
 .task-delete-btn {
     display: inline-flex;
     align-items: center;
@@ -143,7 +139,6 @@
     background: rgba(220, 38, 38, 0.08);
 }
 
-/* Delete confirmation modal */
 .task-delete-overlay {
     position: fixed;
     inset: 0;
@@ -209,7 +204,6 @@
     color: var(--text-primary);
 }
 
-/* State bar */
 .task-state-bar {
     padding: 0.5em 1em;
     border-bottom: 0.06em solid var(--border-secondary);
@@ -234,7 +228,6 @@
     color: var(--accent-primary);
 }
 
-/* Task body */
 .task-body {
     flex: 1;
     padding: 1.25em 1.5em;
@@ -289,7 +282,6 @@
     margin-top: 0.625em;
 }
 
-/* Files */
 .task-files-section {
     margin-top: 1.5em;
 }
@@ -351,7 +343,6 @@
     text-decoration: underline;
 }
 
-/* file icon btn + download overlay */
 .task-file-icon-btn {
     position: relative;
     background: none;
@@ -403,7 +394,6 @@
     50% { opacity: 0.3; }
 }
 
-/* drag-over highlight */
 .task-files-section.drag-over,
 .task-sidebar-section.drag-over {
     background: var(--accent-violet-bg);
@@ -446,7 +436,6 @@
     margin: 0.25em 0;
 }
 
-/* --- right sidebar --- */
 .task-right-sidebar {
     width: 20em;
     min-width: 20em;
@@ -499,7 +488,6 @@
     padding: 1em;
 }
 
-/* Sidebar sections */
 .task-sidebar-section {
     margin-bottom: 1.25em;
     padding-bottom: 1em;
@@ -548,7 +536,6 @@
     background: var(--success-hover);
 }
 
-/* Participants */
 .task-participant-list {
     display: flex;
     flex-wrap: wrap;
@@ -578,7 +565,6 @@
     font-style: italic;
 }
 
-/* Review info */
 .task-review-info {
     display: flex;
     flex-direction: column;
@@ -608,7 +594,6 @@
     font-weight: 600;
 }
 
-/* Review form */
 .task-review-form {
     background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
@@ -664,12 +649,10 @@
     cursor: pointer;
 }
 
-/* Move section */
 .task-move-section {
     padding-top: 0.25em;
 }
 
-/* Buttons */
 .btn-primary {
     background: var(--accent-primary);
     color: var(--text-on-primary);
@@ -715,7 +698,6 @@
     background: var(--bg-active);
 }
 
-/* Error state */
 .task-page-error {
     display: flex;
     align-items: center;
@@ -725,7 +707,6 @@
     font-size: 0.94em;
 }
 
-/* participant picker dropdown */
 .task-participant-picker {
     background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
@@ -778,7 +759,6 @@
     white-space: nowrap;
 }
 
-/* ── Stale / refresh banner ── */
 .task-stale-banner {
     display: flex;
     align-items: center;
@@ -797,7 +777,6 @@
 
 @keyframes taskStaleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Responsive — Task Page */
 @media (max-width: 1024px) {
     .task-right-sidebar {
         width: 16.25em;
@@ -820,22 +799,21 @@
 @media (max-width: 768px) {
     .task-page {
         flex-direction: column;
-        overflow-y: auto;       /* single scrollbar for the whole page */
+        overflow-y: auto;
         overflow-x: hidden;
     }
 
     .task-main {
         flex: none;
-        overflow-y: visible;    /* no inner scroll — parent scrolls */
+        overflow-y: visible;
     }
 
-    /* Right sidebar stacks below, no separate scroll */
     .task-right-sidebar {
         width: 100% !important;
         min-width: 0 !important;
         border-left: none;
         border-top: 0.06em solid var(--border-primary);
-        overflow-y: visible;    /* no inner scroll */
+        overflow-y: visible;
         flex: none;
     }
 
@@ -845,10 +823,9 @@
 
     .task-right-content {
         min-width: 0;
-        overflow: visible;      /* no inner scroll */
+        overflow: visible;
     }
 
-    /* Toggle becomes a horizontal strip at top of sidebar panel */
     .task-right-toggle {
         position: relative;
         top: auto;

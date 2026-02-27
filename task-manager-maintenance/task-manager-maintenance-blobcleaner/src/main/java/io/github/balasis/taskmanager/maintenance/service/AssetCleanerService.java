@@ -9,17 +9,6 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 
-/**
- * Scans the {@code assets} Azure Blob container and removes any
- * {@code .js} or {@code .css} blob that is older than 7 days.
- *
- * <p>Vite produces content-hashed bundles (e.g. {@code index-Bk2jQ.js}).
- * After a new frontend deploy the old hashes are no longer referenced, so
- * blobs older than the Front Door cache TTL (7 days) are safe to delete.
- *
- * <p>The {@link BlobServiceClient} already authenticates via Managed Identity
- * in production and via Azurite connection string in dev — no SAS required.
- */
 @Service
 @AllArgsConstructor
 public class AssetCleanerService extends BaseComponent {
@@ -29,10 +18,6 @@ public class AssetCleanerService extends BaseComponent {
 
     private final BlobServiceClient blobServiceClient;
 
-    /**
-     * Iterates the blob listing lazily — only one page (~5 000 items) is in
-     * memory at a time, so this stays safe even with very large containers.
-     */
     public void cleanOldAssets() {
         Instant cutoff = Instant.now().minus(MAX_AGE);
 
@@ -50,7 +35,7 @@ public class AssetCleanerService extends BaseComponent {
             scanned++;
             String name = blob.getName();
             if (!name.endsWith(".js") && !name.endsWith(".css")) {
-                continue; // leave other file types alone
+                continue;
             }
 
             var lastModified = blob.getProperties() != null

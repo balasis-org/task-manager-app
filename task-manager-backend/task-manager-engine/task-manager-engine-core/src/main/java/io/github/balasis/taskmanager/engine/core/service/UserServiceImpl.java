@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
@@ -40,16 +39,13 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         User user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
 
-        // keep last-active timestamp fresh (used by maintenance cleanup)
         user.setLastActiveAt(Instant.now());
 
-        // rotate cache encryption key every 7 days
         if (user.getCacheKey() == null || user.getCacheKeyCreatedAt() == null
                 || Duration.between(user.getCacheKeyCreatedAt(), Instant.now()).toDays() >= 7) {
             user.rotateCacheKey();
         }
 
-        // generate invite code for existing users who don't have one yet
         if (user.getInviteCode() == null) {
             user.refreshInviteCode();
         }
@@ -71,7 +67,6 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         }
         return fetchedUser;
     }
-
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)

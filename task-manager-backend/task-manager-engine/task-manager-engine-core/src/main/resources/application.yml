@@ -16,8 +16,6 @@ spring:
 server:
   port: 8080
 
-
-# Exposes the /actuator endpoints over HTTP for monitoring purposes.
 management:
   endpoints:
     web:
@@ -33,4 +31,3 @@ logging:
     io.github.balasis.taskmanager: TRACE
     org.springframework.transaction.interceptor: INFO
     com.azure.monitor.opentelemetry: INFO
-

@@ -1,4 +1,4 @@
-/* Comments Page */
+
 .comments-page {
     display: flex;
     flex-direction: column;
@@ -16,7 +16,6 @@
     font-size: 0.94em;
 }
 
-/* Breadcrumb */
 .comments-breadcrumb {
     display: flex;
     align-items: center;
@@ -79,7 +78,6 @@
     color: var(--text-faint);
 }
 
-/* Top actions */
 .comments-top-actions {
     display: flex;
     padding: 0.625em 1em;
@@ -109,7 +107,6 @@
     margin: 0 auto;
 }
 
-/* Comments list */
 .comments-list {
     flex: 1;
     overflow-y: auto;
@@ -132,7 +129,6 @@
     font-style: italic;
 }
 
-/* Comment card */
 .comment-card {
     display: flex;
     gap: 0.75em;
@@ -236,7 +232,6 @@
     color: var(--text-disabled);
 }
 
-/* Edit area */
 .comment-edit-area {
     margin: 0.375em 0;
 }
@@ -297,7 +292,6 @@
     background: var(--accent-primary-hover);
 }
 
-/* Pagination (pinned at top) */
 .comments-pagination {
     display: flex;
     align-items: center;
@@ -314,7 +308,6 @@
     color: var(--text-muted);
 }
 
-/* Composer (slides from bottom) */
 .comments-composer {
     position: absolute;
     left: 0;
@@ -449,7 +442,6 @@
     margin-top: 0.5em;
 }
 
-/* Delete confirmation overlay */
 .comments-overlay {
     position: fixed;
     inset: 0;
@@ -516,7 +508,6 @@
     font-size: 0.75em;
 }
 
-/* ── Stale / refresh banner ── */
 .comments-stale-banner {
     display: flex;
     align-items: center;
@@ -535,7 +526,6 @@
 
 @keyframes commentsStaleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Responsive — Comments Page */
 @media (max-width: 768px) {
     .comments-breadcrumb {
         padding: 0.5em 0.75em;

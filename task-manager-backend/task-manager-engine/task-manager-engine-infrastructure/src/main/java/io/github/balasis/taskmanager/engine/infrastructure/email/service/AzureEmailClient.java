@@ -8,10 +8,6 @@ import com.azure.core.util.polling.SyncPoller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * The sender address is injected at construction time (resolved at boot)
- * so no Key Vault round-trip happens per email send.
- */
 public class AzureEmailClient implements io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient {
     private static final Logger logger = LoggerFactory.getLogger(AzureEmailClient.class);
     private final EmailClient emailClient;

@@ -66,17 +66,10 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
         @Param("status") InvitationStatus status
     );
 
-    /**
-     * Lightweight check: are there any PENDING invitations for this user
-     * created after the given timestamp?
-     */
     boolean existsByUser_IdAndInvitationStatusAndCreatedAtAfter(
         Long userId, InvitationStatus status, Instant since
     );
 
-    /**
-     * Lightweight check: are there any PENDING invitations for this user at all?
-     */
     boolean existsByUser_IdAndInvitationStatus(Long userId, InvitationStatus status);
 
     void deleteAllByGroup_Id(Long groupId);

@@ -34,7 +34,7 @@ export default function DashboardTopBar({
     const [groupDropdown, setGroupDropdown] = useState(false);
     const [membersDropdown, setMembersDropdown] = useState(false);
     const [memberSearch, setMemberSearch] = useState("");
-    const [selectedMember, setSelectedMember] = useState(null); // member object for popup
+    const [selectedMember, setSelectedMember] = useState(null);
     const [confirmLeave, setConfirmLeave] = useState(false);
     const [filterOpen, setFilterOpen] = useState(false);
     const groupRef = useRef(null);
@@ -49,7 +49,6 @@ export default function DashboardTopBar({
 
     const roleLabel = myRole ? myRole.replace(/_/g, " ").toLowerCase() : null;
 
-    // check for unseen group events
     const myMembership = user && members?.length
         ? members.find((m) => m.user?.id === user.id)
         : null;
@@ -79,7 +78,6 @@ export default function DashboardTopBar({
         }
     }, [membersDropdown]);
 
-    // click outside closes dropdowns
     useEffect(() => {
         function handleClick(e) {
             if (groupRef.current && !groupRef.current.contains(e.target)) {
@@ -101,7 +99,7 @@ export default function DashboardTopBar({
             setConfirmLeave(false);
             if (onLeaveGroup) onLeaveGroup("left");
         } catch (err) {
-            // If 403/404 the user was already removed — treat it as "left"
+
             if (err?.status === 403 || err?.status === 404) {
                 showToast("You are no longer a member of this group.", "info");
                 setConfirmLeave(false);
@@ -125,7 +123,7 @@ export default function DashboardTopBar({
                         {roleLabel && (
                             <span className="topbar-role-tag">({roleLabel})</span>
                         )}
-                        {/* leave btn (not for leader) */}
+                        { }
                         {!isLeader && activeGroup && (
                             <>
                                 {!confirmLeave ? (
@@ -299,7 +297,7 @@ export default function DashboardTopBar({
                 {open ? "▲" : "▼"}
             </button>
 
-            {/* Member detail popup */}
+            { }
             {selectedMember && (
                 <MemberDetailPopup
                     member={selectedMember}
@@ -314,4 +312,3 @@ export default function DashboardTopBar({
         </div>
 )
 }
-

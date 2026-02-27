@@ -41,30 +41,23 @@ export default function AdminPanel() {
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    // search / filters
     const [searchQ, setSearchQ] = useState("");
     const debouncedQ = useDebounce(searchQ, DEBOUNCE_MS);
 
-    // Comment multi-filters (applied on button click, not on change)
     const [commentFilters, setCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
     const [appliedCommentFilters, setAppliedCommentFilters] = useState({ taskId: "", groupId: "", creatorId: "" });
 
-    // Detail modal (read-only)
     const [detailItem, setDetailItem] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
 
-    // Delete confirm
     const [confirmDelete, setConfirmDelete] = useState(null);
 
-    // File download
     const [downloadingId, setDownloadingId] = useState(null);
 
-    // guard
     useEffect(() => {
         if (user && user.systemRole !== "ADMIN") navigate("/dashboard", { replace: true });
     }, [user, navigate]);
 
-    /* ── fetch list ── */
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -102,7 +95,6 @@ export default function AdminPanel() {
         setDetailItem(null);
     };
 
-    /* ── detail fetch ── */
     const openDetail = async (type, id) => {
         setDetailLoading(true);
         try {
@@ -115,7 +107,6 @@ export default function AdminPanel() {
         }
     };
 
-    /* ── delete ── */
     const handleDelete = async () => {
         if (!confirmDelete) return;
         const { type, id } = confirmDelete;
@@ -133,7 +124,6 @@ export default function AdminPanel() {
 
     if (!user || user.systemRole !== "ADMIN") return null;
 
-    /* ── admin file download ── */
     async function handleAdminDownload(taskId, fileId, filename, isAssignee) {
         setDownloadingId(fileId);
         try {
@@ -168,7 +158,7 @@ export default function AdminPanel() {
                 </button>
             </header>
 
-            {/* tabs */}
+            { }
             <div className="admin-tabs">
                 {TABS.map((t) => (
                     <button
@@ -182,7 +172,7 @@ export default function AdminPanel() {
                 ))}
             </div>
 
-            {/* search bar (users, groups, tasks) */}
+            { }
             {(tab === "users" || tab === "groups" || tab === "tasks") && (
                 <div className="admin-search">
                     <FiSearch size={14} />
@@ -199,7 +189,7 @@ export default function AdminPanel() {
                 </div>
             )}
 
-            {/* comment multi-filter */}
+            { }
             {tab === "comments" && (
                 <div className="admin-comment-filters">
                     <FiFilter size={14} />
@@ -243,7 +233,7 @@ export default function AdminPanel() {
                 </div>
             )}
 
-            {/* table */}
+            { }
             <div className="admin-table-wrap">
                 {loading ? (
                     <div className="admin-loading">Loading...</div>
@@ -331,7 +321,7 @@ export default function AdminPanel() {
                 )}
             </div>
 
-            {/* pagination */}
+            { }
             {totalPages > 1 && (
                 <div className="admin-pagination">
                     <button disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>
@@ -344,7 +334,7 @@ export default function AdminPanel() {
                 </div>
             )}
 
-            {/* ── Detail / Edit Modal ── */}
+            { }
             {(detailItem || detailLoading) && (
                 <div className="admin-overlay" onClick={() => setDetailItem(null)}>
                     <div className="admin-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -375,7 +365,7 @@ export default function AdminPanel() {
                                 </div>
 
                                 <div className="admin-detail-body">
-                                    {/* ── USER detail (read-only) ── */}
+                                    { }
                                     {detailItem.type === "users" && (
                                         <div className="admin-detail-grid">
                                             {(detailItem.imgUrl || detailItem.defaultImgUrl) && (
@@ -399,7 +389,7 @@ export default function AdminPanel() {
                                         </div>
                                     )}
 
-                                    {/* ── GROUP detail (read-only) ── */}
+                                    { }
                                     {detailItem.type === "groups" && (
                                         <>
                                             <div className="admin-detail-grid">
@@ -426,7 +416,7 @@ export default function AdminPanel() {
                                         </>
                                     )}
 
-                                    {/* ── TASK detail (read-only) ── */}
+                                    { }
                                     {detailItem.type === "tasks" && (
                                         <>
                                             <div className="admin-detail-grid">
@@ -441,7 +431,7 @@ export default function AdminPanel() {
                                                 <label>Review decision</label><span>{detailItem.reviewersDecision || "—"}</span>
                                                 {detailItem.reviewComment && <><label>Review comment</label><span>{detailItem.reviewComment}</span></>}
                                             </div>
-                                            {/* participants */}
+                                            { }
                                             {detailItem.participants && detailItem.participants.length > 0 && (
                                                 <div className="admin-detail-sub">
                                                     <h4>Participants ({detailItem.participants.length})</h4>
@@ -455,7 +445,7 @@ export default function AdminPanel() {
                                                     </table>
                                                 </div>
                                             )}
-                                            {/* creator files */}
+                                            { }
                                             {detailItem.creatorFiles && detailItem.creatorFiles.length > 0 && (
                                                 <div className="admin-detail-sub">
                                                     <h4>Creator Files ({detailItem.creatorFiles.length})</h4>
@@ -475,7 +465,7 @@ export default function AdminPanel() {
                                                     </ul>
                                                 </div>
                                             )}
-                                            {/* assignee files */}
+                                            { }
                                             {detailItem.assigneeFiles && detailItem.assigneeFiles.length > 0 && (
                                                 <div className="admin-detail-sub">
                                                     <h4>Assignee Files ({detailItem.assigneeFiles.length})</h4>
@@ -498,7 +488,7 @@ export default function AdminPanel() {
                                         </>
                                     )}
 
-                                    {/* ── COMMENT detail (read-only) ── */}
+                                    { }
                                     {detailItem.type === "comments" && (
                                         <div className="admin-detail-grid">
                                             <label>Comment</label><span className="admin-cell-clamp-long">{detailItem.comment || "—"}</span>
@@ -510,7 +500,7 @@ export default function AdminPanel() {
                                     )}
                                 </div>
 
-                                {/* actions — delete only (no edit) */}
+                                { }
                                 <div className="admin-detail-actions">
                                     <button
                                         className="admin-btn-danger"
@@ -525,7 +515,7 @@ export default function AdminPanel() {
                 </div>
             )}
 
-            {/* confirm delete modal */}
+            { }
             {confirmDelete && (
                 <div className="admin-overlay" onClick={() => setConfirmDelete(null)} style={{ zIndex: 110 }}>
                     <div className="admin-confirm-modal" onClick={(e) => e.stopPropagation()}>

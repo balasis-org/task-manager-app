@@ -31,7 +31,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-
 @Component
 @Profile({"DataLoader"})
 @RequiredArgsConstructor
@@ -166,7 +165,6 @@ public class DataLoader extends BaseComponent {
         User member1 = users.get("JUDY");
         User member2 = users.get("MALLORY");
         User guest = users.get("OSCAR");
-
 
         User reviewer2 = users.get("ALICE");
 

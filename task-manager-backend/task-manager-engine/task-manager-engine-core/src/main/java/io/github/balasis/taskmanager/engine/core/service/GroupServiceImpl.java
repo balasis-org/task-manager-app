@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
@@ -67,10 +66,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final DefaultImageService defaultImageService;
     private final GroupInvitationRepository groupInvitationRepository;
     private final DeletedTaskRepository deletedTaskRepository;
-
-
-
-
 
     @Override
     public Group create(Group group){
@@ -107,7 +102,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .map(GroupMembership::getGroup)
                 .collect(Collectors.toSet());
     }
-
 
     @Override
     public Group patch(Long groupId, Group group) {
@@ -165,8 +159,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
         groupRepository.deleteById(groupId);
     }
-
-
 
     @Override
     public Group updateGroupImage(Long groupId, MultipartFile file) {
@@ -312,7 +304,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 effectiveReviewerId != null ||
                 effectiveAssigneeId != null ||
                 dueDateBefore != null;
-            // ensure group exists and keep behavior consistent with other methods
+
             groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
 
@@ -400,7 +392,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskCommentRepository.findAllByTask_id(taskId,pageable);
     }
 
-
     @Override
     public void removeGroupMember(Long groupId, Long groupMembershipId) {
         Long currentUserId = effectiveCurrentUser.getUserId();
@@ -470,17 +461,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return saved;
     }
 
-
     @Override
     public void createGroupInvitation(Long groupId, String inviteCode, Role userToBeInvitedRole, String comment){
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
 
         var group = groupRepository.findById(groupId).orElseThrow();
 
-        // Normalise code (uppercase, strip whitespace)
         String code = (inviteCode == null) ? "" : inviteCode.trim().toUpperCase();
 
-        // Silent return if code is empty or target user not found — don't reveal whether code exists
         var targetUserOpt = userRepository.findByInviteCode(code);
         if (targetUserOpt.isEmpty()) {
             logger.debug("Invite attempt with unknown code in group {}", groupId);
@@ -488,13 +476,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
         var targetUser = targetUserOpt.get();
 
-        // Silent return if already a member
         if (groupMembershipRepository.existsByGroupIdAndUserId(groupId, targetUser.getId())) {
             logger.debug("Invite attempt for user {} who is already member of group {}", targetUser.getId(), groupId);
             return;
         }
 
-        // Silent return if pending invite already exists
         if (groupInvitationRepository.existsByUser_IdAndGroup_IdAndInvitationStatus(
                 targetUser.getId(), groupId, InvitationStatus.PENDING)) {
             logger.debug("Duplicate invite attempt for user {} in group {}", targetUser.getId(), groupId);
@@ -515,12 +501,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .comment((comment == null || comment.isBlank()) ? null : comment.trim())
                 .build();
 
-        // Validate role assignment rules (still throws on illegal role choice)
         groupValidator.validateInvitationRole(groupInvitation);
 
         GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
 
-        // mark the target user so the lightweight polling check picks it up
         targetUser.setLastInviteReceivedAt(Instant.now());
         userRepository.save(targetUser);
 
@@ -576,7 +560,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupInvitation.setInvitationStatus(status);
 
-        // Update lastSeenInvites so the badge clears for the responding user
         var respondingUser = userRepository.findById(effectiveCurrentUser.getUserId()).orElse(null);
         if (respondingUser != null) {
             respondingUser.setLastSeenInvites(Instant.now());
@@ -607,7 +590,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         );
     }
 
-
     @Override
     public Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
@@ -620,7 +602,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             throw new LimitExceededException("A group can have at most " + maxTasks + " tasks");
         }
 
-        // Guard: duplicate title check before hitting the DB constraint
         if (taskRepository.existsByTitleAndGroup_Id(task.getTitle(), groupId)) {
             throw new BusinessRuleException("A task with this title already exists in this group");
         }
@@ -687,8 +668,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return thefetchedOne;
     }
 
-
-
     @Override
     @Transactional(readOnly = true)
     public Task getTask(Long groupId, Long taskId){
@@ -722,15 +701,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskRepository.searchBy(groupId, effectiveCurrentUser.getUserId(), reviewer, assigned, taskState);
     }
 
-
-
-
     @Override
     public Task patchTask(Long groupId, Long taskId, Task task) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         groupValidator.validateForPatchTask(groupId, taskId, task);
 
-        // Guard: duplicate title check when renaming
         if (task.getTitle() != null && taskRepository.existsByTitleAndGroup_IdAndIdNot(task.getTitle(), groupId, taskId)) {
             throw new BusinessRuleException("A task with this title already exists in this group");
         }
@@ -783,8 +758,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskRepository.save(fetchedTask);
     }
 
-
-
     @Override
     public Task addTaskParticipant(Long groupId, Long taskId, Long userId, TaskParticipantRole taskParticipantRole) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
@@ -820,7 +793,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         touchTaskChange(task, false, true, false);
     }
 
-
     @Override
     public Task addTaskFile(Long groupId, Long taskId, MultipartFile file) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
@@ -855,10 +827,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
 
     }
-
-
-
-
 
     @Override
     public void removeTaskFile(Long groupId, Long taskId, Long fileId) {
@@ -951,7 +919,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public TaskComment addTaskComment(Long groupId, Long taskId, String comment) {
-       //authorization checked anyway in the group validator in this case
+
         var task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
 
@@ -1002,7 +970,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         taskRepository.save(task);
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen) {
@@ -1030,7 +997,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .changed(true)
                 .membersChanged(membersChanged);
 
-        // Populate group-level fields only if the group itself changed (non-join fields)
         if (groupNoJoinsChanged) {
             var groupImgUrlConverted = (group.getImgUrl() == null || group.getImgUrl().isBlank())
                     ? null
@@ -1048,7 +1014,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .lastGroupEventDate(group.getLastGroupEventDate());
         }
 
-        // Changed tasks
         Long currentUserId = effectiveCurrentUser.getUserId();
         var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, currentUserId);
         boolean isLeaderOrManager = membershipOpt.isPresent() && (
@@ -1084,9 +1049,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .collect(Collectors.toSet());
         builder.changedTasks(taskPreviews);
 
-        // Deleted task IDs (tombstones) since lastSeen, with a small safety offset
         if (tasksDeleted) {
-            Instant cutoff = lastSeen.minusSeconds(3); // slight cushion to avoid boundary issues
+            Instant cutoff = lastSeen.minusSeconds(3);
             builder.deletedTaskIds(
                     deletedTaskRepository.findDeletedTaskIdsByGroupIdAndDeletedAtAfter(groupId, cutoff)
             );
@@ -1106,8 +1070,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if ( !(taskToBeDeleted.getGroup().getId() .equals(groupOfTask.getId())) ){
             throw new UnauthorizedException("Task doesn't belong to the group given");
         }
-        // Creator-protection: TASK_MANAGER cannot delete a task whose creator is still GROUP_LEADER or TASK_MANAGER
-        // Exception: a TM can always delete their own tasks (creator == current user)
+
         var currentMembershipForDelete = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
         if (currentMembershipForDelete.isPresent() && currentMembershipForDelete.get().getRole() == Role.TASK_MANAGER) {
             Long creatorId = taskToBeDeleted.getCreatorIdSnapshot();
@@ -1176,7 +1139,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             TaskState taskState,
             Boolean hasFiles
     ) {
-        // Single DB query: authorize + fetch membership for role check
+
         var membership = authorizationService.requireAnyRoleInAndGet(groupId);
         Long currentUserId = effectiveCurrentUser.getUserId();
 
@@ -1188,7 +1151,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         Long effectiveReviewerId = Boolean.TRUE.equals(reviewerIsMe) ? currentUserId : reviewerId;
         Long effectiveAssigneeId = Boolean.TRUE.equals(assigneeIsMe) ? currentUserId : assigneeId;
 
-        // non-leaders/managers can only see tasks they participate in
         Long participantUserId = isLeaderOrManager ? null : currentUserId;
 
         return taskRepository.filterTaskIds(
@@ -1210,8 +1172,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         group.setLastGroupEventDate(now);
         return now;
     }
-
-    /* ── date-tracking helpers ── */
 
     private void touchGroupChange(Group group, boolean noJoins) {
         Instant now = Instant.now();
@@ -1243,12 +1203,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         Instant lastReceived = user.getLastInviteReceivedAt();
         if (lastReceived == null) {
-            // no invitation has ever been received
+
             return false;
         }
         Instant lastSeen = user.getLastSeenInvites();
-        // if user never visited invitations → any received invite is new
-        // otherwise compare timestamps
+
         return lastSeen == null || lastReceived.isAfter(lastSeen);
     }
 
@@ -1276,27 +1235,18 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return task.getLastChangeDateInComments() != null && task.getLastChangeDateInComments().isAfter(since);
     }
 
-    /**
-     * Determines whether the current user (identified by their role) can delete the given task.
-     * - GROUP_LEADER: always deletable.
-     * - TASK_MANAGER: always deletable if they are the creator themselves;
-     *   otherwise deletable only if the task's creator is no longer GROUP_LEADER or TASK_MANAGER
-     *   in the group (i.e. creator left, was demoted, or has a lower role).
-     * - Other roles: not deletable.
-     */
     private boolean computeIsDeletable(Task task, Role currentUserRole, Long groupId, Long currentUserId) {
         if (currentUserRole == null) return false;
         if (currentUserRole == Role.GROUP_LEADER) return true;
         if (currentUserRole != Role.TASK_MANAGER) return false;
         Long creatorId = task.getCreatorIdSnapshot();
         if (creatorId == null) return true;
-        // Self-created task — always deletable for the creator
+
         if (creatorId.equals(currentUserId)) return true;
         var creatorMembership = groupMembershipRepository.findByGroupIdAndUserId(groupId, creatorId);
         return creatorMembership.isEmpty() ||
             (creatorMembership.get().getRole() != Role.GROUP_LEADER &&
              creatorMembership.get().getRole() != Role.TASK_MANAGER);
     }
-
 
 }

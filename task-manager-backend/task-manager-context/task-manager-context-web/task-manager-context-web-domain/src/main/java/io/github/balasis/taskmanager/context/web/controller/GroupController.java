@@ -73,7 +73,6 @@ public class GroupController extends BaseComponent {
         private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
         private final UserService userService;
 
-
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
         resourceDataValidator.validateResourceData(groupInboundResource);
@@ -93,13 +92,6 @@ public class GroupController extends BaseComponent {
                 groupService.updateGroupImage(groupId, file)));
     }
 
-    /**
-     * Applies a seeded default image as the group's cover picture.
-     * Clears any previously uploaded custom image and sets the chosen
-     * default as {@code defaultImgUrl}.
-     *
-     * @param fileName bare file name (e.g. {@code "group3.png"} — without container prefix)
-     */
     @PatchMapping("/{groupId}/image/pick-default")
     public ResponseEntity<GroupOutboundResource> pickDefaultGroupImage(
             @PathVariable Long groupId,
@@ -125,10 +117,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok(groupService.refreshGroup(groupId, lastSeen));
     }
 
-    /**
-     * Lightweight poll: has the task changed since the given timestamp?
-     * Returns 204 if unchanged, 409 if changed.
-     */
     @GetMapping(path = "/{groupId}/task/{taskId}/has-changed")
     public ResponseEntity<Void> hasTaskChanged(
             @PathVariable Long groupId,
@@ -141,10 +129,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Lightweight poll: have comments changed on this task since the given timestamp?
-     * Returns 204 if unchanged, 409 if changed.
-     */
     @GetMapping(path = "/{groupId}/task/{taskId}/comments/has-changed")
     public ResponseEntity<Void> hasCommentsChanged(
             @PathVariable Long groupId,
@@ -205,8 +189,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
-
     @PatchMapping("/{groupId}")
     public ResponseEntity<GroupOutboundResource> patch(
             @PathVariable Long groupId,
@@ -231,7 +213,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-
     @PostMapping(path="/{groupId}/invite")
     public ResponseEntity<Void> inviteToGroup(
             @PathVariable(name = "groupId") Long groupId,
@@ -243,7 +224,6 @@ public class GroupController extends BaseComponent {
                         groupInvitationInboundResource.getComment());
         return ResponseEntity.ok().build();
     }
-
 
     @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskOutboundResource> createTask(
@@ -260,7 +240,6 @@ public class GroupController extends BaseComponent {
                         inbound.getReviewerIds(), filesSet)
         ));
     }
-
 
     @GetMapping(path = "/{groupId}/tasks/search")
     public ResponseEntity<Set<TaskPreviewDto>> findTasksWithFilters(
@@ -325,7 +304,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
     @GetMapping(path="/{groupId}/task")
     public ResponseEntity<Set<TaskPreviewOutboundResource>> findMyTasks(
             @PathVariable Long groupId,
@@ -361,7 +339,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
     @PatchMapping(path="/{groupId}/task/{taskId}")
     public ResponseEntity<TaskOutboundResource> patchTask(
             @PathVariable Long groupId,
@@ -385,7 +362,6 @@ public class GroupController extends BaseComponent {
         groupService.deleteTask(groupId,taskId);
         return ResponseEntity.noContent().build();
     }
-
 
     @PostMapping(path = "/{groupId}/task/{taskId}/review")
     public ResponseEntity<TaskOutboundResource> reviewTask(
@@ -506,7 +482,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /** Maximum time allowed for a single file download (protects against slow clients holding resources). */
     private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
 
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")

@@ -23,11 +23,6 @@ public class DefaultImageService {
         return images.get(idx).getFileName();
     }
 
-    /**
-     * Returns the bare file names of all seeded default images for the given type
-     * (e.g. {@code "profile1.png"}).  Callers prepend the container name when
-     * constructing a full blob path (e.g. {@code "default-images/profile1.png"}).
-     */
     public List<String> findAll(BlobContainerType type) {
         return defaultImageRepository.findByType(type)
                 .stream()

@@ -50,8 +50,6 @@ public class UserController extends BaseComponent {
         );
     }
 
-    
-
     @PatchMapping("/me")
     public ResponseEntity<UserOutboundResource> patchMyProfile(
            @RequestBody UserInboundResource userInboundResource){
@@ -78,26 +76,11 @@ public class UserController extends BaseComponent {
         ));
     }
 
-    /**
-     * Lists all seeded default images of a given type as full blob paths
-     * (e.g. {@code "default-images/profile1.png"}) that the frontend can pass
-     * directly to {@code blobUrl()}.
-     *
-     * @param type {@code PROFILE_IMAGES} or {@code GROUP_IMAGES}
-     */
     @GetMapping("/me/default-images")
     public ResponseEntity<List<String>> getDefaultImages(@RequestParam BlobContainerType type) {
         return ResponseEntity.ok(userService.findDefaultImages(type));
     }
 
-    /**
-     * Applies a seeded default image as the user's profile picture.
-     * Clears any previously uploaded custom image and sets the chosen
-     * default as {@code defaultImgUrl}.
-     *
-     * @param fileName bare file name returned by {@code /me/default-images}
-     *                 (e.g. {@code "profile2.png"} — without the container prefix)
-     */
     @PatchMapping("/me/profile-image/pick-default")
     public ResponseEntity<UserOutboundResource> pickDefaultProfileImage(@RequestParam String fileName) {
         return ResponseEntity.ok(userOutboundMapper.toResource(

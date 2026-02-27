@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Service
 @AllArgsConstructor
 public class BlobCleanerService extends BaseComponent {
@@ -18,12 +17,6 @@ public class BlobCleanerService extends BaseComponent {
     private final MaintenanceRepository repository;
     private final BlobAccessService blobAccessService;
 
-    /**
-     * Scans the given blob container and deletes orphan blobs (those whose ID
-     * no longer exists in the database).  Blobs are processed lazily in
-     * batches of {@code batchSize} so that only O(batchSize) items reside in
-     * memory at any time — the full container listing is never materialised.
-     */
     public void clean(BlobContainerType type) {
         int batchSize = 50;
         long delayMillis = 200;
@@ -45,7 +38,7 @@ public class BlobCleanerService extends BaseComponent {
                 sleep(delayMillis);
             }
         }
-        // remaining partial batch
+
         if (!batch.isEmpty()) {
             deleted += processBatch(batch, type);
             scanned += batch.size();
@@ -87,4 +80,3 @@ public class BlobCleanerService extends BaseComponent {
         }
     }
 }
-

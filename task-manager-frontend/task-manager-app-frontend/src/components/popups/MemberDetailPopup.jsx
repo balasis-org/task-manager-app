@@ -8,13 +8,13 @@ import "@styles/popups/MemberDetailPopup.css";
 const ASSIGNABLE_ROLES = ["GUEST", "MEMBER", "REVIEWER", "TASK_MANAGER"];
 
 export default function MemberDetailPopup({
-    member,          // the membership object { id, role, user: { id, name, email, imgUrl, defaultImgUrl, sameOrg } }
+    member,
     groupId,
-    isGroupLeader,   // current user is GL
-    isSelf,          // current user === this member
-    taskPreviews,    // groupDetail.tp — may be null/undefined
+    isGroupLeader,
+    isSelf,
+    taskPreviews,
     onClose,
-    onRefresh,       // called after role change or removal
+    onRefresh,
 }) {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
@@ -29,7 +29,6 @@ export default function MemberDetailPopup({
             ? blobUrl(member.user.defaultImgUrl)
             : "";
 
-    // Derive task counts from task previews (only creatorName (cn) is available)
     const createdCount = taskPreviews
         ? taskPreviews.filter((t) => t.cn === member.user?.name).length
         : null;
@@ -71,7 +70,7 @@ export default function MemberDetailPopup({
     return (
         <div className="popup-overlay" onClick={onClose}>
             <div className="popup-card mdp-card" onClick={(e) => e.stopPropagation()}>
-                {/* Header with image + name */}
+                { }
                 <div className="mdp-header">
                     {imgSrc ? (
                         <img src={imgSrc} alt="" className="mdp-avatar" />
@@ -87,7 +86,7 @@ export default function MemberDetailPopup({
                     </div>
                 </div>
 
-                {/* Task stats (if data available) */}
+                { }
                 {createdCount !== null && (
                     <div className="mdp-stats">
                         <div className="mdp-stat">
@@ -97,7 +96,7 @@ export default function MemberDetailPopup({
                     </div>
                 )}
 
-                {/* Role change (GL only, not for self) */}
+                { }
                 {canManage && (
                     <div className="mdp-section">
                         <label className="mdp-label">Change role</label>
@@ -128,7 +127,7 @@ export default function MemberDetailPopup({
                     </div>
                 )}
 
-                {/* Remove member (GL only, not self) */}
+                { }
                 {canManage && (
                     <div className="mdp-section mdp-remove-section">
                         {!confirmRemove ? (
@@ -161,7 +160,7 @@ export default function MemberDetailPopup({
                     </div>
                 )}
 
-                {/* Close */}
+                { }
                 <div className="popup-actions">
                     <button className="btn-secondary" onClick={onClose} disabled={busy}>
                         Close

@@ -51,13 +51,11 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
-        <!-- Azure email -->
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-communication-email</artifactId>
         </dependency>
 
-        <!--(dev-only) Email  -->
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
@@ -67,8 +65,7 @@
             <groupId>jakarta.mail</groupId>
             <artifactId>jakarta.mail-api</artifactId>
         </dependency>
-        <!--============== -->
-        <!--Auth -tokenization -->
+
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -83,7 +80,7 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
         </dependency>
-        <!--Jwt interceptor -->
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
@@ -96,7 +93,6 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-ai-contentsafety</artifactId>
         </dependency>
-        <!--===============-->
 
         <dependency>
             <groupId>com.bucket4j</groupId>

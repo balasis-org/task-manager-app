@@ -49,8 +49,7 @@ export default function Comments() {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
 
-    // URL-driven page (1-indexed in URL, 0-indexed for API)
-    const urlPage = searchParams.get("page"); // string or null
+    const urlPage = searchParams.get("page");
 
     const [comments, setComments] = useState([]);
     const [task, setTask] = useState(null);
@@ -59,21 +58,17 @@ export default function Comments() {
     const [totalPages, setTotalPages] = useState(0);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    // New comment input
     const [composerOpen, setComposerOpen] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [showEmojis, setShowEmojis] = useState(false);
     const textareaRef = useRef(null);
 
-    // Edit state
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState("");
 
-    // Delete confirm
     const [deleteId, setDeleteId] = useState(null);
 
-    // lightweight comments-change poll
     const lastFetchRef = useRef(new Date().toISOString());
 
     const commentsPollCheck = useCallback(async () => {
@@ -87,10 +82,8 @@ export default function Comments() {
         reset: resetCommentsPoll,
     } = useSmartPoll(commentsPollCheck, { enabled: !!groupId && !!taskId });
 
-    // Derived roles
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
 
-    // build a map: userId -> taskParticipantRole for display
     const participantRoleMap = {};
     if (task?.taskParticipants) {
         for (const tp of task.taskParticipants) {
@@ -98,13 +91,11 @@ export default function Comments() {
         }
     }
 
-    // Can current user comment? (leader/manager or task participant)
     const isParticipant = user?.id && participantRoleMap[user.id];
     const canComment = isLeaderOrManager || !!isParticipant;
 
-    const currentPage = urlPage ? Number(urlPage) : 1; // 1-indexed
+    const currentPage = urlPage ? Number(urlPage) : 1;
 
-    // auto-redirect to dashboard if the user loses access to this group
     useEffect(() => {
         const handler = (e) => {
             if (String(e.detail?.groupId) === String(groupId)) {
@@ -120,14 +111,13 @@ export default function Comments() {
         setSearchParams({ page: String(p) });
     }
 
-    useEffect(() => { // grab task info
+    useEffect(() => {
         if (!groupId || !taskId) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}`)
             .then(setTask)
             .catch(() => {});
     }, [groupId, taskId]);
 
-    // if no ?page in URL, jump to last page
     useEffect(() => {
         if (!groupId || !taskId || urlPage !== null) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}/comments?page=0&size=${PAGE_SIZE}&sort=createdAt,asc`)
@@ -138,7 +128,6 @@ export default function Comments() {
             .catch(() => setError("Failed to load comments"));
     }, [groupId, taskId, urlPage]);
 
-    // fetch comments when page changes
     useEffect(() => {
         if (!groupId || !taskId || urlPage === null) return;
         const apiPage = Math.max(0, Number(urlPage) - 1);
@@ -165,8 +154,7 @@ export default function Comments() {
             );
             setNewComment("");
             setComposerOpen(false);
-            // Navigate to last page (new comment lands there in asc order)
-            // clear page param so probe effect resolves to last page
+
             setSearchParams({}, { replace: true });
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
@@ -208,7 +196,7 @@ export default function Comments() {
                 `/api/groups/${groupId}/task/${taskId}/comments/${deleteId}`
             );
             setDeleteId(null);
-            // If last comment on this page and not page 1, go to previous page
+
             if (comments.length <= 1 && currentPage > 1) {
                 goToPage(currentPage - 1);
             } else {
@@ -231,7 +219,6 @@ export default function Comments() {
         }
     }
 
-    // Permissions per comment
     function canEditComment(c) {
         return c.creator?.id === user?.id;
     }
@@ -246,7 +233,7 @@ export default function Comments() {
 
     return (
         <div className="comments-page">
-            {/* breadcrumb nav */}
+            { }
             <div className="comments-breadcrumb">
                 <button
                     onClick={() => navigate(-1)}
@@ -265,7 +252,7 @@ export default function Comments() {
                 </span>
             </div>
 
-            {/* Poll-detected new comments banner */}
+            { }
             {(commentsHaveChanged || commentsStale) && (
                 <div className="comments-stale-banner">
                     <span>{commentsHaveChanged ? "New comments available." : "Data may be outdated."}</span>
@@ -275,7 +262,7 @@ export default function Comments() {
                 </div>
             )}
 
-            {/* add button (when theres already comments) */}
+            { }
             {canComment && comments.length > 0 && (
                 <div className="comments-top-actions">
                     <button
@@ -287,7 +274,7 @@ export default function Comments() {
                 </div>
             )}
 
-            {/* pagination */}
+            { }
             {totalPages > 1 && (
                 <div className="comments-pagination">
                     <button
@@ -309,7 +296,6 @@ export default function Comments() {
                     </button>
                 </div>
             )}
-
 
             <div className="comments-list">
                 {comments.length === 0 ? (
@@ -421,12 +407,12 @@ export default function Comments() {
                 )}
             </div>
 
-            {/* new comment composer - slides up from bottom */}
+            { }
             <div className={`comments-composer${composerOpen ? " open" : ""}`}>
                 <div className="composer-bar">
                     <span className="composer-label">Make a comment…</span>
 
-                    {/* Emoji picker */}
+                    { }
                     <div className="composer-emoji-wrapper">
                         <button
                             className="composer-emoji-btn"
@@ -487,7 +473,7 @@ export default function Comments() {
                 </div>
             </div>
 
-            {/* confirm delete popup */}
+            { }
             {deleteId && (
                 <div className="comments-overlay" onClick={() => setDeleteId(null)}>
                     <div

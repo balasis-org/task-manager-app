@@ -16,8 +16,7 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
 
     private final ContentSafetyClient client;
 
-    /** Hard cap on bytes read — protects against a manipulated Content-Length. */
-    private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
+    private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
     public ContentSafetyServiceImpl(ContentSafetyClient client) {
         this.client = client;
@@ -48,12 +47,6 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
         }
     }
 
-    /**
-     * Reads at most {@code maxBytes} from the stream into a byte array.
-     * If the stream exceeds {@code maxBytes} the read is stopped and a
-     * {@link BlobUploadException} is thrown — this guarantees the heap
-     * allocation never exceeds the cap regardless of the actual stream size.
-     */
     private static byte[] readCapped(InputStream in, int maxBytes) throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream(Math.min(maxBytes, 8192));
         byte[] chunk = new byte[8192];

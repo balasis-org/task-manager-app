@@ -6,8 +6,7 @@ import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
 import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
-//matching backend Dataloader roles given,
-// Leaders also cross roles as reviewers in each others group
+
 const DEV_USERS = [
     { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader)" },
     { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager)"},
@@ -65,7 +64,7 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            {/* Dev-only toggle in the corner */}
+            { }
             {IS_DEV && (
                 <button
                     type="button"
@@ -99,7 +98,7 @@ export default function Login() {
                     Sign in with Microsoft
                 </button>
 
-                {/* Dev-only quick login panel */}
+                { }
                 {IS_DEV && devOpen && (
                     <>
                         <div className="login-divider"><span>dev only</span></div>

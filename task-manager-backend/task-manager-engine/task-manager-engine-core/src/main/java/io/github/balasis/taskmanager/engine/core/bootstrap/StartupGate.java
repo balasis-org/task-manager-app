@@ -12,8 +12,7 @@ public class StartupGate {
 
     public StartupGate(Environment env) {
         boolean loaderActive = Arrays.asList(env.getActiveProfiles()).contains("DataLoader");
-        // if DataLoader profile is active, dataReady starts false and will be set true when DataLoader finishes.
-        // if not active, we don't wait for it.
+
         this.dataReady = new AtomicBoolean(!loaderActive);
     }
 

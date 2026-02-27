@@ -36,7 +36,6 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
         return <div className="task-table-empty">No tasks</div>;
     }
 
-    // Build grid template for visible columns only
     const baseGrid = colWidths && visCols
         ? visCols.map((ci) => (ci === 0 ? "minmax(0,1fr)" : colWidths[ci] + "px")).join(" ")
         : undefined;
@@ -44,7 +43,6 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
         ? { gridTemplateColumns: canManageTasks ? baseGrid + " 42px" : baseGrid }
         : undefined;
 
-    // visible column indices as a Set for fast lookup
     const visSet = new Set(visCols || [0, 1, 2, 3, 4, 5]);
 
     function goToComments(e, taskId, accessible) {

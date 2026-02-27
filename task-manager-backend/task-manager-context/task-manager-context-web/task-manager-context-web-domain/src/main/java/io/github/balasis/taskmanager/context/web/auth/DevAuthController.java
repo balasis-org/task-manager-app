@@ -109,7 +109,7 @@ public class DevAuthController extends BaseComponent {
     private ResponseCookie createJwtCookie(String jwt) {
         return ResponseCookie.from("jwt", jwt)
                 .httpOnly(true)
-                .secure(false)  // dev-only controller — always HTTP
+                .secure(false)
                 .path("/")
                 .maxAge(JWT_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
@@ -119,7 +119,7 @@ public class DevAuthController extends BaseComponent {
     private ResponseCookie createRefreshCookie(String refreshCookieValue) {
         return ResponseCookie.from("RefreshKey", refreshCookieValue)
                 .httpOnly(true)
-                .secure(false)  // dev-only controller — always HTTP
+                .secure(false)
                 .path("/")
                 .maxAge(REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")

@@ -37,8 +37,6 @@ public class AdminService {
     private final TaskParticipantRepository taskParticipantRepository;
     private final BlobStorageService blobStorageService;
 
-    /* ━━━━ guard ━━━━ */
-
     private void requireAdmin() {
         var userId = effectiveCurrentUser.getUserId();
         var user = userRepository.findById(userId)
@@ -47,8 +45,6 @@ public class AdminService {
             throw new InvalidRoleException("Admin access required");
         }
     }
-
-    /* ━━━━ listings ━━━━ */
 
     @Transactional(readOnly = true)
     public Page<User> listUsers(String q, Pageable pageable) {
@@ -80,8 +76,6 @@ public class AdminService {
         return taskCommentRepository.adminFilterComments(taskId, groupId, creatorId, pageable);
     }
 
-    /* ━━━━ single-entity detail ━━━━ */
-
     @Transactional(readOnly = true)
     public User getUser(Long userId) {
         requireAdmin();
@@ -109,8 +103,6 @@ public class AdminService {
         return taskCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
     }
-
-    /* ━━━━ file downloads ━━━━ */
 
     @Transactional(readOnly = true)
     public TaskFileDownload downloadTaskFile(Long taskId, Long fileId) {
@@ -140,8 +132,6 @@ public class AdminService {
         return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
     }
 
-    /* ━━━━ admin update — bypasses all group-role checks ━━━━ */
-
     @Transactional
     public User updateUser(Long userId, String name, String email, SystemRole systemRole,
                            SubscriptionPlan subscriptionPlan, Boolean allowEmailNotification) {
@@ -166,7 +156,7 @@ public class AdminService {
                 .orElseThrow(() -> new EntityNotFoundException("Group not found"));
 
         if (name != null && !name.isBlank()) {
-            // check uniqueness for the same owner, excluding self
+
             boolean dup = groupRepository.existsByNameAndOwner_IdAndIdNot(name, group.getOwner().getId(), groupId);
             if (dup) throw new BusinessRuleException(
                     "The owner already has another group named '" + name + "'. Rename that group first.");
@@ -214,8 +204,6 @@ public class AdminService {
         return taskCommentRepository.save(existing);
     }
 
-    /* ━━━━ delete user ━━━━ */
-
     @Transactional
     public void deleteUser(Long userId) {
         requireAdmin();
@@ -227,31 +215,23 @@ public class AdminService {
                     "Cannot delete an admin user. Demote the user first by changing the ADMIN-EMAIL env variable.");
         }
 
-        // check if user owns any groups — those must be deleted first
         long ownedGroups = groupRepository.countByOwner_Id(userId);
         if (ownedGroups > 0) {
             throw new BusinessRuleException(
                     "Cannot delete user: they own " + ownedGroups + " group(s). Delete those groups first.");
         }
 
-        // 1. detach comments (set creator=null, preserve snapshot)
         taskCommentRepository.detachCreatorFromAllComments(userId, user.getName());
 
-        // 2. nullify task references (reviewedBy, lastEditBy)
         taskRepository.nullifyReviewedByForUser(userId);
         taskRepository.nullifyLastEditByForUser(userId);
 
-        // 3. delete invitations (both sent and received)
         groupInvitationRepository.deleteAllByUser_IdOrInvitedBy_Id(userId, userId);
 
-        // 4. delete refresh tokens
         refreshTokenRepository.deleteAllByUser_Id(userId);
 
-        // 5. delete user (cascades: memberships, taskParticipants)
         userRepository.delete(user);
     }
-
-    /* ━━━━ delete group ━━━━ */
 
     @Transactional
     public void deleteGroup(Long groupId) {
@@ -259,23 +239,16 @@ public class AdminService {
         var group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found"));
 
-        // 1. delete invitations for this group
         groupInvitationRepository.deleteAllByGroup_Id(groupId);
 
-        // 2. delete deleted-task records
         deletedTaskRepository.deleteAllByGroup_Id(groupId);
 
-        // 3. delete tasks (cascades: participants, files, comments)
         taskRepository.deleteAllByGroup_Id(groupId);
 
-        // 4. delete memberships
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
 
-        // 5. delete the group itself (cascades: groupEvents)
         groupRepository.delete(group);
     }
-
-    /* ━━━━ delete task ━━━━ */
 
     @Transactional
     public void deleteTask(Long taskId) {
@@ -283,11 +256,8 @@ public class AdminService {
         var task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found"));
 
-        // cascade handles participants, files, comments
         taskRepository.delete(task);
     }
-
-    /* ━━━━ delete comment ━━━━ */
 
     @Transactional
     public void deleteComment(Long commentId) {
