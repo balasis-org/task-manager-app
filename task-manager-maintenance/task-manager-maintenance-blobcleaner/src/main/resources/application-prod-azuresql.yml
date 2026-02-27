@@ -2,11 +2,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 logging:
   level:
     root: info
-    io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: TRACE
-    com.azure.identity: DEBUG
+    io.github.balasis.taskmanager: INFO
+    org.springframework.transaction.interceptor: WARN
+    com.azure.identity: WARN

@@ -20,6 +20,9 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 @RequestMapping("/admin")
 public class AdminController extends BaseComponent {
 
+    /** Maximum time allowed for a single file download (protects against slow clients holding resources). */
+    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
+
     private final AdminService adminService;
     private final AdminOutboundMapper adminOutboundMapper;
 
@@ -90,7 +93,7 @@ public class AdminController extends BaseComponent {
         TaskFileDownload download = adminService.downloadTaskFile(taskId, fileId);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                in.transferTo(out);
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
             }
         };
         return ResponseEntity.ok()
@@ -108,7 +111,7 @@ public class AdminController extends BaseComponent {
         TaskFileDownload download = adminService.downloadAssigneeTaskFile(taskId, fileId);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                in.transferTo(out);
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
             }
         };
         return ResponseEntity.ok()
