@@ -1,7 +1,6 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.UserInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserMiniForDropdownOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserOutboundMapper;
@@ -11,7 +10,6 @@ import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutb
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
-import io.jsonwebtoken.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

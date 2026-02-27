@@ -44,7 +44,6 @@ export default function DashboardTopBar({
 
     const canInvite = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const canSettings = myRole === "GROUP_LEADER";
-    const canRemoveMembers = myRole === "GROUP_LEADER";
     const isLeader = myRole === "GROUP_LEADER";
 
     const roleLabel = myRole ? myRole.replace(/_/g, " ").toLowerCase() : null;

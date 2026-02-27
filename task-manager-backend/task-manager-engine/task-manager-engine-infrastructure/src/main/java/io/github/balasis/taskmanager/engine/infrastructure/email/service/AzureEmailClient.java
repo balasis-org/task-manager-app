@@ -2,9 +2,6 @@ package io.github.balasis.taskmanager.engine.infrastructure.email.service;
 
 import com.azure.communication.email.EmailClient;
 import com.azure.communication.email.models.EmailMessage;
-import com.azure.communication.email.models.EmailSendResult;
-import com.azure.core.util.polling.PollResponse;
-import com.azure.core.util.polling.SyncPoller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

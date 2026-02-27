@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import {
-    FiArrowLeft, FiShield, FiInfo, FiLock, FiMoon,
+    FiArrowLeft, FiShield, FiInfo, FiLock,
     FiSlash, FiSettings, FiRefreshCw, FiMail
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";

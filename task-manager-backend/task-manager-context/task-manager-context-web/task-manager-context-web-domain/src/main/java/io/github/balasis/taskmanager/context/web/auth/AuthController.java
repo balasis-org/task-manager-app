@@ -17,7 +17,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController extends BaseComponent {
-    protected Logger logger = LoggerFactory.getLogger(getClass());
     private final AuthService authService;
 
     @GetMapping("/login-url")
