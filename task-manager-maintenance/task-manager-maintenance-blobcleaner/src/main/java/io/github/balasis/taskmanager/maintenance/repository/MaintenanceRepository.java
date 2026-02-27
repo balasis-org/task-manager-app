@@ -33,9 +33,11 @@ public class MaintenanceRepository {
             )
             AND (u.systemRole IS NULL OR u.systemRole <> 'ADMIN')
             AND (
-                (u.imgUrl IS NULL     AND u.lastActiveAt < DATEADD(DAY, -7,  GETUTCDATE()))
+                (u.imgUrl IS NULL AND COALESCE(u.defaultImgUrl, 'profile1.png') = 'profile1.png'
+                    AND u.lastActiveAt < DATEADD(DAY, -7,  GETUTCDATE()))
                 OR
-                (u.imgUrl IS NOT NULL AND u.lastActiveAt < DATEADD(DAY, -14, GETUTCDATE()))
+                ((u.imgUrl IS NOT NULL OR COALESCE(u.defaultImgUrl, 'profile1.png') <> 'profile1.png')
+                    AND u.lastActiveAt < DATEADD(DAY, -14, GETUTCDATE()))
             )
         """, Long.class);
     }

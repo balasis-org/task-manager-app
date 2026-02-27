@@ -23,6 +23,15 @@ public class DefaultImageService {
         return images.get(idx).getFileName();
     }
 
+    public String pickFirst(BlobContainerType type) {
+        List<DefaultImage> images = defaultImageRepository.findByType(type);
+        if (images.isEmpty()) return null;
+        return images.stream()
+                .map(DefaultImage::getFileName)
+                .min(String::compareTo)
+                .orElse(null);
+    }
+
     public List<String> findAll(BlobContainerType type) {
         return defaultImageRepository.findByType(type)
                 .stream()
