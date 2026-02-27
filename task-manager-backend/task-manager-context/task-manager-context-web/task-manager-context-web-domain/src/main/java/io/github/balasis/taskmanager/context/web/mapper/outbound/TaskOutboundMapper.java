@@ -12,4 +12,3 @@ public interface TaskOutboundMapper extends BaseOutboundMapper<Task, TaskOutboun
     TaskOutboundResource toResource(Task task);
 
 }
-

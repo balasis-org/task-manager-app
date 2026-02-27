@@ -1,4 +1,3 @@
-/* shared popup styles */
 
 .popup-overlay {
     position: fixed;
@@ -105,7 +104,6 @@
     margin-top: 0.5em;
 }
 
-/* Buttons */
 .btn-primary {
     padding: 0.625em 1.25em;
     border: none;
@@ -143,7 +141,6 @@
     background: var(--bg-active);
 }
 
-/* Search results */
 .popup-search-results {
     max-height: 10em;
     overflow-y: auto;
@@ -216,7 +213,6 @@
     font-weight: 400;
 }
 
-/* Events list */
 .popup-event-list {
     list-style: none;
     padding: 0;
@@ -239,7 +235,6 @@
     margin-left: 0.75em;
 }
 
-/* New (unseen) event highlight */
 .popup-event-new {
     background: var(--warning-bg);
 }
@@ -256,7 +251,6 @@
     flex-shrink: 0;
 }
 
-/* Pagination */
 .popup-pagination {
     display: flex;
     align-items: center;
@@ -284,7 +278,6 @@
     color: var(--text-placeholder);
 }
 
-/* Form row (side-by-side fields) */
 .popup-form-row {
     display: flex;
     gap: 0.75em;
@@ -294,7 +287,6 @@
     min-width: 0;
 }
 
-/* Picker sections (reviewers, assignees, files) */
 .popup-picker-section {
     display: flex;
     flex-direction: column;
@@ -349,7 +341,6 @@
     text-transform: lowercase;
 }
 
-/* chips (selected items) */
 .popup-chip-list {
     display: flex;
     flex-wrap: wrap;
@@ -402,7 +393,6 @@
     background: #eee;
 }
 
-/* New group popup enhancements */
 .new-group-popup-card {
     padding: 2.12em 2.5em;
     width: 32.5em;
@@ -567,7 +557,6 @@
     }
 }
 
-/* Picker inline search */
 .popup-picker-search {
     width:100%;
     display: inline-flex;
@@ -594,7 +583,6 @@
     color: var(--text-placeholder);
 }
 
-/* --- group settings popup (gs-*) --- */
 .gs-popup {
     max-height: 88vh;
     overflow-y: auto;
@@ -720,7 +708,6 @@
     background: var(--bg-active);
 }
 
-/* Image row */
 .gs-image-row {
     display: flex;
     align-items: center;
@@ -784,7 +771,6 @@
     cursor: not-allowed;
 }
 
-/* warning & danger sections */
 .gs-section-warning {
     border-color: var(--warning);
     background: #fffde7;
@@ -833,7 +819,6 @@
     cursor: not-allowed;
 }
 
-/* Transfer area */
 .gs-transfer-area {
     margin-top: 0.625em;
     display: flex;
@@ -887,7 +872,6 @@
     font-weight: 600;
 }
 
-/* Confirm box */
 .gs-confirm-box {
     display: flex;
     flex-direction: column;
@@ -907,9 +891,6 @@
     from { opacity: 0; transform: translateY(-0.25em); }
     to   { opacity: 1; transform: translateY(0); }
 }
-/* ============================================================
-   Default Image Picker
-   ============================================================ */
 
 .dflt-picker-overlay {
     position: fixed;

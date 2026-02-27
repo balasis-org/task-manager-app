@@ -1,4 +1,4 @@
-/* Layout shell */
+
 .layout {
     display: flex;
     width: 100%;
@@ -6,7 +6,6 @@
     overflow: hidden;
 }
 
-/* Sidebar */
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -197,7 +196,6 @@
     padding: 0.5em 0.5em 0;
 }
 
-/* Main content area */
 .layout-body {
     flex: 1;
     display: flex;
@@ -213,9 +211,8 @@
     padding: 0;
 }
 
-/* Responsive — Sidebar icons-only mode */
 @media (max-width: 768px) {
-    /* Shrink sidebar to icons-only */
+
     .sidebar {
         width: 3.12em;
         min-width: 3.12em;
@@ -234,12 +231,10 @@
         min-width: 0;
     }
 
-    /* Keep the toggle arrow so user can fully hide the sidebar */
     .sidebar-toggle {
         display: flex;
     }
 
-    /* Hide profile image, name & footer */
     .sidebar-profile {
         display: none;
     }
@@ -252,7 +247,6 @@
         display: none;
     }
 
-    /* Hide nav labels, keep only icons */
     .nav-label {
         display: none;
     }
@@ -272,7 +266,6 @@
         min-width: 0.5em;
     }
 
-    /* Center icons */
     .sidebar-nav a,
     .sidebar-nav button {
         padding: 0.75em 0;

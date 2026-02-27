@@ -17,12 +17,11 @@ export default function Layout({ children }) {
     const pollTimer = useRef(null);
     const lastActivityRef = useRef(Date.now());
 
-    // Tiered polling for invitations — tripled cadence (there's a manual refresh)
-    const TIER1_MS    = 60_000;          // 1 min active
-    const TIER1_UNTIL = 10 * 60_000;     // first 10 min
-    const TIER2_MS    = 3 * 60_000;      // 3 min mildly idle
-    const TIER2_UNTIL = 15 * 60_000;     // 10–15 min
-    const TIER3_MS    = 45 * 60_000;     // 45 min deep idle
+    const TIER1_MS    = 60_000;
+    const TIER1_UNTIL = 10 * 60_000;
+    const TIER2_MS    = 3 * 60_000;
+    const TIER2_UNTIL = 15 * 60_000;
+    const TIER3_MS    = 45 * 60_000;
 
     function getInvitePollInterval() {
         const idle = Date.now() - lastActivityRef.current;
@@ -31,7 +30,6 @@ export default function Layout({ children }) {
         return TIER3_MS;
     }
 
-    // track user activity to avoid polling when tab is backgrounded / idle
     useEffect(() => {
         const touch = () => { lastActivityRef.current = Date.now(); };
         window.addEventListener("mousemove", touch, { passive: true });
@@ -42,9 +40,6 @@ export default function Layout({ children }) {
         };
     }, []);
 
-    // Lightweight invitation polling — runs everywhere including the invitations page.
-    // When NOT on the invitations page and new invites exist → show badge.
-    // When ON the invitations page and new invites exist → dispatch custom event so the page re-fetches.
     useEffect(() => {
         if (!user) return;
 
@@ -56,23 +51,23 @@ export default function Layout({ children }) {
 
             try {
                 await apiGet("/api/group-invitations/check-new");
-                // 204 — no new invites
+
                 if (!cancelled) setHasNewInvites(false);
             } catch (err) {
                 if (cancelled) return;
                 if (err?.status === 409) {
                     if (onInvitationsPage()) {
-                        // don't show badge; tell the Invitations page to re-fetch
+
                         setHasNewInvites(false);
                         window.dispatchEvent(new CustomEvent("invites-changed"));
                     } else {
                         setHasNewInvites(true);
                     }
                 }
-                // other errors silently ignored
+
             }
 
-            if (!cancelled) schedulePoll();   // chain the next tick
+            if (!cancelled) schedulePoll();
         }
 
         function schedulePoll() {
@@ -80,7 +75,7 @@ export default function Layout({ children }) {
             pollTimer.current = setTimeout(check, getInvitePollInterval());
         }
 
-        check(); // immediate first check
+        check();
 
         return () => {
             cancelled = true;
@@ -110,7 +105,7 @@ export default function Layout({ children }) {
 
                 <div className="sidebar-clip">
                 <div className="sidebar-inner">
-                    {/* profile pic + name */}
+                    { }
                     <div className="sidebar-profile">
                         {profileImg ? (
                             <img
@@ -137,7 +132,7 @@ export default function Layout({ children }) {
                         )}
                     </div>
 
-                    {/* nav links */}
+                    { }
                     <nav className="sidebar-nav">
                         <NavLink
                             to="/dashboard"
@@ -185,11 +180,9 @@ export default function Layout({ children }) {
                         </button>
                     </nav>
 
-
                     <div className="sidebar-date">
                         {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                     </div>
-
 
                     <div className="sidebar-footer">
                         <Footer />
@@ -197,7 +190,6 @@ export default function Layout({ children }) {
                 </div>
                 </div>
             </aside>
-
 
             <div className="layout-body">
                 <main className="layout-main">{children}</main>

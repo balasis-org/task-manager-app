@@ -38,7 +38,6 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
     const [fileDragOver, setFileDragOver] = useState(false);
     const fileInputRef = useRef(null);
 
-    // filter out already-picked members
     const reviewerIds = new Set(selectedReviewers.map((m) => m.user?.id));
     const assigneeIds = new Set(selectedAssignees.map((m) => m.user?.id));
     const eligibleReviewers = (members || []).filter(
@@ -52,7 +51,6 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                                   || (m.user?.email || "").toLowerCase().includes(assigneeSearch.toLowerCase()))
     );
 
-    // if someone leaves the group mid-edit, remove them from selected
     useEffect(() => {
         const currentMemberIds = new Set((members || []).map((m) => m.user?.id));
         setSelectedReviewers((prev) => prev.filter((m) => currentMemberIds.has(m.user?.id)));
@@ -123,7 +121,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
             onCreated(created);
         } catch (err) {
             setError(err?.message || "Failed to create task.");
-            // refresh members so removed people get cleared
+
             if (onRefresh) onRefresh();
         } finally {
             setBusy(false);
@@ -194,7 +192,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         />
                     </label>
 
-                    {/* reviewers */}
+                    { }
                     <div className="popup-picker-section">
                         <span className="popup-picker-label">
                             Reviewers
@@ -232,7 +230,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         )}
                     </div>
 
-                    {/* assignees */}
+                    { }
                     <div className="popup-picker-section">
                         <span className="popup-picker-label">
                             Assignees
@@ -270,7 +268,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         )}
                     </div>
 
-                    {/* file attachments */}
+                    { }
                     <div
                         className={`popup-picker-section${fileDragOver ? " file-drag-over" : ""}`}
                         onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}

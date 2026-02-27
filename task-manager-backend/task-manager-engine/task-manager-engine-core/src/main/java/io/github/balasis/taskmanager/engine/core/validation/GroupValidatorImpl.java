@@ -241,7 +241,6 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
-    
     @Override
     public void validateChangeGroupMembershipRole(Long groupId, Long targetUserId, Role newRole) {
 
@@ -417,7 +416,6 @@ public class GroupValidatorImpl implements GroupValidator{
                 .orElseThrow(() -> new NotAGroupMemberException("User to be set as reviewer is not a member of the group"));
     }
 
-
     private void isFileEmpty(MultipartFile file){
         if (file == null || file.isEmpty()) {
             throw new InvalidFieldValueException("File cannot be empty");
@@ -430,7 +428,6 @@ public class GroupValidatorImpl implements GroupValidator{
            throw new TaskParticipantNotFoundException("TaskParticipant doesn't exist in the task");
        }
     }
-
 
     private void doesTheFileExistInGroup(Task task, Long fileId){
         boolean fileExists = task.getCreatorFiles().stream().anyMatch(f -> f.getId().equals(fileId));
@@ -451,9 +448,6 @@ public class GroupValidatorImpl implements GroupValidator{
             throw new InvalidFieldValueException("Maximum " + max + " files allowed");
         }
     }
-
-
-
 
     private void isToBeInvitedUserExists(GroupInvitation groupInvitation){
         if(!userRepository.existsById(groupInvitation.getUser().getId())){
@@ -491,7 +485,7 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     private void doesInvitationAlreadyExists(GroupInvitation groupInvitation){
-        // only consider a duplicate if there is already a PENDING invitation for same user+group
+
         if (groupInvitationRepository.existsByUser_IdAndGroup_IdAndInvitationStatus(
                 groupInvitation.getUser().getId(), groupInvitation.getGroup().getId(), InvitationStatus.PENDING
         )){

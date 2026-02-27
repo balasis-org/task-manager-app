@@ -20,13 +20,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
-        // JWT runs FIRST — populates CurrentUser for authenticated endpoints
+
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .order(1)
                 .excludePathPatterns("/auth/**","/h2-console");
 
-        // Rate limiter runs SECOND — uses userId from CurrentUser (skips public endpoints)
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/**")
                 .order(2)
@@ -49,7 +48,5 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
-
-
 
 }

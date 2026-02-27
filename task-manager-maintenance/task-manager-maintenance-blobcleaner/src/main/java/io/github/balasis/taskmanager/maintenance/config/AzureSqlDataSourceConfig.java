@@ -18,7 +18,6 @@ public class AzureSqlDataSourceConfig {
 
     @Bean
     public DataSource dataSource() {
-        // fetch secrets from Key Vault
 
         KeyVaultSecret dbUrlSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-URL");
         KeyVaultSecret dbUsernameSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-USERNAME");

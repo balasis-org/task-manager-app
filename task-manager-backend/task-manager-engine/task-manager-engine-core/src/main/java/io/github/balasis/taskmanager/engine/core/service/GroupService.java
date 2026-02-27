@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
-
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
@@ -19,7 +18,7 @@ import java.time.Instant;
 import java.util.Set;
 
 public interface GroupService{
-    //Group
+
     Group create(Group group);
     Group patch(Long groupId, Group group);
     void delete(Long groupId);
@@ -27,20 +26,17 @@ public interface GroupService{
     Group updateGroupImage(Long groupId, MultipartFile file);
     Group pickDefaultGroupImage(Long groupId, String fileName);
 
-    //GroupMemberships
     Page<GroupMembership> getAllGroupMembers(Long groupId, Pageable pageable);
     Page<GroupMembership> searchGroupMembers(Long groupId, String q, Pageable pageable);
     void removeGroupMember(Long groupId, Long groupMembershipId);
 
     GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
 
-    //GroupInvitations
     void createGroupInvitation(Long groupId, String inviteCode, Role roleOfUserToBeInvited, String comment);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
     Set<GroupInvitation> findMyGroupInvitations();
     Set<GroupInvitation> findInvitationsSentByMe();
 
-    //GroupTasks
     Task createTask(Long groupId, Task task, Set<Long> assignedIds, Set<Long> reviewerIds, Set<MultipartFile> files);
     Task patchTask(Long groupId ,Long taskId, Task task);
     Task reviewTask(Long groupId, Long taskId, Task task);
@@ -49,7 +45,6 @@ public interface GroupService{
 
     GroupWithPreviewDto findGroupWithPreviewTasks(Long groupId);
 
-    //TaskComments
     Page<TaskComment> findAllTaskComments(Long groupId, Long taskId, Pageable pageable);
     TaskComment addTaskComment(Long groupId, Long taskId, String comment);
     TaskComment patchTaskComment(Long groupId, Long taskId, Long commentId, String comment);
@@ -66,7 +61,6 @@ public interface GroupService{
             Instant dueDateBefore
         );
 
-    //Group Tasks Content
     Task addTaskParticipant(Long groupId, Long taskId , Long userId, TaskParticipantRole taskParticipantRole);
     void removeTaskParticipant(Long groupId, Long taskId, Long taskParticipantId);
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
@@ -80,7 +74,6 @@ public interface GroupService{
     Task markTaskToBeReviewed(Long groupId, Long taskId);
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
 
-    //Refresh (delta polling)
     GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
 
     void deleteTask(Long groupId, Long taskId);
@@ -102,10 +95,8 @@ public interface GroupService{
         Boolean hasFiles
     );
 
-    //Invitation polling
     boolean hasNewInvitations();
 
-    //Task / comments lightweight change check
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 }

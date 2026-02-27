@@ -36,31 +36,25 @@ export default function Task() {
     const [rightOpen, setRightOpen] = useState(true);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // Editable fields
     const [editTitle, setEditTitle] = useState("");
     const [editDesc, setEditDesc] = useState("");
     const [editState, setEditState] = useState("");
 
-    // Reviewer form
     const [reviewComment, setReviewComment] = useState("");
     const [reviewDecision, setReviewDecision] = useState("APPROVE");
     const [submittingReview, setSubmittingReview] = useState(false);
 
-    // Participant picker popups
     const [showReviewerPicker, setShowReviewerPicker] = useState(false);
     const [showAssigneePicker, setShowAssigneePicker] = useState(false);
 
-    // File uploads
     const fileInputRef = useRef(null);
     const assigneeFileInputRef = useRef(null);
     const [fileDragOver, setFileDragOver] = useState(false);
     const [assigneeDragOver, setAssigneeDragOver] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
 
-    // track when we last fetched the task for lightweight polling
     const lastFetchRef = useRef(new Date().toISOString());
 
-    // lightweight change-detection poll
     const taskPollCheck = useCallback(async () => {
         if (!groupId || !taskId) return;
         await apiGet(`/api/groups/${groupId}/task/${taskId}/has-changed?since=${encodeURIComponent(lastFetchRef.current)}`);
@@ -80,18 +74,17 @@ export default function Task() {
     const isReviewer = myTaskRole === "REVIEWER";
     const isAssignee = myTaskRole === "ASSIGNEE";
     const canEdit = isLeaderOrManager;
-    // TASK_MANAGER can delete only if the creator is no longer GL or TM in the group,
-    // OR if the creator is the current user themselves (self-delete always allowed).
+
     const canDelete = (() => {
         if (!isLeaderOrManager || !task) return false;
         if (myRole === "GROUP_LEADER") return true;
-        // TASK_MANAGER path
+
         const creatorParticipant = task.taskParticipants?.find(p => p.taskParticipantRole === "CREATOR");
         if (!creatorParticipant) return true;
-        // Self-created → always deletable
+
         if (creatorParticipant.user?.id === user?.id) return true;
         const creatorMember = (members || []).find(m => m.user?.id === creatorParticipant.user?.id);
-        if (!creatorMember) return true; // creator left group
+        if (!creatorMember) return true;
         return creatorMember.role !== "GROUP_LEADER" && creatorMember.role !== "TASK_MANAGER";
     })();
     const canReview = isReviewer || isLeaderOrManager;
@@ -101,7 +94,6 @@ export default function Task() {
     const canUploadFiles = isLeaderOrManager;
     const canUploadAssigneeFiles = isAssignee || isLeaderOrManager;
 
-    // participant groupings
     const reviewers = task?.taskParticipants
         ? [...task.taskParticipants].filter((p) => p.taskParticipantRole === "REVIEWER")
         : [];
@@ -112,7 +104,6 @@ export default function Task() {
         ? [...task.taskParticipants].find((p) => p.taskParticipantRole === "CREATOR")
         : null;
 
-    // filter out members already added
     const existingReviewerIds = new Set(reviewers.map((r) => r.user?.id));
     const existingAssigneeIds = new Set(assignees.map((a) => a.user?.id));
     const eligibleReviewers = (members || []).filter(
@@ -122,12 +113,10 @@ export default function Task() {
         (m) => ASSIGNEE_ELIGIBLE_ROLES.includes(m.role) && !existingAssigneeIds.has(m.user?.id)
     );
 
-    // refresh the members list so the pickers stay current
     useEffect(() => {
         if (groupId) refreshActiveGroup();
     }, [groupId]);
 
-    // auto-redirect to dashboard if the user loses access to this group
     useEffect(() => {
         const handler = (e) => {
             if (String(e.detail?.groupId) === String(groupId)) {
@@ -139,7 +128,6 @@ export default function Task() {
         return () => window.removeEventListener("group-access-lost", handler);
     }, [groupId, navigate, showToast]);
 
-    // re-fetch task data (called after errors to fix stale UI)
     function refetchTask() {
         if (!groupId || !taskId) return;
         apiGet(`/api/groups/${groupId}/task/${taskId}`)
@@ -154,13 +142,11 @@ export default function Task() {
             .catch(() => {});
     }
 
-    // quick heal - re-pull both group + task so everything's fresh
     function autoHeal() {
         refreshActiveGroup();
         refetchTask();
     }
 
-    // load task on mount
     useEffect(() => {
         if (!groupId || !taskId) return;
         setLoading(true);
@@ -259,7 +245,6 @@ export default function Task() {
         }
     }
 
-    /* upload a single file (task or assignee) */
     async function uploadSingleFile(file, isAssignee) {
         const currentCount = isAssignee
             ? (task?.assigneeFiles?.length || 0)
@@ -334,7 +319,7 @@ export default function Task() {
                 ? `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}`
                 : `/api/groups/${groupId}/task/${taskId}/files/${fileId}`;
             await apiDelete(endpoint);
-            // Refetch task
+
             const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
             setTask(refreshed);
         } catch (err) {
@@ -353,7 +338,7 @@ export default function Task() {
         <div className="task-page">
 
             <div className={`task-main${rightOpen ? "" : " full-width"}`}>
-                {/* Breadcrumb / top bar */}
+                { }
                 <div className="task-breadcrumb">
                     <Link to="/dashboard" className="task-breadcrumb-back" title="Back to group">
                         <FiArrowLeft size={14} />
@@ -395,7 +380,7 @@ export default function Task() {
                     </div>
                 </div>
 
-                {/* Poll-detected changes banner */}
+                { }
                 {(taskHasChanged || taskIsStale) && (
                     <div className="task-stale-banner">
                         <span>{taskHasChanged ? "This task has been updated." : "Data may be outdated."}</span>
@@ -405,7 +390,7 @@ export default function Task() {
                     </div>
                 )}
 
-                {/* State selector */}
+                { }
                 <div className="task-state-bar">
                     {canChangeState || canEdit ? (
                         <select
@@ -432,7 +417,7 @@ export default function Task() {
                     )}
                 </div>
 
-                {/* Title & description */}
+                { }
                 <div className="task-body">
                     {editing ? (
                         <>
@@ -471,7 +456,7 @@ export default function Task() {
                         </>
                     )}
 
-                    {/* Files */}
+                    { }
                     <div
                         className={`task-files-section${fileDragOver ? " drag-over" : ""}`}
                         onDragOver={(e) => { if (canUploadFiles) { e.preventDefault(); setFileDragOver(true); } }}
@@ -546,7 +531,6 @@ export default function Task() {
                 </div>
             </div>
 
-
             <aside className={`task-right-sidebar${rightOpen ? "" : " collapsed"}`}>
                 <button
                     className="task-right-toggle"
@@ -558,7 +542,7 @@ export default function Task() {
 
                 {rightOpen && (
                     <div className="task-right-content">
-                        {/* reviewers */}
+                        { }
                         <div className="task-sidebar-section">
                             <h4>
                                 Reviewer
@@ -573,7 +557,7 @@ export default function Task() {
                                 )}
                             </h4>
 
-                            {/* Reviewer picker dropdown */}
+                            { }
                             {showReviewerPicker && canAddParticipants && (
                                 <div className="task-participant-picker">
                                     {eligibleReviewers.length === 0 ? (
@@ -611,7 +595,7 @@ export default function Task() {
                                 )}
                             </div>
 
-                            {/* Review info (read-only) */}
+                            { }
                             <div className="task-review-info">
                                 <div className="task-info-row">
                                     <span className="task-info-label">Latest review by:</span>
@@ -629,7 +613,7 @@ export default function Task() {
                                 </div>
                             </div>
 
-                            {/* Reviewer form — only for reviewers / managers */}
+                            { }
                             {canReview && (
                                 <div className="task-review-form">
                                     <label>Reviewer Comment</label>
@@ -673,7 +657,7 @@ export default function Task() {
                             )}
                         </div>
 
-                        {/* assignees */}
+                        { }
                         <div className="task-sidebar-section">
                             <h4>
                                 Assignees
@@ -688,7 +672,7 @@ export default function Task() {
                                 )}
                             </h4>
 
-                            {/* Assignee picker dropdown */}
+                            { }
                             {showAssigneePicker && canAddParticipants && (
                                 <div className="task-participant-picker">
                                     {eligibleAssignees.length === 0 ? (
@@ -727,7 +711,7 @@ export default function Task() {
                             </div>
                         </div>
 
-                        {/* assignee files */}
+                        { }
                         <div
                             className={`task-sidebar-section${assigneeDragOver ? " drag-over" : ""}`}
                             onDragOver={(e) => { if (canUploadAssigneeFiles) { e.preventDefault(); setAssigneeDragOver(true); } }}
@@ -800,7 +784,7 @@ export default function Task() {
                             )}
                         </div>
 
-                        {/* Move to be reviewed */}
+                        { }
                         {canMoveToBeReviewed && task.taskState !== "TO_BE_REVIEWED" && task.taskState !== "DONE" && (
                             <div className="task-sidebar-section task-move-section">
                                 <button className="btn-primary btn-block" onClick={handleMoveToBeReviewed}>
@@ -821,8 +805,6 @@ export default function Task() {
         </div>
     );
 }
-
-
 
 function userImg(u, blobUrl) {
     if (!u) return "";

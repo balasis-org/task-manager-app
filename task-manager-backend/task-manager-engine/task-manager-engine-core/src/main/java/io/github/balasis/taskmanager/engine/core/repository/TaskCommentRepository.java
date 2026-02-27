@@ -20,11 +20,6 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     @EntityGraph(attributePaths = {"creator"})
     Optional<TaskComment> findWithCreatorById(Long id);
 
-    /**
-     * Detaches the creator from all comments they wrote on tasks belonging
-     * to the given group.  Sets creator to null and preserves the name
-     * in creatorNameSnapshot so the UI can still display it.
-     */
     @Modifying
     @Query("""
         UPDATE TaskComment tc

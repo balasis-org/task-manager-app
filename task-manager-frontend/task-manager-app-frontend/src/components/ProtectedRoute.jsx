@@ -6,7 +6,6 @@ import Spinner from "@components/Spinner";
 export default function ProtectedRoute({ children }) {
     const { user, bootstrapped } = useContext(AuthContext);
 
-    // wait for initial auth check
     if (!bootstrapped) {
         return <Spinner />;
     }

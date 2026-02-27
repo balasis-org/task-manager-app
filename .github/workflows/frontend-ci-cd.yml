@@ -63,7 +63,6 @@ jobs:
           name: frontend-dist
           path: dist
 
-      # ── Upload hashed Vite assets to 'assets' container ──
       - name: Upload assets to blob
         run: |
           az storage blob upload-batch \
@@ -73,7 +72,6 @@ jobs:
             --destination assets \
             --overwrite
 
-      # ── Upload static_frontend (favicons, icons, etc.) to 'staticfrontend' container ──
       - name: Upload static_frontend to blob
         run: |
           if [ -d "dist/static_frontend" ]; then
@@ -85,10 +83,9 @@ jobs:
               --overwrite
           fi
 
-      # ── Upload remaining files (index.html, etc.) to 'web' container ──
       - name: Upload web root to blob
         run: |
-          # Remove folders already uploaded as separate containers
+
           rm -rf dist/assets dist/static_frontend
           az storage blob upload-batch \
             --account-name anstaskmanagerstorage \

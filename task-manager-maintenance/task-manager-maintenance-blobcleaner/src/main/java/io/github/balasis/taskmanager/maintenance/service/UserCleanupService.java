@@ -13,10 +13,6 @@ public class UserCleanupService extends BaseComponent {
 
     private final MaintenanceRepository repository;
 
-    /**
-     * Deletes users who do not belong to any group and have been inactive
-     * for more than 7 days (no profile image) or 14 days (has profile image).
-     */
     public void cleanInactiveUsers() {
         List<Long> ids = repository.findInactiveUserIdsWithoutGroups();
 

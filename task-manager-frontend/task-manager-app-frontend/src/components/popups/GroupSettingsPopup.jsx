@@ -12,40 +12,33 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
     const showToast = useToast();
     const blobUrl = useBlobUrl();
 
-    /* description */
     const [editDesc, setEditDesc] = useState(false);
     const [description, setDescription] = useState(group.description || "");
     const [savingDesc, setSavingDesc] = useState(false);
 
-    /* announcement */
     const [editAnn, setEditAnn] = useState(false);
     const [announcement, setAnnouncement] = useState(group.announcement || "");
     const [savingAnn, setSavingAnn] = useState(false);
 
-    /* email notifs */
     const [editEmail, setEditEmail] = useState(false);
     const [emailNotif, setEmailNotif] = useState(group.allowEmailNotification ?? true);
     const [savingEmail, setSavingEmail] = useState(false);
 
-    /* Image */
     const [coverImage, setCoverImage] = useState(null);
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
     const [showDefaultPicker, setShowDefaultPicker] = useState(false);
     const fileRef = useRef(null);
 
-    /* Transfer leadership */
     const [showTransfer, setShowTransfer] = useState(false);
     const [transferSearch, setTransferSearch] = useState("");
     const [transferTarget, setTransferTarget] = useState(null);
     const [confirmTransfer, setConfirmTransfer] = useState(false);
     const [transferring, setTransferring] = useState(false);
 
-    /* Delete group */
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    // members excluding self (for transfer picker)
     const otherMembers = (members || []).filter(m => m.user?.id !== user?.id);
     const filteredTransfer = otherMembers.filter(m => {
         if (!transferSearch.trim()) return true;
@@ -54,7 +47,6 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
             || (m.user?.email || "").toLowerCase().includes(q);
     });
 
-    // save helpers
     async function saveDescription() {
         setSavingDesc(true);
         try {
@@ -112,7 +104,6 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
         finally { setUploadingImg(false); }
     }
 
-    /* Transfer leadership */
     async function handleTransfer() {
         if (!transferTarget) return;
         setTransferring(true);
@@ -126,7 +117,6 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
         finally { setTransferring(false); }
     }
 
-    /* Delete group */
     async function handleDelete() {
         setDeleting(true);
         try {
@@ -144,7 +134,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     {group.name} — Settings
                 </h2>
 
-                {/* Description */}
+                { }
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Description</span>
@@ -177,7 +167,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* Announcement */}
+                { }
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Announcement</span>
@@ -210,7 +200,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* Email notifications */}
+                { }
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Email notifications</span>
@@ -243,7 +233,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* Group image */}
+                { }
                 <section className="gs-section">
                     <div className="gs-section-header">
                         <span className="gs-section-label">Group image</span>
@@ -308,7 +298,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* Transfer leadership */}
+                { }
                 <section className="gs-section gs-section-warning">
                     <div className="gs-section-header">
                         <span className="gs-section-label">
@@ -383,7 +373,7 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     )}
                 </section>
 
-                {/* Danger zone */}
+                { }
                 <section className="gs-section gs-section-danger">
                     <div className="gs-section-header">
                         <span className="gs-section-label">

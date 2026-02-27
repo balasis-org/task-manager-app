@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.base.model;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -72,7 +71,6 @@ public class Group extends BaseModel{
 
     @Column
     private Instant lastMaintenanceDate;
-
 
     @Column
     private Instant createdAt;

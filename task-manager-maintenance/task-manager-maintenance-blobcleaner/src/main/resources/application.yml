@@ -21,4 +21,3 @@ logging:
     io.github.balasis.taskmanager: TRACE
     org.springframework.transaction.interceptor: WARN
     com.azure.monitor.opentelemetry: INFO
-

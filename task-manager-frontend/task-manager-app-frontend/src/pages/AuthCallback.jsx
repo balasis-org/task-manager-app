@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "@styles/pages/Login.css";
 
-// handles the Azure AD redirect — exchanges the ?code for a session cookie
-// then redirects to /dashboard
 export default function AuthCallback() {
     const [searchParams] = useSearchParams();
     const [error, setError] = useState("");
@@ -40,7 +38,7 @@ export default function AuthCallback() {
                 }
 
                 if (!cancelled) {
-                    // Full reload so AuthProvider picks up the new cookies
+
                     window.location.href = "/dashboard";
                 }
             } catch (err) {

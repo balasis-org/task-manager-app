@@ -34,20 +34,6 @@ function isFilterEmpty(f) {
     return Object.values(f).every((v) => v === "" || v == null);
 }
 
-/**
- * FilterPanel — user sets criteria then clicks Apply once.
- * While applied, fields are locked. "Edit" unlocks them.
- *
- * Props:
- *  - members       : cached members list for pickers
- *  - filters        : current filter criteria object
- *  - isApplied      : boolean — are filters currently applied / locked?
- *  - onDraftChange  : (draft) => void — updates draft criteria (no request)
- *  - onApply        : () => void — fire the backend request
- *  - onEdit         : () => void — unlock fields (marks not-applied)
- *  - onClear        : () => void — reset everything
- *  - onClose        : () => void — close the panel
- */
 export default function FilterPanel({
     members,
     filters,
@@ -61,12 +47,10 @@ export default function FilterPanel({
     const panelRef = useRef(null);
     const locked = isApplied;
 
-    // member search states for each picker
     const [creatorSearch, setCreatorSearch] = useState("");
     const [reviewerSearch, setReviewerSearch] = useState("");
     const [assigneeSearch, setAssigneeSearch] = useState("");
 
-    // click-outside closes the panel
     useEffect(() => {
         function handleClick(e) {
             if (panelRef.current && !panelRef.current.contains(e.target)) {
@@ -89,7 +73,6 @@ export default function FilterPanel({
         onClear();
     };
 
-    // member helpers
     const memberName = (id) => {
         if (!id) return "";
         const m = members.find((m) => String(m.user?.id) === String(id));
@@ -130,7 +113,7 @@ export default function FilterPanel({
             </div>
 
             <div className={`filter-panel-body${locked ? " locked" : ""}`}>
-                {/* Creator picker */}
+                { }
                 <MemberPicker
                     label="Creator"
                     value={filters.creatorId}
@@ -143,7 +126,7 @@ export default function FilterPanel({
                     disabled={locked}
                 />
 
-                {/* Reviewer picker */}
+                { }
                 <MemberPicker
                     label="Reviewer"
                     value={filters.reviewerId}
@@ -156,7 +139,7 @@ export default function FilterPanel({
                     disabled={locked}
                 />
 
-                {/* Assignee picker */}
+                { }
                 <MemberPicker
                     label="Assignee"
                     value={filters.assigneeId}
@@ -169,7 +152,7 @@ export default function FilterPanel({
                     disabled={locked}
                 />
 
-                {/* Priority range */}
+                { }
                 <div className="filter-field filter-priority-range">
                     <span className="filter-field-label">Priority (1–10)</span>
                     <div className="filter-range-inputs">
@@ -197,7 +180,7 @@ export default function FilterPanel({
                     </div>
                 </div>
 
-                {/* Task State */}
+                { }
                 <label className="filter-field">
                     <span className="filter-field-label">Status</span>
                     <select
@@ -213,7 +196,7 @@ export default function FilterPanel({
                     </select>
                 </label>
 
-                {/* Has Files */}
+                { }
                 <label className="filter-field">
                     <span className="filter-field-label">Has files</span>
                     <select
@@ -229,7 +212,7 @@ export default function FilterPanel({
                     </select>
                 </label>
 
-                {/* Due Date Before */}
+                { }
                 <label className="filter-field">
                     <span className="filter-field-label">Due before</span>
                     <input
@@ -243,7 +226,7 @@ export default function FilterPanel({
 
             <div className="filter-panel-footer">
                 {locked ? (
-                    /* Active state — Edit or Clear */
+
                     <>
                         <button className="filter-edit-btn" onClick={onEdit}>
                             <FiEdit2 size={11} /> Edit
@@ -253,7 +236,7 @@ export default function FilterPanel({
                         </button>
                     </>
                 ) : (
-                    /* Draft state — Apply or Clear */
+
                     <>
                         <button
                             className="filter-apply-btn"
@@ -275,9 +258,6 @@ export default function FilterPanel({
         </div>
     );
 }
-
-
-/* --- Member picker sub-component --- */
 
 function MemberPicker({
     label,

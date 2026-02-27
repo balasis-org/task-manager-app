@@ -20,13 +20,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 @RequestMapping("/admin")
 public class AdminController extends BaseComponent {
 
-    /** Maximum time allowed for a single file download (protects against slow clients holding resources). */
     private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
 
     private final AdminService adminService;
     private final AdminOutboundMapper adminOutboundMapper;
-
-    /* ─────  users ───── */
 
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserResource>> listUsers(
@@ -46,8 +43,6 @@ public class AdminController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /* ───── groups ───── */
-
     @GetMapping("/groups")
     public ResponseEntity<Page<AdminGroupResource>> listGroups(
             @RequestParam(required = false) String q, Pageable pageable) {
@@ -65,8 +60,6 @@ public class AdminController extends BaseComponent {
         adminService.deleteGroup(groupId);
         return ResponseEntity.noContent().build();
     }
-
-    /* ───── tasks ───── */
 
     @GetMapping("/tasks")
     public ResponseEntity<Page<AdminTaskResource>> listTasks(
@@ -121,8 +114,6 @@ public class AdminController extends BaseComponent {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(body);
     }
-
-    /* ───── comments ───── */
 
     @GetMapping("/comments")
     public ResponseEntity<Page<AdminCommentResource>> listComments(

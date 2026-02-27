@@ -21,12 +21,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # NOTE:
-      # Controller endpoints will still remain out of scope for automated testing,
-      # since they depend heavily on network routing, authentication middleware,
-      # and runtime configuration that are validated more reliably through integration
-      # and deployment tests rather than unit execution.
-
       - name: Build contract dependency first
         run: |
           mvn -f task-manager-contracts/pom.xml clean install

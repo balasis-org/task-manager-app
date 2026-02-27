@@ -1,6 +1,4 @@
-/* Shared column grid  –  single header */
 
-/* Column header (rendered once) */
 .task-col-header {
     display: grid;
     padding: 0.5em 1em;
@@ -26,13 +24,11 @@
     align-items: center;
 }
 
-/* Centre every header except the first (Title) */
 .col-header-cell:not(:first-child) {
     justify-content: center;
     text-align: center;
 }
 
-/* Drag handle between column headers */
 .col-resize-handle {
     position: absolute;
     top: 0;
@@ -59,7 +55,6 @@
     background: #888;
 }
 
-/* Task row */
 .task-row {
     display: grid;
     align-items: center;
@@ -89,7 +84,6 @@
     100% { background: transparent; }
 }
 
-/* Cells */
 .task-cell {
     padding: 0.5em 0.75em;
     font-size: 0.81em;
@@ -99,8 +93,8 @@
 }
 
 .cell-title {
-    min-width: 0;          /* allow shrink inside grid */
-    max-width: 100%;       /* fill the entire 1fr track */
+    min-width: 0;
+    max-width: 100%;
 }
 
 .cell-creator,
@@ -129,7 +123,6 @@
     justify-content: center;
 }
 
-/* Empty state */
 .task-table-empty {
     padding: 0.75em 1.25em;
     color: var(--text-placeholder);
@@ -138,10 +131,9 @@
 }
 
 .task-rows {
-    /* group of rows — no extra styling needed */
+
 }
 
-/* Comment icon */
 .comment-icon {
     display: inline-flex;
     align-items: center;
@@ -159,7 +151,6 @@
     font-weight: 600;
 }
 
-/* Priority tags */
 .priority-tag {
     display: inline-block;
     padding: 0.125em 0.5em;
@@ -183,8 +174,6 @@
     background: var(--danger-bg-alt);
     color: var(--danger-text-alt);
 }
-
-/* Responsive — Task Table\n   Column visibility is now driven by JS (visCols prop).\n   Only adjust spacing at breakpoints. */
 
 @media (max-width: 1024px) {
     .task-cell {
@@ -224,7 +213,6 @@
     }
 }
 
-/* ─── Delete column ─── */
 .task-rows-wrapper {
     position: relative;
 }
@@ -262,7 +250,6 @@
     cursor: not-allowed;
 }
 
-/* Delete confirmation modal (shared with Task page) */
 .task-delete-overlay {
     position: fixed;
     inset: 0;

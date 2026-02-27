@@ -28,7 +28,6 @@ export default function Invitations() {
     const [refreshing, setRefreshing] = useState(false);
     const [lastSeenBefore, setLastSeenBefore] = useState(null);
 
-    // keep a ref so the callback never depends on user state directly
     const userRef = useRef(user);
     userRef.current = user;
 
@@ -58,10 +57,8 @@ export default function Invitations() {
         }
     }, [setUser, showToast]);
 
-    // initial load — runs once
     useEffect(() => { fetchInvitations(); }, []);
 
-    // listen for the custom event dispatched by the Layout polling when new invites arrive
     useEffect(() => {
         const handler = () => fetchInvitations(true);
         window.addEventListener("invites-changed", handler);
@@ -79,8 +76,7 @@ export default function Invitations() {
             if (status === "ACCEPTED") reloadGroups();
         } catch (err) {
             showToast(err?.message || "Failed to respond to invitation", "error");
-            // Refetch invitations so the UI stays in sync
-            // (e.g. invitation was already processed, or no longer exists)
+
             setTimeout(() => fetchInvitations(true), 600);
         }
     }
@@ -92,7 +88,6 @@ export default function Invitations() {
 
     if (loading) return <Spinner />;
 
-    // split pending vs resolved
     const pendingReceived = received.filter(
         (inv) => inv.invitationStatus === "PENDING"
     );
@@ -199,7 +194,6 @@ export default function Invitations() {
 
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Your pending invites</h2>
-
 
                 {sent.length === 0 ? (
                     <p className="invitations-empty">No pending invites.</p>

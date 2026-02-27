@@ -19,9 +19,8 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService extends BaseComponent {
     private final SecretClientProvider secretClientProvider;
-    private static final long EXPIRATION_MS = 1000L * 60 * 15; // 15 minutes (matches cookie maxAge)
+    private static final long EXPIRATION_MS = 1000L * 60 * 15;
 
-    /** Cached at startup — avoids a Key Vault round-trip on every request. */
     private SecretKey cachedSignInKey;
 
     @PostConstruct

@@ -14,14 +14,12 @@ export default function Settings() {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
 
-    // local form state
     const [name, setName] = useState(user?.name || "");
     const [emailNotif, setEmailNotif] = useState(user?.allowEmailNotification ?? true);
     const [darkMode, setDarkMode] = useState(
         () => document.documentElement.getAttribute("data-theme") === "dark"
     );
 
-    // track what the server says so we know if anything changed
     const [serverName, setServerName] = useState(user?.name || "");
     const [serverNotif, setServerNotif] = useState(user?.allowEmailNotification ?? true);
 
@@ -32,7 +30,6 @@ export default function Settings() {
     const [showDefaultPicker, setShowDefaultPicker] = useState(false);
     const fileRef = useRef(null);
 
-    // sync when user context changes (e.g. after login)
     useEffect(() => {
         if (!user) return;
         setName(user.name || "");
@@ -41,13 +38,11 @@ export default function Settings() {
         setServerNotif(user.allowEmailNotification ?? true);
     }, [user]);
 
-    // persist dark mode preference
     useEffect(() => {
         document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
         localStorage.setItem("theme", darkMode ? "dark" : "light");
     }, [darkMode]);
 
-    // load theme on mount
     useEffect(() => {
         const saved = localStorage.getItem("theme");
         if (saved === "dark") {
@@ -58,7 +53,6 @@ export default function Settings() {
 
     const hasChanges = name.trim() !== serverName || emailNotif !== serverNotif;
 
-    // --- profile image ---
     function handleImagePick(file) {
         if (!file) return;
         if (!file.type.startsWith("image/")) {
@@ -104,7 +98,6 @@ export default function Settings() {
         }
     }
 
-    // --- save name + email notif ---
     async function handleSave() {
         if (!name.trim()) {
             showToast("Name cannot be empty");
@@ -163,7 +156,7 @@ export default function Settings() {
             <h1 className="settings-title">Settings</h1>
 
             <div className="settings-grid">
-                {/* profile image card */}
+                { }
                 <section className="settings-card settings-card-avatar">
                     <div
                         className={`settings-avatar-zone${imgDragOver ? " drag-over" : ""}`}
@@ -220,7 +213,7 @@ export default function Settings() {
                     )}
                 </section>
 
-                {/* account details card */}
+                { }
                 <section className="settings-card">
                     <h2 className="settings-card-heading">
                         <FiUser size={16} /> Account
@@ -279,7 +272,7 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* preferences card */}
+                { }
                 <section className="settings-card">
                     <h2 className="settings-card-heading">
                         <FiMoon size={16} /> Preferences
@@ -327,7 +320,7 @@ export default function Settings() {
                 </section>
             </div>
 
-            {/* sticky save bar */}
+            { }
             {hasChanges && (
                 <div className="settings-save-bar">
                     <span className="settings-save-hint">You have unsaved changes</span>

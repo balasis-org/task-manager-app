@@ -179,17 +179,17 @@
         </pluginManagement>
 
         <plugins>
-            <!-- Spring Boot plugin: makes bootable JAR for running the app -->
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!-- Compiler plugin: standard Java compilation -->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-            <!-- JAR plugin: sets main class and final JAR name -->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

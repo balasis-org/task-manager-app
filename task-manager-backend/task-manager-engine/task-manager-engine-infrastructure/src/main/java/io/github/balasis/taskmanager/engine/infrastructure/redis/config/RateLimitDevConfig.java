@@ -17,19 +17,6 @@ import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
-/**
- * Wires the Redis-backed rate limiter for <b>dev</b> profiles using a
- * local Docker Redis container (no SSL, password auth via env vars).
- * <p>
- * Expected env vars:
- * <ul>
- *   <li>{@code REDIS_HOST} — defaults to {@code localhost}</li>
- *   <li>{@code REDIS_PORT} — defaults to {@code 6379}</li>
- *   <li>{@code REDIS_PASSWORD} — optional; when blank, no auth is used</li>
- * </ul>
- * If the Redis connection fails the bean falls back to a no-op
- * implementation so the application still starts.
- */
 @Configuration
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor

@@ -44,7 +44,6 @@ public class BlobStorageService {
         }
     }
 
-
     public BlobDownload downloadTaskAssigneeFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
     }
@@ -53,7 +52,6 @@ public class BlobStorageService {
         assertTaskAssigneeFile(file);
         return uploadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, file, prefixId);
     }
-
 
     public BlobDownload downloadTaskFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_FILES, blobName);
@@ -73,7 +71,7 @@ public class BlobStorageService {
         assertImage(file);
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
     }
-    // we have a garbage collector doing the deletes in stand-alone spring app
+
     public void deleteTaskFile(String blobName) {
         deleteInternal(BlobContainerType.TASK_FILES, blobName);
     }
@@ -110,7 +108,6 @@ public class BlobStorageService {
         return new BlobDownload(inputStream, size);
     }
 
-    /** Lightweight holder for a streamable blob download. */
     public record BlobDownload(java.io.InputStream inputStream, long size) {}
 
     private void deleteInternal(BlobContainerType type, String blobName) {
@@ -152,22 +149,6 @@ public class BlobStorageService {
         }
 
     }
-// disabled for the files, they can upload in zip anyway so its pointless ;...
-//    private void assertContentSafetyIfImage(MultipartFile file) {
-//        String ct = file.getContentType();
-//        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
-//        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
-//            try {
-//                if (!contentSafetyService.isSafe(file.getInputStream())) {
-//                    throw new BlobUploadTaskFileException(
-//                            "File failed content safety check (potential adult or violent content)");
-//                }
-//            } catch (IOException e) {
-//                throw new BlobUploadTaskFileException(
-//                        "Failed reading file for safety check: " + e.getMessage());
-//            }
-//        }
-//    }
 
     private void assertImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {

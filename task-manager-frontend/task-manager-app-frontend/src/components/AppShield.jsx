@@ -1,9 +1,5 @@
 import { Component } from "react";
 
-/**
- * Top-level error boundary.
- * Catches unhandled render errors so the whole app doesn't go blank.
- */
 class AppShield extends Component {
     constructor(props) {
         super(props);
@@ -15,8 +11,7 @@ class AppShield extends Component {
     }
 
     componentDidCatch(error, info) {
-        // future: send to telemetry endpoint
-        // eslint-disable-next-line no-console
+
         console.error("AppShield caught:", error, info);
     }
 

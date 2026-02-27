@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.engine.core.service.authorization;
 
-
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import org.springframework.stereotype.Service;
 

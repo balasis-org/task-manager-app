@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.maintenance.config.blob;
 
-
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import io.github.balasis.taskmanager.maintenance.config.secret.SecretClientProvider;
