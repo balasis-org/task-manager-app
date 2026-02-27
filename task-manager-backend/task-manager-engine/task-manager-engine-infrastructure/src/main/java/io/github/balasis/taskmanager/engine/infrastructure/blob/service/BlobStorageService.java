@@ -10,7 +10,6 @@ import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUplo
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,18 +69,6 @@ public class BlobStorageService {
     public String uploadGroupImage(MultipartFile file, Long prefixId){
         assertImage(file);
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
-    }
-
-    public void deleteTaskFile(String blobName) {
-        deleteInternal(BlobContainerType.TASK_FILES, blobName);
-    }
-
-    public void deleteGroupImage(String blobName) {
-        deleteInternal(BlobContainerType.GROUP_IMAGES, blobName);
-    }
-
-    public void deleteProfileImage(String blobName) {
-        deleteInternal(BlobContainerType.PROFILE_IMAGES, blobName);
     }
 
     private String uploadInternal(BlobContainerType type, MultipartFile file, Long prefixId){

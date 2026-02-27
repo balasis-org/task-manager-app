@@ -2,7 +2,6 @@ package io.github.balasis.taskmanager.engine.core.bootstrap;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.EntityType;

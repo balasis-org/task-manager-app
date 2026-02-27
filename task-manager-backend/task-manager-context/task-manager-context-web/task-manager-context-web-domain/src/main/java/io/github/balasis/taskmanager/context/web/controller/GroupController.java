@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
@@ -13,13 +12,11 @@ import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInb
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
-import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.web.resource.groupevent.outbound.GroupEventOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
-import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupmembership.outbound.GroupMembershipOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
@@ -32,9 +29,6 @@ import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidato
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,10 +38,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
