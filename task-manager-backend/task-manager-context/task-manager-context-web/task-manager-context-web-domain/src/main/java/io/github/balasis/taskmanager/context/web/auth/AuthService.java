@@ -176,7 +176,7 @@ public class AuthService extends BaseComponent {
                     User u = new User();
                     u.setAzureKey(azureKey);
                     u.setTenantId(tenantId);
-                    u.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES));
+                    u.setDefaultImgUrl(defaultImageService.pickFirst(BlobContainerType.PROFILE_IMAGES));
                     u.setOrg(isOrg);
                     u.setEmail(email);
                     u.setName(finalName);
