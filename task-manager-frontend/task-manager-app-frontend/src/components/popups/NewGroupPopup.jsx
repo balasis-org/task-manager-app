@@ -4,6 +4,7 @@ import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
 import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
+import "@styles/popups/NewGroupPopup.css";
 
 export default function NewGroupPopup({ onClose, onCreated }) {
     const [title, setTitle] = useState("");

@@ -1,0 +1,155 @@
+/* TaskFilesSection — reusable drag-drop + file list for creator and assignee files */
+
+.task-files-section {
+    margin-top: 1.5em;
+}
+
+.task-files-section h3 {
+    font-size: 0.94em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0 0 0.5em;
+}
+
+.task-file-add {
+    background: var(--success);
+    border: none;
+    border-radius: 50%;
+    width: 1.38em;
+    height: 1.38em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-on-primary);
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background 0.12s;
+}
+
+.task-file-add:hover {
+    background: var(--success-hover);
+}
+
+.task-file-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.task-file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.375em 0;
+    font-size: 0.81em;
+    border-bottom: 0.06em solid var(--border-light);
+}
+
+.task-file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.12s;
+}
+
+.task-file-name:hover {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+.task-file-icon-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    padding: 0.19em;
+    border-radius: 0.25em;
+    transition: color 0.12s, background 0.12s;
+}
+
+.task-file-icon-btn:hover {
+    color: var(--accent-primary);
+    background: var(--bg-accent-subtle);
+}
+
+.task-file-dl-overlay {
+    position: absolute;
+    bottom: -0.06em;
+    right: -0.06em;
+    background: rgba(26, 115, 232, 0.85);
+    color: var(--text-on-primary);
+    border-radius: 50%;
+    width: 0.88em;
+    height: 0.88em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+}
+
+.task-file-icon-btn:hover .task-file-dl-overlay {
+    opacity: 1;
+}
+
+.task-file-downloading {
+    font-size: 0.75em;
+    color: var(--accent-primary);
+    animation: pulse-dl 0.8s infinite;
+}
+
+@keyframes pulse-dl {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.task-files-section.drag-over,
+.task-sidebar-section.drag-over {
+    background: var(--accent-violet-bg);
+    border: 0.06em dashed var(--accent-violet);
+    border-radius: 0.5em;
+}
+
+.task-drop-hint {
+    font-size: 0.69em;
+    color: var(--text-placeholder);
+    font-style: italic;
+    text-align: center;
+    margin-top: 0.25em;
+}
+
+.task-file-dl,
+.task-file-rm {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125em;
+    transition: color 0.12s;
+}
+
+.task-file-dl:hover {
+    color: var(--text-primary);
+}
+
+.task-file-rm:hover {
+    color: var(--danger);
+}
+
+.task-no-files {
+    color: var(--text-placeholder);
+    font-size: 0.81em;
+    font-style: italic;
+    margin: 0.25em 0;
+}

@@ -25,43 +25,48 @@ public class RateLimitDevConfig {
     private static final Logger log = LoggerFactory.getLogger(RateLimitDevConfig.class);
 
     @Bean
-    public RateLimitService rateLimitService() {
+    public StatefulRedisConnection<byte[], byte[]> redisConnection() {
+        String host = System.getenv("REDIS_HOST");
+        String portStr = System.getenv("REDIS_PORT");
+        String password = System.getenv("REDIS_PASSWORD");
+
+        if (host == null || host.isBlank()) host = "localhost";
+        int port;
         try {
-            String host = System.getenv("REDIS_HOST");
-            String portStr = System.getenv("REDIS_PORT");
-            String password = System.getenv("REDIS_PASSWORD");
+            port = (portStr != null && !portStr.isBlank()) ? Integer.parseInt(portStr) : 6379;
+        } catch (NumberFormatException e) {
+            port = 6379;
+        }
 
-            if (host == null || host.isBlank()) host = "localhost";
-            int port;
-            try {
-                port = (portStr != null && !portStr.isBlank()) ? Integer.parseInt(portStr) : 6379;
-            } catch (NumberFormatException e) {
-                port = 6379;
-            }
+        RedisURI.Builder uriBuilder = RedisURI.builder()
+                .withHost(host)
+                .withPort(port);
 
-            RedisURI.Builder uriBuilder = RedisURI.builder()
-                    .withHost(host)
-                    .withPort(port);
+        if (password != null && !password.isBlank()) {
+            uriBuilder.withPassword(password.toCharArray());
+        }
 
-            if (password != null && !password.isBlank()) {
-                uriBuilder.withPassword(password.toCharArray());
-            }
+        RedisURI uri = uriBuilder.build();
 
-            RedisURI uri = uriBuilder.build();
+        RedisClient client = RedisClient.create(uri);
+        StatefulRedisConnection<byte[], byte[]> connection =
+                client.connect(new ByteArrayCodec());
 
-            RedisClient client = RedisClient.create(uri);
-            StatefulRedisConnection<byte[], byte[]> connection =
-                    client.connect(new ByteArrayCodec());
+        log.info("Redis connected to {}:{}", host, port);
+        return connection;
+    }
 
+    @Bean
+    public RateLimitService rateLimitService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        try {
             LettuceBasedProxyManager<byte[]> proxyManager = LettuceBasedProxyManager
-                    .builderFor(connection)
+                    .builderFor(redisConnection)
                     .withExpirationStrategy(
                             ExpirationAfterWriteStrategy
                                     .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(16))
                     )
                     .build();
 
-            log.info("Redis rate limiter connected to {}:{}", host, port);
             return new RedisRateLimitService(proxyManager);
 
         } catch (Exception e) {

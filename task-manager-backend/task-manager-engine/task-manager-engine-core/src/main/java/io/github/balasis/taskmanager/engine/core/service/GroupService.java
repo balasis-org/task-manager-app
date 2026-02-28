@@ -97,6 +97,7 @@ public interface GroupService{
 
     boolean hasNewInvitations();
 
+    boolean hasGroupChanged(Long groupId, Instant lastSeen);
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 }

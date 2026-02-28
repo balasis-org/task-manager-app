@@ -25,6 +25,8 @@ public class AuthController extends BaseComponent {
         String url = authService.getLoginUrl(state);
         boolean secure = isHttps(request);
 
+        //(sameSite could be skipped ; the callback page is from my domain to the exchange)
+        //(but I guess it's ok to let people auto login if people were here and manually click on link)
         ResponseCookie stateCookie = ResponseCookie.from("oauth_state", state)
                 .httpOnly(true)
                 .secure(secure)

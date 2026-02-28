@@ -8,6 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.exception.critical.CriticalAuthIntegrityException;
 import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
@@ -252,26 +253,26 @@ public class AuthService extends BaseComponent {
                 jwk = jwkSet.getKeyByKeyId(kid);
             }
             if (jwk == null) {
-                throw new AuthenticationIntegrityException("Unknown signing key in ID token");
+                throw new CriticalAuthIntegrityException("Unknown signing key in ID token");
             }
 
             RSAKey rsaKey = jwk.toRSAKey();
             if (!jwt.verify(new RSASSAVerifier(rsaKey))) {
-                throw new AuthenticationIntegrityException("ID token signature verification failed");
+                throw new CriticalAuthIntegrityException("ID token signature verification failed");
             }
 
             var claimsSet = jwt.getJWTClaimsSet();
             Map<String, Object> claims = claimsSet.getClaims();
 
             if (!claimsSet.getAudience().contains(authConfig.getClientId())) {
-                throw new AuthenticationIntegrityException("ID token audience mismatch");
+                throw new CriticalAuthIntegrityException("ID token audience mismatch");
             }
 
             return claims;
-        } catch (AuthenticationIntegrityException e) {
+        } catch (CriticalAuthIntegrityException e) {
             throw e;
         } catch (Exception e) {
-            throw new AuthenticationIntegrityException("ID token verification failed");
+            throw new CriticalAuthIntegrityException("ID token verification failed: " + e.getMessage());
         }
     }
 
@@ -288,7 +289,7 @@ public class AuthService extends BaseComponent {
             this.jwkSetFetchedAt = System.currentTimeMillis();
             return cached;
         } catch (Exception e) {
-            throw new AuthenticationIntegrityException("Failed to fetch Azure AD signing keys");
+            throw new CriticalAuthIntegrityException("Failed to fetch Azure AD signing keys: " + e.getMessage());
         }
     }
 

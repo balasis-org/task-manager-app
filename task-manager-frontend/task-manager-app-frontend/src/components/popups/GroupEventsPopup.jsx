@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiGet } from "@assets/js/apiClient";
 import "@styles/popups/Popup.css";
+import "@styles/popups/GroupEventsPopup.css";
 
 export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents }) {
     const [events, setEvents] = useState([]);

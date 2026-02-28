@@ -4,6 +4,8 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -44,20 +46,32 @@ public class JwtService extends BaseComponent {
         return builder.compact();
     }
 
+    /**
+     * Parses and validates the JWT (signature + expiration).
+     * jjwt already rejects expired tokens with {@link ExpiredJwtException},
+     * so no manual expiration check is needed.
+     *
+     * Both {@link ExpiredJwtException} and any other {@link JwtException}
+     * (malformed, bad signature, etc.) are converted to
+     * {@link UnauthenticatedException} so the caller ({@link JwtInterceptor})
+     * can catch it uniformly and attempt a refresh-token flow.
+     */
     public Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSignInKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSignInKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new UnauthenticatedException("JWT token expired");
+        } catch (JwtException e) {
+            throw new UnauthenticatedException("Invalid JWT token");
+        }
     }
 
     public Claims validateAndExtractClaims(String token) {
-        Claims claims = extractAllClaims(token);
-        if (claims.getExpiration().before(new Date())) {
-            throw new UnauthenticatedException("JWT token expired");
-        }
-        return claims;
+        return extractAllClaims(token);
     }
 
 }

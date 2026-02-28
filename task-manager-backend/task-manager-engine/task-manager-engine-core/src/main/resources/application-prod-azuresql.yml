@@ -13,14 +13,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, metrics
   endpoint:
     health:
-      show-details: always
+      show-details: never
 
 logging:
   level:
-    root: info
+    root: WARN
     io.github.balasis.taskmanager: INFO
+    io.github.balasis.taskmanager.engine.monitoring: INFO
+    org.springframework: WARN
+    org.springframework.boot.web.embedded: INFO
     org.springframework.transaction.interceptor: WARN
     com.azure.identity: WARN
+    com.azure: WARN
+    org.hibernate: WARN

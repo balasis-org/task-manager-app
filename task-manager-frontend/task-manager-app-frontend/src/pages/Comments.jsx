@@ -4,8 +4,6 @@ import {
     FiArrowLeft,
     FiChevronRight,
     FiPlus,
-    FiSmile,
-    FiX,
     FiRefreshCw,
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
@@ -15,30 +13,15 @@ import { apiGet, apiPost, apiPatch, apiDelete } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
 import useSmartPoll from "@hooks/useSmartPoll";
 import { useBlobUrl } from "@context/BlobSasContext";
+import { formatDateTime } from "@assets/js/formatDate";
 import Spinner from "@components/Spinner";
+import CommentCard from "@components/comments/CommentCard";
+import CommentComposer from "@components/comments/CommentComposer";
+import CommentDeleteModal from "@components/comments/CommentDeleteModal";
 import "@styles/pages/Comments.css";
-
-const EMOJIS = ["😀","😂","😍","👍","👎","🎉","🔥","❤️","😢","😮","🤔","😎","💯","✅","❌","⚡"];
 
 const MAX_LEN = LIMITS.COMMENT;
 const PAGE_SIZE = 5;
-
-function userImg(u, blobUrl) {
-    if (!u) return "";
-    return u.imgUrl ? blobUrl(u.imgUrl) : u.defaultImgUrl ? blobUrl(u.defaultImgUrl) : "";
-}
-
-function formatDate(iso) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
 
 export default function Comments() {
     const { groupId, taskId } = useParams();
@@ -311,189 +294,49 @@ export default function Comments() {
                         )}
                     </div>
                 ) : (
-                    comments.map((c) => {
-                        const isEditing = editingId === c.id;
-                        const isDeletedCreator = !c.creator;
-                        const taskRole = !isDeletedCreator ? participantRoleMap[c.creator?.id] : null;
-                        return (
-                            <div key={c.id} className="comment-card">
-                                {isDeletedCreator ? (
-                                    <div className="comment-avatar comment-avatar-deleted" title="Deleted user" />
-                                ) : (
-                                    <img
-                                        src={userImg(c.creator, blobUrl)}
-                                        alt=""
-                                        className="comment-avatar"
-                                    />
-                                )}
-                                <div className="comment-body">
-                                    <div className="comment-header">
-                                        <span className="comment-author">
-                                            {isDeletedCreator
-                                                ? <>{c.creatorNameSnapshot || "Unknown"} <span className="comment-deleted-tag">(Deleted User)</span></>
-                                                : <>{c.creator?.name || c.creator?.email || "Unknown"}
-                                                    {taskRole && (
-                                                        <span className="comment-role-tag">
-                                                            ({taskRole.replace("_", " ")})
-                                                        </span>
-                                                    )}
-                                                  </>
-                                            }
-                                        </span>
-                                        <div className="comment-actions">
-                                            {!isEditing && canEditComment(c) && !isDeletedCreator && (
-                                                <button
-                                                    className="comment-action-btn"
-                                                    title="Edit"
-                                                    onClick={() => startEdit(c)}
-                                                >
-                                                    Edit
-                                                </button>
-                                            )}
-                                            {!isEditing && canDeleteComment(c) && (
-                                                <button
-                                                    className="comment-action-btn danger"
-                                                    title="Delete"
-                                                    onClick={() => setDeleteId(c.id)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {isEditing ? (
-                                        <div className="comment-edit-area">
-                                            <textarea
-                                                className="comment-edit-textarea"
-                                                value={editText}
-                                                onChange={(e) =>
-                                                    setEditText(e.target.value.slice(0, MAX_LEN))
-                                                }
-                                                rows={3}
-                                                maxLength={MAX_LEN}
-                                            />
-                                            <div className="comment-edit-footer">
-                                                <span className="comment-counter">
-                                                    {editText.length}/{MAX_LEN}
-                                                </span>
-                                                <div className="comment-edit-btns">
-                                                    <button
-                                                        className="btn-cancel-edit"
-                                                        onClick={cancelEdit}
-                                                    >
-                                                        Cancel edit
-                                                    </button>
-                                                    <button
-                                                        className="btn-save-edit"
-                                                        onClick={() => saveEdit(c.id)}
-                                                    >
-                                                        Save
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="comment-text">{c.comment}</p>
-                                    )}
-
-                                    <span className="comment-date">
-                                        {formatDate(c.createdAt)}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })
+                    comments.map((c) => (
+                        <CommentCard
+                            key={c.id}
+                            comment={c}
+                            isEditing={editingId === c.id}
+                            editText={editText}
+                            onEditTextChange={setEditText}
+                            participantRoleMap={participantRoleMap}
+                            canEdit={canEditComment(c)}
+                            canDelete={canDeleteComment(c)}
+                            onStartEdit={startEdit}
+                            onCancelEdit={cancelEdit}
+                            onSaveEdit={saveEdit}
+                            onRequestDelete={setDeleteId}
+                            blobUrl={blobUrl}
+                            maxLen={MAX_LEN}
+                            formatDateTime={formatDateTime}
+                        />
+                    ))
                 )}
             </div>
 
             { }
-            <div className={`comments-composer${composerOpen ? " open" : ""}`}>
-                <div className="composer-bar">
-                    <span className="composer-label">Make a comment…</span>
-
-                    { }
-                    <div className="composer-emoji-wrapper">
-                        <button
-                            className="composer-emoji-btn"
-                            onClick={() => setShowEmojis((v) => !v)}
-                            title="Emojis"
-                        >
-                            <FiSmile size={16} /> emojis here.
-                        </button>
-                        {showEmojis && (
-                            <div className="composer-emoji-picker">
-                                {EMOJIS.map((em) => (
-                                    <span
-                                        key={em}
-                                        className="composer-emoji-item"
-                                        onClick={() => insertEmoji(em)}
-                                    >
-                                        {em}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <span className="composer-hint">pasteable on click</span>
-
-                    <button
-                        className="composer-close-btn"
-                        onClick={() => { setComposerOpen(false); setShowEmojis(false); }}
-                        title="Close"
-                    >
-                        <FiX size={14} />
-                    </button>
-                </div>
-
-                <div className="composer-input-row">
-                    <textarea
-                        ref={textareaRef}
-                        className="composer-textarea"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value.slice(0, MAX_LEN))}
-                        placeholder="Write your comment…"
-                        rows={2}
-                        maxLength={MAX_LEN}
-                    />
-                    <span className="composer-counter">
-                        {newComment.length}/{MAX_LEN}
-                    </span>
-                </div>
-
-                <div className="composer-submit-row">
-                    <button
-                        className="btn-primary btn-sm"
-                        disabled={submitting || !newComment.trim()}
-                        onClick={handleSubmit}
-                    >
-                        submit
-                    </button>
-                </div>
-            </div>
+            <CommentComposer
+                open={composerOpen}
+                newComment={newComment}
+                onNewCommentChange={setNewComment}
+                onSubmit={handleSubmit}
+                submitting={submitting}
+                showEmojis={showEmojis}
+                onToggleEmojis={() => setShowEmojis((v) => !v)}
+                onInsertEmoji={insertEmoji}
+                onClose={() => { setComposerOpen(false); setShowEmojis(false); }}
+                textareaRef={textareaRef}
+                maxLen={MAX_LEN}
+            />
 
             { }
             {deleteId && (
-                <div className="comments-overlay" onClick={() => setDeleteId(null)}>
-                    <div
-                        className="comments-confirm-popup"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <p>Are you sure you want to delete this comment?</p>
-                        <div className="confirm-actions">
-                            <button
-                                className="btn-secondary"
-                                onClick={() => setDeleteId(null)}
-                            >
-                                Cancel
-                            </button>
-                            <button className="btn-danger" onClick={confirmDelete}>
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <CommentDeleteModal
+                    onConfirm={confirmDelete}
+                    onCancel={() => setDeleteId(null)}
+                />
             )}
         </div>
     );

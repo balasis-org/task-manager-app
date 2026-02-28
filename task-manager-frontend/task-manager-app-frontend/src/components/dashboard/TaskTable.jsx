@@ -3,14 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { FiMessageCircle, FiLock, FiTrash2 } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
+import { formatDate } from "@assets/js/formatDate";
 import "@styles/dashboard/TaskTable.css";
 
-function formatDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
+// thresholds match the backend's priority scale (1-10).
+// we could make these configurable per-group but it's not worth the
+// complexity right now — every group uses the same scale.
 function priorityTag(p) {
     if (p == null) return "—";
     let label, cls;
@@ -36,6 +34,13 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
         return <div className="task-table-empty">No tasks</div>;
     }
 
+    /*  t.i  = task id          t.cn = creator name
+        t.t  = title            t.nc = has new comments (bool)
+        t.p  = priority (1-10)  t.cc = comment count
+        t.dd = due date         t.dl = deletable (bool)
+        t.a  = accessible (bool)
+        — short keys from the backend list-tasks DTO to keep payloads small */
+
     const baseGrid = colWidths && visCols
         ? visCols.map((ci) => (ci === 0 ? "minmax(0,1fr)" : colWidths[ci] + "px")).join(" ")
         : undefined;
@@ -53,6 +58,7 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
 
     async function handleConfirmDelete() {
         if (!confirmDeleteId) return;
+        // snapshot — state may change while the request is in flight
         const id = confirmDeleteId;
         setConfirmDeleteId(null);
         setDeletingId(id);
@@ -100,7 +106,7 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
                         )}
                         {visSet.has(3) && (
                             <span className="task-cell cell-due">
-                                {formatDate(t.dd)}
+                                {formatDate(t.dd, "—")}
                             </span>
                         )}
                         {visSet.has(4) && (

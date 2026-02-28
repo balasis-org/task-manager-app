@@ -62,12 +62,23 @@ export default function useSmartPoll(checkFn, {
         schedule();
     }, [schedule]);
 
+    const lastScheduled = useRef(0);
+    const THROTTLE_MS = 5_000;
+
     useEffect(() => {
         if (!enabled) return;
         const onActivity = () => {
             lastActivity.current = Date.now();
-            if (isStale) setIsStale(false);
-            schedule();
+            if (isStale) {
+                setIsStale(false);
+                lastScheduled.current = Date.now();
+                schedule();
+                return;
+            }
+            if (Date.now() - lastScheduled.current >= THROTTLE_MS) {
+                lastScheduled.current = Date.now();
+                schedule();
+            }
         };
         const events = ["click", "keydown", "scroll", "pointerdown"];
         events.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }));

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { apiGet } from "@assets/js/apiClient.js";
 import { useBlobUrl } from "@context/BlobSasContext";
+import "@styles/popups/DefaultImagePicker.css";
 
 export default function DefaultImagePicker({ type, onPick, onClose }) {
     const blobUrl = useBlobUrl();
