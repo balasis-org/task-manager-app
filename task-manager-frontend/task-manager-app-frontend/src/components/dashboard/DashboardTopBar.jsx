@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { FiSettings, FiLogOut, FiFilter } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
