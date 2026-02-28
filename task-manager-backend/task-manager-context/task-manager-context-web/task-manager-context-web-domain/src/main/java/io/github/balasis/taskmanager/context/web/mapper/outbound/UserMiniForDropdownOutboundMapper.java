@@ -16,7 +16,6 @@ public interface UserMiniForDropdownOutboundMapper extends BaseOutboundMapper<Us
     @Mapping(target = "sameOrg", ignore = true)
     UserMiniForDropdownOutboundResource toResource(User user);
 
-
     @Named("convertUserImgUrl")
     default String convertUserImgUrl(String imgUrl){
         if ((imgUrl == null) || imgUrl.isBlank()){

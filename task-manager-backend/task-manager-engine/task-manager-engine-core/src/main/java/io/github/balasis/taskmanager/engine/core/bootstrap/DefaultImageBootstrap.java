@@ -37,7 +37,7 @@ public class DefaultImageBootstrap extends BaseComponent {
             if (!defaultImageRepository.existsByTypeAndFileName(container.getTypeColumn(), fileName)) {
                 defaultImageRepository.save(
                         DefaultImage.builder()
-                                .type(container.getTypeColumn()) // from enum
+                                .type(container.getTypeColumn())
                                 .fileName(fileName)
                                 .build()
                 );

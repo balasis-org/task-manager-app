@@ -1,0 +1,65 @@
+/* ===== GroupEventsPopup.css =====
+   Styles for the group events timeline popup: event list items,
+   new-event highlighting, and pagination controls.
+   ================================================= */
+
+.popup-event-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.popup-event-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.375em 0;
+    border-bottom: 0.06em solid var(--border-secondary);
+    font-size: 0.81em;
+}
+
+.popup-event-date {
+    font-size: 0.69em;
+    color: var(--text-placeholder);
+    white-space: nowrap;
+    margin-left: 0.75em;
+}
+
+.popup-event-new {
+    background: var(--warning-bg);
+}
+
+.popup-event-new-badge {
+    font-size: 0.56em;
+    font-weight: 700;
+    color: var(--danger);
+    letter-spacing: 0.03em;
+    padding: 0.06em 0.31em;
+    border-radius: 0.19em;
+    background: var(--danger-bg-alt);
+    margin-right: 0.5em;
+    flex-shrink: 0;
+}
+
+.popup-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75em;
+    margin-top: 0.75em;
+    font-size: 0.81em;
+}
+
+.popup-pagination button {
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.25em;
+    padding: 0.25em 0.625em;
+    cursor: pointer;
+    font-size: 0.875em;
+}
+
+.popup-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

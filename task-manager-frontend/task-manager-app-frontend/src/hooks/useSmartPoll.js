@@ -1,25 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
-/**
- * Generic smart-polling hook with tiered backoff.
- *
- * Tier 1: 30 s   for the first 10 min of inactivity (1 min after 30 min session)
- * Tier 2: 1 min  from 10 → 15 min of inactivity
- * Tier 3: STOP   after 15 min (isStale = true, refresh button only)
- *
- * @param {Function} checkFn   - async () => void.  Should throw (or return truthy)
- *                                when "something changed" (e.g. 409 from server).
- * @param {Object}   opts
- * @param {number}   opts.tier1Ms      - active polling interval      (default 30 000)
- * @param {number}   opts.tier1LongMs  - active interval (long sess.) (default 60 000)
- * @param {number}   opts.tier1Until   - tier-1 window                (default 10 min)
- * @param {number}   opts.tier2Ms      - mild-idle polling            (default 60 000)
- * @param {number}   opts.tier2Until   - tier-2 window                (default 15 min)
- * @param {number}   opts.longSessionMs - long session threshold      (default 30 min)
- * @param {boolean}  opts.enabled      - master on/off (default true)
- *
- * @returns {{ hasChanged: boolean, isStale: boolean, reset: () => void }}
- */
 export default function useSmartPoll(checkFn, {
     tier1Ms      = 30_000,
     tier1LongMs  = 60_000,
@@ -40,8 +20,8 @@ export default function useSmartPoll(checkFn, {
 
     function getInterval() {
         const idle = Date.now() - lastActivity.current;
-        if (idle >= tier2Until) return null;          // stop
-        if (idle >= tier1Until) return tier2Ms;       // 1 min
+        if (idle >= tier2Until) return null;
+        if (idle >= tier1Until) return tier2Ms;
 
         const sessionAge = Date.now() - mountTime.current;
         return sessionAge > longSessionMs ? tier1LongMs : tier1Ms;
@@ -71,11 +51,10 @@ export default function useSmartPoll(checkFn, {
                 }
             }
 
-            schedule();   // re-schedule at the (possibly new) tier
+            schedule();
         }, interval);
     }, [tier1Ms, tier1LongMs, tier1Until, tier2Ms, tier2Until, longSessionMs]);
 
-    // reset everything — call after user re-fetches data
     const reset = useCallback(() => {
         lastActivity.current = Date.now();
         setHasChanged(false);
@@ -83,20 +62,29 @@ export default function useSmartPoll(checkFn, {
         schedule();
     }, [schedule]);
 
-    // user-activity listener resets the idle clock
+    const lastScheduled = useRef(0);
+    const THROTTLE_MS = 5_000;
+
     useEffect(() => {
         if (!enabled) return;
         const onActivity = () => {
             lastActivity.current = Date.now();
-            if (isStale) setIsStale(false);
-            schedule();
+            if (isStale) {
+                setIsStale(false);
+                lastScheduled.current = Date.now();
+                schedule();
+                return;
+            }
+            if (Date.now() - lastScheduled.current >= THROTTLE_MS) {
+                lastScheduled.current = Date.now();
+                schedule();
+            }
         };
         const events = ["click", "keydown", "scroll", "pointerdown"];
         events.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }));
         return () => events.forEach(ev => window.removeEventListener(ev, onActivity));
     }, [enabled, isStale, schedule]);
 
-    // start / stop
     useEffect(() => {
         if (!enabled) {
             if (timer.current) clearTimeout(timer.current);

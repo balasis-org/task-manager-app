@@ -24,15 +24,24 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-monitor-opentelemetry-autoconfigure</artifactId>
             <version>1.4.0</version>
         </dependency>
 
-
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
         </dependency>
 
     </dependencies>

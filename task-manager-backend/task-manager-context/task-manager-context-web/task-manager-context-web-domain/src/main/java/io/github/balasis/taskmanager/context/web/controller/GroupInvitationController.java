@@ -19,7 +19,6 @@ public class GroupInvitationController extends BaseComponent {
     private final GroupInvitationOutboundMapper groupInvitationOutboundMapper;
     private final GroupService groupService;
 
-
     @PatchMapping("/{groupInvitationId}/status")
     public ResponseEntity<GroupInvitationOutboundResource> respondToInvitation(
             @PathVariable("groupInvitationId") Long groupInvitationId,
@@ -46,11 +45,6 @@ public class GroupInvitationController extends BaseComponent {
             ));
     }
 
-    /**
-     * Lightweight poll endpoint.  Returns 204 when there are NO new invitations.
-     * Throws a 409 (BusinessRuleException) when the user has unseen pending invitations,
-     * so the frontend can catch the non-2xx status and show a notification badge.
-     */
     @GetMapping("/check-new")
     public ResponseEntity<Void> checkNewInvitations() {
         if (groupService.hasNewInvitations()) {

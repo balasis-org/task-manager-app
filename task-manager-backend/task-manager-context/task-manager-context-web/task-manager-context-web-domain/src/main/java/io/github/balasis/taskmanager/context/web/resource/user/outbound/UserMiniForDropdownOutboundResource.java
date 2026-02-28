@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.web.resource.user.outbound;
 
-
 import io.github.balasis.taskmanager.context.web.resource.BaseOutboundResource;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

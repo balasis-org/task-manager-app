@@ -17,7 +17,6 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
     @Mapping(target = "sameOrg", ignore = true)
     UserOutboundResource toResource(User user);
 
-
     @Named("convertUserImgUrl")
     default String convertUserImgUrl(String imgUrl){
         if ((imgUrl == null) || imgUrl.isBlank()){

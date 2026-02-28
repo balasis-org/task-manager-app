@@ -4,53 +4,133 @@ import { AuthContext } from "./AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import { encryptForCache, decryptFromCache, cacheMatchesKey } from "@assets/js/cacheCrypto.js";
 
-// localStorage is per origin, not per user.
-// we namespace every key by userId so accounts dont bleed into each other.
-const LS_PREFIX = "tm_u";
+/*
+ * ─── DTO Field Reference (backend sends minified JSON keys) ──────────
+ *
+ * GroupWithPreviewDto (full group detail — GET /api/groups/{id}):
+ *   n    = name              d    = description        an   = announcement
+ *   diu  = defaultImgUrl     iu   = imgUrl             oi   = ownerId
+ *   on   = ownerName         ca   = createdAt          aen  = allowEmailNotification
+ *   lged = lastGroupEventDate
+ *   tp   = taskPreviews (array of TaskPreviewDto)
+ *
+ * TaskPreviewDto (each task card on the dashboard):
+ *   i  = id        t  = title      ts = taskState     ca = createdAt
+ *   dd = dueDate   cc = commentCount  a = accessible  nc = newCommentsToBeRead
+ *   cn = creatorName  p = priority   dl = deletable
+ *
+ * GroupRefreshDto (delta — GET /api/groups/{id}/refresh?lastSeen=):
+ *   sn  = serverNow   c   = changed      mc  = membersChanged
+ *   ct  = changedTasks (array of TaskPreviewDto)
+ *   dti = deletedTaskIds (array of Long)
+ *   ...plus same group fields as above for anything that changed
+ * ─────────────────────────────────────────────────────────────────────
+ */
 
-function lsGetRaw(key) { return localStorage.getItem(key); }
-function lsSetRaw(key, val) { localStorage.setItem(key, val); }
-function lsGet(key)    { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
-function lsSet(key, v) { localStorage.setItem(key, JSON.stringify(v)); }
-function lsRemove(key) { localStorage.removeItem(key); }
 
-function pfx(userId)   { return userId ? `${LS_PREFIX}${userId}_` : ""; }
+// =====================================================================
+// LocalStorage helpers
+// =====================================================================
 
-function kGroups(uid)             { return `${pfx(uid)}groups`; }
-function kActiveId(uid)           { return `${pfx(uid)}active_group`; }
-function kDetail(uid, gid)        { return `${pfx(uid)}gd_${gid}`; }       // encrypted blob
-function kLastSeen(uid, gid)      { return `${pfx(uid)}ls_${gid}`; }
+const STORAGE_PREFIX     = "tm_u";
+const MAX_CACHED_USERS   = 3;
+const USER_ORDER_KEY     = "tm_user_order";
 
-// merge a delta from the refresh endpoint into an existing detail object
-// JSON keys use short names from @JsonProperty (see GroupRefreshDto / GroupWithPreviewDto)
-function mergeRefresh(cached, delta) {
-    if (!delta.c) return cached;                          // c = changed
-    const merged = { ...cached };
+// -- low-level wrappers (one place to swap if we ever move to sessionStorage) --
 
-    if (delta.n   !== undefined && delta.n   !== null) merged.n   = delta.n;    // name
-    if (delta.d   !== undefined && delta.d   !== null) merged.d   = delta.d;    // description
-    if (delta.an  !== undefined)   merged.an  = delta.an;                       // announcement
-    if (delta.diu !== undefined)   merged.diu = delta.diu;                      // defaultImgUrl
-    if (delta.iu  !== undefined)   merged.iu  = delta.iu;                       // imgUrl
-    if (delta.aen !== undefined && delta.aen !== null)
-        merged.aen = delta.aen;                                                 // allowEmailNotification
-    if (delta.lged !== undefined)
-         merged.lged = delta.lged;                                              // lastGroupEventDate
+function storageGetRaw(key)        { return localStorage.getItem(key); }
+function storageSetRaw(key, value) { localStorage.setItem(key, value); }
+function storageGetJson(key)       { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
+function storageSetJson(key, val)  { localStorage.setItem(key, JSON.stringify(val)); }
+function storageRemove(key)        { localStorage.removeItem(key); }
 
-    // remove deleted tasks
-    let tasks = [...(merged.tp ?? [])];                                         // tp = taskPreviews
-    if (delta.dti?.length) {                                                    // dti = deletedTaskIds
-        const gone = new Set(delta.dti);
-        tasks = tasks.filter(t => !gone.has(t.i));                              // i = id
+// -- per-user key builders --
+
+function userPrefix(userId)                  { return userId ? `${STORAGE_PREFIX}${userId}_` : ""; }
+function groupsListKey(userId)               { return `${userPrefix(userId)}groups`; }
+function activeGroupIdKey(userId)            { return `${userPrefix(userId)}active_group`; }
+function groupDetailKey(userId, groupId)     { return `${userPrefix(userId)}gd_${groupId}`; }
+function groupLastSeenKey(userId, groupId)   { return `${userPrefix(userId)}ls_${groupId}`; }
+
+
+// =====================================================================
+// Multi-user eviction — keeps at most MAX_CACHED_USERS sets of data.
+// Most-recently-used user is at index 0.  When a new user pushes the
+// count past the cap, the oldest user's keys are wiped.
+// =====================================================================
+
+function getUserOrder() {
+    try { return JSON.parse(localStorage.getItem(USER_ORDER_KEY)) || []; }
+    catch { return []; }
+}
+
+function markUserActive(userId) {
+    const order = getUserOrder().filter(id => id !== userId);
+    order.unshift(userId);
+    localStorage.setItem(USER_ORDER_KEY, JSON.stringify(order));
+    evictOldUsersIfNeeded(order);
+}
+
+function evictOldUsersIfNeeded(order) {
+    while (order.length > MAX_CACHED_USERS) {
+        const oldestUser = order.pop();
+        purgeAllUserData(oldestUser);
+    }
+    localStorage.setItem(USER_ORDER_KEY, JSON.stringify(order));
+}
+
+/** Removes every LS key that belongs to the given user. */
+function purgeAllUserData(userId) {
+    const prefix = userPrefix(userId);
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
+
+// =====================================================================
+// Delta merge — applies a GroupRefreshDto on top of a cached
+// GroupWithPreviewDto to produce an up-to-date detail object.
+//
+// Only touches fields the server flagged as changed. Task previews
+// get new/updated entries merged in, and deleted ones removed.
+// =====================================================================
+
+function applyDeltaToDetail(cachedDetail, delta) {
+    if (!delta.c) return cachedDetail;
+
+    const merged = { ...cachedDetail };
+
+    // Group-level fields (only overwrite if the server sent a value)
+    if (delta.n    !== undefined && delta.n    !== null) merged.n    = delta.n;
+    if (delta.d    !== undefined && delta.d    !== null) merged.d    = delta.d;
+    if (delta.an   !== undefined)                       merged.an   = delta.an;
+    if (delta.diu  !== undefined)                       merged.diu  = delta.diu;
+    if (delta.iu   !== undefined)                       merged.iu   = delta.iu;
+    if (delta.aen  !== undefined && delta.aen !== null)  merged.aen  = delta.aen;
+    if (delta.lged !== undefined)                       merged.lged = delta.lged;
+
+    // Task previews — remove deleted, upsert changed
+    let tasks = [...(merged.tp ?? [])];
+
+    if (delta.dti?.length) {
+        const deletedIds = new Set(delta.dti);
+        tasks = tasks.filter(task => !deletedIds.has(task.i));
     }
 
-    // upsert changed / new tasks
-    if (delta.ct?.length) {                                                     // ct = changedTasks
-        const map = new Map(delta.ct.map(t => [t.i, t]));
-        tasks = tasks.map(t => map.has(t.i) ? map.get(t.i) : t);
-        const existing = new Set(tasks.map(t => t.i));
-        for (const t of delta.ct) {
-            if (!existing.has(t.i)) tasks.push(t);
+    if (delta.ct?.length) {
+        const changedById = new Map(delta.ct.map(task => [task.i, task]));
+
+        // Replace existing tasks that were updated
+        tasks = tasks.map(task => changedById.has(task.i) ? changedById.get(task.i) : task);
+
+        // Append brand-new tasks (not already in the list)
+        const existingIds = new Set(tasks.map(task => task.i));
+        for (const task of delta.ct) {
+            if (!existingIds.has(task.i)) tasks.push(task);
         }
     }
 
@@ -59,28 +139,41 @@ function mergeRefresh(cached, delta) {
 }
 
 
+// =====================================================================
+// GroupProvider — central state for groups, active selection, detail,
+// members, polling, and localStorage cache management.
+// =====================================================================
+
 export default function GroupProvider({ children }) {
     const { user } = useContext(AuthContext);
 
-    // the encryption key — lives ONLY in memory, never written to storage.
-    // we get it fresh from /users/me every page load / refresh.
+    // The cacheKey rotates every 7 days on the server and is used to
+    // derive the AES encryption key for localStorage blobs.
     const cacheKeyRef = useRef(null);
-
-    // Keep cache key in sync whenever user object updates (e.g. profile refresh)
     cacheKeyRef.current = user?.cacheKey || null;
 
-    const [groups, setGroups]           = useState([]);
-    const [activeGroup, setActiveGroup] = useState(null);
-    const [groupDetail, setGroupDetail] = useState(null);
-    const [members, setMembers]         = useState([]);
+    // ── Core state ──────────────────────────────────────────────────
+    const [groups, setGroups]               = useState([]);
+    const [activeGroup, setActiveGroup]     = useState(null);
+    const [groupDetail, setGroupDetail]     = useState(null);
+    const [members, setMembers]             = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
-    const [myRole, setMyRole]           = useState(null);
+    const [myRole, setMyRole]               = useState(null);
 
-    // tracks which group we've already loaded members for this session
+    // Prevents re-fetching members when we already have them for this group
     const membersLoadedForGroupRef = useRef(null);
 
-    // user changed? reload everything
+    // Prevents the activeGroup effect from double-firing loadOrRefreshDetail
+    // when loadGroups() sets activeGroup twice (cache then API) with the same ID
+    // but different object references.
+    const detailLoadedForGroupRef = useRef(null);
+
+
+    // =================================================================
+    // Effect: clear everything when user logs out, load when user arrives
+    // =================================================================
+
     useEffect(() => {
         if (!user) {
             cacheKeyRef.current = null;
@@ -93,87 +186,148 @@ export default function GroupProvider({ children }) {
             return;
         }
 
-        loadGroups();
+        loadGroupsList();
     }, [user?.id]);
 
-    // active group switched -> load/refresh detail
+
+    // =================================================================
+    // Effect: when active group changes, load its detail (if not already loaded)
+    // =================================================================
+
     useEffect(() => {
         if (activeGroup && user) {
-            lsSet(kActiveId(user.id), activeGroup.id);
-            loadOrRefreshDetail(activeGroup.id);
+            storageSetJson(activeGroupIdKey(user.id), activeGroup.id);
+
+            // Skip if we already dispatched detail loading for this exact group
+            // (happens when cache hydration and API refresh both set activeGroup)
+            if (detailLoadedForGroupRef.current !== activeGroup.id) {
+                detailLoadedForGroupRef.current = activeGroup.id;
+                loadOrRefreshGroupDetail(activeGroup.id);
+            }
         } else {
+            detailLoadedForGroupRef.current = null;
             setGroupDetail(null);
             setMembers([]);
             setMyRole(null);
         }
     }, [activeGroup]);
 
-    // figure out my role from the members list
+
+    // =================================================================
+    // Effect: derive current user's role from the members list
+    // =================================================================
+
     useEffect(() => {
         if (user && members.length > 0) {
-            const mine = members.find(m => m.user?.id === user.id);
-            setMyRole(mine?.role ?? null);
+            const myMembership = members.find(m => m.user?.id === user.id);
+            setMyRole(myMembership?.role ?? null);
         } else {
             setMyRole(null);
         }
     }, [members, user]);
 
 
-    // groups list - stored as plain json, nothing sensitive
-    async function loadGroups() {
-        setLoadingGroups(true);
-        try {
-            const fresh = await apiGet("/api/groups");
-            const list = Array.isArray(fresh) ? fresh : [];
-            setGroups(list);
-            lsSet(kGroups(user.id), list);
+    // =================================================================
+    // loadGroupsList — stale-while-revalidate for the sidebar
+    //
+    // 1) Instantly show groups from encrypted LS cache (no spinner).
+    // 2) Always fetch fresh list from API in the background.
+    // 3) If API succeeds, overwrite cache + re-resolve active group.
+    // =================================================================
 
-            // restore previously selected group, or pick the first one
-            const savedId = lsGet(kActiveId(user.id));
-            const match = list.find(g => g.id === savedId);
-            if (match) setActiveGroup(match);
-            else if (list.length) setActiveGroup(list[0]);
-            else setActiveGroup(null);
+    async function loadGroupsList() {
+        setLoadingGroups(true);
+
+        const encryptionKey       = cacheKeyRef.current;
+        const storedGroupsBlob    = storageGetRaw(groupsListKey(user.id));
+        let   cachedGroupsList    = null;
+
+        // Try to decrypt the cached groups list
+        if (encryptionKey && storedGroupsBlob && cacheMatchesKey(encryptionKey, storedGroupsBlob)) {
+            cachedGroupsList = await decryptFromCache(encryptionKey, storedGroupsBlob);
+        }
+
+        // Show cached data immediately if available
+        if (Array.isArray(cachedGroupsList) && cachedGroupsList.length > 0) {
+            setGroups(cachedGroupsList);
+            setLoadingGroups(false);
+
+            const savedActiveId = storageGetJson(activeGroupIdKey(user.id));
+            const matchedGroup  = cachedGroupsList.find(g => g.id === savedActiveId);
+            setActiveGroup(matchedGroup || cachedGroupsList[0]);
+        }
+
+        // Always hit the API to get the real list
+        try {
+            const freshGroups = await apiGet("/api/groups");
+            const groupsList  = Array.isArray(freshGroups) ? freshGroups : [];
+            setGroups(groupsList);
+
+            // Persist the fresh list into encrypted LS
+            if (encryptionKey) {
+                const encrypted = await encryptForCache(encryptionKey, groupsList);
+                storageSetRaw(groupsListKey(user.id), encrypted);
+            }
+
+            markUserActive(user.id);
+
+            // Re-resolve active group from fresh data
+            const savedActiveId = storageGetJson(activeGroupIdKey(user.id));
+            const matchedGroup  = groupsList.find(g => g.id === savedActiveId);
+            if (matchedGroup)          setActiveGroup(matchedGroup);
+            else if (groupsList.length) setActiveGroup(groupsList[0]);
+            else                        setActiveGroup(null);
         } catch {
-            setGroups([]);
+            // API failed — keep cached data if we had any, otherwise show empty
+            if (!cachedGroupsList) setGroups([]);
         } finally {
             setLoadingGroups(false);
         }
     }
 
 
-    // full detail - encrypted in localstorage
-    async function loadOrRefreshDetail(groupId) {
-        const ck = cacheKeyRef.current;
+    // =================================================================
+    // loadOrRefreshGroupDetail — loads the dashboard data for a group
+    //
+    // If we have a cached detail + lastSeen timestamp, we use the delta
+    // endpoint (/refresh?lastSeen=) which returns only what changed.
+    // Otherwise we do a full fetch of detail + members.
+    // =================================================================
 
-        // try to read + decrypt cached detail
-        let cachedDetail = null;
-        const storedBlob = lsGetRaw(kDetail(user.id, groupId));
-        const cachedLastSeen = lsGet(kLastSeen(user.id, groupId));
+    async function loadOrRefreshGroupDetail(groupId) {
+        const encryptionKey = cacheKeyRef.current;
 
-        if (ck && storedBlob && cacheMatchesKey(ck, storedBlob)) {
-            // key matches — worth trying to decrypt
-            cachedDetail = await decryptFromCache(ck, storedBlob);
+        // Try to load cached detail from LS
+        let   cachedDetail       = null;
+        const storedDetailBlob   = storageGetRaw(groupDetailKey(user.id, groupId));
+        const storedLastSeen     = storageGetJson(groupLastSeenKey(user.id, groupId));
+
+        if (encryptionKey && storedDetailBlob && cacheMatchesKey(encryptionKey, storedDetailBlob)) {
+            cachedDetail = await decryptFromCache(encryptionKey, storedDetailBlob);
         }
 
-        // if we got something, show it right away while we refresh in the background
-        // migrate old cache format (long key names) → force full reload
+        // Guard against stale cache format — if the old key name "taskPreviews"
+        // exists but the new minified "tp" doesn't, the cache is from a previous
+        // format version. Wipe it and start fresh.
         if (cachedDetail && cachedDetail.taskPreviews !== undefined && cachedDetail.tp === undefined) {
             cachedDetail = null;
-            lsRemove(kDetail(user.id, groupId));
-            lsRemove(kLastSeen(user.id, groupId));
+            storageRemove(groupDetailKey(user.id, groupId));
+            storageRemove(groupLastSeenKey(user.id, groupId));
         }
+
+        // Show cached detail instantly while we check for updates
         if (cachedDetail) setGroupDetail(cachedDetail);
 
         try {
-            if (cachedDetail && cachedLastSeen) {
-                // delta refresh — small request
+            if (cachedDetail && storedLastSeen) {
+                // ── Delta refresh path ──────────────────────────────
                 const delta = await apiGet(
-                    `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(cachedLastSeen)}`
+                    `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(storedLastSeen)}`
                 );
 
-                // fetch members when they changed OR when not yet loaded for this group
-                if (delta.mc || membersLoadedForGroupRef.current !== groupId) {     // mc = membersChanged
+                // Reload members if the server says they changed, or if we
+                // haven't loaded members for this group yet
+                if (delta.mc || membersLoadedForGroupRef.current !== groupId) {
                     const membersPage = await apiGet(
                         `/api/groups/${groupId}/groupMemberships?page=0&size=100`
                     );
@@ -181,17 +335,21 @@ export default function GroupProvider({ children }) {
                     membersLoadedForGroupRef.current = groupId;
                 }
 
-                const final_ = delta.c ? mergeRefresh(cachedDetail, delta) : cachedDetail;  // c = changed
-                setGroupDetail(final_);
+                // Merge the delta into the cached detail
+                const updatedDetail = delta.c
+                    ? applyDeltaToDetail(cachedDetail, delta)
+                    : cachedDetail;
+                setGroupDetail(updatedDetail);
 
-                // encrypt and save back
-                if (ck) {
-                    const enc = await encryptForCache(ck, final_);
-                    lsSetRaw(kDetail(user.id, groupId), enc);
+                // Persist the merged result back to LS
+                if (encryptionKey) {
+                    const encrypted = await encryptForCache(encryptionKey, updatedDetail);
+                    storageSetRaw(groupDetailKey(user.id, groupId), encrypted);
                 }
-                lsSet(kLastSeen(user.id, groupId), delta.sn);    // sn = serverNow
+                storageSetJson(groupLastSeenKey(user.id, groupId), delta.sn);
+
             } else {
-                // no usable cache — full load (always fetch members)
+                // ── Full fetch path (no cache available) ────────────
                 setLoadingDetail(true);
                 const [detail, membersPage] = await Promise.all([
                     apiGet(`/api/groups/${groupId}`),
@@ -201,31 +359,30 @@ export default function GroupProvider({ children }) {
                 setMembers(membersPage?.content ?? []);
                 membersLoadedForGroupRef.current = groupId;
 
-                // encrypt and save
-                if (ck) {
-                    const enc = await encryptForCache(ck, detail);
-                    lsSetRaw(kDetail(user.id, groupId), enc);
+                // Cache the fresh detail
+                if (encryptionKey) {
+                    const encrypted = await encryptForCache(encryptionKey, detail);
+                    storageSetRaw(groupDetailKey(user.id, groupId), encrypted);
                 }
-                lsSet(kLastSeen(user.id, groupId), new Date().toISOString());
+                storageSetJson(groupLastSeenKey(user.id, groupId), new Date().toISOString());
             }
         } catch (err) {
-            // If 403 or 404 the user was likely removed from the group (or group deleted).
-            // Auto-recover by reloading the groups list so the stale group disappears.
             if (err?.status === 403 || err?.status === 404) {
-                // wipe local cache for this group
-                lsRemove(kDetail(user.id, groupId));
-                lsRemove(kLastSeen(user.id, groupId));
+                // User lost access to this group — clean up and redirect
+                storageRemove(groupDetailKey(user.id, groupId));
+                storageRemove(groupLastSeenKey(user.id, groupId));
                 setGroupDetail(null);
                 setMembers([]);
                 membersLoadedForGroupRef.current = null;
-                // reload will drop the missing group and auto-select another
-                await loadGroups();
+
+                await loadGroupsList();
                 window.dispatchEvent(
                     new CustomEvent("group-access-lost", {
                         detail: { groupId, message: err?.message || "You no longer have access to this group." },
                     })
                 );
             } else if (!cachedDetail) {
+                // Network error with no cache to fall back on
                 setGroupDetail(null);
                 setMembers([]);
             }
@@ -235,58 +392,77 @@ export default function GroupProvider({ children }) {
     }
 
 
-    // --- public api ---
-    const selectGroup = useCallback((g) => setActiveGroup(g), []);
+    // =================================================================
+    // Group actions — exposed through context for pages/components
+    // =================================================================
+
+    const selectGroup = useCallback((group) => {
+        detailLoadedForGroupRef.current = null;
+        setActiveGroup(group);
+    }, []);
+
+    /** Encrypts and persists the groups list to LS (fire-and-forget). */
+    const persistGroupsListToStorage = useCallback(async (list) => {
+        const encryptionKey = cacheKeyRef.current;
+        if (encryptionKey && user?.id) {
+            const encrypted = await encryptForCache(encryptionKey, list);
+            storageSetRaw(groupsListKey(user.id), encrypted);
+        }
+    }, [user]);
 
     const addGroup = useCallback((newGroup) => {
         setGroups(prev => {
-            const next = [...prev, newGroup];
-            if (user?.id) lsSet(kGroups(user.id), next);
-            return next;
+            const updated = [...prev, newGroup];
+            persistGroupsListToStorage(updated);
+            return updated;
         });
         setActiveGroup(newGroup);
-    }, [user]);
+    }, [user, persistGroupsListToStorage]);
 
     const updateGroup = useCallback((updatedGroup) => {
         setGroups(prev => {
-            const next = prev.map(g => g.id === updatedGroup.id ? updatedGroup : g);
-            if (user?.id) lsSet(kGroups(user.id), next);
-            return next;
+            const updated = prev.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+            persistGroupsListToStorage(updated);
+            return updated;
         });
         setActiveGroup(updatedGroup);
-        // Delta-refresh instead of full reload so the UI doesn't flash a spinner
-        // (e.g. group settings popup stays smooth after a save).
-        loadOrRefreshDetail(updatedGroup.id);
-    }, [user]);
+
+        // Mark the ref with this group's ID so the activeGroup effect skips —
+        // we're already refreshing detail explicitly right here.
+        detailLoadedForGroupRef.current = updatedGroup.id;
+        loadOrRefreshGroupDetail(updatedGroup.id);
+    }, [user, persistGroupsListToStorage]);
 
     const refreshActiveGroup = useCallback(() => {
-        if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        if (activeGroup) {
+            detailLoadedForGroupRef.current = null;
+            loadOrRefreshGroupDetail(activeGroup.id);
+        }
     }, [activeGroup]);
 
     const removeGroupFromState = useCallback((groupId) => {
         setGroups(prev => {
-            const next = prev.filter(g => g.id !== groupId);
-            if (user?.id) lsSet(kGroups(user.id), next);
-            // If we removed the active group, switch to next available
+            const remaining = prev.filter(g => g.id !== groupId);
+            persistGroupsListToStorage(remaining);
+
             if (activeGroup?.id === groupId) {
-                const fallback = next.length ? next[0] : null;
-                setActiveGroup(fallback);
+                setActiveGroup(remaining.length ? remaining[0] : null);
             }
-            return next;
+            return remaining;
         });
-        // clear cached detail
+
+        // Clean up this group's cached detail and timestamp
         if (user?.id) {
-            lsRemove(kDetail(user.id, groupId));
-            lsRemove(kLastSeen(user.id, groupId));
+            storageRemove(groupDetailKey(user.id, groupId));
+            storageRemove(groupLastSeenKey(user.id, groupId));
         }
-    }, [user, activeGroup]);
+    }, [user, activeGroup, persistGroupsListToStorage]);
 
     const reloadGroups = useCallback(() => {
-        if (user) loadGroups();
+        if (user) loadGroupsList();
     }, [user]);
 
-    // Optimistically update the current user's lastSeenGroupEvents in the local members array
-    // so we don't need to re-fetch the whole group detail + members just for this timestamp.
+    /** Optimistically marks group events as seen for the current user. */
     const markGroupEventsSeen = useCallback(() => {
         if (!user) return;
         setMembers(prev =>
@@ -298,95 +474,154 @@ export default function GroupProvider({ children }) {
         );
     }, [user]);
 
-    // --- Smart polling with tiered backoff ---
-    // Tier 1: 30 s   for the first 10 min of inactivity (1 min if session > 30 min)
-    // Tier 2: 1 min  from 10 → 15 min of inactivity
-    // Tier 3: STOP   after 15 min (show refresh button only)
-    const TIER1_MS         = 30_000;
-    const TIER1_LONG_MS    = 60_000;          // after 30 min active session
-    const TIER1_UNTIL      = 10 * 60_000;
-    const TIER2_MS         = 60_000;
-    const TIER2_UNTIL      = 15 * 60_000;
-    const LONG_SESSION_MS  = 30 * 60_000;
 
-    const [isStale, setIsStale]     = useState(false);
+    // =================================================================
+    // Polling — 3-tier idle degradation
+    //
+    // Active:    poll every 30s (60s after a long session of 30+ min)
+    // Idle 10m:  slow down to 60s
+    // Idle 15m:  stop polling entirely, show "stale" banner
+    //
+    // When the user returns from idle, we do a full detail reload
+    // before resuming the poll cycle.
+    // =================================================================
 
-    const pollTimer       = useRef(null);
-    const lastActivity    = useRef(Date.now());
-    const sessionStart    = useRef(Date.now());
+    // Timing constants
+    const POLL_ACTIVE_MS       = 30_000;       // 30s between polls while active
+    const POLL_LONG_SESSION_MS = 60_000;       // 60s if session > 30 min
+    const SLOW_DOWN_AFTER_MS   = 10 * 60_000;  // start slowing after 10 min idle
+    const POLL_SLOW_MS         = 60_000;       // 60s in slow tier
+    const STOP_AFTER_MS        = 15 * 60_000;  // stop completely after 15 min idle
+    const LONG_SESSION_MS      = 30 * 60_000;  // "long session" = 30 min
 
-    function getPollInterval() {
-        const idle = Date.now() - lastActivity.current;
-        if (idle >= TIER2_UNTIL) return null;            // stop polling
-        if (idle >= TIER1_UNTIL) return TIER2_MS;        // 1 min
+    const [isStale, setIsStale]  = useState(false);
 
-        // Tier 1 — use longer base after 30 min of session
-        const sessionAge = Date.now() - sessionStart.current;
-        return sessionAge > LONG_SESSION_MS ? TIER1_LONG_MS : TIER1_MS;
+    const pollTimerRef    = useRef(null);
+    const lastActivityRef = useRef(Date.now());
+    const sessionStartRef = useRef(Date.now());
+
+    /** Decides how often to poll based on idle time and session length. */
+    function choosePollInterval() {
+        const idleMs = Date.now() - lastActivityRef.current;
+        if (idleMs >= STOP_AFTER_MS)     return null;           // stop
+        if (idleMs >= SLOW_DOWN_AFTER_MS) return POLL_SLOW_MS;  // slow tier
+
+        const sessionAge = Date.now() - sessionStartRef.current;
+        return sessionAge > LONG_SESSION_MS ? POLL_LONG_SESSION_MS : POLL_ACTIVE_MS;
     }
 
     const schedulePoll = useCallback(() => {
-        if (pollTimer.current) clearTimeout(pollTimer.current);
+        if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
 
-        const interval = getPollInterval();
+        const interval = choosePollInterval();
         if (interval === null) {
-            // idle too long — stop polling, show refresh button
             setIsStale(true);
             return;
         }
 
-        pollTimer.current = setTimeout(() => {
-            // re-check idle right before firing
-            const idle = Date.now() - lastActivity.current;
-            if (idle >= TIER2_UNTIL) {
+        pollTimerRef.current = setTimeout(async () => {
+            // Double-check idle time inside the timeout (user might have gone idle
+            // between scheduling and firing)
+            const idleMs = Date.now() - lastActivityRef.current;
+            if (idleMs >= STOP_AFTER_MS) {
                 setIsStale(true);
                 return;
             }
 
-            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+            if (activeGroup) {
+                const lastSeen = storageGetJson(groupLastSeenKey(user.id, activeGroup.id));
+                if (lastSeen) {
+                    // Lightweight check: has anything changed since lastSeen?
+                    // Server returns 204 (no) or 409 (yes)
+                    try {
+                        await apiGet(
+                            `/api/groups/${activeGroup.id}/has-changed?lastSeen=${encodeURIComponent(lastSeen)}`
+                        );
+                    } catch (err) {
+                        if (err?.status === 409) {
+                            loadOrRefreshGroupDetail(activeGroup.id);
+                        }
+                    }
+                } else {
+                    // No lastSeen stored — do a full detail load
+                    loadOrRefreshGroupDetail(activeGroup.id);
+                }
+            }
 
-            schedulePoll();   // re-schedule at the (possibly new) tier
+            schedulePoll();
         }, interval);
-    }, [activeGroup]);
+    }, [activeGroup, user]);
 
-    // reset on user interaction — restart from tier 1
+    // Throttle activity events: ignore clicks/scrolls that arrive within 5s
+    // of the last poll reschedule to avoid hammering clearTimeout/setTimeout.
+    const lastPollRescheduleRef   = useRef(0);
+    const ACTIVITY_THROTTLE_MS   = 5_000;
+
     const onUserActivity = useCallback(() => {
-        lastActivity.current = Date.now();
+        lastActivityRef.current = Date.now();
+
+        // Coming back from stale/idle — reload detail and restart polling
         if (isStale) {
             setIsStale(false);
-            // user came back — do an immediate refresh
-            if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+            if (activeGroup) {
+                detailLoadedForGroupRef.current = null;
+                loadOrRefreshGroupDetail(activeGroup.id);
+            }
+            lastPollRescheduleRef.current = Date.now();
+            schedulePoll();
+            return;
         }
-        schedulePoll();
+
+        // Normal activity — only reschedule if enough time passed
+        if (Date.now() - lastPollRescheduleRef.current >= ACTIVITY_THROTTLE_MS) {
+            lastPollRescheduleRef.current = Date.now();
+            schedulePoll();
+        }
     }, [activeGroup, isStale, schedulePoll]);
 
-    // manual refresh (from the stale banner button)
+    /** Explicit refresh button — always reloads detail + resets poll cycle. */
     const manualRefresh = useCallback(() => {
-        lastActivity.current = Date.now();
+        lastActivityRef.current = Date.now();
         setIsStale(false);
-        if (activeGroup) loadOrRefreshDetail(activeGroup.id);
+        if (activeGroup) {
+            detailLoadedForGroupRef.current = null;
+            loadOrRefreshGroupDetail(activeGroup.id);
+        }
         schedulePoll();
     }, [activeGroup, schedulePoll]);
 
-    // kick off / restart polling when group changes
+
+    // =================================================================
+    // Effect: start/stop poll cycle when active group or user changes
+    // =================================================================
+
     useEffect(() => {
         if (!activeGroup || !user) {
-            if (pollTimer.current) clearTimeout(pollTimer.current);
+            if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
             return;
         }
-        lastActivity.current = Date.now();
+        lastActivityRef.current = Date.now();
         setIsStale(false);
         schedulePoll();
-        return () => { if (pollTimer.current) clearTimeout(pollTimer.current); };
+        return () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
     }, [activeGroup, user, schedulePoll]);
 
-    // listen for user-interaction events to reset backoff
+
+    // =================================================================
+    // Effect: listen for user activity (click, keydown, scroll, pointer)
+    // =================================================================
+
     useEffect(() => {
         if (!activeGroup || !user) return;
         const events = ["click", "keydown", "scroll", "pointerdown"];
-        events.forEach((ev) => window.addEventListener(ev, onUserActivity, { passive: true }));
-        return () => events.forEach((ev) => window.removeEventListener(ev, onUserActivity));
+        events.forEach(ev => window.addEventListener(ev, onUserActivity, { passive: true }));
+        return () => events.forEach(ev => window.removeEventListener(ev, onUserActivity));
     }, [activeGroup, user, onUserActivity]);
+
+
+    // =================================================================
+    // Context value
+    // =================================================================
 
     return (
         <GroupContext.Provider value={{

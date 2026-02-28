@@ -14,7 +14,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"i", "t", "ts", "ca", "dd", "cc", "a", "nc", "cn", "p"})
+@JsonPropertyOrder({"i", "t", "ts", "ca", "dd", "cc", "a", "nc", "cn", "p", "dl"})
 public class TaskPreviewDto {
     @JsonProperty("i")  private Long id;
     @JsonProperty("t")  private String title;
@@ -26,4 +26,5 @@ public class TaskPreviewDto {
     @JsonProperty("nc") private Boolean newCommentsToBeRead;
     @JsonProperty("cn") private String creatorName;
     @JsonProperty("p")  private Integer priority;
+    @JsonProperty("dl") private Boolean deletable;
 }

@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "@styles/pages/Login.css";
 
-// handles the Azure AD redirect — exchanges the ?code for a session cookie
-// then redirects to /dashboard
 export default function AuthCallback() {
     const [searchParams] = useSearchParams();
     const [error, setError] = useState("");
@@ -20,20 +18,27 @@ export default function AuthCallback() {
 
         (async () => {
             try {
+                const state = searchParams.get("state");
                 const res = await fetch("/api/auth/exchange", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ code }),
+                    body: JSON.stringify({ code, state }),
                 });
 
                 if (!res.ok) {
+                    if (res.status === 503) {
+                        throw new Error(
+                            "We are sorry but currently we are under heavy traffic. " +
+                            "We cannot accept your request at this time, please try again later."
+                        );
+                    }
                     const text = await res.text().catch(() => "");
                     throw new Error(text || `HTTP ${res.status}`);
                 }
 
                 if (!cancelled) {
-                    // Full reload so AuthProvider picks up the new cookies
+
                     window.location.href = "/dashboard";
                 }
             } catch (err) {

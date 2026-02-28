@@ -17,8 +17,6 @@ import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.UserContext;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
@@ -30,7 +28,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-
 
 @Component
 @Profile({"DataLoader"})
@@ -166,7 +163,6 @@ public class DataLoader extends BaseComponent {
         User member1 = users.get("JUDY");
         User member2 = users.get("MALLORY");
         User guest = users.get("OSCAR");
-
 
         User reviewer2 = users.get("ALICE");
 

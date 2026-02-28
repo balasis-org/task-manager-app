@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
 import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.validation.UserValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
@@ -20,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.Instant;
-
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,23 +31,21 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private final UserValidator userValidator;
     private final EffectiveCurrentUser effectiveCurrentUser;
     private final BlobStorageService blobStorageService;
+    private final DefaultImageService defaultImageService;
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public User getMyProfile() {
         User user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
 
-        // keep last-active timestamp fresh (used by maintenance cleanup)
         user.setLastActiveAt(Instant.now());
 
-        // rotate cache encryption key every 7 days
         if (user.getCacheKey() == null || user.getCacheKeyCreatedAt() == null
                 || Duration.between(user.getCacheKeyCreatedAt(), Instant.now()).toDays() >= 7) {
             user.rotateCacheKey();
         }
 
-        // generate invite code for existing users who don't have one yet
         if (user.getInviteCode() == null) {
             user.refreshInviteCode();
         }
@@ -55,7 +54,7 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public User patchMyProfile(User user) {
         var fetchedUser = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
@@ -69,9 +68,8 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         return fetchedUser;
     }
 
-
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public User updateProfileImage(MultipartFile file){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
@@ -108,7 +106,7 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private static final Duration INVITE_CODE_COOLDOWN = Duration.ofMinutes(5);
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public User refreshInviteCode() {
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
@@ -120,6 +118,21 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         }
 
         user.refreshInviteCode();
+        return userRepository.save(user);
+    }
+
+    @Override
+    public List<String> findDefaultImages(BlobContainerType type) {
+        return defaultImageService.findAll(type);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public User pickDefaultProfileImage(String fileName) {
+        var user = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+        user.setDefaultImgUrl(fileName);
+        user.setImgUrl(null);
         return userRepository.save(user);
     }
 

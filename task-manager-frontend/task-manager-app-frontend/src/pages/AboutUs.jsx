@@ -28,7 +28,6 @@ const FEATURES = [
 export default function AboutUs() {
     const cardsRef = useRef([]);
 
-    // fade cards in as they scroll into view
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -56,7 +55,7 @@ export default function AboutUs() {
                 </p>
             </section>
 
-            {/* our story */}
+            { }
             <section className="about-story">
                 <h2>Our story</h2>
                 <p>
@@ -89,13 +88,13 @@ export default function AboutUs() {
                 </div>
             </section>
 
-            {/* contact */}
+            { }
             <section className="about-contact">
                 <h2>Get in touch</h2>
                 <p>
                     Have questions, feedback, or want to contribute? Reach out via the
                     project repository or email us at&nbsp;
-                    <strong>placeholder@example.com</strong>.
+                    <strong>rebuildarch5@gmail.com</strong>.
                 </p>
             </section>
         </div>

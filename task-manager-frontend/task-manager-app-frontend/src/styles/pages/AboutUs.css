@@ -1,11 +1,10 @@
-/* About Us page */
+
 .about-page {
     max-width: 51.25em;
     margin: 0 auto;
     padding: 2.5em 1.5em 5em;
 }
 
-/* Hero */
 .about-hero {
     text-align: center;
     margin-bottom: 3em;
@@ -32,7 +31,6 @@
     margin: 0 auto;
 }
 
-/* Story section */
 .about-story {
     margin-bottom: 2.5em;
     animation: aboutFadeUp 0.7s 0.15s ease both;
@@ -52,7 +50,6 @@
     margin: 0 0 0.625em;
 }
 
-/* Features grid */
 .about-features {
     margin-bottom: 3em;
 }
@@ -78,7 +75,7 @@
     padding: 1.5em 1.25em;
     text-align: center;
     transition: transform 0.25s, box-shadow 0.25s;
-    /* Fade-in on scroll — hidden by default */
+
     opacity: 0;
     transform: translateY(1.5em);
     transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s;
@@ -120,7 +117,6 @@
     margin: 0;
 }
 
-/* Contact */
 .about-contact {
     text-align: center;
     animation: aboutFadeUp 0.7s 0.3s ease both;
@@ -139,7 +135,6 @@
     line-height: 1.65;
 }
 
-/* Animation */
 @keyframes aboutFadeUp {
     from {
         opacity: 0;
@@ -151,7 +146,6 @@
     }
 }
 
-/* Responsive */
 @media (max-width: 600px) {
     .about-hero-title {
         font-size: 1.75em;

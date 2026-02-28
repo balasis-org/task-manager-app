@@ -1,0 +1,83 @@
+.settings-card-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2em 1.5em 1.25em;
+}
+
+.settings-avatar-zone {
+    position: relative;
+    width: 7em;
+    height: 7em;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid var(--border-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.settings-avatar-zone:hover,
+.settings-avatar-zone.drag-over {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.2em var(--accent-primary-bg);
+}
+
+.settings-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.settings-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+}
+
+.settings-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.settings-avatar-zone:hover .settings-avatar-overlay {
+    opacity: 1;
+}
+
+.settings-avatar-spinner {
+    display: inline-block;
+    width: 1.4em;
+    height: 1.4em;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+.settings-avatar-hint {
+    margin-top: 0.6em;
+    font-size: 0.75em;
+    color: var(--text-muted);
+}
+
+.settings-defaults-btn {
+    margin-top: 0.5em;
+    font-size: 0.78em;
+    padding: 0.3em 1em;
+}
+
+@media (max-width: 32em) {
+    .settings-avatar-zone {
+        width: 5.5em;
+        height: 5.5em;
+    }
+}

@@ -17,9 +17,9 @@ import java.util.Set;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task,Long> {
-    boolean existsByTitle(String title);
+    boolean existsByTitleAndGroup_Id(String title, Long groupId);
 
-    boolean existsByTitleAndIdNot(String title, Long id);
+    boolean existsByTitleAndGroup_IdAndIdNot(String title, Long groupId, Long id);
 
     long countByGroup_Id(Long groupId);
 
@@ -218,8 +218,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         SELECT t
         FROM Task t
         LEFT JOIN t.group g
-        WHERE lower(t.title) LIKE lower(concat('%', :q, '%'))
-           OR lower(g.name) LIKE lower(concat('%', :q, '%'))
+        WHERE t.title LIKE concat('%', :q, '%')
+           OR g.name LIKE concat('%', :q, '%')
     """)
     Page<Task> adminSearchTasks(@Param("q") String q, Pageable pageable);
 

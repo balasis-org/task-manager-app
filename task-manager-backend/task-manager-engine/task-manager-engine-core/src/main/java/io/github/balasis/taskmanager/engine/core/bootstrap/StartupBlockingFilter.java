@@ -1,17 +1,19 @@
 package io.github.balasis.taskmanager.engine.core.bootstrap;
 
+import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Component
-public class StartupBlockingFilter extends OncePerRequestFilter {
+public class StartupBlockingFilter implements Filter {
 
     private final StartupGate startupGate;
 
@@ -20,11 +22,14 @@ public class StartupBlockingFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    public void doFilter(ServletRequest servletRequest,
+                         ServletResponse servletResponse,
+                         FilterChain filterChain) throws ServletException, IOException {
 
-        if (!startupGate.isReady() && !shouldNotFilter(request)) {
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+
+        if (!startupGate.isReady() && !shouldSkip(request)) {
             response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
             response.setContentType("text/plain;charset=UTF-8");
             response.getWriter().write("Service is starting up. Please try again shortly.");
@@ -34,8 +39,7 @@ public class StartupBlockingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
+    private boolean shouldSkip(HttpServletRequest request) {
         String path = request.getRequestURI();
 
         if (path == null) {

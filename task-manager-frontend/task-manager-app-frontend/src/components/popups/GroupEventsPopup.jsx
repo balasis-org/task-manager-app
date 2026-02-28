@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiGet } from "@assets/js/apiClient";
 import "@styles/popups/Popup.css";
+import "@styles/popups/GroupEventsPopup.css";
 
 export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents }) {
     const [events, setEvents] = useState([]);
@@ -8,7 +9,6 @@ export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    // save threshold once so it doesnt shift after the fetch
     const [seenThreshold] = useState(() => lastSeenGroupEvents || null);
 
     useEffect(() => {

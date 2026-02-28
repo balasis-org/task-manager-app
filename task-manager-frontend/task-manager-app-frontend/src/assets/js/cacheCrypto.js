@@ -1,15 +1,19 @@
-// simple encrypt / decrypt for localStorage cache
-// uses AES-GCM via the built-in Web Crypto API — no extra deps needed.
-//
-// the "key" we get from the backend is a plain hex-ish string (UUID without dashes).
-// we derive an actual CryptoKey from it with PBKDF2 so we can use AES-GCM properly.
-// the salt is fixed per-app — thats fine, the key itself is already random.
 
 const SALT = new TextEncoder().encode("tm-cache-salt-v1");
-const IV_LEN = 12; // bytes, standard for AES-GCM
+const IV_LEN = 12;
 
-// turn the backend key string into a CryptoKey we can actually use
+/**
+ * In-memory cache: rawKey → CryptoKey.
+ * PBKDF2 with 100 000 iterations costs ~50-200 ms per call (device-dependent).
+ * Caching ensures we pay that cost once per session per user, not on every
+ * encrypt/decrypt operation.  The cache lives only in JS heap — never persisted.
+ */
+const derivedKeyCache = new Map();
+
 async function deriveKey(rawKey) {
+   const cached = derivedKeyCache.get(rawKey);
+   if (cached) return cached;
+
    const keyMaterial = await crypto.subtle.importKey(
       "raw",
       new TextEncoder().encode(rawKey),
@@ -17,19 +21,17 @@ async function deriveKey(rawKey) {
       false,
       ["deriveKey"]
    );
-   return crypto.subtle.deriveKey(
+   const key = await crypto.subtle.deriveKey(
       { name: "PBKDF2", salt: SALT, iterations: 100_000, hash: "SHA-256" },
       keyMaterial,
       { name: "AES-GCM", length: 256 },
       false,
       ["encrypt", "decrypt"]
    );
+   derivedKeyCache.set(rawKey, key);
+   return key;
 }
 
-// encrypt a JS object into a base64 string for localStorage
-// we prepend a small "tag" (first 8 chars of the raw key) so we can
-// quickly check whether the stored blob matches the current key
-// without attempting a full decrypt.
 export async function encryptForCache(rawKey, data) {
    const key = await deriveKey(rawKey);
    const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
@@ -41,23 +43,18 @@ export async function encryptForCache(rawKey, data) {
       plaintext
    );
 
-   // combine iv + ciphertext into one array
    const combined = new Uint8Array(IV_LEN + cipherBuf.byteLength);
    combined.set(iv, 0);
    combined.set(new Uint8Array(cipherBuf), IV_LEN);
 
-   // store as:  keyTag:base64payload
    const tag = rawKey.substring(0, 8);
    const b64 = btoa(String.fromCharCode(...combined));
    return tag + ":" + b64;
 }
 
-// decrypt a localStorage string back into a JS object.
-// returns null if the key doesn't match (tag mismatch) or decryption fails.
 export async function decryptFromCache(rawKey, stored) {
    if (!stored || typeof stored !== "string") return null;
 
-   // check the tag prefix first — quick bail if key changed
    const tag = rawKey.substring(0, 8);
    if (!stored.startsWith(tag + ":")) return null;
 
@@ -76,13 +73,11 @@ export async function decryptFromCache(rawKey, stored) {
       );
       return JSON.parse(new TextDecoder().decode(plainBuf));
    } catch {
-      // wrong key, corrupted data, whatever — treat as cache miss
+
       return null;
    }
 }
 
-// quick check: does this stored blob belong to the current key?
-// avoids a full decrypt just to detect a rotation.
 export function cacheMatchesKey(rawKey, stored) {
    if (!stored || typeof stored !== "string" || !rawKey) return false;
     const tag = rawKey.substring(0, 8);

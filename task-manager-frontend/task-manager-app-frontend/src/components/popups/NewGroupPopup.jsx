@@ -4,6 +4,7 @@ import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
 import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
+import "@styles/popups/NewGroupPopup.css";
 
 export default function NewGroupPopup({ onClose, onCreated }) {
     const [title, setTitle] = useState("");
@@ -73,7 +74,6 @@ export default function NewGroupPopup({ onClose, onCreated }) {
         setBusy(true);
         setError("");
 
-        // Validate cover image before creating the group
         if (coverImage) {
             if (coverImage.type === "image/gif") {
                 setError("GIF images are not supported. Please use PNG or JPG.");
@@ -88,7 +88,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
         }
 
         try {
-            // Create group
+
             const group = await apiPost("/api/groups", {
                 name: title.trim(),
                 description: description.trim(),
@@ -96,7 +96,6 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                 allowEmailNotification: true,
             });
 
-            // If cover image selected, upload it
             if (coverImage && group?.id) {
                 const fd = new FormData();
                 fd.append("file", coverImage);
@@ -108,7 +107,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                     onCreated(updated);
                     return;
                 } catch {
-                    // Image upload failed but group was created
+
                 }
             }
 

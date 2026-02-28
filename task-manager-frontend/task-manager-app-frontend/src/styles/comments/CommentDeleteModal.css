@@ -1,0 +1,37 @@
+.comments-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.comments-confirm-popup {
+    background: var(--bg-primary);
+    border-radius: 0.625em;
+    padding: 1.5em;
+    min-width: 18.75em;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.comments-confirm-popup p {
+    margin: 0 0 1.25em;
+    font-size: 0.875em;
+    color: var(--text-primary);
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75em;
+}
+
+@media (max-width: 480px) {
+    .comments-confirm-popup {
+        min-width: 15em;
+        padding: 1em;
+    }
+}

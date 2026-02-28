@@ -1,12 +1,13 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,46 +17,83 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController extends BaseComponent {
-    protected Logger logger = LoggerFactory.getLogger(getClass());
     private final AuthService authService;
 
     @GetMapping("/login-url")
-    public ResponseEntity<String> getLoginUrl() {
-        String url = authService.getLoginUrl();
+    public ResponseEntity<String> getLoginUrl(HttpServletRequest request, HttpServletResponse response) {
+        String state = authService.generateRandomRefreshToken(32);
+        String url = authService.getLoginUrl(state);
+        boolean secure = isHttps(request);
+
+        //(sameSite could be skipped ; the callback page is from my domain to the exchange)
+        //(but I guess it's ok to let people auto login if people were here and manually click on link)
+        ResponseCookie stateCookie = ResponseCookie.from("oauth_state", state)
+                .httpOnly(true)
+                .secure(secure)
+                .path("/")
+                .maxAge(5 * 60)
+                .sameSite("Lax")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie.toString());
+
         return ResponseEntity.ok(url);
     }
 
     @PostMapping("/exchange")
     public ResponseEntity<?> exchangeCode(
             @RequestBody Map<String, String> body,
+            @CookieValue(name = "oauth_state", required = false) String stateCookie,
+            HttpServletRequest request,
             HttpServletResponse response
     ) {
-        Map<String, Object> toBeReturned = authService.authenticateThroughAzureCode(body.get("code"));
+        authService.verifyState(body.get("state"), stateCookie);
+        boolean secure = isHttps(request);
+
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                ResponseCookie.from("oauth_state", "")
+                        .httpOnly(true).secure(secure).path("/")
+                        .maxAge(0).sameSite("Lax").build().toString());
+
+        Map<String, Object> toBeReturned = authService.authenticateThroughAzureCode(body.get("code"), secure);
         response.addHeader(HttpHeaders.SET_COOKIE, toBeReturned.get("cookie").toString());
         response.addHeader(HttpHeaders.SET_COOKIE, toBeReturned.get("refreshKey").toString());
         return ResponseEntity.ok(toBeReturned.get("message"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "RefreshKey", required = false) String refreshCookieValue,
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
-        Cookie cookie = new Cookie("jwt", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
+        if (refreshCookieValue != null) {
+            try {
+                String[] parts = refreshCookieValue.split(":", 2);
+                if (parts.length == 2) {
+                    authService.invalidateRefreshToken(Long.parseLong(parts[0]));
+                }
+            } catch (Exception ignored) {
 
-        response.addCookie(cookie);
+            }
+        }
 
-        Cookie refreshCookie = new Cookie("RefreshKey", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
+        boolean secure = isHttps(request);
 
-        response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                ResponseCookie.from("jwt", "")
+                        .httpOnly(true).secure(secure).path("/")
+                        .maxAge(0).sameSite("Strict").build().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                ResponseCookie.from("RefreshKey", "")
+                        .httpOnly(true).secure(secure).path("/")
+                        .maxAge(0).sameSite("Strict").build().toString());
 
         return ResponseEntity.noContent().build();
+    }
+
+    private boolean isHttps(HttpServletRequest request) {
+        return request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
     }
 
 }

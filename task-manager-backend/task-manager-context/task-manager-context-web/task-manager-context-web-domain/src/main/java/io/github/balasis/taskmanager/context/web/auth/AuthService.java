@@ -1,9 +1,14 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.AuthenticationIntegrityException;
 import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.exception.critical.CriticalAuthIntegrityException;
 import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
@@ -28,6 +33,9 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
@@ -47,20 +55,43 @@ public class AuthService extends BaseComponent {
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
-    public String getLoginUrl() {
+    private volatile JWKSet cachedJwkSet;
+    private volatile long jwkSetFetchedAt;
+    private static final long JWKS_CACHE_MS = 1000L * 60 * 60;
+
+    private String cachedAdminEmail;
+
+    @jakarta.annotation.PostConstruct
+    void initAdminEmail() {
+        cachedAdminEmail = secretClientProvider.getSecret("ADMIN-EMAIL");
+    }
+
+    public String getLoginUrl(String state) {
         return UriComponentsBuilder.fromHttpUrl(authConfig.getAuthorizationEndpoint())
                 .queryParam("client_id", authConfig.getClientId())
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", authConfig.getRedirectUri())
                 .queryParam("response_mode", "query")
                 .queryParam("scope", authConfig.getScope())
-                .queryParam("state", "12345")  // optional, for CSRF protection
+                .queryParam("state", state)
                 .queryParam("prompt","login")
                 .toUriString();
     }
 
+    public void verifyState(String stateFromRequest, String stateFromCookie) {
+        if (stateFromRequest == null || stateFromCookie == null
+                || !MessageDigest.isEqual(
+                        stateFromRequest.getBytes(StandardCharsets.UTF_8),
+                        stateFromCookie.getBytes(StandardCharsets.UTF_8))) {
+            throw new AuthenticationIntegrityException("Invalid OAuth state parameter");
+        }
+    }
 
-    public Map<String,Object> authenticateThroughAzureCode(String code){
+    public void invalidateRefreshToken(Long refreshTokenId) {
+        refreshTokenRepository.deleteById(refreshTokenId);
+    }
+
+    public Map<String,Object> authenticateThroughAzureCode(String code, boolean secureCookies){
         validateAuthorizationCode(code);
         var idToken = extractIdToken(code);
         Map<String, Object> claims = new HashMap<>(decodeIdToken(idToken));
@@ -73,8 +104,8 @@ public class AuthService extends BaseComponent {
                 RefreshToken.builder().refreshCode(refreshCode).user(user).build()
         ).getId();
         var createRefreshCookieValue = refreshTokenId + ":" + refreshCode;
-        var cookie = createJwtCookie(jwtService.generateToken(user.getId().toString()));
-        var refreshCookie =  createRefreshCookie(createRefreshCookieValue);
+        var cookie = createJwtCookie(jwtService.generateToken(user.getId().toString()), secureCookies);
+        var refreshCookie =  createRefreshCookie(createRefreshCookieValue, secureCookies);
         return generateResponse(cookie, refreshCookie);
     }
 
@@ -125,25 +156,20 @@ public class AuthService extends BaseComponent {
         var azureKey = tenantId.concat(azureId);
         var finalName = (name!=null) ? name : email.substring(0,email.indexOf("@"));
 
-        String adminEmail = secretClientProvider.getSecret("ADMIN_EMAIL");
-        System.out.println("Admin email is : " + adminEmail);
-        System.out.println("email is " + email);
+        String adminEmail = cachedAdminEmail;
         boolean isAdmin = adminEmail != null && adminEmail.equalsIgnoreCase(email);
-        if(isAdmin){
-            System.out.println(adminEmail   + " is " + isAdmin);
-        }
 
         return  userRepository.findByAzureKey(azureKey)
                 .map(existing -> {
                     existing.setLastActiveAt(java.time.Instant.now());
-                    // promote to admin if env says so (idempotent)
+
                     if (isAdmin && existing.getSystemRole() != SystemRole.ADMIN) {
                         existing.setSystemRole(SystemRole.ADMIN);
                     }
                     return userRepository.save(existing);
                 })
                 .orElseGet(() -> {
-                    // admin bypasses the user-count limit
+
                     if (!isAdmin && userRepository.count() >= PlanLimits.MAX_USERS) {
                         throw new LimitExceededException(
                                 "We apologize but currently the application has reached the maximum number of user");
@@ -151,7 +177,7 @@ public class AuthService extends BaseComponent {
                     User u = new User();
                     u.setAzureKey(azureKey);
                     u.setTenantId(tenantId);
-                    u.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES));
+                    u.setDefaultImgUrl(defaultImageService.pickFirst(BlobContainerType.PROFILE_IMAGES));
                     u.setOrg(isOrg);
                     u.setEmail(email);
                     u.setName(finalName);
@@ -163,20 +189,20 @@ public class AuthService extends BaseComponent {
 
     }
 
-    private ResponseCookie createJwtCookie(String jwt){
+    private ResponseCookie createJwtCookie(String jwt, boolean secure){
        return ResponseCookie.from("jwt", jwt)
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .path("/")
                 .maxAge(JWT_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
                 .build();
     }
 
-    private ResponseCookie createRefreshCookie(String createRefreshCookieValue){
+    private ResponseCookie createRefreshCookie(String createRefreshCookieValue, boolean secure){
         return ResponseCookie.from("RefreshKey" , createRefreshCookieValue)
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .path("/")
                 .maxAge(REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
@@ -200,7 +226,6 @@ public class AuthService extends BaseComponent {
         formData.add("code", code);
         formData.add("redirect_uri", authConfig.getRedirectUri());
         formData.add("grant_type", "authorization_code");
-        logger.debug("Token request form data: " + formData);
 
         return webClient.post()
                 .uri("https://login.microsoftonline.com/" + authConfig.getTenantId() + "/oauth2/v2.0/token")
@@ -216,9 +241,55 @@ public class AuthService extends BaseComponent {
     public Map<String, Object> decodeIdToken(String idToken) {
         try {
             SignedJWT jwt = SignedJWT.parse(idToken);
-            return jwt.getJWTClaimsSet().getClaims();
+
+            JWKSet jwkSet = getJwkSet();
+            String kid = jwt.getHeader().getKeyID();
+            JWK jwk = jwkSet.getKeyByKeyId(kid);
+
+            if (jwk == null) {
+
+                cachedJwkSet = null;
+                jwkSet = getJwkSet();
+                jwk = jwkSet.getKeyByKeyId(kid);
+            }
+            if (jwk == null) {
+                throw new CriticalAuthIntegrityException("Unknown signing key in ID token");
+            }
+
+            RSAKey rsaKey = jwk.toRSAKey();
+            if (!jwt.verify(new RSASSAVerifier(rsaKey))) {
+                throw new CriticalAuthIntegrityException("ID token signature verification failed");
+            }
+
+            var claimsSet = jwt.getJWTClaimsSet();
+            Map<String, Object> claims = claimsSet.getClaims();
+
+            if (!claimsSet.getAudience().contains(authConfig.getClientId())) {
+                throw new CriticalAuthIntegrityException("ID token audience mismatch");
+            }
+
+            return claims;
+        } catch (CriticalAuthIntegrityException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Invalid ID token", e);
+            throw new CriticalAuthIntegrityException("ID token verification failed: " + e.getMessage());
+        }
+    }
+
+    private JWKSet getJwkSet() {
+        JWKSet cached = this.cachedJwkSet;
+        if (cached != null && (System.currentTimeMillis() - jwkSetFetchedAt) < JWKS_CACHE_MS) {
+            return cached;
+        }
+        try {
+            URL jwksUrl = new URL("https://login.microsoftonline.com/"
+                    + authConfig.getTenantId() + "/discovery/v2.0/keys");
+            cached = JWKSet.load(jwksUrl);
+            this.cachedJwkSet = cached;
+            this.jwkSetFetchedAt = System.currentTimeMillis();
+            return cached;
+        } catch (Exception e) {
+            throw new CriticalAuthIntegrityException("Failed to fetch Azure AD signing keys: " + e.getMessage());
         }
     }
 

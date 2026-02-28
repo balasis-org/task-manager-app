@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.base.model;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

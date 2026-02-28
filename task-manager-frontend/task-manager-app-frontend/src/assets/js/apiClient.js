@@ -1,5 +1,3 @@
-import API_BASE from "@apiBase";
-
 let authHandlers = {
     onUnauthorized: null,
 };
@@ -39,7 +37,6 @@ async function apiRequest(path, options = {}, retry = true) {
         credentials: "include",
     };
 
-    // Handle body: FormData goes raw, objects get stringified
     if (options.body) {
         if (isFormData) {
             fetchOptions.body = options.body;
@@ -54,17 +51,15 @@ async function apiRequest(path, options = {}, retry = true) {
 
     let res;
     try {
-        res = await fetch(`${API_BASE}${path}`, fetchOptions);
+        res = await fetch(path, fetchOptions);
     } catch {
         throw { status: 0, message: "Network error" };
     }
 
-    // 401 — try token refresh once
     if (res.status === 401) {
         return handleAuthStatus(res.status, path, options, retry);
     }
 
-    // 429 — rate limited
     if (res.status === 429) {
         const retryAfter = res.headers.get("Retry-After");
         let body = null;
@@ -76,13 +71,17 @@ async function apiRequest(path, options = {}, retry = true) {
         };
     }
 
-    // any other non-ok (including 403) → surface to caller as an error
+    if (res.status === 503) {
+        throw {
+            status: 503,
+            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
+        };
+    }
+
     if (!res.ok) {
         let body = null;
         try { body = await res.text(); } catch {}
 
-        // The backend may return plain text OR a JSON object with "message" / "error".
-        // Try to extract the human-readable message from either format.
         let message = body || "HTTP error";
         if (body) {
             try {
@@ -90,7 +89,7 @@ async function apiRequest(path, options = {}, retry = true) {
                 if (typeof parsed === "object" && parsed !== null) {
                     message = parsed.message || parsed.error || body;
                 }
-            } catch { /* not JSON — keep raw text */ }
+            } catch { }
         }
         throw {
             status: res.status,
@@ -98,7 +97,6 @@ async function apiRequest(path, options = {}, retry = true) {
         };
     }
 
-    // Blob responses (file downloads)
     if (options.responseType === "blob") {
         return res.blob();
     }
@@ -108,33 +106,28 @@ async function apiRequest(path, options = {}, retry = true) {
     return json;
 }
 
-
-// multipart/form-data helper (file uploads etc)
 export async function apiMultipart(path, formData, options = {}) {
     const fetchOptions = {
         method: options.method || "POST",
         body: formData,
-        credentials: "include", // keep cookies
+        credentials: "include",
         headers: {
             ...(options.headers || {}),
-            // dont set Content-Type, browser adds multipart boundary automatically
         },
         ...options,
     };
 
     let res;
     try {
-        res = await fetch(`${API_BASE}${path}`, fetchOptions);
+        res = await fetch(path, fetchOptions);
     } catch {
         throw { status: 0, message: "Network error" };
     }
 
-    // HTTP auth errors — only 401 triggers auth flow
     if (res.status === 401) {
         return handleAuthStatus(res.status, path, fetchOptions, true);
     }
 
-    // 429 — rate limited
     if (res.status === 429) {
         const retryAfter = res.headers.get("Retry-After");
         let raw = null;
@@ -146,11 +139,15 @@ export async function apiMultipart(path, formData, options = {}) {
         };
     }
 
-    // Read the body as text first, then attempt JSON parse.
-    // The backend returns plain-text error messages for most exceptions,
-    // so res.json() would fail and we'd lose the real message.
+    if (res.status === 503) {
+        throw {
+            status: 503,
+            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
+        };
+    }
+
     let raw = null;
-    try { raw = await res.text(); } catch { /* empty body */ }
+    try { raw = await res.text(); } catch { }
 
     if (!res.ok) {
         let errMsg = "HTTP error";
@@ -161,23 +158,22 @@ export async function apiMultipart(path, formData, options = {}) {
                     ? (parsed.message || parsed.error || JSON.stringify(parsed))
                     : String(parsed);
             } catch {
-                // not JSON — use the raw text as-is (backend plain-text error)
+
                 errMsg = raw;
             }
         }
         throw { status: res.status, message: errMsg };
     }
 
-    // Return parsed JSON body
     let json = null;
     if (raw) {
-        try { json = JSON.parse(raw); } catch { /* non-JSON success body */ }
+        try { json = JSON.parse(raw); } catch { }
     }
     return json;
 }
 
 async function handleAuthStatus(status, path, options, retry) {
-    // 401 - try refresh once
+
     if (status === 401 && retry && authHandlers.onUnauthorized) {
         const shouldRetry = await authHandlers.onUnauthorized({ url: path, options });
         if (shouldRetry) {
@@ -190,7 +186,3 @@ async function handleAuthStatus(status, path, options, retry) {
         message: "Unauthorized",
     };
 }
-
-
-
-

@@ -36,16 +36,10 @@ public class AuthorizationService {
                 .orElseThrow(() -> new NotAGroupMemberException("Not a member of this group"));
     }
 
-    /**
-     * verifies that the current user is a member of the given group
-     * and returns their membership entity.
-     */
     public GroupMembership requireAnyRoleInAndGet(Long groupId) {
         var userId = effectiveCurrentUser.getUserId();
         return membershipRepo.findByUserIdAndGroupId(userId, groupId)
                 .orElseThrow(() -> new NotAGroupMemberException("Not a member of this group"));
     }
 
-
 }
-

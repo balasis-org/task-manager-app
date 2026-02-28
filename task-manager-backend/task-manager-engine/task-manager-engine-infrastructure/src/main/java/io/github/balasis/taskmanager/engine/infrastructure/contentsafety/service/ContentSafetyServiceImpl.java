@@ -7,6 +7,7 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.List;
@@ -15,6 +16,8 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
 
     private final ContentSafetyClient client;
 
+    private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
     public ContentSafetyServiceImpl(ContentSafetyClient client) {
         this.client = client;
     }
@@ -22,7 +25,7 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
     @Override
     public boolean isSafe(InputStream input) {
         try {
-            byte[] bytes = input.readAllBytes();
+            byte[] bytes = readCapped(input, MAX_IMAGE_BYTES);
             var imageData = new ContentSafetyImageData()
                     .setContent(BinaryData.fromBytes(bytes));
 
@@ -40,8 +43,23 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
                     .allMatch(severity -> severity == null || severity < 3);
 
         } catch (IOException e) {
-            throw new BlobUploadException("Failed reading image" + e.getMessage());
+            throw new BlobUploadException("Failed reading image: " + e.getMessage());
         }
+    }
+
+    private static byte[] readCapped(InputStream in, int maxBytes) throws IOException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream(Math.min(maxBytes, 8192));
+        byte[] chunk = new byte[8192];
+        int total = 0;
+        int read;
+        while ((read = in.read(chunk)) != -1) {
+            total += read;
+            if (total > maxBytes) {
+                throw new BlobUploadException("Image exceeds safety-check size limit");
+            }
+            buf.write(chunk, 0, read);
+        }
+        return buf.toByteArray();
     }
 
 }

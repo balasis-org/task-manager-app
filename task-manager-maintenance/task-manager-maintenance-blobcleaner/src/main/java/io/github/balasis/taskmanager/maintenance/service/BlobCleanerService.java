@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Service
 @AllArgsConstructor
 public class BlobCleanerService extends BaseComponent {
@@ -23,28 +22,50 @@ public class BlobCleanerService extends BaseComponent {
         long delayMillis = 200;
 
         Iterable<BlobItem> iterable = blobAccessService.listBlobs(type);
-        List<BlobItem> allBlobs = new ArrayList<>();
-        iterable.forEach(allBlobs::add);
 
-       logger.info("Scanning {} blobs in container {}", allBlobs.size(), type.getContainerName());
+        logger.info("Starting orphan-blob scan in container '{}'", type.getContainerName());
 
-        for (int i = 0; i < allBlobs.size(); i += batchSize) {
-            int end = Math.min(i + batchSize, allBlobs.size());
-            List<BlobItem> batch = allBlobs.subList(i, end);
+        int scanned = 0;
+        int deleted = 0;
+        List<BlobItem> batch = new ArrayList<>(batchSize);
 
-            for (BlobItem blob : batch) {
-                long id = extractId(blob.getName());
-                if (id <= 0 || !repository.existsById(type, id)) {
-                    blobAccessService.deleteBlob(type, blob.getName());
-                    logger.info("Deleted orphan blob: {}" , blob.getName());
-                }
+        for (BlobItem blob : iterable) {
+            batch.add(blob);
+            if (batch.size() >= batchSize) {
+                deleted += processBatch(batch, type);
+                scanned += batch.size();
+                batch.clear();
+                sleep(delayMillis);
             }
+        }
 
-            try {
-                Thread.sleep(delayMillis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        if (!batch.isEmpty()) {
+            deleted += processBatch(batch, type);
+            scanned += batch.size();
+        }
+
+        logger.info("Finished orphan-blob scan in '{}': scanned={}, deleted={}",
+                type.getContainerName(), scanned, deleted);
+    }
+
+    private int processBatch(List<BlobItem> batch, BlobContainerType type) {
+        int deleted = 0;
+        for (BlobItem blob : batch) {
+            long id = extractId(blob.getName());
+            if (id <= 0 || !repository.existsById(type, id)) {
+                blobAccessService.deleteBlob(type, blob.getName());
+                logger.info("Deleted orphan blob: {}", blob.getName());
+                deleted++;
             }
+        }
+        return deleted;
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -59,4 +80,3 @@ public class BlobCleanerService extends BaseComponent {
         }
     }
 }
-

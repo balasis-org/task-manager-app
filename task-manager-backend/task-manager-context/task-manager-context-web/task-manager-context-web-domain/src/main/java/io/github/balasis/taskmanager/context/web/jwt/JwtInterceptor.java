@@ -13,6 +13,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -85,7 +87,9 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
     }
 
     private void verifyRefreshToken(String refreshCode, RefreshToken refreshToken) {
-        if (!refreshToken.getRefreshCode().equals(refreshCode)) {
+        if (!MessageDigest.isEqual(
+                refreshCode.getBytes(StandardCharsets.UTF_8),
+                refreshToken.getRefreshCode().getBytes(StandardCharsets.UTF_8))) {
             throw new UnauthenticatedException("Refresh token mismatch");
         }
     }
