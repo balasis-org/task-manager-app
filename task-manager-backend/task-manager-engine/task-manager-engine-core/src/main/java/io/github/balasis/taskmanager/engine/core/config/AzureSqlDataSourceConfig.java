@@ -34,6 +34,7 @@ public class AzureSqlDataSourceConfig {
         ds.setIdleTimeout(300_000);
         ds.setMaxLifetime(1_800_000);
         ds.setConnectionTimeout(30_000);
+        ds.setLeakDetectionThreshold(60_000);
 
         return ds;
     }

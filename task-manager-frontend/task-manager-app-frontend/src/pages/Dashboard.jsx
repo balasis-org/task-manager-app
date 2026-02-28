@@ -2,25 +2,25 @@ import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { GroupContext } from "@context/GroupContext";
 import { AuthContext } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import NewGroupPopup from "@components/popups/NewGroupPopup";
 import InviteToGroupPopup from "@components/popups/InviteToGroupPopup";
 import GroupSettingsPopup from "@components/popups/GroupSettingsPopup";
 import GroupEventsPopup from "@components/popups/GroupEventsPopup";
+import NewGroupPopup from "@components/popups/NewGroupPopup";
 import NewTaskPopup from "@components/popups/NewTaskPopup";
 import DashboardTopBar from "@components/dashboard/DashboardTopBar";
-import TaskTable from "@components/dashboard/TaskTable";
+import DashboardEmptyState from "@components/dashboard/DashboardEmptyState";
+import DashboardColumnHeaders from "@components/dashboard/DashboardColumnHeaders";
+import DashboardTaskSection from "@components/dashboard/DashboardTaskSection";
 import Spinner from "@components/Spinner";
 import { useToast } from "@context/ToastContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import { FILTER_EMPTY, isFilterEmpty } from "@components/dashboard/FilterPanel";
-import { FiPlus, FiRefreshCw } from "react-icons/fi";
+import { FiRefreshCw } from "react-icons/fi";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 
-const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
-const COL_CLASSES = ["col-title", "col-creator", "col-priority", "col-due", "col-access", "col-comments"];
 const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];
 const COL_MIN      = [120, 70, 60, 80, 60, 40];
 
@@ -267,22 +267,12 @@ export default function Dashboard() {
 
     if (!loadingGroups && groups.length === 0) {
         return (
-            <div className="dashboard-empty">
-                <h2>Welcome!</h2>
-                <p>You don't have any groups yet. Create one to get started.</p>
-                <button
-                    className="btn-primary"
-                    onClick={() => setShowNewGroup(true)}
-                >
-                    + Create a group
-                </button>
-                {showNewGroup && (
-                    <NewGroupPopup
-                        onClose={() => setShowNewGroup(false)}
-                        onCreated={handleGroupCreated}
-                    />
-                )}
-            </div>
+            <DashboardEmptyState
+                showNewGroup={showNewGroup}
+                onOpenNewGroup={() => setShowNewGroup(true)}
+                onCloseNewGroup={() => setShowNewGroup(false)}
+                onGroupCreated={handleGroupCreated}
+            />
         );
     }
 
@@ -359,70 +349,30 @@ export default function Dashboard() {
                     </div>
 
                     { }
-                    <div
-                        className="task-col-header"
-                        style={{ gridTemplateColumns: gridCols(colWidths, visCols) + (showDeleteColumn ? " 42px" : "") }}
-                    >
-                        {visCols.map((ci) => (
-                            <span key={ci} className={`col-header-cell ${COL_CLASSES[ci]}`}>
-                                {COL_NAMES[ci]}
-                                { }
-                                {ci === 0 && visCols.length > 1 && (
-                                    <span
-                                        className="col-resize-handle"
-                                        onPointerDown={(e) => onTitleHandleDown(visCols[1], e)}
-                                    />
-                                )}
-                                { }
-                                {ci !== 0 && ci !== visCols[visCols.length - 1] && (
-                                    <span
-                                        className="col-resize-handle"
-                                        onPointerDown={(e) => onPointerDown(ci, e)}
-                                    />
-                                )}
-                            </span>
-                        ))}
-                        {showDeleteColumn && (
-                            <span className="col-header-cell col-delete" />
-                        )}
-                    </div>
+                    <DashboardColumnHeaders
+                        visCols={visCols}
+                        gridTemplate={gridCols(colWidths, visCols) + (showDeleteColumn ? " 42px" : "")}
+                        showDeleteColumn={showDeleteColumn}
+                        onTitleHandleDown={onTitleHandleDown}
+                        onPointerDown={onPointerDown}
+                    />
 
                     {TASK_STATES.map((state) => (
-                        <div key={state} className="task-section">
-                            <div
-                                className="task-section-header"
-                                onClick={() => toggleSection(state)}
-                            >
-                                <span className="task-section-arrow">
-                                    {collapsedSections[state] ? "▶" : "▼"}
-                                </span>
-                                <span className="task-section-title">
-                                    {STATE_LABELS[state]}
-                                    {canManageTasks && (
-                                        <button
-                                            className="task-section-add"
-                                            title="Create task"
-                                            onClick={(e) => handleOpenNewTask(e, state)}
-                                        >
-                                            <FiPlus size={12} />
-                                        </button>
-                                    )}
-                                </span>
-                                <span className="task-section-count">
-                                    ({tasksByState[state].length})
-                                </span>
-                            </div>
-                            {!collapsedSections[state] && (
-                                <TaskTable
-                                    tasks={tasksByState[state]}
-                                    groupId={activeGroup?.id}
-                                    colWidths={colWidths}
-                                    visCols={visCols}
-                                    canManageTasks={showDeleteColumn}
-                                    onDeleted={refreshActiveGroup}
-                                />
-                            )}
-                        </div>
+                        <DashboardTaskSection
+                            key={state}
+                            state={state}
+                            label={STATE_LABELS[state]}
+                            collapsed={collapsedSections[state]}
+                            tasks={tasksByState[state]}
+                            onToggle={() => toggleSection(state)}
+                            canManageTasks={canManageTasks}
+                            showDeleteColumn={showDeleteColumn}
+                            onOpenNewTask={handleOpenNewTask}
+                            groupId={activeGroup?.id}
+                            colWidths={colWidths}
+                            visCols={visCols}
+                            onDeleted={refreshActiveGroup}
+                        />
                     ))}
                 </div>
             )}

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { FiSettings, FiUsers, FiPlus, FiLogOut, FiSearch, FiFilter } from "react-icons/fi";
+import { FiSettings, FiLogOut, FiFilter } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import FilterPanel from "@components/dashboard/FilterPanel";
-import MemberDetailPopup from "@components/popups/MemberDetailPopup";
-import { useBlobUrl } from "@context/BlobSasContext";
+import TopBarMembersDropdown from "@components/topbar/TopBarMembersDropdown";
+import TopBarGroupSelector from "@components/topbar/TopBarGroupSelector";
 import "@styles/dashboard/DashboardTopBar.css";
 
 export default function DashboardTopBar({
@@ -30,16 +30,8 @@ export default function DashboardTopBar({
     onFiltersClear,
 }) {
     const showToast = useToast();
-    const blobUrl = useBlobUrl();
-    const [groupDropdown, setGroupDropdown] = useState(false);
-    const [membersDropdown, setMembersDropdown] = useState(false);
-    const [memberSearch, setMemberSearch] = useState("");
-    const [selectedMember, setSelectedMember] = useState(null);
     const [confirmLeave, setConfirmLeave] = useState(false);
     const [filterOpen, setFilterOpen] = useState(false);
-    const groupRef = useRef(null);
-    const membersRef = useRef(null);
-    const memberSearchRef = useRef(null);
     const filterRef = useRef(null);
 
     const canInvite = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
@@ -51,6 +43,8 @@ export default function DashboardTopBar({
     const myMembership = user && members?.length
         ? members.find((m) => m.user?.id === user.id)
         : null;
+    // lged = "last group event date", tp = "task previews"
+    // (short keys from the backend list-groups DTO to keep payloads small)
     const hasUnseenEvents = (() => {
         const lastEvent = groupDetail?.lged;
         const lastSeen = myMembership?.lastSeenGroupEvents;
@@ -58,37 +52,6 @@ export default function DashboardTopBar({
         if (!lastSeen) return true;
         return new Date(lastEvent) > new Date(lastSeen);
     })();
-
-    const filteredMembers = members.filter((m) => {
-        if (!memberSearch.trim()) return true;
-        const q = memberSearch.toLowerCase();
-        return (
-            (m.user?.name || "").toLowerCase().includes(q) ||
-            (m.user?.email || "").toLowerCase().includes(q)
-        );
-    });
-
-    useEffect(() => {
-        if (membersDropdown && memberSearchRef.current) {
-            memberSearchRef.current.focus();
-        }
-        if (!membersDropdown) {
-            setMemberSearch("");
-        }
-    }, [membersDropdown]);
-
-    useEffect(() => {
-        function handleClick(e) {
-            if (groupRef.current && !groupRef.current.contains(e.target)) {
-                setGroupDropdown(false);
-            }
-            if (membersRef.current && !membersRef.current.contains(e.target)) {
-                setMembersDropdown(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClick);
-        return () => document.removeEventListener("mousedown", handleClick);
-    }, []);
 
     async function handleLeaveGroup() {
         if (!myMembership) return;
@@ -98,7 +61,6 @@ export default function DashboardTopBar({
             setConfirmLeave(false);
             if (onLeaveGroup) onLeaveGroup("left");
         } catch (err) {
-
             if (err?.status === 403 || err?.status === 404) {
                 showToast("You are no longer a member of this group.", "info");
                 setConfirmLeave(false);
@@ -122,7 +84,6 @@ export default function DashboardTopBar({
                         {roleLabel && (
                             <span className="topbar-role-tag">({roleLabel})</span>
                         )}
-                        { }
                         {!isLeader && activeGroup && (
                             <>
                                 {!confirmLeave ? (
@@ -177,117 +138,23 @@ export default function DashboardTopBar({
                             )}
                         </button>
 
-                        <div className="topbar-dropdown-wrapper topbar-combo" ref={membersRef}>
-                            <button
-                                className="topbar-dropdown-btn topbar-members-btn"
-                                onClick={() => setMembersDropdown((v) => !v)}
-                            >
-                                <FiUsers size={16} />
-                                <span>Members</span>
-                                <span className="caret">▾</span>
-                            </button>
-                            {canInvite && (
-                                <button className="topbar-plus-combo" onClick={onOpenInvite} title="Invite to group">
-                                    <FiPlus size={14} />
-                                </button>
-                            )}
+                        <TopBarMembersDropdown
+                            members={members}
+                            canInvite={canInvite}
+                            onOpenInvite={onOpenInvite}
+                            activeGroup={activeGroup}
+                            isLeader={isLeader}
+                            user={user}
+                            groupDetail={groupDetail}
+                            onLeaveGroup={onLeaveGroup}
+                        />
 
-                            {membersDropdown && (
-                                <div className="topbar-dropdown topbar-members-dropdown">
-                                    <div className="topbar-member-search">
-                                        <FiSearch size={13} className="topbar-member-search-icon" />
-                                        <input
-                                            ref={memberSearchRef}
-                                            type="text"
-                                            value={memberSearch}
-                                            onChange={(e) => setMemberSearch(e.target.value)}
-                                            placeholder="Search members…"
-                                            className="topbar-member-search-input"
-                                        />
-                                    </div>
-                                    <div className="topbar-members-list">
-                                        {filteredMembers.length === 0 ? (
-                                            <div className="topbar-dropdown-item muted">No members found</div>
-                                        ) : (
-                                            filteredMembers.map((m) => (
-                                                <div
-                                                    key={m.id}
-                                                    className="topbar-dropdown-item topbar-member-row topbar-member-clickable"
-                                                    onClick={() => {
-                                                        setSelectedMember(m);
-                                                        setMembersDropdown(false);
-                                                    }}
-                                                >
-                                                    <img
-                                                        src={ (m.user?.imgUrl) ? blobUrl(m.user.imgUrl) : (m.user?.defaultImgUrl)
-                                                            ? blobUrl(m.user.defaultImgUrl) : ""}
-                                                        alt=""
-                                                        className="topbar-member-img"
-                                                    />
-                                                    <span className="topbar-member-name">{m.user?.name || m.user?.email}</span>
-                                                    {m.user?.sameOrg && <span className="topbar-org-badge" title="Same organisation">ORG</span>}
-                                                    <span className="topbar-member-role">
-                                                        {m.role}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="topbar-dropdown-wrapper topbar-combo" ref={groupRef}>
-                            <button
-                                className="topbar-dropdown-btn topbar-group-btn"
-                                onClick={() => setGroupDropdown((v) => !v)}
-                            >
-                                <span className="topbar-group-img-wrapper">
-                                    {activeGroup?.imgUrl || activeGroup?.defaultImgUrl ? (
-                                        <img
-                                            src={(activeGroup.imgUrl) ? blobUrl(activeGroup.imgUrl) : blobUrl(activeGroup.defaultImgUrl)}
-                                            alt=""
-                                            className="topbar-group-img"
-                                        />
-                                    ) : (
-                                        <span className="topbar-group-img placeholder" />
-                                    )}
-                                </span>
-                                <span className="topbar-group-name" title={activeGroup?.name || "Select group"}>{activeGroup?.name || "Select group"}</span>
-                                <span className="caret">▾</span>
-                            </button>
-                            <button className="topbar-plus-combo" onClick={onOpenNewGroup} title="New group">
-                                <FiPlus size={14} />
-                            </button>
-
-                            {groupDropdown && (
-                                <div className="topbar-dropdown">
-                                    {groups.map((g) => (
-                                        <div
-                                            key={g.id}
-                                            className={`topbar-dropdown-item${
-                                                g.id === activeGroup?.id ? " active" : ""
-                                            }`}
-                                            onClick={() => {
-                                                onSelectGroup(g);
-                                                setGroupDropdown(false);
-                                            }}
-                                        >
-                                            {g.imgUrl || g.defaultImgUrl ? (
-                                                <img
-                                                    src={(g.imgUrl)? blobUrl(g.imgUrl) : blobUrl(g.defaultImgUrl)}
-                                                    alt=""
-                                                    className="topbar-group-img-small"
-                                                />
-                                            ) : (
-                                                <span className="topbar-group-img-small placeholder" />
-                                            )}
-                                            <span className="topbar-dropdown-group-name" title={g.name}>{g.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <TopBarGroupSelector
+                            groups={groups}
+                            activeGroup={activeGroup}
+                            onSelectGroup={onSelectGroup}
+                            onOpenNewGroup={onOpenNewGroup}
+                        />
                     </div>
                 </div>
             )}
@@ -295,19 +162,6 @@ export default function DashboardTopBar({
             <button className="topbar-toggle" onClick={onToggle} title={open ? "Hide top bar" : "Show top bar"}>
                 {open ? "▲" : "▼"}
             </button>
-
-            { }
-            {selectedMember && (
-                <MemberDetailPopup
-                    member={selectedMember}
-                    groupId={activeGroup?.id}
-                    isGroupLeader={isLeader}
-                    isSelf={selectedMember.user?.id === user?.id}
-                    taskPreviews={groupDetail?.tp}
-                    onClose={() => setSelectedMember(null)}
-                    onRefresh={() => { if (onLeaveGroup) onLeaveGroup("refresh"); }}
-                />
-            )}
         </div>
-)
+    );
 }

@@ -1,15 +1,14 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { FiGrid, FiMail, FiSliders, FiInfo, FiLogOut, FiShield } from "react-icons/fi";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import Footer from "@components/footer/Footer";
-import { useBlobUrl } from "@context/BlobSasContext";
+import SidebarProfile from "@components/layout/SidebarProfile";
+import SidebarNav from "@components/layout/SidebarNav";
 import "@styles/Layout.css";
 
 export default function Layout({ children }) {
     const { user, logout } = useContext(AuthContext);
-    const blobUrl = useBlobUrl();
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -88,9 +87,6 @@ export default function Layout({ children }) {
         navigate("/login");
     };
 
-    const profileImgNoPrefix = user?.imgUrl || user?.defaultImgUrl  || null;
-    const profileImg = profileImgNoPrefix ? blobUrl(profileImgNoPrefix) : null;
-
     return (
         <div className="layout">
 
@@ -105,80 +101,13 @@ export default function Layout({ children }) {
 
                 <div className="sidebar-clip">
                 <div className="sidebar-inner">
-                    { }
-                    <div className="sidebar-profile">
-                        {profileImg ? (
-                            <img
-                                src={profileImg}
-                                alt="profile"
-                                className="sidebar-profile-img"
-                            />
-                        ) : (
-                            <div className="sidebar-profile-img" />
-                        )}
-                        {user?.name && (
-                            <span className="sidebar-profile-name">{user.name}</span>
-                        )}
-                        {user?.inviteCode && (
-                            <span
-                                className="sidebar-profile-code"
-                                title="Your invite code — share it so others can invite you"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(user.inviteCode);
-                                }}
-                            >
-                                {user.inviteCode}
-                            </span>
-                        )}
-                    </div>
+                    <SidebarProfile user={user} />
 
-                    { }
-                    <nav className="sidebar-nav">
-                        <NavLink
-                            to="/dashboard"
-                            className={({ isActive }) => (isActive ? "active" : "")}
-                        >
-                            <span className="nav-icon"><FiGrid size={16} /></span>
-                            <span className="nav-label">Dashboard</span>
-                        </NavLink>
-                        <NavLink
-                            to="/invitations"
-                            className={({ isActive }) => (isActive ? "active" : "")}
-                        >
-                            <span className="nav-icon"><FiMail size={16} /></span>
-                            <span className="nav-label">Invitations</span>
-                            {hasNewInvites && (
-                                <span className="nav-badge">!</span>
-                            )}
-                        </NavLink>
-                        <NavLink
-                            to="/settings"
-                            className={({ isActive }) => (isActive ? "active" : "")}
-                        >
-                            <span className="nav-icon"><FiSliders size={16} /></span>
-                            <span className="nav-label">Settings</span>
-                        </NavLink>
-                        <NavLink
-                            to="/about-us"
-                            className={({ isActive }) => (isActive ? "active" : "")}
-                        >
-                            <span className="nav-icon"><FiInfo size={16} /></span>
-                            <span className="nav-label">About us</span>
-                        </NavLink>
-                        {user?.systemRole === "ADMIN" && (
-                            <NavLink
-                                to="/admin"
-                                className={({ isActive }) => (isActive ? "active" : "")}
-                            >
-                                <span className="nav-icon"><FiShield size={16} /></span>
-                                <span className="nav-label">Admin Panel</span>
-                            </NavLink>
-                        )}
-                        <button onClick={handleLogout}>
-                            <span className="nav-icon"><FiLogOut size={16} /></span>
-                            <span className="nav-label">Logout</span>
-                        </button>
-                    </nav>
+                    <SidebarNav
+                        user={user}
+                        hasNewInvites={hasNewInvites}
+                        onLogout={handleLogout}
+                    />
 
                     <div className="sidebar-date">
                         {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { FiX, FiInfo, FiEdit2, FiCheck } from "react-icons/fi";
+import FilterMemberPicker from "@components/filterpanel/FilterMemberPicker";
 import "@styles/dashboard/FilterPanel.css";
 
 const PRIORITY_MIN = 1;
-const PRIORITY_MAX = 10;
+const PRIORITY_MAX = 10; // TODO: pull from backend config if it ever becomes dynamic
 
 const STATE_OPTIONS = [
     { value: "", label: "Any" },
@@ -51,6 +52,7 @@ export default function FilterPanel({
     const [reviewerSearch, setReviewerSearch] = useState("");
     const [assigneeSearch, setAssigneeSearch] = useState("");
 
+    // mousedown so the panel closes before click bubbles to other elements
     useEffect(() => {
         function handleClick(e) {
             if (panelRef.current && !panelRef.current.contains(e.target)) {
@@ -61,7 +63,7 @@ export default function FilterPanel({
         return () => document.removeEventListener("mousedown", handleClick);
     }, [onClose]);
 
-    const set = useCallback(
+    const updateFilter = useCallback(
         (key, value) => onDraftChange({ ...filters, [key]: value }),
         [filters, onDraftChange]
     );
@@ -114,11 +116,10 @@ export default function FilterPanel({
 
             <div className={`filter-panel-body${locked ? " locked" : ""}`}>
                 { }
-                <MemberPicker
+                <FilterMemberPicker
                     label="Creator"
                     value={filters.creatorId}
-                    onSelect={(id) => set("creatorId", id)}
-                    members={members}
+                    onSelect={(id) => updateFilter("creatorId", id)}
                     search={creatorSearch}
                     onSearchChange={setCreatorSearch}
                     memberName={memberName}
@@ -127,11 +128,10 @@ export default function FilterPanel({
                 />
 
                 { }
-                <MemberPicker
+                <FilterMemberPicker
                     label="Reviewer"
                     value={filters.reviewerId}
-                    onSelect={(id) => set("reviewerId", id)}
-                    members={members}
+                    onSelect={(id) => updateFilter("reviewerId", id)}
                     search={reviewerSearch}
                     onSearchChange={setReviewerSearch}
                     memberName={memberName}
@@ -140,11 +140,10 @@ export default function FilterPanel({
                 />
 
                 { }
-                <MemberPicker
+                <FilterMemberPicker
                     label="Assignee"
                     value={filters.assigneeId}
-                    onSelect={(id) => set("assigneeId", id)}
-                    members={members}
+                    onSelect={(id) => updateFilter("assigneeId", id)}
                     search={assigneeSearch}
                     onSearchChange={setAssigneeSearch}
                     memberName={memberName}
@@ -162,7 +161,7 @@ export default function FilterPanel({
                             max={PRIORITY_MAX}
                             placeholder="Min"
                             value={filters.priorityMin}
-                            onChange={(e) => set("priorityMin", e.target.value)}
+                            onChange={(e) => updateFilter("priorityMin", e.target.value)}
                             disabled={locked}
                             className="filter-range-input"
                         />
@@ -173,7 +172,7 @@ export default function FilterPanel({
                             max={PRIORITY_MAX}
                             placeholder="Max"
                             value={filters.priorityMax}
-                            onChange={(e) => set("priorityMax", e.target.value)}
+                            onChange={(e) => updateFilter("priorityMax", e.target.value)}
                             disabled={locked}
                             className="filter-range-input"
                         />
@@ -185,7 +184,7 @@ export default function FilterPanel({
                     <span className="filter-field-label">Status</span>
                     <select
                         value={filters.taskState}
-                        onChange={(e) => set("taskState", e.target.value)}
+                        onChange={(e) => updateFilter("taskState", e.target.value)}
                         disabled={locked}
                     >
                         {STATE_OPTIONS.map((o) => (
@@ -201,7 +200,7 @@ export default function FilterPanel({
                     <span className="filter-field-label">Has files</span>
                     <select
                         value={filters.hasFiles}
-                        onChange={(e) => set("hasFiles", e.target.value)}
+                        onChange={(e) => updateFilter("hasFiles", e.target.value)}
                         disabled={locked}
                     >
                         {HAS_FILES_OPTIONS.map((o) => (
@@ -218,7 +217,7 @@ export default function FilterPanel({
                     <input
                         type="date"
                         value={filters.dueDateBefore}
-                        onChange={(e) => set("dueDateBefore", e.target.value)}
+                        onChange={(e) => updateFilter("dueDateBefore", e.target.value)}
                         disabled={locked}
                     />
                 </label>
@@ -259,98 +258,5 @@ export default function FilterPanel({
     );
 }
 
-function MemberPicker({
-    label,
-    value,
-    onSelect,
-    members: _members,
-    search,
-    onSearchChange,
-    memberName,
-    filteredMembers,
-    disabled,
-}) {
-    const [open, setOpen] = useState(false);
-    const wrapperRef = useRef(null);
-
-    useEffect(() => {
-        function handleClick(e) {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-                setOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClick);
-        return () => document.removeEventListener("mousedown", handleClick);
-    }, []);
-
-    const handleSelect = (id) => {
-        onSelect(id);
-        setOpen(false);
-        onSearchChange("");
-    };
-
-    return (
-        <div className="filter-field filter-member-picker" ref={wrapperRef}>
-            <span className="filter-field-label">{label}</span>
-            <button
-                className="filter-member-btn"
-                type="button"
-                onClick={() => { if (!disabled) setOpen((v) => !v); }}
-                disabled={disabled}
-            >
-                {value ? memberName(value) : "Any"}
-                <span className="caret">▾</span>
-            </button>
-            {value && !disabled && (
-                <button
-                    className="filter-member-clear"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect("");
-                    }}
-                    title="Clear"
-                >
-                    <FiX size={10} />
-                </button>
-            )}
-
-            {open && !disabled && (
-                <div className="filter-member-dropdown">
-                    <input
-                        type="text"
-                        className="filter-member-search"
-                        placeholder="Search…"
-                        value={search}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        autoFocus
-                    />
-                    <div className="filter-member-list">
-                        <div
-                            className={`filter-member-item${!value ? " active" : ""}`}
-                            onClick={() => handleSelect("")}
-                        >
-                            Any
-                        </div>
-                        {filteredMembers(search).map((m) => (
-                            <div
-                                key={m.user?.id}
-                                className={`filter-member-item${
-                                    String(m.user?.id) === String(value) ? " active" : ""
-                                }`}
-                                onClick={() => handleSelect(String(m.user?.id))}
-                            >
-                                {m.user?.name || m.user?.email}
-                                <span className="filter-member-role">{m.role}</span>
-                            </div>
-                        ))}
-                        {filteredMembers(search).length === 0 && (
-                            <div className="filter-member-item muted">No members found</div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
+// Dashboard.jsx imports these to check whether filters are active before fetching
 export { EMPTY as FILTER_EMPTY, isFilterEmpty };

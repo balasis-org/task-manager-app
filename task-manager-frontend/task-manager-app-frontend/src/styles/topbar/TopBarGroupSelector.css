@@ -1,0 +1,56 @@
+.topbar-group-img-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: 0.5em;
+}
+
+.topbar-group-img {
+    width: 1.75em;
+    height: 1.75em;
+    border-radius: 0.375em;
+    object-fit: cover;
+    background: var(--border-primary);
+}
+
+.topbar-group-img.placeholder {
+    display: inline-block;
+    width: 1.75em;
+    height: 1.75em;
+    border-radius: 0.375em;
+    background: var(--bg-active);
+}
+
+.topbar-group-img-small {
+    width: 1.38em;
+    height: 1.38em;
+    border-radius: 0.25em;
+    object-fit: cover;
+    background: var(--border-primary);
+}
+
+.topbar-group-img-small.placeholder {
+    display: inline-block;
+    width: 1.38em;
+    height: 1.38em;
+    border-radius: 0.25em;
+    background: var(--bg-active);
+}
+
+.topbar-group-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-dropdown-group-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.topbar-group-btn {
+    font-weight: 600;
+}

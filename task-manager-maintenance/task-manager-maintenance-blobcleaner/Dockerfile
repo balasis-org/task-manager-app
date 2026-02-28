@@ -11,4 +11,9 @@ RUN chown appuser:appgrp app.jar
 
 USER appuser
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:+ExitOnOutOfMemoryError", \
+  "-XX:+HeapDumpOnOutOfMemoryError", \
+  "-XX:HeapDumpPath=/tmp/heapdump.hprof", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]

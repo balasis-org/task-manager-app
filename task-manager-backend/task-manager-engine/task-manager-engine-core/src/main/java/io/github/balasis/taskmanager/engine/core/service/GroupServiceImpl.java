@@ -1213,6 +1213,17 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     @Transactional(readOnly = true)
+    public boolean hasGroupChanged(Long groupId, Instant lastSeen) {
+        authorizationService.requireAnyRoleIn(groupId);
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
+        boolean groupChanged = group.getLastChangeInGroup() != null && group.getLastChangeInGroup().isAfter(lastSeen);
+        boolean tasksDeleted = group.getLastDeleteTaskDate() != null && group.getLastDeleteTaskDate().isAfter(lastSeen);
+        return groupChanged || tasksDeleted;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean hasTaskChanged(Long groupId, Long taskId, Instant since) {
         authorizationService.requireAnyRoleIn(groupId);
         var task = taskRepository.findById(taskId)

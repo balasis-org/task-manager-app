@@ -1,0 +1,145 @@
+/* ===== GroupSettingsPopup.css =====
+   Shared layout for group-settings popup: section cards,
+   edit-btn / save-btn / cancel-btn, field-actions row,
+   danger-btn, confirm box, and fadeSlide animation.
+   Sub-component styles live in styles/groupsettings/.
+   ================================================= */
+
+.gs-popup {
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
+.gs-section {
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.5em;
+    padding: 0.75em 0.875em;
+    margin-bottom: 0.75em;
+}
+
+.gs-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5em;
+}
+
+.gs-section-label {
+    font-size: 0.81em;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+}
+
+.gs-edit-btn {
+    background: none;
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.25em;
+    padding: 0.19em 0.5em;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 0.75em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    transition: background 0.12s;
+}
+
+.gs-edit-btn:hover {
+    background: var(--bg-active);
+}
+
+.gs-field-actions {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 0.25em;
+}
+
+.gs-save-btn {
+    background: var(--text-heading);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 0.31em;
+    padding: 0.31em 0.75em;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    transition: background 0.15s;
+}
+
+.gs-save-btn:hover:not(:disabled) {
+    background: #333;
+}
+
+.gs-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.gs-cancel-btn {
+    background: var(--bg-primary);
+    color: var(--text-tertiary);
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.31em;
+    padding: 0.31em 0.75em;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.gs-cancel-btn:hover {
+    background: var(--bg-active);
+}
+
+.gs-icon-danger {
+    color: var(--danger);
+}
+
+.gs-danger-btn {
+    background: var(--danger);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 0.31em;
+    padding: 0.31em 0.875em;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.gs-danger-btn:hover:not(:disabled) {
+    background: var(--danger-hover);
+}
+
+.gs-danger-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.gs-confirm-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin-top: 0.5em;
+    padding: 0.625em 0.75em;
+    border: 0.06em dashed var(--danger);
+    border-radius: 0.375em;
+    background: #fff5f5;
+    font-size: 0.81em;
+    color: var(--text-primary);
+    animation: fadeSlide 0.2s ease;
+}
+
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-0.25em); }
+    to   { opacity: 1; transform: translateY(0); }
+}

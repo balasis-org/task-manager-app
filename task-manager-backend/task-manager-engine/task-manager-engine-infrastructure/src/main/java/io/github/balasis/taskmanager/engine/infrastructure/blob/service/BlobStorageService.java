@@ -7,6 +7,7 @@ import com.azure.storage.blob.models.PublicAccessType;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
+import io.github.balasis.taskmanager.context.base.exception.critical.CriticalBlobStorageException;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
@@ -78,7 +79,7 @@ public class BlobStorageService {
         try {
             blobClient.upload(file.getInputStream(), file.getSize(), true);
         } catch (IOException e) {
-            throw new BlobUploadException(e.getMessage());
+            throw new CriticalBlobStorageException("Blob upload failed: " + e.getMessage());
         }
 
         return blobName;

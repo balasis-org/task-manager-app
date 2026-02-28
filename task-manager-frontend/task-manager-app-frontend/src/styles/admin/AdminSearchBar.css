@@ -1,0 +1,99 @@
+/* AdminSearchBar — text search (users/groups/tasks) + comment filter fields */
+
+.admin-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0.75em 1.5em 0;
+    padding: 0.45em 0.75em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    background: var(--bg-input);
+    max-width: 22em;
+}
+
+.admin-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.8em;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.admin-search input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.admin-search svg {
+    color: var(--text-faint);
+    flex-shrink: 0;
+}
+
+.admin-comment-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0.75em 1.5em 0;
+    flex-wrap: wrap;
+}
+
+.admin-comment-filters svg {
+    color: var(--text-faint);
+    flex-shrink: 0;
+}
+
+.admin-comment-filters input {
+    width: 7em;
+    padding: 0.4em 0.6em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.35em;
+    background: var(--bg-input);
+    font-size: 0.8em;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.admin-comment-filters input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.admin-filter-btn,
+.admin-filter-clear {
+    padding: 0.4em 0.85em;
+    border-radius: 0.35em;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    border: 0.06em solid transparent;
+    transition: background 0.15s;
+}
+
+.admin-filter-btn {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+}
+
+.admin-filter-btn:hover {
+    opacity: 0.9;
+}
+
+.admin-filter-clear {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-input);
+}
+
+.admin-filter-clear:hover {
+    background: var(--bg-hover);
+}
+
+@media (max-width: 48em) {
+    .admin-search {
+        margin: 0.5em 1em 0;
+    }
+    .admin-comment-filters {
+        margin: 0.5em 1em 0;
+    }
+}

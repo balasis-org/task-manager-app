@@ -28,41 +28,47 @@ public class RateLimitProdConfig {
     private final SecretClientProvider secretClientProvider;
 
     @Bean
-    public RateLimitService rateLimitService() {
+    public StatefulRedisConnection<byte[], byte[]> redisConnection() {
+        String endpoint  = secretClientProvider.getSecret("TASKMANAGER-REDIS-ENDPOINT");
+        String accessKey = secretClientProvider.getSecret("TASKMANAGER-REDIS-ACCESS-KEY");
+
+        if (endpoint == null || endpoint.isBlank()
+                || accessKey == null || accessKey.isBlank()) {
+            throw new IllegalStateException(
+                "Redis endpoint and access key must be configured for rate limiting");
+        }
+
+        String[] parts = endpoint.split(":", 2);
+        String host = parts[0];
+        int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
+
+        RedisURI uri = RedisURI.builder()
+                .withHost(host)
+                .withPort(port)
+                .withSsl(true)
+                .withAuthentication("default", accessKey)
+                .build();
+
+        RedisClient client = RedisClient.create(uri);
+        StatefulRedisConnection<byte[], byte[]> connection =
+                client.connect(new ByteArrayCodec());
+
+        log.info("Redis connected to {}:{}", host, port);
+        return connection;
+    }
+
+    @Bean
+    public RateLimitService rateLimitService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
         try {
-            String endpoint  = secretClientProvider.getSecret("TASKMANAGER-REDIS-ENDPOINT");
-            String accessKey = secretClientProvider.getSecret("TASKMANAGER-REDIS-ACCESS-KEY");
-
-            if (endpoint == null || endpoint.isBlank()
-                    || accessKey == null || accessKey.isBlank()) {
-                throw new IllegalStateException(
-                    "Redis endpoint and access key must be configured for rate limiting");
-            }
-
-            String[] parts = endpoint.split(":", 2);
-            String host = parts[0];
-            int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
-
-            RedisURI uri = RedisURI.builder()
-                    .withHost(host)
-                    .withPort(port)
-                    .withSsl(true)
-                    .withAuthentication("default", accessKey)
-                    .build();
-
-            RedisClient client = RedisClient.create(uri);
-            StatefulRedisConnection<byte[], byte[]> connection =
-                    client.connect(new ByteArrayCodec());
-
             LettuceBasedProxyManager<byte[]> proxyManager = LettuceBasedProxyManager
-                    .builderFor(connection)
+                    .builderFor(redisConnection)
                     .withExpirationStrategy(
                             ExpirationAfterWriteStrategy
                                     .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(16))
                     )
                     .build();
 
-            log.info("Redis rate limiter connected to {}:{}", host, port);
+            log.info("Redis rate limiter initialized");
             return new RedisRateLimitService(proxyManager);
 
         } catch (Exception e) {

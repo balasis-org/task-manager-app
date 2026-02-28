@@ -20,14 +20,24 @@ management:
   endpoints:
     web:
       exposure:
-        include: beans, health, info
+        include: beans, health, info, metrics
   endpoint:
     health:
       show-details: always
 
 logging:
   level:
-    root: info
-    io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: INFO
-    com.azure.monitor.opentelemetry: INFO
+    root: WARN
+    io.github.balasis.taskmanager: INFO
+    io.github.balasis.taskmanager.engine.monitoring: INFO
+    org.springframework: WARN
+    org.springframework.boot.web.embedded: INFO
+    org.springframework.transaction.interceptor: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    com.azure: WARN
+    com.azure.monitor.opentelemetry: WARN
+    com.zaxxer.hikari: WARN
+    io.netty: WARN
+    reactor: WARN
+    org.flywaydb: WARN

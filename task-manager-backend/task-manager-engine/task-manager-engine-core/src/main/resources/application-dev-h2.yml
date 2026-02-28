@@ -32,6 +32,9 @@ spring:
 
 logging:
   level:
-    root: info
-    io.github.balasis.taskmanager: TRACE
+    root: WARN
+    io.github.balasis.taskmanager: DEBUG
+    io.github.balasis.taskmanager.engine.monitoring: INFO
+    org.springframework: WARN
+    org.springframework.boot.web.embedded: INFO
     org.springframework.transaction.interceptor: WARN

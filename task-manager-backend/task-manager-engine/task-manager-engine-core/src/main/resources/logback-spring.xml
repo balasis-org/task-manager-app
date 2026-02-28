@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Logback configuration with profile-based output format.
+
+    DEV profiles  → human-readable coloured console (Spring Boot default pattern)
+    PROD profiles → structured JSON via LogstashEncoder
+
+    WHY structured JSON in production?
+    ─────────────────────────────────
+    1. Azure Application Insights / Log Analytics ingests JSON natively.
+       Each JSON field becomes a queryable column in KQL — no regex parsing needed.
+
+    2. Every log line automatically includes:
+       • timestamp (ISO-8601)       → precise chronological ordering
+       • level (INFO/WARN/ERROR)    → severity filtering
+       • logger_name                → which class emitted the log
+       • message                    → the human-readable text
+       • stack_trace                → full exception chain (only when present)
+       • thread_name                → useful for concurrency debugging
+       • MDC fields                 → anything placed in MDC (criticalType, instanceId,
+                                      totalOccurrences from CriticalExceptionAlerter)
+
+    3. Multi-line stack traces are a single JSON string — no more broken log lines
+       in Azure Log Stream or Container Logs.
+
+    4. KQL queries can filter on any field directly:
+         traces | where customDimensions.logger_name contains "CriticalExceptionAlerter"
+       Instead of parsing with regex:
+         traces | where message matches regex ".*CriticalExceptionAlerter.*"
+-->
+<configuration>
+
+    <!-- ── DEV: human-readable console ──────────────────────────────── -->
+    <springProfile name="dev-h2 | dev-mssql | dev-flyway-mssql">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- ── PROD: structured JSON ────────────────────────────────────── -->
+    <springProfile name="prod-h2 | prod-azuresql">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <!--
+                    LogstashEncoder outputs one JSON object per log line:
+                    {
+                      "@timestamp": "2026-02-28T08:30:00.123+00:00",
+                      "@version": "1",
+                      "message": "Redis connected to ...",
+                      "logger_name": "i.g.b.t.e.i.r.config.RateLimitProdConfig",
+                      "thread_name": "main",
+                      "level": "INFO",
+                      "level_value": 20000,
+                      "stack_trace": "...(only when an exception is logged)...",
+                      "criticalType": "...(MDC field, only when set)...",
+                      "instanceId": "...(MDC field, only when set)..."
+                    }
+
+                    Azure App Service captures stdout → Log Analytics workspace.
+                    Application Insights OTel exporter also picks up SLF4J logs
+                    and sends them as 'traces' table entries with customDimensions
+                    containing the JSON fields.
+                -->
+                <includeCallerData>false</includeCallerData>
+                <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+                <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSXXX</timestampPattern>
+            </encoder>
+        </appender>
+
+        <root level="WARN">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+
+</configuration>

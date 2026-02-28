@@ -99,6 +99,17 @@ public class GroupController extends BaseComponent {
                 ));
     }
 
+    @GetMapping(path = "/{groupId}/has-changed")
+    public ResponseEntity<Void> hasGroupChanged(
+            @PathVariable Long groupId,
+            @RequestParam Instant lastSeen
+    ) {
+        if (groupService.hasGroupChanged(groupId, lastSeen)) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping(path = "/{groupId}/refresh")
     public ResponseEntity<GroupRefreshDto> refreshGroup(
             @PathVariable Long groupId,

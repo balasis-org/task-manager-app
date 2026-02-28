@@ -2,7 +2,18 @@
 const SALT = new TextEncoder().encode("tm-cache-salt-v1");
 const IV_LEN = 12;
 
+/**
+ * In-memory cache: rawKey → CryptoKey.
+ * PBKDF2 with 100 000 iterations costs ~50-200 ms per call (device-dependent).
+ * Caching ensures we pay that cost once per session per user, not on every
+ * encrypt/decrypt operation.  The cache lives only in JS heap — never persisted.
+ */
+const derivedKeyCache = new Map();
+
 async function deriveKey(rawKey) {
+   const cached = derivedKeyCache.get(rawKey);
+   if (cached) return cached;
+
    const keyMaterial = await crypto.subtle.importKey(
       "raw",
       new TextEncoder().encode(rawKey),
@@ -10,13 +21,15 @@ async function deriveKey(rawKey) {
       false,
       ["deriveKey"]
    );
-   return crypto.subtle.deriveKey(
+   const key = await crypto.subtle.deriveKey(
       { name: "PBKDF2", salt: SALT, iterations: 100_000, hash: "SHA-256" },
       keyMaterial,
       { name: "AES-GCM", length: 256 },
       false,
       ["encrypt", "decrypt"]
    );
+   derivedKeyCache.set(rawKey, key);
+   return key;
 }
 
 export async function encryptForCache(rawKey, data) {
