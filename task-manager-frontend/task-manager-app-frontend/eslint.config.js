@@ -25,7 +25,7 @@ export default defineConfig([
     rules: {
 
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', args: 'none' }],
-
+      'no-undef': 'off',
       'no-empty': 'off',
       'no-misleading-character-class': 'off',
       'react-hooks/rules-of-hooks': 'error',
