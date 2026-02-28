@@ -3,9 +3,6 @@ name: backend-ci-cd
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'task-manager-backend/**'
-      - 'task-manager-contracts/**'
   push:
     branches: [main]
     paths:

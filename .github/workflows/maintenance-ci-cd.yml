@@ -3,9 +3,6 @@ name: maintenance-ci-cd
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'task-manager-maintenance/**'
-      - 'task-manager-contracts/**'
   push:
     branches: [main]
     paths:
