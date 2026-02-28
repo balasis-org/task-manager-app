@@ -18,7 +18,6 @@ public class AzureSqlDataSourceConfig {
 
     @Bean
     public DataSource dataSource() {
-        // fetch secrets from Key Vault
 
         KeyVaultSecret dbUrlSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-URL");
         KeyVaultSecret dbUsernameSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-USERNAME");
@@ -35,6 +34,7 @@ public class AzureSqlDataSourceConfig {
         ds.setIdleTimeout(500_000);
         ds.setMaxLifetime(1_200_000);
         ds.setConnectionTimeout(30_000);
+        ds.setLeakDetectionThreshold(60_000);
 
         return ds;
     }

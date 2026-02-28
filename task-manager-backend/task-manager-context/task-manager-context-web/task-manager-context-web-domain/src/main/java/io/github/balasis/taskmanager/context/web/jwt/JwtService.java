@@ -4,8 +4,11 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.auth.UnauthenticatedException;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import lombok.AllArgsConstructor;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -15,15 +18,22 @@ import java.util.Base64;
 import java.util.Date;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class JwtService extends BaseComponent {
     private final SecretClientProvider secretClientProvider;
-    private static final long EXPIRATION_MS = 1000L * 60 * 60 * 24; // 24 hours
+    private static final long EXPIRATION_MS = 1000L * 60 * 15;
 
-    private SecretKey getSignInKey() {
+    private SecretKey cachedSignInKey;
+
+    @PostConstruct
+    void initSignInKey() {
         String secret_key = secretClientProvider.getSecret("TASKMANAGER-JWT-SECRET");
         byte[] bytes = Base64.getDecoder().decode(secret_key.getBytes(StandardCharsets.UTF_8));
-        return new SecretKeySpec(bytes, "HmacSHA256");
+        cachedSignInKey = new SecretKeySpec(bytes, "HmacSHA256");
+    }
+
+    private SecretKey getSignInKey() {
+        return cachedSignInKey;
     }
 
     public String generateToken(String subject) {
@@ -36,20 +46,32 @@ public class JwtService extends BaseComponent {
         return builder.compact();
     }
 
+    /**
+     * Parses and validates the JWT (signature + expiration).
+     * jjwt already rejects expired tokens with {@link ExpiredJwtException},
+     * so no manual expiration check is needed.
+     *
+     * Both {@link ExpiredJwtException} and any other {@link JwtException}
+     * (malformed, bad signature, etc.) are converted to
+     * {@link UnauthenticatedException} so the caller ({@link JwtInterceptor})
+     * can catch it uniformly and attempt a refresh-token flow.
+     */
     public Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSignInKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSignInKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new UnauthenticatedException("JWT token expired");
+        } catch (JwtException e) {
+            throw new UnauthenticatedException("Invalid JWT token");
+        }
     }
 
     public Claims validateAndExtractClaims(String token) {
-        Claims claims = extractAllClaims(token);
-        if (claims.getExpiration().before(new Date())) {
-            throw new UnauthenticatedException("JWT token expired");
-        }
-        return claims;
+        return extractAllClaims(token);
     }
 
 }

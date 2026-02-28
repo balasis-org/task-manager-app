@@ -46,5 +46,4 @@ public interface GroupValidator extends BaseValidator<Group>{
 
     void validateDeleteTask(Long groupId,TaskComment existing , Task task ,Long taskId);
 
-
 }

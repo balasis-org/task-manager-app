@@ -1,21 +1,13 @@
 import { useState, useEffect, useContext, useCallback, useRef } from "react";
-import { FiCheck, FiX, FiTrash2, FiRefreshCw } from "react-icons/fi";
+import { FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch } from "@assets/js/apiClient.js";
 import Spinner from "@components/Spinner";
+import InvitationCard from "@components/invitations/InvitationCard";
+import InvitationsSentTable from "@components/invitations/InvitationsSentTable";
 import "@styles/pages/Invitations.css";
-
-function formatDate(iso) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-}
 
 export default function Invitations() {
     const { user, setUser } = useContext(AuthContext);
@@ -28,7 +20,6 @@ export default function Invitations() {
     const [refreshing, setRefreshing] = useState(false);
     const [lastSeenBefore, setLastSeenBefore] = useState(null);
 
-    // keep a ref so the callback never depends on user state directly
     const userRef = useRef(user);
     userRef.current = user;
 
@@ -58,10 +49,8 @@ export default function Invitations() {
         }
     }, [setUser, showToast]);
 
-    // initial load — runs once
     useEffect(() => { fetchInvitations(); }, []);
 
-    // listen for the custom event dispatched by the Layout polling when new invites arrive
     useEffect(() => {
         const handler = () => fetchInvitations(true);
         window.addEventListener("invites-changed", handler);
@@ -79,8 +68,7 @@ export default function Invitations() {
             if (status === "ACCEPTED") reloadGroups();
         } catch (err) {
             showToast(err?.message || "Failed to respond to invitation", "error");
-            // Refetch invitations so the UI stays in sync
-            // (e.g. invitation was already processed, or no longer exists)
+
             setTimeout(() => fetchInvitations(true), 600);
         }
     }
@@ -92,7 +80,6 @@ export default function Invitations() {
 
     if (loading) return <Spinner />;
 
-    // split pending vs resolved
     const pendingReceived = received.filter(
         (inv) => inv.invitationStatus === "PENDING"
     );
@@ -127,43 +114,13 @@ export default function Invitations() {
                 ) : (
                     <>
                         {pendingReceived.map((inv) => (
-                            <div
+                            <InvitationCard
                                 key={inv.id}
-                                className={`invitation-card${isUnread(inv) ? " unread" : ""}`}
-                            >
-                                <div className="invitation-card-top">
-                                    <span className="invitation-group" title={inv.groupName}>
-                                        {inv.groupName}
-                                    </span>
-                                    <span className="invitation-from">
-                                        Inviter: {inv.invitedBy?.name || inv.invitedBy?.email || "—"}
-                                    </span>
-                                </div>
-                                {inv.comment && (
-                                    <p className="invitation-comment">
-                                        Comment: {inv.comment}
-                                    </p>
-                                )}
-                                <div className="invitation-card-bottom">
-                                    <span className="invitation-date">
-                                        Date: {formatDate(inv.createdAt)}
-                                    </span>
-                                    <div className="invitation-actions">
-                                        <button
-                                            className="btn-secondary btn-sm"
-                                            onClick={() => handleRespond(inv.id, "DECLINED")}
-                                        >
-                                            Reject
-                                        </button>
-                                        <button
-                                            className="btn-primary btn-sm"
-                                            onClick={() => handleRespond(inv.id, "ACCEPTED")}
-                                        >
-                                            Accept
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                                inv={inv}
+                                isUnread={isUnread(inv)}
+                                isPending
+                                onRespond={handleRespond}
+                            />
                         ))}
 
                         {resolvedReceived.length > 0 && (
@@ -172,24 +129,12 @@ export default function Invitations() {
                                     Past invitations ({resolvedReceived.length})
                                 </summary>
                                 {resolvedReceived.map((inv) => (
-                                    <div key={inv.id} className="invitation-card resolved">
-                                        <div className="invitation-card-top">
-                                            <span className="invitation-group" title={inv.groupName}>
-                                                {inv.groupName}
-                                            </span>
-                                            <span className={`invitation-status ${inv.invitationStatus?.toLowerCase()}`}>
-                                                {inv.invitationStatus}
-                                            </span>
-                                        </div>
-                                        <div className="invitation-card-bottom">
-                                            <span className="invitation-date">
-                                                {formatDate(inv.createdAt)}
-                                            </span>
-                                            <span className="invitation-from">
-                                                From: {inv.invitedBy?.name || inv.invitedBy?.email || "—"}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <InvitationCard
+                                        key={inv.id}
+                                        inv={inv}
+                                        isUnread={false}
+                                        isPending={false}
+                                    />
                                 ))}
                             </details>
                         )}
@@ -199,53 +144,7 @@ export default function Invitations() {
 
             <section className="invitations-section">
                 <h2 className="invitations-section-title">Your pending invites</h2>
-
-
-                {sent.length === 0 ? (
-                    <p className="invitations-empty">No pending invites.</p>
-                ) : (
-                    <div className="invitations-table-wrapper">
-                        <table className="invitations-table">
-                            <thead>
-                                <tr>
-                                    <th>For Group</th>
-                                    <th>To</th>
-                                    <th>Comment</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sent.map((inv) => (
-                                    <tr key={inv.id}>
-                                        <td>
-                                            <span className="sent-group-name" title={inv.groupName}>
-                                                {inv.groupName}
-                                            </span>
-                                        </td>
-                                        <td>{inv.user?.name || inv.user?.email || "—"}</td>
-                                        <td>
-                                            <span
-                                                className="sent-comment-cell"
-                                                title={inv.comment || ""}
-                                            >
-                                                {inv.comment
-                                                    ? inv.comment.length > 30
-                                                        ? inv.comment.slice(0, 30) + "…"
-                                                        : inv.comment
-                                                    : "—"}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`invitation-status ${inv.invitationStatus?.toLowerCase()}`}>
-                                                {inv.invitationStatus}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                <InvitationsSentTable sent={sent} />
             </section>
         </div>
     );

@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.AdminOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.admin.outbound.*;
 import io.github.balasis.taskmanager.engine.core.service.AdminService;
@@ -9,18 +10,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin")
 public class AdminController extends BaseComponent {
 
+    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
+
     private final AdminService adminService;
     private final AdminOutboundMapper adminOutboundMapper;
-
-    /* ─────  users ───── */
 
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserResource>> listUsers(
@@ -40,8 +43,6 @@ public class AdminController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /* ───── groups ───── */
-
     @GetMapping("/groups")
     public ResponseEntity<Page<AdminGroupResource>> listGroups(
             @RequestParam(required = false) String q, Pageable pageable) {
@@ -59,8 +60,6 @@ public class AdminController extends BaseComponent {
         adminService.deleteGroup(groupId);
         return ResponseEntity.noContent().build();
     }
-
-    /* ───── tasks ───── */
 
     @GetMapping("/tasks")
     public ResponseEntity<Page<AdminTaskResource>> listTasks(
@@ -81,28 +80,40 @@ public class AdminController extends BaseComponent {
     }
 
     @GetMapping("/tasks/{taskId}/files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadTaskFile(taskId, fileId);
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
-                .body(download.content());
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename())  + "\"")
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @GetMapping("/tasks/{taskId}/assignee-files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadAssigneeTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadAssigneeTaskFile(
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadAssigneeTaskFile(taskId, fileId);
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
-                .body(download.content());
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
-
-    /* ───── comments ───── */
 
     @GetMapping("/comments")
     public ResponseEntity<Page<AdminCommentResource>> listComments(

@@ -1,0 +1,122 @@
+.invitation-card {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    padding: 0.875em 1.12em;
+    margin-bottom: 0.625em;
+    transition: box-shadow 0.15s;
+}
+
+.invitation-card:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.invitation-card.unread {
+    border-left: 0.25em solid var(--warning);
+}
+
+.invitation-card.resolved {
+    opacity: 0.7;
+}
+
+.invitation-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.invitation-group {
+    font-weight: 600;
+    font-size: 0.94em;
+    color: var(--text-heading-alt);
+    max-width: 18.75em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.invitation-from {
+    font-size: 0.81em;
+    color: var(--text-muted);
+}
+
+.invitation-comment {
+    font-size: 0.81em;
+    color: var(--text-tertiary);
+    margin: 0.375em 0;
+    line-height: 1.4;
+}
+
+.invitation-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5em;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.invitation-date {
+    font-size: 0.75em;
+    color: var(--text-placeholder);
+}
+
+.invitation-actions {
+    display: flex;
+    gap: 0.5em;
+}
+
+.invitation-status {
+    font-size: 0.69em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.125em 0.5em;
+    border-radius: 0.625em;
+}
+
+.invitation-status.pending {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.invitation-status.accepted {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.invitation-status.declined {
+    background: var(--danger-bg-light);
+    color: var(--danger-text-badge);
+}
+
+@media (max-width: 600px) {
+    .invitation-card {
+        padding: 0.625em 0.75em;
+    }
+
+    .invitation-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-group {
+        max-width: 100%;
+    }
+
+    .invitation-card-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invitation-actions {
+        width: 100%;
+    }
+
+    .invitation-actions .btn-primary,
+    .invitation-actions .btn-secondary {
+        flex: 1;
+    }
+}

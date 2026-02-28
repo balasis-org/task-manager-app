@@ -1,7 +1,6 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.UserInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserMiniForDropdownOutboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.UserOutboundMapper;
@@ -9,14 +8,16 @@ import io.github.balasis.taskmanager.context.web.resource.user.inbound.UserInbou
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
+import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
-import io.jsonwebtoken.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -47,8 +48,6 @@ public class UserController extends BaseComponent {
         );
     }
 
-    
-
     @PatchMapping("/me")
     public ResponseEntity<UserOutboundResource> patchMyProfile(
            @RequestBody UserInboundResource userInboundResource){
@@ -72,6 +71,18 @@ public class UserController extends BaseComponent {
     public ResponseEntity<UserOutboundResource> refreshInviteCode() {
         return ResponseEntity.ok(userOutboundMapper.toResource(
                 userService.refreshInviteCode()
+        ));
+    }
+
+    @GetMapping("/me/default-images")
+    public ResponseEntity<List<String>> getDefaultImages(@RequestParam BlobContainerType type) {
+        return ResponseEntity.ok(userService.findDefaultImages(type));
+    }
+
+    @PatchMapping("/me/profile-image/pick-default")
+    public ResponseEntity<UserOutboundResource> pickDefaultProfileImage(@RequestParam String fileName) {
+        return ResponseEntity.ok(userOutboundMapper.toResource(
+                userService.pickDefaultProfileImage(fileName)
         ));
     }
 

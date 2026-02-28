@@ -39,7 +39,7 @@ public class DevAuthController extends BaseComponent {
 
     @PostMapping("/fake-login")
     public ResponseEntity<Map<String, Object>> fakeLogin(@RequestBody FakeLoginRequest request) {
-        System.out.println("reached inside");
+        logger.debug("Dev fake-login endpoint reached");
         if (request == null || request.email() == null || request.email().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "email is required"));
         }
@@ -109,7 +109,7 @@ public class DevAuthController extends BaseComponent {
     private ResponseCookie createJwtCookie(String jwt) {
         return ResponseCookie.from("jwt", jwt)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(JWT_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")
@@ -119,7 +119,7 @@ public class DevAuthController extends BaseComponent {
     private ResponseCookie createRefreshCookie(String refreshCookieValue) {
         return ResponseCookie.from("RefreshKey", refreshCookieValue)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME)
                 .sameSite("Strict")

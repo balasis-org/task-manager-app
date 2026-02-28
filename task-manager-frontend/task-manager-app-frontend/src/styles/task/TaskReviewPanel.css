@@ -1,0 +1,86 @@
+/* TaskReviewPanel — review info + review form (reviewer-specific styles) */
+/* Participant picker/list styles are shared and live in Task.css */
+
+.task-review-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    font-size: 0.75em;
+    margin-bottom: 0.75em;
+}
+
+.task-info-row {
+    display: flex;
+    gap: 0.375em;
+}
+
+.task-info-label {
+    font-weight: 600;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.task-decision.approved {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.task-decision.rejected {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.task-review-form {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    padding: 0.75em;
+}
+
+.task-review-form label {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    display: block;
+    margin-bottom: 0.25em;
+}
+
+.task-review-textarea-wrapper {
+    position: relative;
+}
+
+.task-review-textarea {
+    width: 100%;
+    font-size: 0.81em;
+    padding: 0.5em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.task-review-counter {
+    position: absolute;
+    bottom: 0.375em;
+    right: 0.5em;
+    font-size: 0.69em;
+    color: var(--text-placeholder);
+}
+
+.task-review-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: 0.5em;
+    flex-wrap: wrap;
+    overflow: hidden;
+}
+
+.task-review-decision {
+    padding: 0.19em 0.5em;
+    font-size: 0.75em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.25em;
+    cursor: pointer;
+}

@@ -1,14 +1,21 @@
-# Use JDK 21 as base
-FROM eclipse-temurin:21-jdk-alpine
 
-# Set working directory inside container
+FROM eclipse-temurin:21-jre-alpine
+
+RUN addgroup -S appgrp && adduser -S appuser -G appgrp
+
 WORKDIR /app
 
-# Copy the Spring Boot jar into the container
 COPY /task-manager-context/task-manager-context-web/task-manager-context-web-domain/target/TaskManager.jar app.jar
 
-# Expose default Spring Boot port
+RUN chown appuser:appgrp app.jar
+
 EXPOSE 8080
 
-# Run the Spring Boot application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+USER appuser
+
+ENTRYPOINT ["java", \
+  "-XX:+ExitOnOutOfMemoryError", \
+  "-XX:+HeapDumpOnOutOfMemoryError", \
+  "-XX:HeapDumpPath=/tmp/heapdump.hprof", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]

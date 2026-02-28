@@ -1,0 +1,168 @@
+/* ===== NewGroupPopup.css =====
+   Header, form fields, image dropzone, and file row
+   used exclusively by the create-group popup.
+   ================================================= */
+
+.new-group-popup-card {
+    padding: 2.12em 2.5em;
+    width: 32.5em;
+}
+
+.new-group-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875em;
+    margin-bottom: 1.12em;
+}
+
+.new-group-icon {
+    width: 2.75em;
+    height: 2.75em;
+    min-width: 2.75em;
+    border-radius: 0.75em;
+    background: var(--gradient-brand);
+    color: var(--text-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.12em;
+}
+
+.new-group-header h2 {
+    margin: 0 0 0.25em;
+    font-size: 1.38em;
+    color: var(--text-heading);
+}
+
+.new-group-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.81em;
+}
+
+.popup-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375em;
+}
+
+.popup-label {
+    font-size: 0.81em;
+    font-weight: 600;
+    color: var(--text-heading);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    text-transform: none;
+}
+
+.label-required,
+.label-optional {
+    font-size: 0.69em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+
+.label-required {
+    color: var(--danger);
+}
+
+.label-optional {
+    color: var(--text-faint);
+}
+
+.popup-field-hint {
+    margin: 0;
+    font-size: 0.75em;
+    color: var(--text-faint);
+}
+
+.new-group-form textarea {
+    min-height: 6em;
+    resize: vertical;
+}
+
+.new-group-dropzone {
+    border: 0.06em dashed var(--border-input);
+    border-radius: 0.75em;
+    padding: 1.38em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375em;
+    text-align: center;
+    color: var(--text-muted);
+    background: var(--bg-dropzone);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.new-group-dropzone:hover {
+    border-color: var(--accent-violet);
+    background: var(--accent-violet-bg);
+}
+
+.new-group-dropzone.drag-over {
+    border-color: var(--accent-violet);
+    background: var(--accent-violet-deep);
+    box-shadow: inset 0 0 0 0.12em rgba(124, 58, 237, 0.25);
+}
+
+.new-group-dropzone.has-preview {
+    padding: 0;
+    background: var(--bg-primary);
+    border: none;
+    overflow: hidden;
+}
+
+.new-group-dropzone img {
+    width: 100%;
+    height: 11.25em;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-active);
+}
+
+.new-group-dropzone-hint {
+    color: #f9fafb;
+    font-size: 0.75em;
+    padding: 0.375em 0.625em;
+    background: var(--overlay-bg);
+    width: 100%;
+    text-align: center;
+}
+
+.new-group-file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75em;
+    font-size: 0.81em;
+    color: var(--text-secondary);
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-violet);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.link-btn:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+    .new-group-popup-card {
+        padding: 1.62em;
+        width: 100%;
+    }
+
+    .new-group-dropzone img {
+        height: 9.375em;
+    }
+}

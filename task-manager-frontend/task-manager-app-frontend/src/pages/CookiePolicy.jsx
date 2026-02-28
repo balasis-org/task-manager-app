@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import {
-    FiArrowLeft, FiShield, FiInfo, FiLock, FiMoon,
+    FiArrowLeft, FiShield, FiInfo, FiLock,
     FiSlash, FiSettings, FiRefreshCw, FiMail
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";
@@ -15,14 +15,14 @@ export default function CookiePolicy() {
                 <FiArrowLeft size={14} /> Back
             </button>
 
-            {/* Hero */}
+            { }
             <section className="legal-hero">
                 <div className="legal-hero-icon"><FiShield size={28} /></div>
                 <h1>Cookie Policy</h1>
                 <p>Last updated &mdash; February 2026</p>
             </section>
 
-            {/* 1. What are cookies */}
+            { }
             <section className="legal-section">
                 <h2><FiInfo size={18} /> What Are Cookies</h2>
                 <p>
@@ -33,7 +33,7 @@ export default function CookiePolicy() {
                 </p>
             </section>
 
-            {/* 2. How we use cookies */}
+            { }
             <section className="legal-section">
                 <h2><FiLock size={18} /> How We Use Cookies &amp; Local Storage</h2>
                 <p>
@@ -71,7 +71,7 @@ export default function CookiePolicy() {
                 </ul>
             </section>
 
-            {/* 3. Third-party cookies */}
+            { }
             <section className="legal-section">
                 <h2><FiSlash size={18} /> Third-Party Cookies</h2>
                 <p>
@@ -81,7 +81,7 @@ export default function CookiePolicy() {
                 </p>
             </section>
 
-            {/* 4. Managing cookies */}
+            { }
             <section className="legal-section">
                 <h2><FiSettings size={18} /> Managing Cookies</h2>
                 <p>
@@ -103,7 +103,7 @@ export default function CookiePolicy() {
                 </div>
             </section>
 
-            {/* 5. Changes */}
+            { }
             <section className="legal-section">
                 <h2><FiRefreshCw size={18} /> Changes to This Policy</h2>
                 <p>
@@ -113,7 +113,7 @@ export default function CookiePolicy() {
                 </p>
             </section>
 
-            {/* 6. Contact */}
+            { }
             <section className="legal-section">
                 <h2><FiMail size={18} /> Contact</h2>
                 <p>
@@ -121,7 +121,7 @@ export default function CookiePolicy() {
                 </p>
                 <div className="legal-contact">
                     <FiMail size={18} />
-                    <a href="mailto:support@taskmanager.io">support@taskmanager.io</a>
+                    <a href="mailto:rebuildarch5@gmail.com">rebuildarch5@gmail.com</a>
                 </div>
             </section>
         </div>

@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.context.base.model;
 
-
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import jakarta.persistence.*;
 import lombok.*;

@@ -112,5 +112,4 @@ public class User extends BaseModel{
         this.inviteCodeCreatedAt = Instant.now();
     }
 
-
 }

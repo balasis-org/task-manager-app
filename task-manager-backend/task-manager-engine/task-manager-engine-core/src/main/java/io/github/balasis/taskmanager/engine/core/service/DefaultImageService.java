@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,5 +21,21 @@ public class DefaultImageService {
         if (images.isEmpty()) return null;
         int idx = new Random().nextInt(images.size());
         return images.get(idx).getFileName();
+    }
+
+    public String pickFirst(BlobContainerType type) {
+        List<DefaultImage> images = defaultImageRepository.findByType(type);
+        if (images.isEmpty()) return null;
+        return images.stream()
+                .map(DefaultImage::getFileName)
+                .min(String::compareTo)
+                .orElse(null);
+    }
+
+    public List<String> findAll(BlobContainerType type) {
+        return defaultImageRepository.findByType(type)
+                .stream()
+                .map(DefaultImage::getFileName)
+                .collect(Collectors.toList());
     }
 }

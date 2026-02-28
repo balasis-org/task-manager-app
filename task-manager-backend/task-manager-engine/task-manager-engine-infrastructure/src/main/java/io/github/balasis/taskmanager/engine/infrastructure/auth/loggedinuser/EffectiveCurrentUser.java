@@ -1,6 +1,5 @@
 package io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser;
 
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

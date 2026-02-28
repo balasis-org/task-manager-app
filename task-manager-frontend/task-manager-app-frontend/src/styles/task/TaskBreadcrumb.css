@@ -1,0 +1,154 @@
+/* TaskBreadcrumb — back link, breadcrumb trail, right-side meta (creator, edit/delete, chat) */
+
+.task-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 2.8em;
+    padding: 0.625em 1em;
+    background: var(--bg-secondary);
+    border-bottom: 0.06em solid var(--border-primary);
+    font-size: 0.81em;
+    flex-wrap: wrap;
+}
+
+.task-breadcrumb-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.task-breadcrumb-back:hover {
+    color: var(--text-primary);
+}
+
+.task-breadcrumb-trail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    color: var(--text-faint);
+    font-weight: 500;
+    max-width: 18em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.breadcrumb-link {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.breadcrumb-link:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+}
+
+.breadcrumb-sep {
+    color: var(--text-disabled);
+    flex-shrink: 0;
+}
+
+.breadcrumb-current {
+    color: var(--text-faint);
+}
+
+.task-breadcrumb-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 3.12em;
+    font-size: 0.95em;
+    color: var(--text-muted);
+}
+
+.task-meta-byline,
+.task-meta-group,
+.task-meta-lastedit {
+    white-space: nowrap;
+    max-width: 11.25em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    padding: 0.19em 0.625em;
+    cursor: pointer;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
+    transition: background 0.12s;
+}
+
+.task-edit-btn:hover {
+    background: var(--bg-active);
+}
+
+.task-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    background: none;
+    border: 0.06em solid var(--danger);
+    border-radius: 0.375em;
+    padding: 0.19em 0.625em;
+    cursor: pointer;
+    font-size: 0.75em;
+    color: var(--danger);
+    transition: background 0.12s;
+}
+
+.task-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.08);
+}
+
+.task-chat-btn {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-tertiary);
+    transition: color 0.12s;
+}
+
+.task-chat-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ── responsive ── */
+
+@media (max-width: 1024px) {
+    .task-breadcrumb-right {
+        gap: 0.5em;
+    }
+    .task-meta-group {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .task-breadcrumb {
+        padding: 0.5em 0.75em;
+        font-size: 0.75em;
+    }
+    .task-breadcrumb-right {
+        flex-wrap: wrap;
+        gap: 0.375em;
+    }
+    .task-meta-lastedit,
+    .task-meta-group {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .task-breadcrumb-right {
+        display: none;
+    }
+}

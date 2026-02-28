@@ -25,4 +25,3 @@ public class BlobAccessService {
                 .delete();
     }
 }
-

@@ -1,0 +1,97 @@
+/* ===== NewTaskPopup.css =====
+   Picker sections (reviewer / assignee dropdowns), chip lists,
+   file drag-drop area, inline search bar, and form row layout
+   used exclusively by the new-task creation popup.
+   ================================================= */
+
+.popup-form-row {
+    display: flex;
+    gap: 0.75em;
+}
+.popup-form-half {
+    flex: 1;
+    min-width: 0;
+}
+
+.popup-picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375em;
+    border: 0.06em dashed transparent;
+    border-radius: 0.5em;
+    padding: 0.375em;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.popup-picker-section.file-drag-over {
+    border-color: var(--accent-violet);
+    background: var(--accent-violet-bg);
+}
+
+.popup-picker-label {
+    font-size: 0.81em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+}
+.popup-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375em;
+}
+.popup-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    background: var(--bg-accent-subtle);
+    border-radius: 0.875em;
+    padding: 0.19em 0.625em 0.19em 0.25em;
+    font-size: 0.75em;
+    color: var(--text-primary);
+}
+.popup-chip-img {
+    width: 1.12em;
+    height: 1.12em;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #ddd;
+}
+.popup-chip-rm {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-placeholder);
+    display: flex;
+    align-items: center;
+    padding: 0 0.125em;
+}
+.popup-chip-rm:hover {
+    color: var(--danger);
+}
+.popup-picker-search {
+    width:100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    margin-left: auto;
+    background: var(--bg-active);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.25em;
+    padding: 0.125em 0.375em;
+    font-weight: 400;
+}
+.popup-picker-search input {
+    width:100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.75em;
+
+    color: var(--text-primary);
+}
+.popup-picker-search svg {
+    flex-shrink: 0;
+    color: var(--text-placeholder);
+}

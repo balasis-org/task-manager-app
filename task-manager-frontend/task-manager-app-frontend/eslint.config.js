@@ -23,13 +23,12 @@ export default defineConfig([
       },
     },
     rules: {
-      // ── Only rule we care about ──────────────────────────────────
+
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', args: 'none' }],
 
-      // ── Everything else silenced ─────────────────────────────────
       'no-empty': 'off',
       'no-misleading-character-class': 'off',
-      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',

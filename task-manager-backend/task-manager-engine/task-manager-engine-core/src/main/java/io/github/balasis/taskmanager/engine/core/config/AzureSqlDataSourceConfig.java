@@ -18,7 +18,6 @@ public class AzureSqlDataSourceConfig {
 
     @Bean
     public DataSource dataSource() {
-        //  fetch secrets from Key Vault
 
         KeyVaultSecret dbUrlSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-URL");
         KeyVaultSecret dbUsernameSecret = secretClient.getSecret("TASKMANAGER-AZURE-DB-USERNAME");
@@ -30,11 +29,12 @@ public class AzureSqlDataSourceConfig {
         ds.setPassword(dbPasswordSecret.getValue());
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
-        ds.setMaximumPoolSize(4);
+        ds.setMaximumPoolSize(3);
         ds.setMinimumIdle(2);
-        ds.setIdleTimeout(500_000);
-        ds.setMaxLifetime(1_200_000);
+        ds.setIdleTimeout(300_000);
+        ds.setMaxLifetime(1_800_000);
         ds.setConnectionTimeout(30_000);
+        ds.setLeakDetectionThreshold(60_000);
 
         return ds;
     }

@@ -18,15 +18,6 @@ import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
-/**
- * Wires the Redis-backed rate limiter for <b>prod</b> profiles.
- * <p>
- * Identical to the dev config for now — when prod needs a different
- * Redis instance or different credentials just update this class.
- * <p>
- * If the Redis connection fails the bean falls back to a no-op
- * implementation so the application still starts.
- */
 @Configuration
 @Profile({"prod-h2", "prod-azuresql"})
 @RequiredArgsConstructor
@@ -37,46 +28,52 @@ public class RateLimitProdConfig {
     private final SecretClientProvider secretClientProvider;
 
     @Bean
-    public RateLimitService rateLimitService() {
+    public StatefulRedisConnection<byte[], byte[]> redisConnection() {
+        String endpoint  = secretClientProvider.getSecret("TASKMANAGER-REDIS-ENDPOINT");
+        String accessKey = secretClientProvider.getSecret("TASKMANAGER-REDIS-ACCESS-KEY");
+
+        if (endpoint == null || endpoint.isBlank()
+                || accessKey == null || accessKey.isBlank()) {
+            throw new IllegalStateException(
+                "Redis endpoint and access key must be configured for rate limiting");
+        }
+
+        String[] parts = endpoint.split(":", 2);
+        String host = parts[0];
+        int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
+
+        RedisURI uri = RedisURI.builder()
+                .withHost(host)
+                .withPort(port)
+                .withSsl(true)
+                .withAuthentication("default", accessKey)
+                .build();
+
+        RedisClient client = RedisClient.create(uri);
+        StatefulRedisConnection<byte[], byte[]> connection =
+                client.connect(new ByteArrayCodec());
+
+        log.info("Redis connected to {}:{}", host, port);
+        return connection;
+    }
+
+    @Bean
+    public RateLimitService rateLimitService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
         try {
-            String endpoint  = secretClientProvider.getSecret("RedisEndpoint");
-            String accessKey = secretClientProvider.getSecret("RedisAccessKey");
-
-            if (endpoint == null || endpoint.isBlank()
-                    || accessKey == null || accessKey.isBlank()) {
-                log.warn("Redis endpoint or access key not configured — rate limiting disabled");
-                return key -> {};
-            }
-
-            String[] parts = endpoint.split(":", 2);
-            String host = parts[0];
-            int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
-
-            RedisURI uri = RedisURI.builder()
-                    .withHost(host)
-                    .withPort(port)
-                    .withSsl(true)
-                    .withAuthentication("default", accessKey)
-                    .build();
-
-            RedisClient client = RedisClient.create(uri);
-            StatefulRedisConnection<byte[], byte[]> connection =
-                    client.connect(new ByteArrayCodec());
-
             LettuceBasedProxyManager<byte[]> proxyManager = LettuceBasedProxyManager
-                    .builderFor(connection)
+                    .builderFor(redisConnection)
                     .withExpirationStrategy(
                             ExpirationAfterWriteStrategy
                                     .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(16))
                     )
                     .build();
 
-            log.info("Redis rate limiter connected to {}:{}", host, port);
+            log.info("Redis rate limiter initialized");
             return new RedisRateLimitService(proxyManager);
 
         } catch (Exception e) {
-            log.warn("Failed to connect to Redis — rate limiting disabled: {}", e.getMessage());
-            return key -> {};
+            throw new IllegalStateException(
+                "Redis is required for rate limiting but failed to connect: " + e.getMessage(), e);
         }
     }
 }

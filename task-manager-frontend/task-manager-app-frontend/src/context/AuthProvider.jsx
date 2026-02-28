@@ -1,21 +1,30 @@
 import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import { apiGet, apiPost, registerAuthHandlers } from "@assets/js/apiClient.js";
+import { useToast } from "@context/ToastContext";
 
 let isRefreshing = false;
 
 export default function AuthProvider({ children }) {
+    const showToast = useToast();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [bootstrapped, setBootstrapped] = useState(false);
+    const [authError, setAuthError] = useState(null);
 
     useEffect(() => {
         const loadUser = async () => {
             try {
                 const me = await apiGet("/api/users/me");
                 setUser(me);
-            } catch {
+                setAuthError(null);
+            } catch (err) {
                 setUser(null);
+                if (err?.status === 503) {
+                    const msg = err.message || "Service temporarily unavailable. Please try again later.";
+                    setAuthError(msg);
+                    showToast(msg, "error", 6000);
+                }
             } finally {
                 setLoading(false);
                 setBootstrapped(true);
@@ -77,6 +86,7 @@ export default function AuthProvider({ children }) {
             user,
             loading,
             bootstrapped,
+            authError,
             login,
             logout,
             updateUser,

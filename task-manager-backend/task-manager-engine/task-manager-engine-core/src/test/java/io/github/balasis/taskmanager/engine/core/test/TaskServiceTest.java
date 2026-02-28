@@ -95,7 +95,6 @@ class GroupServiceTest {
 
         groupService.create(group);
 
-        // verify repository calls
         verify(groupRepository, times(1)).save(group);
         verify(groupMembershipRepository, times(1))
                 .save(argThat(membership ->

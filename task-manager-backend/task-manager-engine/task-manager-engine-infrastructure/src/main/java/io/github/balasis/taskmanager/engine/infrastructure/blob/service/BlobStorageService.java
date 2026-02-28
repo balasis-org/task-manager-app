@@ -7,9 +7,10 @@ import com.azure.storage.blob.models.PublicAccessType;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadImageException;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadTaskFileException;
+import io.github.balasis.taskmanager.context.base.exception.critical.CriticalBlobStorageException;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,8 +44,7 @@ public class BlobStorageService {
         }
     }
 
-
-    public byte[] downloadTaskAssigneeFile(String blobName){
+    public BlobDownload downloadTaskAssigneeFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
     }
 
@@ -53,8 +53,7 @@ public class BlobStorageService {
         return uploadInternal(BlobContainerType.TASK_ASSIGNEE_FILES, file, prefixId);
     }
 
-
-    public byte[] downloadTaskFile(String blobName){
+    public BlobDownload downloadTaskFile(String blobName){
         return downloadInternal(BlobContainerType.TASK_FILES, blobName);
     }
 
@@ -72,46 +71,32 @@ public class BlobStorageService {
         assertImage(file);
         return uploadInternal(BlobContainerType.GROUP_IMAGES, file, prefixId);
     }
-    // we have a garbage collector doing the deletes in stand-alone spring app
-    public void deleteTaskFile(String blobName) {
-        deleteInternal(BlobContainerType.TASK_FILES, blobName);
-    }
-
-    public void deleteGroupImage(String blobName) {
-        deleteInternal(BlobContainerType.GROUP_IMAGES, blobName);
-    }
-
-    public void deleteProfileImage(String blobName) {
-        deleteInternal(BlobContainerType.PROFILE_IMAGES, blobName);
-    }
 
     private String uploadInternal(BlobContainerType type, MultipartFile file, Long prefixId){
         BlobContainerClient container = containers.get(type);
-        String blobName = prefixId + "-" + file.getOriginalFilename();
+        String blobName = StringSanitizer.toSafeBlobKey(prefixId,file.getOriginalFilename());
         BlobClient blobClient = container.getBlobClient(blobName);
         try {
             blobClient.upload(file.getInputStream(), file.getSize(), true);
         } catch (IOException e) {
-            throw new BlobUploadException(e.getMessage());
+            throw new CriticalBlobStorageException("Blob upload failed: " + e.getMessage());
         }
 
         return blobName;
     }
 
-    private byte[] downloadInternal(BlobContainerType type, String blobName){
+    private BlobDownload downloadInternal(BlobContainerType type, String blobName){
         BlobContainerClient container = containers.get(type);
         BlobClient blobClient = container.getBlobClient(blobName);
         if (!blobClient.exists()) {
             throw new RuntimeException("Blob not found: " + blobName);
         }
-        try (var inputStream = blobClient.openInputStream()) {
-            try {
-                return inputStream.readAllBytes();
-            } catch (IOException e) {
-                throw new BlobUploadException(e.getMessage());
-            }
-        }
+        long size = blobClient.getProperties().getBlobSize();
+        var inputStream = blobClient.openInputStream();
+        return new BlobDownload(inputStream, size);
     }
+
+    public record BlobDownload(java.io.InputStream inputStream, long size) {}
 
     private void deleteInternal(BlobContainerType type, String blobName) {
         BlobContainerClient container = containers.get(type);
@@ -135,7 +120,6 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("TaskAssignee file must have a name");
         }
 
-        assertContentSafetyIfImage(file);
     }
 
     private void assertTaskFile(MultipartFile file) {
@@ -152,23 +136,6 @@ public class BlobStorageService {
             throw new BlobUploadTaskFileException("Task file must have a name");
         }
 
-        assertContentSafetyIfImage(file);
-    }
-
-    private void assertContentSafetyIfImage(MultipartFile file) {
-        String ct = file.getContentType();
-        // Skip GIFs — Azure Content Safety does not reliably analyse animated images
-        if (ct != null && ct.startsWith("image/") && !"image/gif".equals(ct)) {
-            try {
-                if (!contentSafetyService.isSafe(file.getInputStream())) {
-                    throw new BlobUploadTaskFileException(
-                            "File failed content safety check (potential adult or violent content)");
-                }
-            } catch (IOException e) {
-                throw new BlobUploadTaskFileException(
-                        "Failed reading file for safety check: " + e.getMessage());
-            }
-        }
     }
 
     private void assertImage(MultipartFile file) {

@@ -23,16 +23,16 @@ public interface UserRepository extends JpaRepository<User,Long> {
     @Query("""
     select u
     from User u
-    where (:q IS NULL OR lower(u.name) like lower(concat('%',:q,'%') )
-              OR lower(u.email) like lower(concat('%',:q,'%')))
+    where (:q IS NULL OR u.name like concat('%',:q,'%')
+              OR u.email like concat('%',:q,'%'))
     """)
     Page<User> searchUser(@Param("q") String q, Pageable pageable);
 
     @Query("""
     select u
     from User u
-    where (:q IS NULL OR lower(u.name) like lower(concat('%',:q,'%'))
-              OR lower(u.email) like lower(concat('%',:q,'%')))
+    where (:q IS NULL OR u.name like concat('%',:q,'%')
+              OR u.email like concat('%',:q,'%'))
       and not exists (
           select gm.id from GroupMembership gm where gm.user = u and gm.group.id = :groupId
       )

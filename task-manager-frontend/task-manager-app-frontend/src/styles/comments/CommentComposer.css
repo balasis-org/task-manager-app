@@ -1,0 +1,156 @@
+/* CommentComposer — sticky bottom bar: emoji picker + textarea + submit */
+
+.comments-composer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    border-top: 0.06em solid var(--border-primary);
+    box-shadow: 0 -0.25em 1em rgba(0, 0, 0, 0.08);
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+    z-index: 20;
+    padding: 0.625em 1em 0.875em;
+}
+
+.comments-composer.open {
+    transform: translateY(0);
+}
+
+.composer-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    margin-bottom: 0.5em;
+}
+
+.composer-label {
+    font-size: 0.81em;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.composer-emoji-wrapper {
+    position: relative;
+}
+
+.composer-emoji-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75em;
+    color: var(--text-muted);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25em;
+    transition: background 0.12s;
+}
+
+.composer-emoji-btn:hover {
+    background: var(--bg-active);
+}
+
+.composer-emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 0.25em;
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-primary);
+    border-radius: 0.5em;
+    box-shadow: var(--shadow-md);
+    padding: 0.5em;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.25em;
+    z-index: 30;
+}
+
+.composer-emoji-item {
+    font-size: 1.25em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    border-radius: 0.25em;
+    transition: background 0.1s;
+}
+
+.composer-emoji-item:hover {
+    background: var(--bg-accent-deep);
+}
+
+.composer-hint {
+    font-size: 0.69em;
+    color: var(--text-disabled);
+    margin-left: auto;
+}
+
+.composer-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-placeholder);
+    display: flex;
+    align-items: center;
+    padding: 0.25em;
+}
+
+.composer-close-btn:hover {
+    color: var(--text-tertiary);
+}
+
+.composer-input-row {
+    position: relative;
+}
+
+.composer-textarea {
+    width: 100%;
+    font-size: 0.81em;
+    padding: 0.5em 3.12em 0.5em 0.625em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.composer-counter {
+    position: absolute;
+    bottom: 0.375em;
+    right: 0.625em;
+    font-size: 0.69em;
+    color: var(--text-placeholder);
+}
+
+.composer-submit-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5em;
+}
+
+@media (max-width: 768px) {
+    .composer-emoji-picker {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .composer-bar {
+        flex-wrap: wrap;
+        gap: 0.375em;
+    }
+
+    .composer-hint {
+        display: none;
+    }
+
+    .composer-emoji-picker {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

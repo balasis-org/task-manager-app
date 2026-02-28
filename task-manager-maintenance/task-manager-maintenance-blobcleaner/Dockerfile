@@ -1,11 +1,19 @@
-# Use JDK 21 as base
-FROM eclipse-temurin:21-jdk-alpine
 
-# Set working directory inside container
+FROM eclipse-temurin:21-jre-alpine
+
+RUN addgroup -S appgrp && adduser -S appuser -G appgrp
+
 WORKDIR /app
 
-# Copy the Spring Boot jar into the container
 COPY target/BlobCleaner.jar app.jar
 
-# Run the Spring Boot application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+RUN chown appuser:appgrp app.jar
+
+USER appuser
+
+ENTRYPOINT ["java", \
+  "-XX:+ExitOnOutOfMemoryError", \
+  "-XX:+HeapDumpOnOutOfMemoryError", \
+  "-XX:HeapDumpPath=/tmp/heapdump.hprof", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]

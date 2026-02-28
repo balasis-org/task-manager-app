@@ -2,31 +2,42 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev-h2}
   jpa:
+    properties:
+      hibernate:
+        use_nationalized_character_data: true
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-    open-in-view: true
+
+    open-in-view: false
   jackson:
     time-zone: UTC
 
 server:
   port: 8080
 
-
-# Exposes the /actuator endpoints over HTTP for monitoring purposes.
 management:
   endpoints:
     web:
       exposure:
-        include: beans, health, info
+        include: beans, health, info, metrics
   endpoint:
     health:
       show-details: always
 
 logging:
   level:
-    root: info
-    io.github.balasis.taskmanager: TRACE
-    org.springframework.transaction.interceptor: INFO
-    com.azure.monitor.opentelemetry: INFO
-
+    root: WARN
+    io.github.balasis.taskmanager: INFO
+    io.github.balasis.taskmanager.engine.monitoring: INFO
+    org.springframework: WARN
+    org.springframework.boot.web.embedded: INFO
+    org.springframework.transaction.interceptor: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    com.azure: WARN
+    com.azure.monitor.opentelemetry: WARN
+    com.zaxxer.hikari: WARN
+    io.netty: WARN
+    reactor: WARN
+    org.flywaydb: WARN

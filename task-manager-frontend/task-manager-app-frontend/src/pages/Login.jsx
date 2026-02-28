@@ -6,8 +6,7 @@ import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
 import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
-//matching backend Dataloader roles given,
-// Leaders also cross roles as reviewers in each others group
+
 const DEV_USERS = [
     { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader)" },
     { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager)"},
@@ -24,7 +23,7 @@ const DEV_USERS = [
 ];
 
 export default function Login() {
-    const { user, loading } = useContext(AuthContext);
+    const { user, loading, authError } = useContext(AuthContext);
 
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
@@ -42,8 +41,12 @@ export default function Login() {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
             window.location.reload();
-        } catch {
-            setError("Login failed. Please check your credentials.");
+        } catch (err) {
+            setError(
+                err?.status === 503
+                    ? err.message
+                    : "Login failed. Please check your credentials."
+            );
         } finally {
             setBusy(false);
         }
@@ -61,7 +64,7 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            {/* Dev-only toggle in the corner */}
+            { }
             {IS_DEV && (
                 <button
                     type="button"
@@ -83,7 +86,7 @@ export default function Login() {
                     <p className="login-subtitle">Sign in to your account</p>
                 </div>
 
-                {error && <div className="login-error">{error}</div>}
+                {(error || authError) && <div className="login-error">{error || authError}</div>}
 
                 <button
                     type="button"
@@ -95,7 +98,7 @@ export default function Login() {
                     Sign in with Microsoft
                 </button>
 
-                {/* Dev-only quick login panel */}
+                { }
                 {IS_DEV && devOpen && (
                     <>
                         <div className="login-divider"><span>dev only</span></div>

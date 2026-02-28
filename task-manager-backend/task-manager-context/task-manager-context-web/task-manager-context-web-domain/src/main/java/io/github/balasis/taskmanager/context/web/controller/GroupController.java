@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.User;
+import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
@@ -11,13 +12,11 @@ import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInb
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
-import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.web.resource.groupevent.outbound.GroupEventOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupinvitation.inbound.GroupInvitationInboundResource;
-import io.github.balasis.taskmanager.context.web.resource.groupinvitation.outbound.GroupInvitationOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.groupmembership.outbound.GroupMembershipOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.task.inbound.TaskInboundResource;
@@ -38,7 +37,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,7 +63,6 @@ public class GroupController extends BaseComponent {
         private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
         private final UserService userService;
 
-
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
         resourceDataValidator.validateResourceData(groupInboundResource);
@@ -84,12 +82,32 @@ public class GroupController extends BaseComponent {
                 groupService.updateGroupImage(groupId, file)));
     }
 
+    @PatchMapping("/{groupId}/image/pick-default")
+    public ResponseEntity<GroupOutboundResource> pickDefaultGroupImage(
+            @PathVariable Long groupId,
+            @RequestParam String fileName) {
+
+        return ResponseEntity.ok(groupOutboundMapper.toResource(
+                groupService.pickDefaultGroupImage(groupId, fileName)));
+    }
+
     @GetMapping
     public ResponseEntity<Set<GroupMiniForDropdownResource>> findAllByCurrentUser() {
         return ResponseEntity.ok(
                 groupMiniForDropdownOutboundMapper.toResources(
                         groupService.findAllByCurrentUser()
                 ));
+    }
+
+    @GetMapping(path = "/{groupId}/has-changed")
+    public ResponseEntity<Void> hasGroupChanged(
+            @PathVariable Long groupId,
+            @RequestParam Instant lastSeen
+    ) {
+        if (groupService.hasGroupChanged(groupId, lastSeen)) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping(path = "/{groupId}/refresh")
@@ -100,10 +118,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok(groupService.refreshGroup(groupId, lastSeen));
     }
 
-    /**
-     * Lightweight poll: has the task changed since the given timestamp?
-     * Returns 204 if unchanged, 409 if changed.
-     */
     @GetMapping(path = "/{groupId}/task/{taskId}/has-changed")
     public ResponseEntity<Void> hasTaskChanged(
             @PathVariable Long groupId,
@@ -116,10 +130,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Lightweight poll: have comments changed on this task since the given timestamp?
-     * Returns 204 if unchanged, 409 if changed.
-     */
     @GetMapping(path = "/{groupId}/task/{taskId}/comments/has-changed")
     public ResponseEntity<Void> hasCommentsChanged(
             @PathVariable Long groupId,
@@ -180,8 +190,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
-
     @PatchMapping("/{groupId}")
     public ResponseEntity<GroupOutboundResource> patch(
             @PathVariable Long groupId,
@@ -206,7 +214,6 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-
     @PostMapping(path="/{groupId}/invite")
     public ResponseEntity<Void> inviteToGroup(
             @PathVariable(name = "groupId") Long groupId,
@@ -219,23 +226,21 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok().build();
     }
 
-
     @PostMapping(path = "/{groupId}/tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskOutboundResource> createTask(
             @PathVariable Long groupId,
             @RequestPart("data") TaskInboundResource inbound,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
+
     ) {
         resourceDataValidator.validateResourceData(inbound);
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
         var partialTask = taskInboundMapper.toDomain(inbound);
-
         return ResponseEntity.ok(taskOutboundMapper.toResource(
                 groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
                         inbound.getReviewerIds(), filesSet)
         ));
     }
-
 
     @GetMapping(path = "/{groupId}/tasks/search")
     public ResponseEntity<Set<TaskPreviewDto>> findTasksWithFilters(
@@ -300,7 +305,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
     @GetMapping(path="/{groupId}/task")
     public ResponseEntity<Set<TaskPreviewOutboundResource>> findMyTasks(
             @PathVariable Long groupId,
@@ -336,7 +340,6 @@ public class GroupController extends BaseComponent {
         );
     }
 
-
     @PatchMapping(path="/{groupId}/task/{taskId}")
     public ResponseEntity<TaskOutboundResource> patchTask(
             @PathVariable Long groupId,
@@ -352,7 +355,7 @@ public class GroupController extends BaseComponent {
         );
     }
 
-    @DeleteMapping("/groupId/{groupId}/task/{taskId}")
+    @DeleteMapping("/{groupId}/task/{taskId}")
     public ResponseEntity<Void> deleteTask(
             @PathVariable Long groupId,
             @PathVariable Long taskId
@@ -360,7 +363,6 @@ public class GroupController extends BaseComponent {
         groupService.deleteTask(groupId,taskId);
         return ResponseEntity.noContent().build();
     }
-
 
     @PostMapping(path = "/{groupId}/task/{taskId}/review")
     public ResponseEntity<TaskOutboundResource> reviewTask(
@@ -481,32 +483,46 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
+    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
+
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
             @PathVariable Long fileId
     ) {
         TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
-
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
-                .body(download.content());
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @GetMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadAssigneeTaskFile(
+    public ResponseEntity<StreamingResponseBody> downloadAssigneeTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
             @PathVariable Long fileId
     ) {
         TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
-
+        StreamingResponseBody body = out -> {
+            try (var in = download.content()) {
+                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+            }
+        };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + download.filename() + "\"")
-                .body(download.content());
+                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
+                .contentLength(download.size())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     @DeleteMapping("/{groupId}/task/{taskId}/taskParticipant/{taskParticipantId}")

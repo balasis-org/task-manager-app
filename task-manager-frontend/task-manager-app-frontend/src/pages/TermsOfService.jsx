@@ -16,14 +16,14 @@ export default function TermsOfService() {
                 <FiArrowLeft size={14} /> Back
             </button>
 
-            {/* Hero */}
+            { }
             <section className="legal-hero">
                 <div className="legal-hero-icon"><FiFileText size={28} /></div>
                 <h1>Terms of Service</h1>
                 <p>Last updated &mdash; February 2026</p>
             </section>
 
-            {/* 1. Introduction */}
+            { }
             <section className="legal-section">
                 <h2><FiInfo size={18} /> Introduction &amp; Acceptance</h2>
                 <p>
@@ -33,7 +33,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 2. Service Description */}
+            { }
             <section className="legal-section">
                 <h2><FiInfo size={18} /> Service Description</h2>
                 <p>
@@ -44,7 +44,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 3. Accounts */}
+            { }
             <section className="legal-section">
                 <h2><FiUserPlus size={18} /> Accounts &amp; Registration</h2>
                 <p>
@@ -61,7 +61,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 4. Acceptable Use */}
+            { }
             <section className="legal-section">
                 <h2><FiShield size={18} /> Acceptable Use</h2>
                 <p>You agree not to:</p>
@@ -78,7 +78,7 @@ export default function TermsOfService() {
                 </ul>
             </section>
 
-            {/* 5. User Content & Files */}
+            { }
             <section className="legal-section">
                 <h2><FiUploadCloud size={18} /> User Content &amp; File Uploads</h2>
                 <p>
@@ -122,7 +122,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 6. Copyright / DMCA */}
+            { }
             <section className="legal-section">
                 <h2><FiAlertCircle size={18} /> Copyright &amp; Takedown Process</h2>
                 <p>
@@ -137,7 +137,7 @@ export default function TermsOfService() {
                         material, including its location on the Service (e.g.&nbsp;URL or
                         description sufficient for us to locate it).</li>
                     <li><strong>Your contact information</strong>, including name,
-                        address, telephone number, and email address.</li>
+                        address, telephone number(optional), and email address.</li>
                     <li><strong>A good-faith statement</strong> that the use of the
                         material is not authorised by the copyright owner, its agent, or
                         the law.</li>
@@ -151,8 +151,7 @@ export default function TermsOfService() {
                 </ol>
 
                 <div className="legal-highlight">
-                    <strong>Submission:</strong> Send your takedown notice to the contact
-                    email listed in the Contact section below.
+                    <strong>Submission:</strong> Send your takedown notice to rebuildarch5@gmail.com.
                 </div>
 
                 <p>
@@ -177,7 +176,7 @@ export default function TermsOfService() {
                 </ul>
             </section>
 
-            {/* 7. Content Moderation */}
+            { }
             <section className="legal-section">
                 <h2><FiEye size={18} /> Content Moderation</h2>
                 <p>
@@ -200,7 +199,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 8. Privacy & Cookies */}
+            { }
             <section className="legal-section">
                 <h2><FiLock size={18} /> Privacy &amp; Cookies</h2>
                 <p>
@@ -214,7 +213,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 9. Service Availability */}
+            { }
             <section className="legal-section">
                 <h2><FiClock size={18} /> Service Availability &amp; Limited Lifetime</h2>
                 <p>
@@ -238,7 +237,7 @@ export default function TermsOfService() {
                 </div>
             </section>
 
-            {/* 10. Limitation of Liability */}
+            { }
             <section className="legal-section">
                 <h2><FiAlertTriangle size={18} /> Limitation of Liability</h2>
                 <p>To the maximum extent permitted by applicable law:</p>
@@ -256,7 +255,7 @@ export default function TermsOfService() {
                 </ul>
             </section>
 
-            {/* 11. Changes */}
+            { }
             <section className="legal-section">
                 <h2><FiRefreshCw size={18} /> Changes to These Terms</h2>
                 <p>
@@ -266,7 +265,7 @@ export default function TermsOfService() {
                 </p>
             </section>
 
-            {/* 12. Contact */}
+            { }
             <section className="legal-section">
                 <h2><FiMail size={18} /> Contact</h2>
                 <p>
@@ -275,7 +274,7 @@ export default function TermsOfService() {
                 </p>
                 <div className="legal-contact">
                     <FiMail size={18} />
-                    <a href="mailto:support@taskmanager.io">support@taskmanager.io</a>
+                    <a href="mailto:rebuildarch5@gmail.com">rebuildarch5@gmail.com</a>
                 </div>
             </section>
         </div>

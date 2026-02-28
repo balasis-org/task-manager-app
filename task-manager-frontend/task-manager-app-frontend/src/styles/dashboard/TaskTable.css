@@ -1,65 +1,4 @@
-/* Shared column grid  –  single header */
 
-/* Column header (rendered once) */
-.task-col-header {
-    display: grid;
-    padding: 0.5em 1em;
-    border-bottom: 0.125em solid var(--border-primary);
-    font-weight: 600;
-    font-size: 0.75em;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    background: var(--bg-primary);
-    z-index: 2;
-    overflow: hidden;
-    min-width: 0;
-}
-
-.col-header-cell {
-    position: relative;
-    user-select: none;
-    display: flex;
-    align-items: center;
-}
-
-/* Centre every header except the first (Title) */
-.col-header-cell:not(:first-child) {
-    justify-content: center;
-    text-align: center;
-}
-
-/* Drag handle between column headers */
-.col-resize-handle {
-    position: absolute;
-    top: 0;
-    right: -0.25em;
-    width: 0.5em;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 5;
-}
-
-.col-resize-handle::after {
-    content: "";
-    position: absolute;
-    top: 20%;
-    left: 0.19em;
-    width: 0.125em;
-    height: 60%;
-    background: #ccc;
-    border-radius: 0.06em;
-    transition: background 0.15s;
-}
-
-.col-resize-handle:hover::after {
-    background: #888;
-}
-
-/* Task row */
 .task-row {
     display: grid;
     align-items: center;
@@ -89,7 +28,6 @@
     100% { background: transparent; }
 }
 
-/* Cells */
 .task-cell {
     padding: 0.5em 0.75em;
     font-size: 0.81em;
@@ -99,8 +37,8 @@
 }
 
 .cell-title {
-    min-width: 0;          /* allow shrink inside grid */
-    max-width: 100%;       /* fill the entire 1fr track */
+    min-width: 0;
+    max-width: 100%;
 }
 
 .cell-creator,
@@ -129,7 +67,6 @@
     justify-content: center;
 }
 
-/* Empty state */
 .task-table-empty {
     padding: 0.75em 1.25em;
     color: var(--text-placeholder);
@@ -138,10 +75,9 @@
 }
 
 .task-rows {
-    /* group of rows — no extra styling needed */
+
 }
 
-/* Comment icon */
 .comment-icon {
     display: inline-flex;
     align-items: center;
@@ -159,7 +95,6 @@
     font-weight: 600;
 }
 
-/* Priority tags */
 .priority-tag {
     display: inline-block;
     padding: 0.125em 0.5em;
@@ -184,8 +119,6 @@
     color: var(--danger-text-alt);
 }
 
-/* Responsive — Task Table\n   Column visibility is now driven by JS (visCols prop).\n   Only adjust spacing at breakpoints. */
-
 @media (max-width: 1024px) {
     .task-cell {
         padding: 0.375em 0.5em;
@@ -194,10 +127,6 @@
 }
 
 @media (max-width: 768px) {
-    .task-col-header {
-        padding: 0.375em 0.625em;
-    }
-
     .task-row {
         padding: 0 0.625em;
     }
@@ -209,11 +138,6 @@
 }
 
 @media (max-width: 480px) {
-    .task-col-header {
-        padding: 0.375em 0.5em;
-        font-size: 0.625em;
-    }
-
     .task-row {
         padding: 0 0.5em;
     }
@@ -222,4 +146,110 @@
         padding: 0.25em 0.25em;
         font-size: 0.69em;
     }
+}
+
+.task-rows-wrapper {
+    position: relative;
+}
+
+.cell-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-row-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: 0.375em;
+    cursor: pointer;
+    color: var(--danger);
+    opacity: 0.7;
+    transition: opacity 0.12s, background 0.12s;
+}
+
+.task-row-delete-btn:hover:not(:disabled) {
+    opacity: 1;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+.task-row-delete-btn.disabled,
+.task-row-delete-btn:disabled {
+    color: var(--text-disabled);
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.task-delete-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.task-delete-modal {
+    background: var(--bg-primary);
+    border: 0.06em solid var(--border-card);
+    border-radius: 0.75em;
+    padding: 1.5em 2em;
+    max-width: 26em;
+    width: 90%;
+    box-shadow: 0 0.5em 2em rgba(0, 0, 0, 0.25);
+}
+
+.task-delete-modal h3 {
+    margin: 0 0 0.5em;
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.task-delete-modal p {
+    margin: 0 0 1.25em;
+    font-size: 0.81em;
+    color: var(--text-secondary);
+}
+
+.task-delete-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75em;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 0.375em;
+    padding: 0.44em 1.25em;
+    font-size: 0.81em;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover, #b91c1c);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-tertiary);
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    padding: 0.44em 1em;
+    font-size: 0.81em;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-active);
 }

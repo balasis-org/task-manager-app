@@ -1,0 +1,72 @@
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.85em 0;
+    border-bottom: 1px solid var(--border-light);
+}
+.settings-toggle-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.settings-toggle-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6em;
+    color: var(--text-icon);
+    min-width: 0;
+}
+.settings-toggle-info > svg {
+    flex-shrink: 0;
+    margin-top: 0.15em;
+}
+.settings-toggle-info > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-toggle-label {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.settings-toggle-desc {
+    font-size: 0.72em;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-top: 0.15em;
+}
+
+.settings-switch {
+    position: relative;
+    width: 2.6em;
+    height: 1.45em;
+    border: none;
+    border-radius: 1em;
+    background: var(--border-heavy);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    padding: 0;
+}
+.settings-switch.on {
+    background: var(--accent-primary);
+}
+
+.settings-switch-thumb {
+    position: absolute;
+    top: 0.16em;
+    left: 0.16em;
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+.settings-switch.on .settings-switch-thumb {
+    transform: translateX(1.15em);
+}

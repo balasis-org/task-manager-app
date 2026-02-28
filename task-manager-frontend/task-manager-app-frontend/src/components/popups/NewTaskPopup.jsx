@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { apiMultipart } from "@assets/js/apiClient";
 import { LIMITS } from "@assets/js/inputValidation";
-import { isFileTooLarge, getFileIcon } from "@assets/js/fileUtils";
-import blobBase from "@blobBase";
-import { FiX, FiPlus, FiSearch } from "react-icons/fi";
+import { useBlobUrl } from "@context/BlobSasContext";
+import NtMemberPicker from "@components/newtask/NtMemberPicker";
+import NtFileSection from "@components/newtask/NtFileSection";
 import "@styles/popups/Popup.css";
+import "@styles/popups/NewTaskPopup.css";
 
 const STATE_OPTIONS = [
     { value: "TODO", label: "TODO" },
@@ -16,12 +17,8 @@ const STATE_OPTIONS = [
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
-function userImg(u) {
-    if (!u) return "";
-    return u.imgUrl ? blobBase + u.imgUrl : u.defaultImgUrl ? blobBase + u.defaultImgUrl : "";
-}
-
 export default function NewTaskPopup({ groupId, initialState, members, onClose, onCreated, onRefresh }) {
+    const blobUrl = useBlobUrl();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [taskState, setTaskState] = useState(initialState || "TODO");
@@ -34,10 +31,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
     const [assigneeSearch, setAssigneeSearch] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-    const [fileDragOver, setFileDragOver] = useState(false);
-    const fileInputRef = useRef(null);
 
-    // filter out already-picked members
     const reviewerIds = new Set(selectedReviewers.map((m) => m.user?.id));
     const assigneeIds = new Set(selectedAssignees.map((m) => m.user?.id));
     const eligibleReviewers = (members || []).filter(
@@ -51,7 +45,6 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                                   || (m.user?.email || "").toLowerCase().includes(assigneeSearch.toLowerCase()))
     );
 
-    // if someone leaves the group mid-edit, remove them from selected
     useEffect(() => {
         const currentMemberIds = new Set((members || []).map((m) => m.user?.id));
         setSelectedReviewers((prev) => prev.filter((m) => currentMemberIds.has(m.user?.id)));
@@ -63,42 +56,10 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
     function addAssignee(m) { setSelectedAssignees((prev) => [...prev, m]); }
     function removeAssignee(id) { setSelectedAssignees((prev) => prev.filter((m) => m.user?.id !== id)); }
 
-    function handleFileAdd(e) {
-        const picked = Array.from(e.target.files || []);
-        addFiles(picked);
-        e.target.value = "";
-    }
-
-    function addFiles(incoming) {
-        const oversized = incoming.filter(isFileTooLarge);
-        if (oversized.length) {
-            setError(`File(s) exceed ${LIMITS.MAX_FILE_SIZE_MB} MB limit: ${oversized.map(f => f.name).join(", ")}`);
-            return;
-        }
-        setFiles((prev) => {
-            const combined = [...prev, ...incoming];
-            if (combined.length > LIMITS.MAX_TASK_FILES) {
-                setError(`Maximum ${LIMITS.MAX_TASK_FILES} files allowed.`);
-            }
-            return combined.slice(0, LIMITS.MAX_TASK_FILES);
-        });
-    }
-
-    function handleFileDrop(e) {
-        e.preventDefault();
-        setFileDragOver(false);
-        const dropped = Array.from(e.dataTransfer.files || []);
-        if (!dropped.length) return;
-        addFiles(dropped);
-    }
-
-    function removeFile(idx) { setFiles((prev) => prev.filter((_, i) => i !== idx)); }
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) { setError("Title is required."); return; }
         if (!description.trim()) { setError("Description is required."); return; }
-
         setBusy(true);
         setError("");
         try {
@@ -115,7 +76,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
             const fd = new FormData();
             fd.append(
                 "data",
-                new Blob([JSON.stringify(payload)], { type: "application/json" })
+                new Blob([JSON.stringify(payload)], { type: "application/json; charset=UTF-8"})
             );
             for (const f of files) fd.append("files", f);
 
@@ -123,7 +84,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
             onCreated(created);
         } catch (err) {
             setError(err?.message || "Failed to create task.");
-            // refresh members so removed people get cleared
+
             if (onRefresh) onRefresh();
         } finally {
             setBusy(false);
@@ -154,7 +115,7 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         Description
                         <textarea
                             value={description}
-                            onChange={(e) => setDescription(e.target.value)}
+                            onChange={(e) => {setDescription(e.target.value)}}
                             rows={3}
                             maxLength={LIMITS.TASK_DESCRIPTION}
                             required
@@ -194,116 +155,36 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         />
                     </label>
 
-                    {/* reviewers */}
-                    <div className="popup-picker-section">
-                        <span className="popup-picker-label">
-                            Reviewers
-                            <span className="popup-picker-search">
-                                <FiSearch size={11} />
-                                <input
-                                    type="text"
-                                    placeholder="Search…"
-                                    value={reviewerSearch}
-                                    onChange={(e) => setReviewerSearch(e.target.value)}
-                                />
-                            </span>
-                        </span>
-                        {selectedReviewers.length > 0 && (
-                            <div className="popup-chip-list">
-                                {selectedReviewers.map((m) => (
-                                    <span key={m.user?.id} className="popup-chip" title={m.user?.email}>
-                                        <img src={userImg(m.user)} alt="" className="popup-chip-img" />
-                                        {m.user?.name || m.user?.email}
-                                        <button type="button" className="popup-chip-rm" onClick={() => removeReviewer(m.user?.id)}><FiX size={10} /></button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {eligibleReviewers.length > 0 && (
-                            <div className="popup-picker-dropdown">
-                                {eligibleReviewers.map((m) => (
-                                    <div key={m.user?.id} className="popup-picker-item" onClick={() => addReviewer(m)}>
-                                        <img src={userImg(m.user)} alt="" className="popup-search-img" />
-                                        <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
-                                        <span className="popup-picker-role">{m.role.replace(/_/g, " ")}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    { }
+                    <NtMemberPicker
+                        label="Reviewers"
+                        selected={selectedReviewers}
+                        eligible={eligibleReviewers}
+                        search={reviewerSearch}
+                        onSearchChange={setReviewerSearch}
+                        onAdd={addReviewer}
+                        onRemove={removeReviewer}
+                        blobUrl={blobUrl}
+                    />
 
-                    {/* assignees */}
-                    <div className="popup-picker-section">
-                        <span className="popup-picker-label">
-                            Assignees
-                            <span className="popup-picker-search">
-                                <FiSearch size={11} />
-                                <input
-                                    type="text"
-                                    placeholder="Search…"
-                                    value={assigneeSearch}
-                                    onChange={(e) => setAssigneeSearch(e.target.value)}
-                                />
-                            </span>
-                        </span>
-                        {selectedAssignees.length > 0 && (
-                            <div className="popup-chip-list">
-                                {selectedAssignees.map((m) => (
-                                    <span key={m.user?.id} className="popup-chip" title={m.user?.email}>
-                                        <img src={userImg(m.user)} alt="" className="popup-chip-img" />
-                                        {m.user?.name || m.user?.email}
-                                        <button type="button" className="popup-chip-rm" onClick={() => removeAssignee(m.user?.id)}><FiX size={10} /></button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {eligibleAssignees.length > 0 && (
-                            <div className="popup-picker-dropdown">
-                                {eligibleAssignees.map((m) => (
-                                    <div key={m.user?.id} className="popup-picker-item" onClick={() => addAssignee(m)}>
-                                        <img src={userImg(m.user)} alt="" className="popup-search-img" />
-                                        <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
-                                        <span className="popup-picker-role">{m.role.replace(/_/g, " ")}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    { }
+                    <NtMemberPicker
+                        label="Assignees"
+                        selected={selectedAssignees}
+                        eligible={eligibleAssignees}
+                        search={assigneeSearch}
+                        onSearchChange={setAssigneeSearch}
+                        onAdd={addAssignee}
+                        onRemove={removeAssignee}
+                        blobUrl={blobUrl}
+                    />
 
-                    {/* file attachments */}
-                    <div
-                        className={`popup-picker-section${fileDragOver ? " file-drag-over" : ""}`}
-                        onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}
-                        onDragLeave={() => setFileDragOver(false)}
-                        onDrop={handleFileDrop}
-                    >
-                        <span className="popup-picker-label">
-                            Files ({files.length}/{LIMITS.MAX_TASK_FILES})
-                            {files.length < LIMITS.MAX_TASK_FILES && (
-                                <button type="button" className="popup-chip-add" onClick={() => fileInputRef.current?.click()} title="Add file">
-                                    <FiPlus size={12} />
-                                </button>
-                            )}
-                        </span>
-                        <input ref={fileInputRef} type="file" hidden onChange={handleFileAdd} />
-                        {files.length > 0 && (
-                            <div className="popup-chip-list">
-                                {files.map((f, i) => {
-                                    const Icon = getFileIcon(f.name);
-                                    return (
-                                        <span key={i} className="popup-chip" title={f.name}>
-                                            <Icon size={12} />
-                                            {f.name}
-                                            <button type="button" className="popup-chip-rm" onClick={() => removeFile(i)}><FiX size={10} /></button>
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {files.length < LIMITS.MAX_TASK_FILES && (
-                            <span className="popup-drop-hint">or drag & drop files here</span>
-                        )}
-                    </div>
+                    { }
+                    <NtFileSection
+                        files={files}
+                        onFilesChange={setFiles}
+                        onError={setError}
+                    />
 
                     <div className="popup-actions">
                         <button

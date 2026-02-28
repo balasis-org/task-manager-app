@@ -2,32 +2,32 @@ package io.github.balasis.taskmanager.engine.infrastructure.email.service;
 
 import com.azure.communication.email.EmailClient;
 import com.azure.communication.email.models.EmailMessage;
-import com.azure.communication.email.models.EmailSendResult;
-import com.azure.core.util.polling.PollResponse;
-import com.azure.core.util.polling.SyncPoller;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
-import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
 public class AzureEmailClient implements io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient {
+    private static final Logger logger = LoggerFactory.getLogger(AzureEmailClient.class);
     private final EmailClient emailClient;
-    private final SecretClientProvider secretClientProvider;
+    private final String senderAddress;
+
+    public AzureEmailClient(EmailClient emailClient, String senderAddress) {
+        this.emailClient = emailClient;
+        this.senderAddress = senderAddress;
+    }
 
     @Override
     public void sendEmail(String to, String subject, String body) {
         try{
             emailClient.beginSend(
                 new EmailMessage()
-                    .setSenderAddress(secretClientProvider.getSecret("TASKMANAGER-EMAIL-SENDER-ADDRESS"))
+                    .setSenderAddress(senderAddress)
                     .setToRecipients(to)
                     .setSubject(subject)
                     .setBodyPlainText(body)
             );
 
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            logger.error("Failed to send email to {}: {}", to, e.getMessage(), e);
         }
     }
 

@@ -1,0 +1,27 @@
+.popup-picker-dropdown {
+    max-height: 7.5em;
+    overflow-y: auto;
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.375em;
+}
+
+.popup-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.31em 0.625em;
+    cursor: pointer;
+    font-size: 0.81em;
+    transition: background 0.12s;
+}
+
+.popup-picker-item:hover {
+    background: var(--bg-active);
+}
+
+.popup-picker-role {
+    margin-left: auto;
+    font-size: 0.69em;
+    color: var(--text-faint);
+    text-transform: lowercase;
+}

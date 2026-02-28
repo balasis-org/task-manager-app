@@ -10,9 +10,9 @@ public interface AuthConfig {
 
     String getAuthority();
 
-    String getAuthorizationEndpoint(); // usually authority + "/oauth2/v2.0/authorize"
+    String getAuthorizationEndpoint();
 
-    String getScope(); // e.g., "openid profile email"
+    String getScope();
 
     String getClientSecret();
 }
