@@ -1,13 +1,13 @@
-# Backend Versioning Log
+# Versioning Log
 
-This file tracks backend milestones using the repository git tags as anchors.
-The tags themselves are repo-wide, but the notes below focus on **backend** changes.
+Tracks project milestones anchored to git tags.
+Earlier versions focused mostly on backend work, but from v0.5 onwards the scope covers the full stack.
 
 ## Versioning Scheme
-- **0.x.y**: Pre-release / development
-    - $x$ = iteration / milestone increment
-    - $y$ = patch / small fix increment
-- **1.0.0**: first production-ready backend release
+- **0.x.y** — pre-release / development
+    - x = milestone increment
+    - y = patch or small fix
+- **1.0.0** — first production-ready release
 
 ---
 
@@ -17,44 +17,44 @@ The tags themselves are repo-wide, but the notes below focus on **backend** chan
 - Date: 2025-10-27
 - Tag target (commit): `151288ed375cc4c71f6e2239ddec92ede1b16dac`
 - Notes:
-    - Establishes the initial backend baseline and project structure.
-    - Marks the first version bump to `0.1.0-SNAPSHOT`.
+    - Initial backend baseline, project structure set up.
+    - First version bump to `0.1.0-SNAPSHOT`.
 
 ### v0.2.0 — Azure SQL + Key Vault wiring (backend containerization)
 - Date: 2025-11-07
 - Tag object: `02ac703d0670449748d649d8fa2b40c822196ef5` (annotated)
 - Tag target (commit): `33d2c02b1a22c47d72f79e7d4dc1ceff833a881c`
-- Backend highlights:
-    - Adds Docker setup and compose files aimed at Azure-like deployments.
-    - Introduces MSSQL/Azure SQL profiles and configuration (`application-dev-mssql.yml`, `application-prod-azuresql.yml`, etc).
-    - Implements Azure Key Vault integration for retrieving Azure SQL credentials.
-    - Refactors dev bootstrapping/profile usage and tunes DataLoader defaults/logging.
+- Highlights:
+    - Docker setup and compose files for Azure-like deployments.
+    - MSSQL / Azure SQL profiles added (`application-dev-mssql.yml`, `application-prod-azuresql.yml`, etc).
+    - Azure Key Vault integration for SQL credentials.
+    - Dev bootstrapping cleanup, DataLoader defaults tuned.
 
 ### v0.3.0 — Azure integrations (Auth/Blob/Email/Observability) + CI
 - Date: 2025-11-21
 - Tag object: `6c26e835855c6167fab662cb06136858145bb9df` (annotated)
 - Tag target (commit): `b77b91f3bd0d723bb16d6aa11686388d8a4ce7f5`
-- Backend highlights:
-    - Adds Azure AD auth flow (OAuth2) work (dev-tested) and refactors auth wiring.
-    - Adds blob storage integration for Azure + local Azurite.
-    - Adds email integration for prod (ACS) and dev (SMTP/mailhog).
-    - Introduces OpenTelemetry plumbing and API response-time aspect.
-    - Adds backend CI basics and a GitHub Action for backend deploys.
+- Highlights:
+    - Azure AD auth flow (OAuth2), dev-tested + auth wiring refactored.
+    - Blob storage integration (Azure + local Azurite).
+    - Email integration — prod via ACS, dev via SMTP/mailhog.
+    - OpenTelemetry plumbing and API response-time aspect.
+    - Backend CI + GitHub Action for deploys.
 
 ### v0.4.0 — Collaboration/workflow APIs + invitation UX primitives
 - Date: 2026-02-15
 - Tag object: `00a25fac6474de785945e842dbbc6721456f7ced` (annotated)
 - Tag target (commit): `d08fd4b6703cfeb3bae48796bf2054677376eae9`
-- Backend highlights:
-    - Expands group/task collaboration APIs (task preview DTOs, comments CRUD, review flow, to-be-reviewed workflow, events listing).
-    - Strengthens invitations and membership management:
-        - Invitation role choice + status flow improvements.
-        - Pending-only “my invites” semantics + inviter-only cancel endpoint.
-        - Seen/unseen primitives via invite timestamps + “mark seen on fetch” behavior.
-        - Membership search, removal (including self-remove), and role-change/swap logic.
-    - Adds file download APIs for task files + assignee files and refines blob service to support multiple containers.
-    - Adds blob garbage-collector groundwork and content-safety hooks for uploads.
-    - Adds refresh-token support and JWT/auth hardening.
+- Highlights:
+    - Group/task collaboration APIs expanded — task preview DTOs, comments CRUD, review flow, to-be-reviewed workflow, events listing.
+    - Invitations and membership management strengthened:
+        - Role choice + status flow improvements.
+        - Pending-only "my invites" semantics, inviter-only cancel.
+        - Seen/unseen via invite timestamps + 'mark seen on fetch'.
+        - Membership search, removal (self-remove included), role-change/swap logic.
+    - File download APIs for task files + assignee files. Blob service refined for multiple containers.
+    - Blob garbage-collector groundwork, content-safety hooks for uploads.
+    - Refresh-token support + JWT/auth hardening.
 
 ### v0.5.0 — Full React SPA + admin panel + rate limiting + Flyway baseline
 - Date: 2026-02-19
@@ -62,43 +62,87 @@ The tags themselves are repo-wide, but the notes below focus on **backend** chan
 - Tag target (commit): `d28ad184624004f5ec0b6be909295173989aac3b`
 - Highlights:
 
-    **Frontend — complete SPA built from scratch (replaces old frontend-demo):**
-    - Vite 7.3 + React 19.2 SPA with full page set: Dashboard, Task, Comments, Settings, AdminPanel, Invitations, Login, AuthCallback, AboutUs, TermsOfService, CookiePolicy.
-    - `GroupProvider` context with AES-256-GCM encrypted localStorage cache (`cacheCrypto.js`) — group detail encrypted with per-user backend-issued `cacheKey`, held only in memory.
-    - `useSmartPoll` hook — tiered backoff polling (30s/60s active, 60s mild idle, stops at 15 min + stale indicator).
-    - `apiClient.js` — centralized fetch wrapper with auto-retry on 401, 429 handling, file upload and blob download support.
-    - Full component set: `DashboardTopBar`, `FilterPanel`, `TaskTable`, popup suite (NewGroup, GroupSettings, NewTask, InviteToGroup, GroupEvents).
-    - Toast notification system (`ToastContext`).
-    - Layout with tiered invitation polling (60s/3min/45min based on idle duration).
-    - Protected routes, SPA nginx config, Docker + dev Dockerfile.
+    **Frontend — complete SPA built from scratch (replaces the old frontend-demo):**
+    - Vite 7.3 + React 19.2 SPA. Pages: Dashboard, Task, Comments, Settings, AdminPanel, Invitations, Login, AuthCallback, AboutUs, TermsOfService, CookiePolicy.
+    - `GroupProvider` with AES-256-GCM encrypted localStorage cache — group data encrypted with a per-user backend-issued `cacheKey` held only in memory.
+    - `useSmartPoll` — tiered backoff polling (30s/60s active, 60s mild idle, stops at 15 min + stale indicator).
+    - `apiClient.js` — centralized fetch wrapper, auto-retry on 401, 429 handling, file upload + blob download.
+    - Components: `DashboardTopBar`, `FilterPanel`, `TaskTable`, popup suite (NewGroup, GroupSettings, NewTask, InviteToGroup, GroupEvents).
+    - `ToastContext` notification system.
+    - Layout with tiered invitation polling (60s / 3min / 45min by idle duration).
+    - Protected routes, nginx SPA config, Docker + dev Dockerfile.
 
-    **Backend — admin, rate limiting, startup hardening, XSS sanitization:**
-    - `AdminController` + `AdminService` (302 lines): full admin CRUD over users, groups, tasks, comments with paginated search. Complete admin DTO layer (7 outbound resource types) and `AdminOutboundMapper`.
-    - Redis-backed distributed rate limiting: `RateLimitService` interface, `RedisRateLimitService` (Bucket4j + Lettuce, dual-window: 40 req/min + 420 req/15min), `RateLimitInterceptor` (runs after JWT), dev/prod configs. Fails-closed if Redis unavailable.
-    - `StartupGate` + `StartupBlockingFilter`: two-gate startup (images ready + data ready), returns HTTP 503 until both gates are open.
-    - `InputSanitizer` + `SanitizingRequestBodyAdvice`: automatic XSS sanitization of all `BaseInboundResource` fields (strips HTML, trims invisible Unicode, preserves ZWJ/ZWNJ).
-    - `DeletedTask` entity + tombstone repository: soft-delete tracking required for the differential refresh endpoint to report deletions to clients.
-    - `GroupRefreshDto` with minimized JSON keys + full differential refresh logic in `GroupServiceImpl` (delta endpoint `GET /groups/{id}/refresh?lastSeen=`).
-    - `PlanLimits` utility: enforces max users (100), max groups per user, max tasks per group.
-    - `User` model expansion: `cacheKey`, invite code, `isOrg`, allow email notifications.
-    - Mini dropdown DTOs: `UserMiniForDropdownResource`, `GroupMiniForDropdownResource`, `TaskPreviewDto` + `TaskPreviewParticipantDto` refactors for payload minimization.
-    - `DataLoader` overhaul: richer seed data covering all roles and task states.
-    - Repository expansions across `TaskRepository`, `UserRepository`, `GroupInvitationRepository`, `TaskCommentRepository`, `DeletedTaskRepository` — delta queries, admin queries, soft-delete lookups.
-    - `DevAuthController` + `AuthService` hardening: refresh token rotation, `@Profile` annotations extended throughout infrastructure beans.
+    **Backend — admin, rate limiting, startup hardening, XSS sanitisation:**
+    - `AdminController` + `AdminService`: full admin CRUD over users, groups, tasks, comments with paginated search. Complete DTO layer + `AdminOutboundMapper`.
+    - Redis-backed rate limiting via Bucket4j + Lettuce. Dual-window (40 req/min + 420 req/15min), interceptor runs after JWT, dev/prod configs. Fails-closed when Redis is down.
+    - `StartupGate` + `StartupBlockingFilter` — two-gate startup, returns 503 until both gates clear.
+    - `InputSanitizer` + `SanitizingRequestBodyAdvice` — auto XSS sanitization of all inbound DTOs (strips HTML, trims invisible Unicode, preserves ZWJ/ZWNJ).
+    - `DeletedTask` tombstone entity for the differential refresh endpoint.
+    - `GroupRefreshDto` with minimized JSON keys + delta refresh logic in `GroupServiceImpl`.
+    - `PlanLimits` — enforces max users, groups per user, tasks per group.
+    - `User` model expanded: `cacheKey`, invite code, `isOrg`, email notifications flag.
+    - Mini dropdown DTOs and `TaskPreviewDto` refactors for payload minimisation.
+    - `DataLoader` overhaul with richer seed data.
+    - Repository expansions — delta queries, admin queries, soft-delete lookups.
+    - `DevAuthController` + `AuthService` hardening: refresh token rotation, `@Profile` annotations extended.
 
     **Flyway migration baseline:**
-    - `V1__baseline.sql` — complete schema with 13 tables, clean constraint names, all indexes and FK constraints.
-    - `application-dev-flyway-mssql.yml` profile (`ddl-auto: validate` + Flyway enabled) for testing migrations locally before prod deploy.
-    - `backend-flyway-db-compose.yml` — second isolated MSSQL container (port 1434) for Flyway testing.
+    - `V1__baseline.sql` — full schema, 13 tables, constraint names, indexes, FKs.
+    - `application-dev-flyway-mssql.yml` — `ddl-auto: validate` + Flyway for testing migrations locally before prod.
+    - `backend-flyway-db-compose.yml` — isolated MSSQL container (port 1434) for Flyway testing.
 
     **CI/CD and maintenance:**
-    - `maintenance-ci-cd.yml` GitHub Action added for the maintenance module.
-    - `frontend-ci-cd.yml` fully reworked for the new Vite SPA structure.
-    - Maintenance module refactored into a proper Spring Boot app (`MaintenanceCore`, `MaintenanceRunner`), new Dockerfile.
-    - Old `task-manager-frontend-demo` (vanilla HTML/JS) removed; replaced entirely by the new React SPA.
+    - `maintenance-ci-cd.yml` GitHub Action for the maintenance module.
+    - `frontend-ci-cd.yml` reworked for Vite SPA.
+    - Maintenance module refactored into a Spring Boot app (`MaintenanceCore`, `MaintenanceRunner`), new Dockerfile.
+    - Old vanilla HTML/JS frontend-demo removed entirely.
+
+### v0.6.0 — Production hardening, observability and architecture stabilization
+- Date: 2026-02-28
+- Tag object: `121f6ec402e24247ee0ce733fe20e3e0fa5661d8` (annotated)
+- Tag target (commit): `2473588616b552f92bccd51d64e238d60750c592`
+- Highlights :
+
+    **Architecture pivots:**
+    - Blob access migrated from SAS tokens to Origin Auth. Frontend got a new `BlobSasContext`, backend `BlobStorageService` rewritten. Old `blob-base.jsx` / `api-base.jsx` removed.
+    - Frontend de-containerized — Dockerfile, nginx configs and compose removed. SPA now deployed as static assets to Azure Blob Storage behind Front Door.
+    - Rate limiting switched from IP-based to userId-based keying (Redis). Dev/prod configs split out properly. New `ServiceOverloadedException` for 429s.
+
+    **Monitoring overhaul:**
+    - `CriticalExceptionAlerter` — categorized alerting for auth, blob and infrastructure failures.
+    - `LayerProfilingAspect` + `ProfilingContext` — per-layer performance profiling.
+    - `ApplicationMetrics` — custom Micrometer gauges/counters for business-level observability.
+    - `PollingEndpointSampler` — OTel sampler that suppresses noise from polling endpoints.
+    - Health indicators for Blob Storage and Redis. `logback-spring.xml` structured logging.
+    - `kql-queries.md` — KQL reference for Application Insights queries.
+    - Old `HibernateStatisticsService` removed (superseded by the new profiling stack).
+
+    **Backend hardening:**
+    - Auth flow reworked — `AuthService` + `JwtService` tightened (refresh token rotation, controller flow simplified).
+    - `GroupServiceImpl` differential refresh optimised, repository queries refined across the board.
+    - `V2__add_unique_constraints.sql` Flyway migration + `V1__baseline.sql` schema corrections.
+    - Critical exception hierarchy added: `CriticalException` base with auth, blob and infra subtypes.
+    - `StringSanitizer` utility, `RequestLoggingFilter` for request tracing, `StartupBlockingFilter` refinements.
+
+    **Frontend decomposition:**
+    - Monolithic page components broken down into focused sub-components across task, admin, comments, dashboard, group settings, invitations, settings and topbar/layout domains.
+    - Each sub-component got its own CSS module.
+    - New shared components: `AppShield`, `DefaultImagePicker`, `MemberDetailPopup`, `NotFound`.
+    - New utilities — `formatDate.js`, `userImg.js`, `useDebounce` hook.
+    - `GroupProvider` reworked for the blob pivot (encrypted cache + differential sync adjustments).
+
+    **CI/CD restructure:**
+    - GitHub Actions bumped from v3 to v4 (checkout, setup-java, upload/download-artifact).
+    - Workflows split — `pull_request` triggers CI checks (required status checks on PRs), `push` to main triggers CD deploy.
+    - Frontend pipeline got a CDN purge step to match the local bat.
+    - Branch protection enabled: `test_backend`, `test_frontend`, `test_maintenance` as required checks.
+
+    **Maintenance:**
+    - New `AssetCleanerService` for orphan blob cleanup.
+    - `BlobCleanerService` and `MaintenanceRepository` reworked. User cleanup days logic fixed.
 
 ---
 
 ## Notes
-- This document is backend-focused; tags include frontend/infra work as well.
-- `v0.1.0` is a lightweight tag (points directly to a commit). Later tags are annotated and therefore have a separate tag object SHA.
+- `v0.1.0` is a lightweight tag (points directly at a commit). Later tags are annotated and have a separate tag object SHA.
+- From v0.5.0 onward the scope covers full-stack changes, not just backend.

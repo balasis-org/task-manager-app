@@ -56,4 +56,41 @@ public class MaintenanceRepository {
             return false;
         }
     }
+
+    /**
+     * Purge refresh tokens that expired more than 1 day ago.
+     * Every login creates a new row; logout only deletes the current one,
+     * so expired rows pile up for active users over time.
+     */
+    public int purgeExpiredRefreshTokens() {
+        return jdbcTemplate.update("""
+            DELETE FROM RefreshTokens
+            WHERE expiresAt < DATEADD(DAY, -1, GETUTCDATE())
+        """);
+    }
+
+    /**
+     * Purge soft-delete tombstones older than 30 days.
+     * The frontend only needs these for short-term sync;
+     * keeping them forever wastes storage and slows queries.
+     */
+    public int purgeOldDeletedTasks(int retentionDays) {
+        return jdbcTemplate.update("""
+            DELETE FROM DeletedTasks
+            WHERE deletedAt < DATEADD(DAY, ?, GETUTCDATE())
+        """, -retentionDays);
+    }
+
+    /**
+     * Purge accepted/declined invitations older than 30 days.
+     * Only PENDING invitations need to stay — resolved ones are
+     * never queried again but accumulate indefinitely.
+     */
+    public int purgeResolvedInvitations(int retentionDays) {
+        return jdbcTemplate.update("""
+            DELETE FROM GroupInvitations
+            WHERE invitationStatus <> 'PENDING'
+              AND createdAt < DATEADD(DAY, ?, GETUTCDATE())
+        """, -retentionDays);
+    }
 }
