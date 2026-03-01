@@ -85,10 +85,9 @@ jobs:
         run: |
           docker push anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-maintenance:$IMAGE_TAG
 
-      - name: Change the image of maintenance web app service
-        run: |
-          az webapp config container set \
-            --name taskmanager-rg-maintenance \
-            --resource-group TaskManager-RG \
-            --container-image-name anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-maintenance:$IMAGE_TAG \
-            --container-registry-url https://anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io
+      - name: Push image to container app job
+        run: |          
+          az containerapp job update \
+          --name maintenance-job \
+          --resource-group taskmanager-rg \
+          --image anstaskmanageracr-g3bwdtdrb8h9bfem.azurecr.io/taskmanager-maintenance:$IMAGE_TAG
