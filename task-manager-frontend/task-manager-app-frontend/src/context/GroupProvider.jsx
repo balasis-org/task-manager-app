@@ -160,6 +160,7 @@ export default function GroupProvider({ children }) {
     const [loadingGroups, setLoadingGroups] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [myRole, setMyRole]               = useState(null);
+    const [presenceUserIds, setPresenceUserIds] = useState([]);
 
     // Prevents re-fetching members when we already have them for this group
     const membersLoadedForGroupRef = useRef(null);
@@ -398,6 +399,7 @@ export default function GroupProvider({ children }) {
 
     const selectGroup = useCallback((group) => {
         detailLoadedForGroupRef.current = null;
+        setPresenceUserIds([]);
         setActiveGroup(group);
     }, []);
 
@@ -546,6 +548,12 @@ export default function GroupProvider({ children }) {
                     // No lastSeen stored — do a full detail load
                     loadOrRefreshGroupDetail(activeGroup.id);
                 }
+
+                // Fetch who's online (after has-changed so our heartbeat lands first)
+                try {
+                    const ids = await apiGet(`/api/groups/${activeGroup.id}/presence`);
+                    if (Array.isArray(ids)) setPresenceUserIds(ids);
+                } catch { /* best-effort — presence is non-critical */ }
             }
 
             schedulePoll();
@@ -641,6 +649,7 @@ export default function GroupProvider({ children }) {
             reloadGroups,
             manualRefresh,
             markGroupEventsSeen,
+            presenceUserIds,
         }}>
             {children}
         </GroupContext.Provider>

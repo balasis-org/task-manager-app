@@ -2,7 +2,9 @@ package io.github.balasis.taskmanager.engine.infrastructure.redis.config;
 
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.PresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.RateLimitService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisPresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisRateLimitService;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -73,5 +75,10 @@ public class RateLimitDevConfig {
             throw new IllegalStateException(
                 "Redis is required for rate limiting but failed to connect: " + e.getMessage(), e);
         }
+    }
+
+    @Bean
+    public PresenceService presenceService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        return new RedisPresenceService(redisConnection);
     }
 }

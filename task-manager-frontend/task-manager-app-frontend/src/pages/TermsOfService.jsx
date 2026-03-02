@@ -6,9 +6,12 @@ import {
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";
 import "@styles/pages/TermsOfService.css";
+import usePageTitle from "@hooks/usePageTitle";
 
 export default function TermsOfService() {
     const navigate = useNavigate();
+
+    usePageTitle("Terms of service");
 
     return (
         <div className="legal-page">
@@ -27,7 +30,7 @@ export default function TermsOfService() {
             <section className="legal-section">
                 <h2><FiInfo size={18} /> Introduction &amp; Acceptance</h2>
                 <p>
-                    By accessing or using Task Manager (&ldquo;the Service&rdquo;), you
+                    By accessing or using MyTeamTasks (&ldquo;the Service&rdquo;), you
                     agree to be bound by these Terms of Service. If you do not agree with
                     any part of these terms, please do not use the Service.
                 </p>
@@ -37,7 +40,7 @@ export default function TermsOfService() {
             <section className="legal-section">
                 <h2><FiInfo size={18} /> Service Description</h2>
                 <p>
-                    Task Manager is a collaborative task-management platform developed as
+                    MyTeamTasks is a collaborative task-management platform developed as
                     part of a university thesis project. It enables teams to create
                     groups, assign tasks, track progress with review workflows, share
                     files, and communicate through comments.
@@ -83,7 +86,7 @@ export default function TermsOfService() {
                 <h2><FiUploadCloud size={18} /> User Content &amp; File Uploads</h2>
                 <p>
                     You retain ownership of all content (text, files, images) you upload
-                    to the Service. By uploading content, you grant Task Manager a
+                    to the Service. By uploading content, you grant myteamtasks a
                     limited, non-exclusive, royalty-free licence to <strong>store,
                     process, display, reproduce, and review</strong> that content as
                     necessary to provide, operate, maintain, and moderate the Service.
@@ -102,7 +105,7 @@ export default function TermsOfService() {
                     functional platform.
                 </div>
                 <div className="legal-warning">
-                    <strong>Disclaimer:</strong> Task Manager is not responsible for any
+                    <strong>Disclaimer:</strong> MyTeamTasks is not responsible for any
                     user-uploaded content. We do not pre-screen all uploaded materials.
                     You are solely responsible for ensuring that any content you upload
                     does not violate the rights of others, including intellectual property
@@ -126,7 +129,7 @@ export default function TermsOfService() {
             <section className="legal-section">
                 <h2><FiAlertCircle size={18} /> Copyright &amp; Takedown Process</h2>
                 <p>
-                    Task Manager respects the intellectual property rights of others. If
+                    MyTeamTasks respects the intellectual property rights of others. If
                     you believe that content hosted on the Service infringes your
                     copyright, you may submit a takedown notice containing:
                 </p>
@@ -217,7 +220,7 @@ export default function TermsOfService() {
             <section className="legal-section">
                 <h2><FiClock size={18} /> Service Availability &amp; Limited Lifetime</h2>
                 <p>
-                    Task Manager is developed as part of an <strong>academic thesis
+                    MyTeamTasks is developed as part of an <strong>academic thesis
                     project</strong>. As such:
                 </p>
                 <ul>

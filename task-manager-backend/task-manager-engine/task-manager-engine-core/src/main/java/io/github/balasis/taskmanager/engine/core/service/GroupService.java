@@ -100,4 +100,7 @@ public interface GroupService{
     boolean hasGroupChanged(Long groupId, Instant lastSeen);
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
+
+    /** Lightweight membership gate — throws if the caller is not a member. */
+    void checkMembership(Long groupId);
 }

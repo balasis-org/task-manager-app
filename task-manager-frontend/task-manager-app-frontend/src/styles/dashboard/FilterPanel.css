@@ -226,3 +226,28 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
+
+/* ── responsive ── */
+
+@media (max-width: 768px) {
+    .filter-panel {
+        width: 80vw;
+        max-width: 20em;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-panel {
+        position: fixed;
+        top: auto;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92vw;
+        max-width: none;
+        max-height: 70vh;
+        overflow-y: auto;
+        z-index: 200;
+        margin-top: 0.5em;
+    }
+}

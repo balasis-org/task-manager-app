@@ -85,3 +85,25 @@
     margin-left: 0.25em;
     flex-shrink: 0;
 }
+
+/* ── responsive ── */
+
+@media (max-width: 768px) {
+    .topbar-members-dropdown {
+        width: 80vw;
+        max-width: 17.5em;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar-members-dropdown {
+        position: fixed;
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92vw;
+        max-width: none;
+        max-height: 60vh;
+        z-index: 200;
+    }
+}

@@ -5,6 +5,7 @@ import { useToast } from "@context/ToastContext";
 import FilterPanel from "@components/dashboard/FilterPanel";
 import TopBarMembersDropdown from "@components/topbar/TopBarMembersDropdown";
 import TopBarGroupSelector from "@components/topbar/TopBarGroupSelector";
+import PresenceBar from "@components/dashboard/PresenceBar";
 import "@styles/dashboard/DashboardTopBar.css";
 
 export default function DashboardTopBar({
@@ -28,6 +29,7 @@ export default function DashboardTopBar({
     onApplyFilters,
     onEditFilters,
     onFiltersClear,
+    presenceUserIds,
 }) {
     const showToast = useToast();
     const [confirmLeave, setConfirmLeave] = useState(false);
@@ -104,6 +106,12 @@ export default function DashboardTopBar({
                             </>
                         )}
                     </div>
+
+                    <PresenceBar
+                        members={members}
+                        presenceUserIds={presenceUserIds}
+                        currentUserId={user?.id}
+                    />
 
                     <div className="topbar-right">
                         <div className="topbar-dropdown-wrapper" ref={filterRef}>

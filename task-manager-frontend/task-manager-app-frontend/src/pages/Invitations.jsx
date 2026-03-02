@@ -7,12 +7,15 @@ import { apiGet, apiPatch } from "@assets/js/apiClient.js";
 import Spinner from "@components/Spinner";
 import InvitationCard from "@components/invitations/InvitationCard";
 import InvitationsSentTable from "@components/invitations/InvitationsSentTable";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Invitations.css";
 
 export default function Invitations() {
     const { user, setUser } = useContext(AuthContext);
     const { groups, reloadGroups } = useContext(GroupContext);
     const showToast = useToast();
+
+    usePageTitle("Invitations");
 
     const [received, setReceived] = useState([]);
     const [sent, setSent] = useState([]);

@@ -18,6 +18,7 @@ import Spinner from "@components/Spinner";
 import CommentCard from "@components/comments/CommentCard";
 import CommentComposer from "@components/comments/CommentComposer";
 import CommentDeleteModal from "@components/comments/CommentDeleteModal";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Comments.css";
 
 const MAX_LEN = LIMITS.COMMENT;
@@ -28,9 +29,11 @@ export default function Comments() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, refreshActiveGroup } = useContext(GroupContext);
+    const { activeGroup, myRole, groups, selectGroup, refreshActiveGroup } = useContext(GroupContext);
     const showToast = useToast();
     const blobUrl = useBlobUrl();
+
+    usePageTitle("Comments");
 
     const urlPage = searchParams.get("page");
 
@@ -78,6 +81,11 @@ export default function Comments() {
     const canComment = isLeaderOrManager || !!isParticipant;
 
     const currentPage = urlPage ? Number(urlPage) : 1;
+
+    /* ── sync group context with URL groupId (mirror of Task.jsx) ── */
+    useEffect(() => {
+        if (groupId) refreshActiveGroup();
+    }, [groupId]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -137,7 +145,7 @@ export default function Comments() {
             );
             setNewComment("");
             setComposerOpen(false);
-
+            setShowEmojis(false);
             setSearchParams({}, { replace: true });
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
@@ -216,7 +224,6 @@ export default function Comments() {
 
     return (
         <div className="comments-page">
-            { }
             <div className="comments-breadcrumb">
                 <button
                     onClick={() => navigate(-1)}
@@ -235,7 +242,6 @@ export default function Comments() {
                 </span>
             </div>
 
-            { }
             {(commentsHaveChanged || commentsStale) && (
                 <div className="comments-stale-banner">
                     <span>{commentsHaveChanged ? "New comments available." : "Data may be outdated."}</span>
@@ -245,7 +251,6 @@ export default function Comments() {
                 </div>
             )}
 
-            { }
             {canComment && comments.length > 0 && (
                 <div className="comments-top-actions">
                     <button
@@ -257,7 +262,6 @@ export default function Comments() {
                 </div>
             )}
 
-            { }
             {totalPages > 1 && (
                 <div className="comments-pagination">
                     <button
@@ -316,7 +320,6 @@ export default function Comments() {
                 )}
             </div>
 
-            { }
             <CommentComposer
                 open={composerOpen}
                 newComment={newComment}
@@ -331,7 +334,6 @@ export default function Comments() {
                 maxLen={MAX_LEN}
             />
 
-            { }
             {deleteId && (
                 <CommentDeleteModal
                     onConfirm={confirmDelete}

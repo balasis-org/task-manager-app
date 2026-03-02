@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.engine.core.bootstrap;
+package io.github.balasis.taskmanager.engine.infrastructure.bootstrap;
 
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

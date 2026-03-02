@@ -17,6 +17,7 @@ import TaskFilesSection from "@components/task/TaskFilesSection";
 import TaskReviewPanel from "@components/task/TaskReviewPanel";
 import TaskAssigneePanel from "@components/task/TaskAssigneePanel";
 import TaskDeleteModal from "@components/task/TaskDeleteModal";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Task.css";
 
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
@@ -29,6 +30,8 @@ export default function Task() {
     const { activeGroup, myRole, members, refreshActiveGroup } = useContext(GroupContext);
     const blobUrl = useBlobUrl();
     const showToast = useToast();
+
+    usePageTitle("Task");
 
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
