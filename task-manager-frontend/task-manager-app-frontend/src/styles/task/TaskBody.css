@@ -1,4 +1,4 @@
-/* TaskBody — title + description in edit / view mode */
+﻿/* TaskBody - title + description in edit / view mode */
 
 .task-body {
     flex: 1;
@@ -54,7 +54,7 @@
     margin-top: 0.625em;
 }
 
-/* ── responsive ── */
+/* -- responsive -- */
 
 @media (max-width: 768px) {
     .task-body {
@@ -65,7 +65,7 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 28em) {
     .task-body {
         padding: 0.75em;
     }

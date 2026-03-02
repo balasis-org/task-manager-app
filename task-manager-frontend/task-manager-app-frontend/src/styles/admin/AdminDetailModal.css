@@ -1,4 +1,4 @@
-/* AdminDetailModal — detail overlay (users / groups / tasks / comments) */
+﻿/* AdminDetailModal - detail overlay (users / groups / tasks / comments) */
 
 .admin-detail-modal {
     background: var(--bg-primary);
@@ -257,4 +257,101 @@
     .admin-detail-grid {
         grid-template-columns: 6.5em 1fr;
     }
+}
+
+/* ── Thresholds ─────────────────────────────────────────── */
+
+.admin-thresholds-section {
+    margin-top: 0.75em;
+    border-top: 0.06em solid var(--border-primary);
+    padding-top: 0.75em;
+}
+
+.admin-thresholds-section h4 {
+    margin: 0 0 0.5em;
+    font-size: 0.85em;
+    color: var(--text-heading);
+}
+
+.admin-threshold-row {
+    margin-bottom: 0.5em;
+}
+
+.admin-threshold-row label {
+    font-size: 0.78em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.admin-threshold-text {
+    float: right;
+    font-size: 0.78em;
+    color: var(--text-secondary);
+}
+
+.admin-threshold-track {
+    width: 100%;
+    height: 0.4em;
+    background: var(--bg-secondary);
+    border-radius: 0.2em;
+    margin-top: 0.2em;
+}
+
+.admin-threshold-fill {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 0.2em;
+    transition: width 0.25s ease;
+}
+
+.admin-threshold-fill.danger {
+    background: var(--danger, #e74c3c);
+}
+
+/* ── Plan select + small buttons ────────────────────────── */
+
+.admin-plan-select {
+    font-size: 0.82em;
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    border: 0.06em solid var(--border-primary);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    margin-right: 0.4em;
+}
+
+.admin-btn-sm {
+    font-size: 0.75em;
+    padding: 0.25em 0.6em;
+    border-radius: 0.3em;
+    border: 0.06em solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    margin-left: 0.25em;
+}
+
+.admin-btn-sm:hover { background: var(--bg-hover); }
+
+.admin-btn-primary-sm {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+}
+
+.admin-btn-primary-sm:hover { opacity: 0.85; }
+
+.admin-confirm-text {
+    font-size: 0.78em;
+    color: var(--danger, #e74c3c);
+    font-weight: 600;
+    margin-right: 0.3em;
+}
+
+.admin-reset-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    flex-wrap: wrap;
+    margin-top: 0.6em;
 }

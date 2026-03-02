@@ -60,3 +60,75 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.gs-free-hint {
+    font-size: 0.78em;
+    font-style: italic;
+    color: var(--text-muted, #888);
+}
+
+/* ── staged-file actions (cancel / upload) ──────────── */
+
+.gs-pick-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.gs-pick-filename {
+    font-size: 0.75em;
+    color: var(--text-secondary);
+    max-width: 10em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gs-cancel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.31em;
+    padding: 0.25em 0.6em;
+    cursor: pointer;
+    font-size: 0.75em;
+    color: var(--text-tertiary);
+}
+.gs-cancel-btn:hover { background: var(--bg-secondary); }
+
+.gs-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    border-radius: 0.31em;
+    padding: 0.25em 0.7em;
+    cursor: pointer;
+    font-size: 0.75em;
+}
+.gs-save-btn:hover { opacity: 0.85; }
+.gs-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── limit-reached state ────────────────────────────── */
+
+.gs-image-row-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.gs-limit-note {
+    font-size: 0.75em;
+    color: var(--danger, #e74c3c);
+    font-weight: 600;
+    margin-left: 0.5em;
+}
+
+.gs-upload-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

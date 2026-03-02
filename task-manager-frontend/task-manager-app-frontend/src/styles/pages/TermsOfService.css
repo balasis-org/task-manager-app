@@ -1,0 +1,48 @@
+/* ── subscription-tier table ─────────────────────────────── */
+
+.tos-tier-table-wrap {
+    overflow-x: auto;
+    margin: 1em 0;
+    border: 0.06em solid var(--border-secondary);
+    border-radius: 0.5em;
+}
+
+.tos-tier-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84em;
+    white-space: nowrap;
+}
+
+.tos-tier-table th,
+.tos-tier-table td {
+    padding: 0.55em 0.9em;
+    text-align: center;
+    border-bottom: 0.06em solid var(--border-secondary);
+}
+
+.tos-tier-table th:first-child,
+.tos-tier-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.tos-tier-table thead th {
+    background: var(--bg-secondary);
+    color: var(--text-heading);
+    font-weight: 700;
+    font-size: 0.92em;
+}
+
+.tos-tier-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.tos-tier-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.tos-tier-table td {
+    color: var(--text-tertiary);
+}

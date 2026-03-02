@@ -3,10 +3,20 @@
    new-event highlighting, and pagination controls.
    ================================================= */
 
+.popup-events-body {
+    min-height: 14em;
+}
+
 .popup-event-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    transition: opacity 0.15s ease;
+}
+
+.popup-event-list.popup-events-loading {
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 .popup-event-list li {
@@ -62,4 +72,65 @@
 .popup-pagination button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ===== Clear-all inline confirm ===== */
+.popup-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    background: none;
+    border: 0.06em solid var(--danger);
+    color: var(--danger);
+    border-radius: 0.25em;
+    padding: 0.3em 0.7em;
+    font-size: 0.81em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.popup-clear-btn:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+.popup-confirm-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    background: var(--danger-bg-alt, rgba(220, 53, 69, 0.08));
+    border: 0.06em solid var(--danger);
+    border-radius: 0.375em;
+    padding: 0.4em 0.7em;
+    font-size: 0.81em;
+}
+
+.popup-icon-warn {
+    color: var(--danger);
+    flex-shrink: 0;
+}
+
+.popup-confirm-yes {
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 0.25em;
+    padding: 0.25em 0.6em;
+    cursor: pointer;
+    font-size: 0.875em;
+}
+
+.popup-confirm-yes:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.popup-confirm-no {
+    background: none;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.25em;
+    padding: 0.25em 0.6em;
+    cursor: pointer;
+    font-size: 0.875em;
+    color: var(--text-secondary);
 }

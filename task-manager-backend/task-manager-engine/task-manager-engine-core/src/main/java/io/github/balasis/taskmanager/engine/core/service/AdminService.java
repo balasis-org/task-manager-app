@@ -142,7 +142,13 @@ public class AdminService {
         if (name != null && !name.isBlank()) user.setName(name);
         if (email != null && !email.isBlank()) user.setEmail(email);
         if (systemRole != null) user.setSystemRole(systemRole);
-        if (subscriptionPlan != null) user.setSubscriptionPlan(subscriptionPlan);
+        if (subscriptionPlan != null) {
+            user.setSubscriptionPlan(subscriptionPlan);
+            // Bump lastChangeInGroup on all groups this user owns so that
+            // the polling has-changed endpoint detects the plan change and
+            // frontends refresh their cached plan-derived limits.
+            groupRepository.touchLastChangeByOwnerId(userId, Instant.now());
+        }
         if (allowEmailNotification != null) user.setAllowEmailNotification(allowEmailNotification);
 
         return userRepository.save(user);
@@ -159,7 +165,7 @@ public class AdminService {
 
             boolean dup = groupRepository.existsByNameAndOwner_IdAndIdNot(name, group.getOwner().getId(), groupId);
             if (dup) throw new BusinessRuleException(
-                    "The owner already has another group named '" + name + "'. Rename that group first.");
+                    "Owner already has a group named '" + name + "', rename it first.");
             group.setName(name);
         }
         if (description != null) group.setDescription(description);
@@ -179,7 +185,7 @@ public class AdminService {
         if (title != null && !title.isBlank()) {
             if (taskRepository.existsByTitleAndGroup_IdAndIdNot(title, task.getGroup().getId(), taskId)) {
                 throw new BusinessRuleException(
-                        "A task with this title already exists. Choose a different title.");
+                        "Duplicate task title in this group, pick a different one.");
             }
             task.setTitle(title);
         }
@@ -212,13 +218,13 @@ public class AdminService {
 
         if (user.getSystemRole() == SystemRole.ADMIN) {
             throw new BusinessRuleException(
-                    "Cannot delete an admin user. Demote the user first by changing the ADMIN-EMAIL env variable.");
+                    "Can't delete an admin. Change the ADMIN-EMAIL env var to demote first.");
         }
 
         long ownedGroups = groupRepository.countByOwner_Id(userId);
         if (ownedGroups > 0) {
             throw new BusinessRuleException(
-                    "Cannot delete user: they own " + ownedGroups + " group(s). Delete those groups first.");
+                    "User still owns " + ownedGroups + " group(s), delete those first.");
         }
 
         taskCommentRepository.detachCreatorFromAllComments(userId, user.getName());
@@ -266,5 +272,23 @@ public class AdminService {
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
 
         taskCommentRepository.delete(comment);
+    }
+
+    @Transactional
+    public User resetUserEmailUsage(Long userId) {
+        requireAdmin();
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.setUsedEmailsMonth(0);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User resetUserDownloadUsage(Long userId) {
+        requireAdmin();
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.setUsedDownloadBytesMonth(0L);
+        return userRepository.save(user);
     }
 }

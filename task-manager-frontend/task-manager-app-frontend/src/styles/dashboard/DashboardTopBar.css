@@ -1,4 +1,4 @@
-
+﻿
 .topbar {
     background: var(--bg-secondary);
     border-bottom: 0.06em solid var(--border-primary);
@@ -16,35 +16,46 @@
 
 .topbar-toggle {
     position: absolute;
-    bottom: -1.38em;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 0;
+    left: 0;
+    transform: none;
     z-index: 10;
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
-    border-top: none;
-    border-radius: 0 0 0.5em 0.5em;
-    width: 2.5em;
-    height: 1.38em;
+    border-bottom: none;
+    border-right: none;
+    border-radius: 0.3em 0 0 0;
+    width: 1.6em;
+    height: 1.6em;
+    font-size:1em;
     cursor: pointer;
-    font-size: 0.625em;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.15em 0 0.1em;
-    color: var(--text-muted);
+    padding: 0;
+    color: #aaa;
+    transition: color 0.2s, background 0.15s;
 }
 
 .topbar-toggle:hover {
+    color: #667;
     background: var(--bg-active);
+}
+
+/* When topbar is collapsed, the toggle tab hangs outside so it stays clickable */
+.topbar-collapsed .topbar-toggle {
+    bottom: -1.2em;
+    border: 0.04em solid var(--border-primary);
+    border-radius: 0 0 0.3em 0.3em;
 }
 
 .topbar-content {
     display: flex;
     align-items: center;
-    padding: 0.625em 1em 0.625em 2.25em;
-    gap: 1.5em;
+    padding: 0.75em 1em 1em 2.25em;
+    gap: 0.75em;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .topbar-left {
@@ -59,9 +70,35 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 1.5em;
+    gap: 0.75em;
     min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* -- Wrap-pair groups: items inside a pair always stay together -- */
+
+.topbar-actions-pair {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+.topbar-selectors-pair {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    min-width: 0;
+}
+
+/* Within .topbar-selectors-pair the group combo can shrink (name truncates)
+   while the members combo stays fixed width. */
+.topbar-selectors-pair > .topbar-combo:last-child {
     flex-shrink: 1;
+    min-width: 6em;
 }
 
 .topbar-icon-btn {
@@ -180,7 +217,7 @@
     position: absolute;
     top: 100%;
     right: 0;
-    z-index: 50;
+    z-index: 100;
     background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
     border-radius: 0.5em;
@@ -277,8 +314,7 @@
     border: 0.06em solid var(--border-input);
     border-radius: 0.5em;
     background: var(--bg-primary);
-    min-width: 0;
-    flex-shrink: 1;
+    flex-shrink: 0;
 }
 
 .topbar-combo .topbar-dropdown-btn {
@@ -286,9 +322,15 @@
     border-radius: 0.5em 0 0 0.5em;
     padding: 0.375em 0.75em;
     height: 2.12em;
-    flex: 1;
+    flex: 0 0 auto;
     min-width: 0;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-members-btn {
+    width: auto;
 }
 
 .topbar-members-btn svg {
@@ -296,7 +338,9 @@
 }
 
 .topbar-group-btn {
-    min-width: 0;
+    flex: 1 1 0 !important;
+    min-width: 3em;
+    max-width: 14em;
 }
 
 .topbar-plus-combo {
@@ -317,8 +361,9 @@
     background: var(--bg-active);
 }
 
+/* Pairs handle their own gap - no extra margin between adjacent wrappers */
 .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
-    margin-left: 0.75em;
+    margin-left: 0;
 }
 
 .caret {
@@ -353,73 +398,143 @@
     flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+/* -- Topbar inline search -- */
+
+.topbar-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    padding: 0.19em 0.5em;
+    background: var(--bg-primary);
+    flex: 1 1 6em;
+    min-width: 5em;
+    max-width: 16em;
+    transition: border-color 0.15s;
+}
+
+.topbar-search-wrap:focus-within {
+    border-color: #5b8def;
+}
+
+.topbar-search-icon {
+    color: var(--text-placeholder);
+    flex-shrink: 0;
+}
+
+.topbar-search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.75em;
+    color: var(--text-primary);
+    width: 100%;
+    min-width: 0;
+    padding: 0.125em 0;
+    font-family: inherit;
+}
+
+.topbar-search-input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.topbar-search-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-placeholder);
+    display: flex;
+    align-items: center;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color 0.12s;
+}
+
+.topbar-search-clear:hover {
+    color: var(--text-tertiary);
+}
+
+/* -- 900px: topbar-right wraps to its own line -- */
+@media (max-width: 900px) {
     .topbar-content {
-        padding: 0.5em 0.625em;
-        gap: 0.5em 0.8em;
-        flex-wrap: wrap;
+        padding: 1.55em 0.625em 2.5em;
+        gap: 1.25em 0.75em;
     }
 
     .topbar-left {
-        flex: 1 1 auto;
         min-width: 0;
+    }
+
+    .presence-bar {
+        margin-left: auto;
     }
 
     .topbar-right {
         flex: 1 1 100%;
         gap: 0.5em;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+        justify-content: space-between;
     }
 
-    .topbar-group-btn {
-        min-width: 0;
+    .topbar-actions-pair {
+        flex: 1 1 0;
+        margin: 0;
     }
 
     .topbar-role-tag {
         font-size: 0.69em;
     }
+
+    .topbar-search-wrap {
+        max-width: 12em;
+    }
 }
 
-@media (max-width: 480px) {
+/* -- 680px: selectors pair wraps below actions pair -- */
+@media (max-width: 680px) {
     .topbar-content {
-        padding: 0.375em 0.5em;
-        gap: 0.375em 0.5em;
-    }
-
-    .topbar-combo .topbar-dropdown-btn {
-        padding: 0.25em 0.5em;
-        font-size: 0.75em;
-        height: 1.88em;
-    }
-
-    .topbar-plus-combo {
-        width: 1.88em;
-        height: 1.88em;
-    }
-
-    .topbar-icon-btn {
-        width: 1.62em;
-        height: 1.62em;
-        font-size: 0.75em;
-    }
-
-    .topbar-group-btn {
-        min-width: 0;
+        gap: 1em 0.5em;
     }
 
     .topbar-right {
-        gap: 0.375em;
+        gap: 0 0.5em;
     }
 
-    .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
-        margin-left: 0;
+    .topbar-actions-pair {
+        flex: 1 1 100%;
+        margin: 0;
     }
 
-    .topbar-members-btn span:not(.caret) {
-        display: none;
+    .topbar-selectors-pair {
+        margin-top:1.6em;
+        flex: 1 1 100%;
+        justify-content: space-between;
     }
 
+    .topbar-group-btn {
+        max-width: 10em;
+    }
+
+    .topbar-search-wrap {
+        flex: 1 1 0;
+        max-width: none;
+    }
+}
+
+/* -- 480px: search collapses tighter -- */
+@media (max-width: 28em) {
+    .topbar-group-btn {
+        max-width: 7em;
+    }
+
+    .topbar-search-wrap {
+        max-width: 8em;
+        min-width: 4em;
+    }
+}
+
+/* -- 768px: dropdowns become fixed/centered for usability -- */
+@media (max-width: 768px) {
     .topbar-dropdown {
         position: fixed;
         top: auto;
@@ -427,7 +542,7 @@
         left: 50%;
         transform: translateX(-50%);
         width: 92vw;
-        max-width: none;
+        max-width: 20em;
         max-height: 60vh;
         z-index: 200;
     }

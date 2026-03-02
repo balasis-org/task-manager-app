@@ -1,17 +1,23 @@
-import { useState, useEffect, useCallback, useContext, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { GroupContext } from "./GroupContext";
 import { AuthContext } from "./AuthContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import { encryptForCache, decryptFromCache, cacheMatchesKey } from "@assets/js/cacheCrypto.js";
 
 /*
- * ─── DTO Field Reference (backend sends minified JSON keys) ──────────
+ * --- DTO Field Reference (backend sends minified JSON keys) ----------
  *
- * GroupWithPreviewDto (full group detail — GET /api/groups/{id}):
+ * GroupWithPreviewDto (full group detail - GET /api/groups/{id}):
  *   n    = name              d    = description        an   = announcement
  *   diu  = defaultImgUrl     iu   = imgUrl             oi   = ownerId
  *   on   = ownerName         ca   = createdAt          aen  = allowEmailNotification
  *   lged = lastGroupEventDate
+ *   op   = ownerPlan         db   = downloadBudgetBytes udb = usedDownloadBytesMonth
+ *   sb   = storageBudgetBytes usb  = usedStorageBytes
+ *   mcf  = maxCreatorFiles   maf  = maxAssigneeFiles   mfsb = maxFileSizeBytes
+ *   mt   = maxTasks           mm   = maxMembers
+ *   ddce = dailyDownloadCapEnabled
+ *   aaen = allowAssigneeEmailNotification
  *   tp   = taskPreviews (array of TaskPreviewDto)
  *
  * TaskPreviewDto (each task card on the dashboard):
@@ -19,12 +25,16 @@ import { encryptForCache, decryptFromCache, cacheMatchesKey } from "@assets/js/c
  *   dd = dueDate   cc = commentCount  a = accessible  nc = newCommentsToBeRead
  *   cn = creatorName  p = priority   dl = deletable
  *
- * GroupRefreshDto (delta — GET /api/groups/{id}/refresh?lastSeen=):
+ * GroupRefreshDto (delta - GET /api/groups/{id}/refresh?lastSeen=):
  *   sn  = serverNow   c   = changed      mc  = membersChanged
  *   ct  = changedTasks (array of TaskPreviewDto)
  *   dti = deletedTaskIds (array of Long)
+ *   op  = ownerPlan    db  = downloadBudgetBytes  udb = usedDownloadBytesMonth
+ *   mcf = maxCreatorFiles  maf = maxAssigneeFiles  mfsb = maxFileSizeBytes
+ *   mt  = maxTasks          mm  = maxMembers         ddce = dailyDownloadCapEnabled
+ *   aaen = allowAssigneeEmailNotification
  *   ...plus same group fields as above for anything that changed
- * ─────────────────────────────────────────────────────────────────────
+ * ---------------------------------------------------------------------
  */
 
 
@@ -54,7 +64,7 @@ function groupLastSeenKey(userId, groupId)   { return `${userPrefix(userId)}ls_$
 
 
 // =====================================================================
-// Multi-user eviction — keeps at most MAX_CACHED_USERS sets of data.
+// Multi-user eviction - keeps at most MAX_CACHED_USERS sets of data.
 // Most-recently-used user is at index 0.  When a new user pushes the
 // count past the cap, the oldest user's keys are wiped.
 // =====================================================================
@@ -92,12 +102,29 @@ function purgeAllUserData(userId) {
 
 
 // =====================================================================
-// Delta merge — applies a GroupRefreshDto on top of a cached
+// Delta merge - applies a GroupRefreshDto on top of a cached
 // GroupWithPreviewDto to produce an up-to-date detail object.
 //
 // Only touches fields the server flagged as changed. Task previews
 // get new/updated entries merged in, and deleted ones removed.
 // =====================================================================
+
+function applyPlanFields(cached, delta) {
+    const merged = { ...cached };
+    if (delta.op   != null) merged.op   = delta.op;
+    if (delta.db   != null) merged.db   = delta.db;
+    if (delta.udb  != null) merged.udb  = delta.udb;
+    if (delta.sb   != null) merged.sb   = delta.sb;
+    if (delta.usb  != null) merged.usb  = delta.usb;
+    if (delta.mcf  != null) merged.mcf  = delta.mcf;
+    if (delta.maf  != null) merged.maf  = delta.maf;
+    if (delta.mfsb != null) merged.mfsb = delta.mfsb;
+    if (delta.mt   != null) merged.mt   = delta.mt;
+    if (delta.mm   != null) merged.mm   = delta.mm;
+    if (delta.ddce != null) merged.ddce = delta.ddce;
+    if (delta.aaen != null) merged.aaen = delta.aaen;
+    return merged;
+}
 
 function applyDeltaToDetail(cachedDetail, delta) {
     if (!delta.c) return cachedDetail;
@@ -111,9 +138,24 @@ function applyDeltaToDetail(cachedDetail, delta) {
     if (delta.diu  !== undefined)                       merged.diu  = delta.diu;
     if (delta.iu   !== undefined)                       merged.iu   = delta.iu;
     if (delta.aen  !== undefined && delta.aen !== null)  merged.aen  = delta.aen;
+    if (delta.aaen !== undefined && delta.aaen !== null) merged.aaen = delta.aaen;
     if (delta.lged !== undefined)                       merged.lged = delta.lged;
 
-    // Task previews — remove deleted, upsert changed
+    // plan-derived limits — always present on every refresh response
+    if (delta.op   !== undefined && delta.op   !== null) merged.op   = delta.op;
+    if (delta.db   !== undefined && delta.db   !== null) merged.db   = delta.db;
+    if (delta.udb  !== undefined && delta.udb  !== null) merged.udb  = delta.udb;
+    if (delta.sb   !== undefined && delta.sb   !== null) merged.sb   = delta.sb;
+    if (delta.usb  !== undefined && delta.usb  !== null) merged.usb  = delta.usb;
+    if (delta.mcf  !== undefined && delta.mcf  !== null) merged.mcf  = delta.mcf;
+    if (delta.maf  !== undefined && delta.maf  !== null) merged.maf  = delta.maf;
+    if (delta.mfsb !== undefined && delta.mfsb !== null) merged.mfsb = delta.mfsb;
+    if (delta.mt   !== undefined && delta.mt   !== null) merged.mt   = delta.mt;
+    if (delta.mm   !== undefined && delta.mm   !== null) merged.mm   = delta.mm;
+    if (delta.ddce !== undefined && delta.ddce !== null) merged.ddce = delta.ddce;
+    if (delta.aaen !== undefined && delta.aaen !== null) merged.aaen = delta.aaen;
+
+    // Task previews - remove deleted, upsert changed
     let tasks = [...(merged.tp ?? [])];
 
     if (delta.dti?.length) {
@@ -140,7 +182,7 @@ function applyDeltaToDetail(cachedDetail, delta) {
 
 
 // =====================================================================
-// GroupProvider — central state for groups, active selection, detail,
+// GroupProvider - central state for groups, active selection, detail,
 // members, polling, and localStorage cache management.
 // =====================================================================
 
@@ -152,7 +194,7 @@ export default function GroupProvider({ children }) {
     const cacheKeyRef = useRef(null);
     cacheKeyRef.current = user?.cacheKey || null;
 
-    // ── Core state ──────────────────────────────────────────────────
+    // -- Core state --------------------------------------------------
     const [groups, setGroups]               = useState([]);
     const [activeGroup, setActiveGroup]     = useState(null);
     const [groupDetail, setGroupDetail]     = useState(null);
@@ -229,7 +271,7 @@ export default function GroupProvider({ children }) {
 
 
     // =================================================================
-    // loadGroupsList — stale-while-revalidate for the sidebar
+    // loadGroupsList - stale-while-revalidate for the sidebar
     //
     // 1) Instantly show groups from encrypted LS cache (no spinner).
     // 2) Always fetch fresh list from API in the background.
@@ -279,7 +321,7 @@ export default function GroupProvider({ children }) {
             else if (groupsList.length) setActiveGroup(groupsList[0]);
             else                        setActiveGroup(null);
         } catch {
-            // API failed — keep cached data if we had any, otherwise show empty
+            // API failed - keep cached data if we had any, otherwise show empty
             if (!cachedGroupsList) setGroups([]);
         } finally {
             setLoadingGroups(false);
@@ -288,7 +330,7 @@ export default function GroupProvider({ children }) {
 
 
     // =================================================================
-    // loadOrRefreshGroupDetail — loads the dashboard data for a group
+    // loadOrRefreshGroupDetail - loads the dashboard data for a group
     //
     // If we have a cached detail + lastSeen timestamp, we use the delta
     // endpoint (/refresh?lastSeen=) which returns only what changed.
@@ -307,7 +349,7 @@ export default function GroupProvider({ children }) {
             cachedDetail = await decryptFromCache(encryptionKey, storedDetailBlob);
         }
 
-        // Guard against stale cache format — if the old key name "taskPreviews"
+        // Guard against stale cache format - if the old key name "taskPreviews"
         // exists but the new minified "tp" doesn't, the cache is from a previous
         // format version. Wipe it and start fresh.
         if (cachedDetail && cachedDetail.taskPreviews !== undefined && cachedDetail.tp === undefined) {
@@ -321,7 +363,7 @@ export default function GroupProvider({ children }) {
 
         try {
             if (cachedDetail && storedLastSeen) {
-                // ── Delta refresh path ──────────────────────────────
+                // -- Delta refresh path ------------------------------
                 const delta = await apiGet(
                     `/api/groups/${groupId}/refresh?lastSeen=${encodeURIComponent(storedLastSeen)}`
                 );
@@ -336,10 +378,15 @@ export default function GroupProvider({ children }) {
                     membersLoadedForGroupRef.current = groupId;
                 }
 
-                // Merge the delta into the cached detail
+                // Merge the delta into the cached detail.
+                // Plan-derived fields (op, db, udb, sb, usb, mt, mm, …) are
+                // always sent by the server regardless of the `changed` flag,
+                // so we always apply them to keep cached limits up-to-date
+                // (e.g. after an admin plan change that doesn't touch
+                // group-level data).
                 const updatedDetail = delta.c
                     ? applyDeltaToDetail(cachedDetail, delta)
-                    : cachedDetail;
+                    : applyPlanFields(cachedDetail, delta);
                 setGroupDetail(updatedDetail);
 
                 // Persist the merged result back to LS
@@ -350,7 +397,7 @@ export default function GroupProvider({ children }) {
                 storageSetJson(groupLastSeenKey(user.id, groupId), delta.sn);
 
             } else {
-                // ── Full fetch path (no cache available) ────────────
+                // -- Full fetch path (no cache available) ------------
                 setLoadingDetail(true);
                 const [detail, membersPage] = await Promise.all([
                     apiGet(`/api/groups/${groupId}`),
@@ -367,9 +414,22 @@ export default function GroupProvider({ children }) {
                 }
                 storageSetJson(groupLastSeenKey(user.id, groupId), new Date().toISOString());
             }
+            // Fetch who's online right away so the UI shows presence
+            // immediately instead of waiting for the first poll cycle.
+            // Always include the current user - they're online if they
+            // just loaded the page, even before the first heartbeat
+            // reaches Redis via has-changed.
+            try {
+                const ids = await apiGet(`/api/groups/${groupId}/presence`);
+                if (Array.isArray(ids)) {
+                    const withSelf = ids.includes(user.id) ? ids : [...ids, user.id];
+                    setPresenceUserIds(withSelf);
+                }
+            } catch { /* best-effort - presence is non-critical */ }
+
         } catch (err) {
             if (err?.status === 403 || err?.status === 404) {
-                // User lost access to this group — clean up and redirect
+                // User lost access to this group - clean up and redirect
                 storageRemove(groupDetailKey(user.id, groupId));
                 storageRemove(groupLastSeenKey(user.id, groupId));
                 setGroupDetail(null);
@@ -394,7 +454,7 @@ export default function GroupProvider({ children }) {
 
 
     // =================================================================
-    // Group actions — exposed through context for pages/components
+    // Group actions - exposed through context for pages/components
     // =================================================================
 
     const selectGroup = useCallback((group) => {
@@ -429,7 +489,7 @@ export default function GroupProvider({ children }) {
         });
         setActiveGroup(updatedGroup);
 
-        // Mark the ref with this group's ID so the activeGroup effect skips —
+        // Mark the ref with this group's ID so the activeGroup effect skips -
         // we're already refreshing detail explicitly right here.
         detailLoadedForGroupRef.current = updatedGroup.id;
         loadOrRefreshGroupDetail(updatedGroup.id);
@@ -478,7 +538,7 @@ export default function GroupProvider({ children }) {
 
 
     // =================================================================
-    // Polling — 3-tier idle degradation
+    // Polling - 3-tier idle degradation
     //
     // Active:    poll every 30s (60s after a long session of 30+ min)
     // Idle 10m:  slow down to 60s
@@ -501,6 +561,7 @@ export default function GroupProvider({ children }) {
     const pollTimerRef    = useRef(null);
     const lastActivityRef = useRef(Date.now());
     const sessionStartRef = useRef(Date.now());
+    const presenceCycleRef = useRef(0);  // fetch /presence every 2nd poll cycle
 
     /** Decides how often to poll based on idle time and session length. */
     function choosePollInterval() {
@@ -511,6 +572,8 @@ export default function GroupProvider({ children }) {
         const sessionAge = Date.now() - sessionStartRef.current;
         return sessionAge > LONG_SESSION_MS ? POLL_LONG_SESSION_MS : POLL_ACTIVE_MS;
     }
+
+
 
     const schedulePoll = useCallback(() => {
         if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
@@ -536,6 +599,7 @@ export default function GroupProvider({ children }) {
                     // Lightweight check: has anything changed since lastSeen?
                     // Server returns 204 (no) or 409 (yes)
                     try {
+                        console.log(`/api/groups/${activeGroup.id}/has-changed?lastSeen=${encodeURIComponent(lastSeen)}`);
                         await apiGet(
                             `/api/groups/${activeGroup.id}/has-changed?lastSeen=${encodeURIComponent(lastSeen)}`
                         );
@@ -545,15 +609,23 @@ export default function GroupProvider({ children }) {
                         }
                     }
                 } else {
-                    // No lastSeen stored — do a full detail load
+                    // No lastSeen stored - do a full detail load
                     loadOrRefreshGroupDetail(activeGroup.id);
                 }
 
-                // Fetch who's online (after has-changed so our heartbeat lands first)
-                try {
-                    const ids = await apiGet(`/api/groups/${activeGroup.id}/presence`);
-                    if (Array.isArray(ids)) setPresenceUserIds(ids);
-                } catch { /* best-effort — presence is non-critical */ }
+                // Fetch who's online every 2nd cycle (economy mode).
+                // has-changed still piggybacks a heartbeat every cycle,
+                // so the server always knows we're alive.
+                presenceCycleRef.current += 1;
+                if (presenceCycleRef.current % 2 === 0) {
+                    try {
+                        const ids = await apiGet(`/api/groups/${activeGroup.id}/presence`);
+                        if (Array.isArray(ids)) {
+                            const withSelf = ids.includes(user.id) ? ids : [...ids, user.id];
+                            setPresenceUserIds(withSelf);
+                        }
+                    } catch { /* best-effort - presence is non-critical */ }
+                }
             }
 
             schedulePoll();
@@ -568,7 +640,7 @@ export default function GroupProvider({ children }) {
     const onUserActivity = useCallback(() => {
         lastActivityRef.current = Date.now();
 
-        // Coming back from stale/idle — reload detail and restart polling
+        // Coming back from stale/idle - reload detail and restart polling
         if (isStale) {
             setIsStale(false);
             if (activeGroup) {
@@ -580,14 +652,14 @@ export default function GroupProvider({ children }) {
             return;
         }
 
-        // Normal activity — only reschedule if enough time passed
+        // Normal activity - only reschedule if enough time passed
         if (Date.now() - lastPollRescheduleRef.current >= ACTIVITY_THROTTLE_MS) {
             lastPollRescheduleRef.current = Date.now();
             schedulePoll();
         }
     }, [activeGroup, isStale, schedulePoll]);
 
-    /** Explicit refresh button — always reloads detail + resets poll cycle. */
+    /** Explicit refresh button - always reloads detail + resets poll cycle. */
     const manualRefresh = useCallback(() => {
         lastActivityRef.current = Date.now();
         setIsStale(false);

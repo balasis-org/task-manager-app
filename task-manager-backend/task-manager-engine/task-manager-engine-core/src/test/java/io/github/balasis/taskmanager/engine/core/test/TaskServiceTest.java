@@ -1,16 +1,20 @@
 package io.github.balasis.taskmanager.engine.core.test;
 
+import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.User;
-import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.engine.core.repository.*;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupServiceImpl;
 import io.github.balasis.taskmanager.engine.core.service.authorization.AuthorizationService;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
-import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -38,6 +42,10 @@ class GroupServiceTest {
     private AuthorizationService authorizationService;
     private GroupInvitationRepository groupInvitationRepository;
     private DeletedTaskRepository deletedTaskRepository;
+    private MaintenanceStatusRepository maintenanceStatusRepository;
+    private PlanLimits planLimits;
+    private DownloadGuardService downloadGuardService;
+    private ImageChangeLimiterService imageChangeLimiterService;
     private DefaultImageService defaultImageService;
 
     @BeforeEach
@@ -48,25 +56,28 @@ class GroupServiceTest {
         taskRepository = mock(TaskRepository.class);
         taskCommentRepository = mock(TaskCommentRepository.class);
         taskParticipantRepository = mock(TaskParticipantRepository.class);
-
         taskFileRepository = mock(TaskFileRepository.class);
         taskAssigneeFileRepository = mock(TaskAssigneeFileRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
-        groupEventRepository = mock (GroupEventRepository.class);
+        groupEventRepository = mock(GroupEventRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
         deletedTaskRepository = mock(DeletedTaskRepository.class);
-
         emailClientProvider = mock(ObjectProvider.class);
         blobStorageService = mock(BlobStorageService.class);
         authorizationService = mock(AuthorizationService.class);
         defaultImageService = mock(DefaultImageService.class);
-        groupInvitationRepository= mock(GroupInvitationRepository.class);
+        groupInvitationRepository = mock(GroupInvitationRepository.class);
+        maintenanceStatusRepository = mock(MaintenanceStatusRepository.class);
+        planLimits = mock(PlanLimits.class);
+        downloadGuardService = mock(DownloadGuardService.class);
+        imageChangeLimiterService = mock(ImageChangeLimiterService.class);
+
         groupService = new GroupServiceImpl(
                 groupRepository,
                 groupValidator,
                 userRepository,
                 taskRepository,
-            taskCommentRepository,
+                taskCommentRepository,
                 taskParticipantRepository,
                 taskFileRepository,
                 taskAssigneeFileRepository,
@@ -78,8 +89,12 @@ class GroupServiceTest {
                 authorizationService,
                 defaultImageService,
                 groupInvitationRepository,
-                deletedTaskRepository
-
+                deletedTaskRepository,
+                maintenanceStatusRepository,
+                planLimits,
+                downloadGuardService,
+                imageChangeLimiterService,
+                mock(org.springframework.core.env.Environment.class)
         );
     }
 
@@ -91,6 +106,9 @@ class GroupServiceTest {
 
         when(effectiveCurrentUser.getUserId()).thenReturn(1L);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(groupMembershipRepository.countByUser_Id(1L)).thenReturn(0L);
+        when(planLimits.maxGroups(SubscriptionPlan.FREE)).thenReturn(2);
+        when(planLimits.maxGroupCreationsPerWindow(SubscriptionPlan.FREE)).thenReturn(4);
         when(groupRepository.save(group)).thenReturn(savedGroup);
 
         groupService.create(group);
@@ -102,5 +120,6 @@ class GroupServiceTest {
                                 membership.getGroup().equals(savedGroup) &&
                                 membership.getRole() == Role.GROUP_LEADER
                 ));
+        verify(userRepository, times(1)).save(user);
     }
 }

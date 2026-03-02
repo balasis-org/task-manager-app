@@ -1,4 +1,4 @@
-/* ─── Callback page: centered column ─── */
+﻿/* --- Callback page: centered column --- */
 
 .callback-page {
     display: flex;
@@ -14,7 +14,7 @@
     padding: 2em;
 }
 
-/* ─── Logo + spinner ring ─── */
+/* --- Logo + spinner ring --- */
 
 .callback-logo-wrapper {
     position: relative;
@@ -52,7 +52,7 @@
     to { transform: rotate(360deg); }
 }
 
-/* ─── Text ─── */
+/* --- Text --- */
 
 .callback-text {
     text-align: center;
@@ -71,7 +71,7 @@
     margin: 0;
 }
 
-/* ─── Error state ─── */
+/* --- Error state --- */
 
 .callback-error-card {
     background: var(--bg-primary, #fff);
@@ -122,9 +122,9 @@
     box-shadow: 0 0.125em 0.5em rgba(0, 0, 0, 0.1);
 }
 
-/* ─── Responsive ─── */
+/* --- Responsive --- */
 
-@media (max-width: 480px) {
+@media (max-width: 28em) {
     .callback-page {
         padding: 1.5em 1em;
     }

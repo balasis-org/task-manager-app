@@ -11,26 +11,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/**
- * Outer profiling ring — wraps every controller method, starts the ProfilingContext tree,
- * waits for the method to finish, then prints the full timing breakdown to the console.
- *
- * This is a pure console profiler — no OpenTelemetry dependency needed.
- * Active only when the "benchmark" profile is enabled.
- *
- * Output example:
- *
- *   ━━━ GroupController.getGroup (total: 47ms) ━━━
- *     service .............. 45ms  (GroupServiceImpl.getGroup)
- *       db ................. 12ms  (GroupRepository.findById)
- *       db .................  8ms  (GroupMembershipRepository.findByGroupIdAndUserId)
- *       auth ...............  2ms  (AuthorizationService.requireAnyRoleIn)
- *     validator ............  1ms  (ResourceDataValidator.validateResourceData)
- *   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- *
- * Order(1) ensures this fires OUTSIDE the layer aspects (Order(10)),
- * so the controller is the root of the tree and all inner calls nest under it.
- */
+// Outer profiling aspect - wraps controller methods, starts the ProfilingContext,
+// and prints the full timing breakdown when done.
+// Only active under the "benchmark" profile.
+// Order(1) so it fires outside the layer aspect at Order(10).
 @Aspect
 @Component
 @Profile("benchmark")

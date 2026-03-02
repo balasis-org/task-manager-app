@@ -1,10 +1,10 @@
-/* TaskBreadcrumb — back link, breadcrumb trail, right-side meta (creator, edit/delete, chat) */
+﻿/* TaskBreadcrumb - back link, breadcrumb trail, right-side meta (creator, edit/delete, chat) */
 
 .task-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 2.8em;
-    padding: 0.625em 1em;
+    gap: 1.5em;
+    padding: 1.5em 1em;
     background: var(--bg-secondary);
     border-bottom: 0.06em solid var(--border-primary);
     font-size: 0.81em;
@@ -60,7 +60,7 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 3.12em;
+    gap: 1.12em;
     font-size: 0.95em;
     color: var(--text-muted);
 }
@@ -121,11 +121,11 @@
     color: var(--text-primary);
 }
 
-/* ── responsive ── */
+/* -- responsive -- */
 
 @media (max-width: 1024px) {
     .task-breadcrumb-right {
-        gap: 0.5em;
+        gap: 1em;
     }
     .task-meta-group {
         display: none;
@@ -134,12 +134,18 @@
 
 @media (max-width: 768px) {
     .task-breadcrumb {
-        padding: 0.5em 0.75em;
+        padding: 2.5em 0.75em;
         font-size: 0.75em;
+        gap: 1.5em;
     }
     .task-breadcrumb-right {
         flex-wrap: wrap;
-        gap: 0.375em;
+        gap: 1em;
+        margin-left:unset;
+        width:100%;
+        justify-content: space-between;
+        margin-bottom:-1.5em;
+        margin-top:0.5em;
     }
     .task-meta-lastedit,
     .task-meta-group {
@@ -147,15 +153,14 @@
     }
 }
 
-@media (max-width: 480px) {
-    .task-breadcrumb {
-        gap: 0.5em;
-    }
+@media (max-width: 28em) {
     .task-breadcrumb-trail {
         max-width: 10em;
     }
     .task-breadcrumb-right {
-        gap: 0.375em;
+        gap: 1em;
+        margin-left:unset;
+        justify-content: space-between;
     }
     .task-meta-byline {
         display: none;

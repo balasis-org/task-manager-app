@@ -1,8 +1,11 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
+import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
 import io.github.balasis.taskmanager.context.base.exception.notfound.UserNotFoundException;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
@@ -10,6 +13,7 @@ import io.github.balasis.taskmanager.engine.core.validation.UserValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +36,8 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private final EffectiveCurrentUser effectiveCurrentUser;
     private final BlobStorageService blobStorageService;
     private final DefaultImageService defaultImageService;
+    private final PlanLimits planLimits;
+    private final ImageChangeLimiterService imageChangeLimiterService;
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
@@ -73,8 +79,33 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     public User updateProfileImage(MultipartFile file){
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+
+        SubscriptionPlan plan = user.getSubscriptionPlan();
+        if (!planLimits.isPaid(plan)) {
+            throw new BusinessRuleException(
+                    "Custom image uploads require a paid plan. Choose a default image instead.");
+        }
+
+        imageChangeLimiterService.checkBurstLimit(user.getId());
+
+        int maxScans = planLimits.imageScansPerMonth(plan);
+        int updated = userRepository.incrementImageScanUsage(user.getId(), maxScans);
+        if (updated == 0) {
+            throw new LimitExceededException(
+                    "Monthly image upload limit reached. Upgrade your plan for more.");
+        }
+        // @Modifying query bypasses persistence context; sync the in-memory entity
+        user.setUsedImageScansMonth(user.getUsedImageScansMonth() + 1);
+
+        String oldBlobName = user.getImgUrl();
+
         String blobName = blobStorageService.uploadProfileImage(file, user.getId());
         user.setImgUrl(blobName);
+
+        if (oldBlobName != null) {
+            blobStorageService.deleteProfileImage(oldBlobName);
+        }
+
         return user;
     }
 
@@ -131,9 +162,49 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     public User pickDefaultProfileImage(String fileName) {
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+
+        String oldBlobName = user.getImgUrl();
+
         user.setDefaultImgUrl(fileName);
         user.setImgUrl(null);
+
+        if (oldBlobName != null) {
+            blobStorageService.deleteProfileImage(oldBlobName);
+        }
+
         return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public User pickMicrosoftProfilePhoto() {
+        var user = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
+
+        if (user.getMsProfilePhotoUrl() == null) {
+            throw new BusinessRuleException("No Microsoft photo available for this account");
+        }
+
+        String oldBlobName = user.getImgUrl();
+        user.setImgUrl(null);
+
+        if (oldBlobName != null) {
+            blobStorageService.deleteProfileImage(oldBlobName);
+        }
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public void storeMicrosoftPhoto(User user, byte[] photoBytes) {
+        String oldMsBlob = user.getMsProfilePhotoUrl();
+        String blobName = blobStorageService.uploadTrustedProfileImage(photoBytes, user.getId());
+        user.setMsProfilePhotoUrl(blobName);
+        userRepository.save(user);
+        if (oldMsBlob != null) {
+            blobStorageService.deleteProfileImage(oldMsBlob);
+        }
     }
 
 }

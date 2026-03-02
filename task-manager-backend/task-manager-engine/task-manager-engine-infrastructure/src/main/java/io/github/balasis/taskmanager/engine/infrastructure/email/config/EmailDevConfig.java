@@ -21,7 +21,7 @@ public class EmailDevConfig {
 
         if (host == null || host.isBlank()) {
             host = "localhost";
-            log.warn("SmtpEmailClientHost env var not set — defaulting to 'localhost'");
+            log.warn("SmtpEmailClientHost env var not set, defaulting to 'localhost'");
         }
 
         int port;
@@ -29,7 +29,7 @@ public class EmailDevConfig {
             port = (portStr != null && !portStr.isBlank()) ? Integer.parseInt(portStr) : 1025;
         } catch (NumberFormatException e) {
             port = 1025;
-            log.warn("SmtpEmailClientPort env var invalid ('{}') — defaulting to 1025", portStr);
+            log.warn("SmtpEmailClientPort env var invalid ('{}'), defaulting to 1025", portStr);
         }
 
         log.info("SMTP email client configured: {}:{}", host, port);

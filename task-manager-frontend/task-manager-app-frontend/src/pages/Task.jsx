@@ -1,12 +1,12 @@
-import { useState, useEffect, useContext, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiChevronRight, FiChevronLeft, FiRefreshCw } from "react-icons/fi";
+import { FiChevronRight, FiChevronLeft, FiRefreshCw, FiMail } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
 import { GroupContext } from "@context/GroupContext";
 import { useToast } from "@context/ToastContext";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@assets/js/apiClient.js";
-import { LIMITS } from "@assets/js/inputValidation";
-import { isFileTooLarge } from "@assets/js/fileUtils";
+import { LIMITS, groupFileLimits } from "@assets/js/inputValidation";
+import { isFileTooLarge, formatFileSize } from "@assets/js/fileUtils";
 import useSmartPoll from "@hooks/useSmartPoll";
 import { useBlobUrl } from "@context/BlobSasContext";
 import Spinner from "@components/Spinner";
@@ -27,9 +27,10 @@ export default function Task() {
     const { groupId, taskId } = useParams();
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, members, refreshActiveGroup } = useContext(GroupContext);
+    const { activeGroup, myRole, members, presenceUserIds, refreshActiveGroup, groupDetail } = useContext(GroupContext);
     const blobUrl = useBlobUrl();
     const showToast = useToast();
+    const fileLimits = groupFileLimits(groupDetail);
 
     usePageTitle("Task");
 
@@ -52,9 +53,14 @@ export default function Task() {
     const [showAssigneePicker, setShowAssigneePicker] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
 
+    // Email notification dialog state
+    const [notifyTarget, setNotifyTarget] = useState(null); // { userId, name }
+    const [notifyNote, setNotifyNote] = useState("");
+    const [notifySending, setNotifySending] = useState(false);
+
     const lastFetchRef = useRef(new Date().toISOString());
 
-    /* ── polling ── */
+    /* -- polling -- */
     const taskPollCheck = useCallback(async () => {
         if (!groupId || !taskId) return;
         await apiGet(`/api/groups/${groupId}/task/${taskId}/has-changed?since=${encodeURIComponent(lastFetchRef.current)}`);
@@ -66,7 +72,7 @@ export default function Task() {
         reset: resetTaskPoll,
     } = useSmartPoll(taskPollCheck, { enabled: !!groupId && !!taskId });
 
-    /* ── derived / permissions ── */
+    /* -- derived / permissions -- */
     const isLeaderOrManager = myRole === "GROUP_LEADER" || myRole === "TASK_MANAGER";
     const myParticipant = task?.taskParticipants
         ? [...task.taskParticipants].find((p) => p.user?.id === user?.id)
@@ -109,7 +115,7 @@ export default function Task() {
         (m) => ASSIGNEE_ELIGIBLE_ROLES.includes(m.role) && !existingAssigneeIds.has(m.user?.id)
     );
 
-    /* ── effects ── */
+    /* -- effects -- */
     useEffect(() => { if (groupId) refreshActiveGroup(); }, [groupId]);
 
     useEffect(() => {
@@ -149,7 +155,7 @@ export default function Task() {
             .finally(() => setLoading(false));
     }, [groupId, taskId]);
 
-    /* ── handlers ── */
+    /* -- handlers -- */
     async function handleDeleteTask() {
         try {
             await apiDelete(`/api/groups/${groupId}/task/${taskId}`);
@@ -205,6 +211,62 @@ export default function Task() {
         } catch (err) { showToast(err?.message || "Failed to add participant"); autoHeal(); }
     }
 
+    async function handleRemoveParticipant(participantId) {
+        try {
+            await apiDelete(`/api/groups/${groupId}/task/${taskId}/taskParticipant/${participantId}`);
+            const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
+            setTask(refreshed);
+        } catch (err) { showToast(err?.message || "Failed to remove participant"); autoHeal(); }
+    }
+
+    async function handleNotifyParticipant(userId) {
+        // Find user name from assignees or reviewers for the dialog
+        const all = [...(task?.assignees || []), ...(task?.reviewers || [])];
+        const match = all.find(p => p.user?.id === userId);
+        const name = match?.user?.name || match?.user?.email || "this user";
+        setNotifyTarget({ userId, name });
+        setNotifyNote("");
+    }
+
+    function handleBulkNotify(type) {
+        let ids = [];
+        let label = "";
+        if (type === "assignees") {
+            ids = assignees.map(a => a.user?.id).filter(Boolean);
+            label = "all assignees";
+        } else if (type === "reviewers") {
+            ids = reviewers.map(r => r.user?.id).filter(Boolean);
+            label = "all reviewers";
+        } else {
+            ids = [...new Set([
+                ...assignees.map(a => a.user?.id),
+                ...reviewers.map(r => r.user?.id),
+            ].filter(Boolean))];
+            label = "all participants";
+        }
+        if (ids.length === 0) { showToast("No participants to notify"); return; }
+        setNotifyTarget({ userIds: ids, name: label });
+        setNotifyNote("");
+    }
+
+    async function sendNotification() {
+        if (!notifyTarget) return;
+        setNotifySending(true);
+        try {
+            const body = notifyNote.trim() ? { customNote: notifyNote.trim() } : {};
+            if (notifyTarget.userIds) {
+                body.userIds = notifyTarget.userIds;
+                await apiPost(`/api/groups/${groupId}/task/${taskId}/notify-bulk`, body);
+            } else {
+                await apiPost(`/api/groups/${groupId}/task/${taskId}/notify/${notifyTarget.userId}`,
+                    notifyNote.trim() ? { customNote: notifyNote.trim() } : undefined);
+            }
+            showToast("Notification sent", "success");
+            setNotifyTarget(null);
+        } catch (err) { showToast(err?.message || "Failed to send notification"); }
+        finally { setNotifySending(false); }
+    }
+
     async function handleMoveToBeReviewed() {
         try {
             const updated = await apiPost(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`);
@@ -214,9 +276,12 @@ export default function Task() {
 
     async function handleFileAdd(file, isAssignee) {
         const currentCount = isAssignee ? (task?.assigneeFiles?.length || 0) : (task?.files?.length || 0);
-        const maxFiles = isAssignee ? LIMITS.MAX_ASSIGNEE_FILES : LIMITS.MAX_TASK_FILES;
+        const maxFiles = isAssignee ? fileLimits.maxAssigneeFiles : fileLimits.maxCreatorFiles;
         if (currentCount >= maxFiles) { showToast(`Maximum ${maxFiles} files already uploaded`); return; }
-        if (isFileTooLarge(file)) { showToast(`File exceeds ${LIMITS.MAX_FILE_SIZE_MB} MB limit`); return; }
+        if (isFileTooLarge(file, fileLimits.maxFileSizeBytes)) {
+            showToast(`File exceeds ${formatFileSize(fileLimits.maxFileSizeBytes)} limit`);
+            return;
+        }
         const fd = new FormData();
         fd.append("file", file);
         const endpoint = isAssignee
@@ -228,17 +293,38 @@ export default function Task() {
 
     async function handleDownload(fileId, filename, isAssignee) {
         setDownloadingId(fileId);
-        try {
-            const endpoint = isAssignee
-                ? `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}/download`
-                : `/api/groups/${groupId}/task/${taskId}/files/${fileId}/download`;
-            const blob = await apiGet(endpoint, { responseType: "blob" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = filename; a.click();
-            URL.revokeObjectURL(url);
-        } catch (err) { showToast(err?.message || "Failed to download file"); }
-        finally { setDownloadingId(null); }
+        const endpoint = isAssignee
+            ? `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}/download`
+            : `/api/groups/${groupId}/task/${taskId}/files/${fileId}/download`;
+
+        // Retry a few times on 503 (server momentarily busy) so the user
+        // just sees the spinner a bit longer instead of an error toast.
+        const MAX_RETRIES = 3;
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const blob = await apiGet(endpoint, { responseType: "blob" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = filename; a.click();
+                URL.revokeObjectURL(url);
+                setDownloadingId(null);
+                return;
+            } catch (err) {
+                // 429 = download budget exhausted or repeat guard — show msg, no retry
+                if (err?.status === 429) {
+                    showToast(err.message || "Download limit reached");
+                    break;
+                }
+                const is503 = err?.status === 503;
+                if (is503 && attempt < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+                    continue;
+                }
+                showToast(err?.message || "Failed to download file");
+                break;
+            }
+        }
+        setDownloadingId(null);
     }
 
     async function handleDeleteFile(fileId, isAssignee) {
@@ -252,14 +338,15 @@ export default function Task() {
         } catch (err) { showToast(err?.message || "Failed to delete file"); autoHeal(); }
     }
 
-    /* ── guards ── */
+    /* -- guards -- */
     if (loading) return <Spinner />;
     if (error) return <div className="task-page-error">{error}</div>;
     if (!task) return <div className="task-page-error">Task not found</div>;
 
     const groupName = activeGroup?.name || `Group ${groupId}`;
+    const canNotify = canAddParticipants && groupDetail?.op !== "FREE" && groupDetail?.op !== "STUDENT";
 
-    /* ── render ── */
+    /* -- render -- */
     return (
         <div className="task-page">
             <div className={`task-main${rightOpen ? "" : " full-width"}`}>
@@ -269,6 +356,7 @@ export default function Task() {
                     canEdit={canEdit} canDelete={canDelete} editing={editing}
                     onEdit={() => setEditing(true)}
                     onDelete={() => setShowDeleteConfirm(true)}
+                    presenceUserIds={presenceUserIds}
                 />
 
                 {(taskHasChanged || taskIsStale) && (
@@ -293,7 +381,7 @@ export default function Task() {
                     onSave={handleSave} onCancel={() => setEditing(false)}
                 >
                     <TaskFilesSection
-                        files={task.files || []} maxFiles={LIMITS.MAX_TASK_FILES}
+                        files={task.files || []} maxFiles={fileLimits.maxCreatorFiles}
                         canUpload={canUploadFiles} label="Files" emptyText="No files"
                         className="task-files-section"
                         onFileAdd={(f) => handleFileAdd(f, false)}
@@ -313,7 +401,6 @@ export default function Task() {
                     {rightOpen ? <FiChevronRight size={14} /> : <FiChevronLeft size={14} />}
                 </button>
 
-                {rightOpen && (
                     <div className="task-right-content">
                         <TaskReviewPanel
                             reviewers={reviewers} eligibleReviewers={eligibleReviewers}
@@ -321,11 +408,15 @@ export default function Task() {
                             onTogglePicker={() => { setShowReviewerPicker((v) => !v); setShowAssigneePicker(false); }}
                             canAddParticipants={canAddParticipants}
                             onAddReviewer={(uid) => handleAddParticipant(uid, "REVIEWER")}
+                            onRemoveParticipant={canAddParticipants ? handleRemoveParticipant : undefined}
+                            onNotify={canNotify ? handleNotifyParticipant : undefined}
+                            onBulkNotify={canNotify ? handleBulkNotify : undefined}
                             blobUrl={blobUrl} task={task}
                             canReview={canReview}
                             reviewComment={reviewComment} onReviewCommentChange={setReviewComment}
                             reviewDecision={reviewDecision} onReviewDecisionChange={setReviewDecision}
                             submittingReview={submittingReview} onReview={handleReview}
+                            presenceUserIds={presenceUserIds}
                         />
 
                         <TaskAssigneePanel
@@ -334,11 +425,26 @@ export default function Task() {
                             onTogglePicker={() => { setShowAssigneePicker((v) => !v); setShowReviewerPicker(false); }}
                             canAddParticipants={canAddParticipants}
                             onAddAssignee={(uid) => handleAddParticipant(uid, "ASSIGNEE")}
+                            onRemoveParticipant={canAddParticipants ? handleRemoveParticipant : undefined}
+                            onNotify={canNotify ? handleNotifyParticipant : undefined}
+                            onBulkNotify={canNotify ? handleBulkNotify : undefined}
                             blobUrl={blobUrl}
+                            presenceUserIds={presenceUserIds}
                         />
 
+                        {canNotify && (assignees.length + reviewers.length) > 0 && (
+                            <div className="task-sidebar-section">
+                                <button
+                                    className="task-bulk-all-btn"
+                                    onClick={() => handleBulkNotify("both")}
+                                >
+                                    <FiMail size={14} /> Email all participants
+                                </button>
+                            </div>
+                        )}
+
                         <TaskFilesSection
-                            files={task.assigneeFiles || []} maxFiles={LIMITS.MAX_ASSIGNEE_FILES}
+                            files={task.assigneeFiles || []} maxFiles={fileLimits.maxAssigneeFiles}
                             canUpload={canUploadAssigneeFiles} label="Assignee Files"
                             emptyText="No assignee files" className="task-sidebar-section"
                             onFileAdd={(f) => handleFileAdd(f, true)}
@@ -355,7 +461,6 @@ export default function Task() {
                             </div>
                         )}
                     </div>
-                )}
             </aside>
 
             {showDeleteConfirm && (
@@ -363,6 +468,39 @@ export default function Task() {
                     onConfirm={handleDeleteTask}
                     onCancel={() => setShowDeleteConfirm(false)}
                 />
+            )}
+
+            {notifyTarget && (
+                <div className="popup-overlay" onClick={() => !notifySending && setNotifyTarget(null)}>
+                    <div className="popup-card task-notify-dialog" onClick={e => e.stopPropagation()}>
+                        <h3>Send notification to {notifyTarget.name}?</h3>
+                        <p className="task-notify-hint">
+                            A default message about this task will be included automatically.
+                        </p>
+                        <label>
+                            Add a personal note (optional)
+                            <textarea
+                                className="task-notify-textarea"
+                                value={notifyNote}
+                                onChange={e => setNotifyNote(e.target.value.slice(0, LIMITS.EMAIL_CUSTOM_NOTE))}
+                                placeholder="e.g. Please check the latest files…"
+                                rows={3}
+                                maxLength={LIMITS.EMAIL_CUSTOM_NOTE}
+                            />
+                            <span className="task-notify-counter">
+                                {notifyNote.length}/{LIMITS.EMAIL_CUSTOM_NOTE}
+                            </span>
+                        </label>
+                        <div className="popup-actions">
+                            <button className="btn-secondary" onClick={() => setNotifyTarget(null)} disabled={notifySending}>
+                                Cancel
+                            </button>
+                            <button className="btn-primary" onClick={sendNotification} disabled={notifySending}>
+                                {notifySending ? "Sending…" : "Send"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

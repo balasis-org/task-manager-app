@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
 import { FiUsers, FiLogIn, FiTool } from "react-icons/fi";
@@ -9,21 +9,21 @@ import "@styles/pages/Login.css";
 const IS_DEV = import.meta.env.DEV;
 
 const DEV_USERS = [
-    { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader · GC leader)" },
-    { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager · GC manager)"},
-    { label: "Carol Dev",  email: "carol.dev@example.com" ,role:"(GA reviewer · GC reviewer)"},
-    { label: "Dave Dev",   email: "dave.dev@example.com" ,role:"(GA member1 · GC member)"},
-    { label: "Erin Dev",   email: "erin.dev@example.com" ,role:"(GA member2 · GC member)"},
-    { label: "Frank Dev",  email: "frank.dev@example.com" ,role:"(GA guest · GC member)"},
-    { label: "Grace Dev",  email: "grace.dev@example.com" ,role:"(GB leader · GC member)"},
-    { label: "Heidi Dev",  email: "heidi.dev@example.com" ,role:"(GB manager · GC member)"},
-    { label: "Ivan Dev",   email: "ivan.dev@example.com" ,role:"(GB reviewer · GC member)"},
-    { label: "Judy Dev",   email: "judy.dev@example.com" ,role:"(GB member1 · GC member)"},
-    { label: "Mallory dev",   email: "mallory.dev@example.com" ,role:"(GB member2 · GC member)"},
-    { label: "OSCAR Dev",   email: "oscar.dev@example.com" ,role:"(GB guest · GC member)"},
+    { label: "Lena Dev",   email: "lena.dev@example.com"  ,role:"(GA leader · GC leader)" },
+    { label: "Marco Dev",  email: "marco.dev@example.com" ,role:"(GA manager · GC manager)"},
+    { label: "Nina Dev",   email: "nina.dev@example.com"  ,role:"(GA reviewer · GC reviewer)"},
+    { label: "Tomas Dev",  email: "tomas.dev@example.com" ,role:"(GA member1 · GC member)"},
+    { label: "Sofia Dev",  email: "sofia.dev@example.com" ,role:"(GA member2 · GC member)"},
+    { label: "Peter Dev",  email: "peter.dev@example.com" ,role:"(GA guest · GC member)"},
+    { label: "Hanna Dev",  email: "hanna.dev@example.com" ,role:"(GB leader · GC member)"},
+    { label: "Erik Dev",   email: "erik.dev@example.com"  ,role:"(GB manager · GC member)"},
+    { label: "Julia Dev",  email: "julia.dev@example.com" ,role:"(GB reviewer · GC member)"},
+    { label: "Ravi Dev",   email: "ravi.dev@example.com"  ,role:"(GB member1 · GC member)"},
+    { label: "Katya Dev",  email: "katya.dev@example.com" ,role:"(GB member2 · GC member)"},
+    { label: "Leon Dev",   email: "leon.dev@example.com"  ,role:"(GB guest · GC member)"},
 ];
 
-// Stress-test users (stress01–stress38) — all GC members
+// stress-test users (stress01-stress38), all GC members
 const STRESS_USERS = Array.from({ length: 38 }, (_, i) => {
     const num = String(i + 1).padStart(2, "0");
     return {
@@ -35,6 +35,9 @@ const STRESS_USERS = Array.from({ length: 38 }, (_, i) => {
 
 export default function Login() {
     const { user, loading, authError } = useContext(AuthContext);
+    const location = useLocation();
+    const storedReturn = sessionStorage.getItem("returnUrl");
+    const returnUrl = storedReturn || location.state?.returnUrl || "/dashboard";
 
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
@@ -43,7 +46,10 @@ export default function Login() {
 
     usePageTitle("Sign in");
 
-    if (!loading && user) return <Navigate to="/dashboard" replace />;
+    if (!loading && user) {
+        sessionStorage.removeItem("returnUrl");
+        return <Navigate to={returnUrl} replace />;
+    }
     if (loading) return null;
 
     const handleFakeLogin = async (e) => {
@@ -53,6 +59,9 @@ export default function Login() {
         try {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
+            if (returnUrl && returnUrl !== "/dashboard") {
+                sessionStorage.setItem("returnUrl", returnUrl);
+            }
             window.location.reload();
         } catch (err) {
             setError(
@@ -69,7 +78,12 @@ export default function Login() {
         try {
             const res = await fetch("/api/auth/login-url");
             const url = await res.text();
-            if (url) window.location.href = url;
+            if (url) {
+                if (returnUrl && returnUrl !== "/dashboard") {
+                    sessionStorage.setItem("returnUrl", returnUrl);
+                }
+                window.location.href = url;
+            }
         } catch {
             setError("Could not get login URL.");
         }

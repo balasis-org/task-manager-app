@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import { FiUsers, FiCheckCircle, FiShield, FiZap } from "react-icons/fi";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/AboutUs.css";
@@ -17,7 +17,7 @@ const FEATURES = [
     {
         icon: <FiShield size={28} />,
         title: "Role-based access",
-        text: "Fine-grained roles — Guest, Member, Reviewer, Task Manager, Leader — so the right people see the right things.",
+        text: "Fine-grained roles - Guest, Member, Reviewer, Task Manager, Leader - so the right people see the right things.",
     },
     {
         icon: <FiZap size={28} />,
@@ -69,7 +69,7 @@ export default function AboutUs() {
                 </p>
                 <p>
                     We believe great software comes from understanding real workflows.
-                    Every feature — from role-based permissions to smart caching — was
+                    Every feature - from role-based permissions to smart caching - was
                     designed with actual collaboration pain-points in mind.
                 </p>
             </section>

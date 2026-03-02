@@ -1,4 +1,4 @@
-import "@styles/invitations/InvitationsSentTable.css";
+﻿import "@styles/invitations/InvitationsSentTable.css";
 
 export default function InvitationsSentTable({ sent }) {
     if (!sent?.length) {
@@ -24,7 +24,7 @@ export default function InvitationsSentTable({ sent }) {
                                     {inv.groupName}
                                 </span>
                             </td>
-                            <td>{inv.user?.name || inv.user?.email || "—"}</td>
+                            <td>{inv.user?.name || inv.user?.email || "-"}</td>
                             <td>
                                 <span
                                     className="sent-comment-cell"
@@ -34,7 +34,7 @@ export default function InvitationsSentTable({ sent }) {
                                         ? inv.comment.length > 30
                                             ? inv.comment.slice(0, 30) + "…"
                                             : inv.comment
-                                        : "—"}
+                                        : "-"}
                                 </span>
                             </td>
                             <td>

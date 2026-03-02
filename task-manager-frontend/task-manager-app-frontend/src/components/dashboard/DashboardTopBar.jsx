@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { FiSettings, FiLogOut, FiFilter } from "react-icons/fi";
+import { FiSettings, FiLogOut, FiFilter, FiSearch, FiX } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import FilterPanel from "@components/dashboard/FilterPanel";
@@ -30,6 +30,8 @@ export default function DashboardTopBar({
     onEditFilters,
     onFiltersClear,
     presenceUserIds,
+    searchQuery,
+    onSearchChange,
 }) {
     const showToast = useToast();
     const [confirmLeave, setConfirmLeave] = useState(false);
@@ -114,61 +116,82 @@ export default function DashboardTopBar({
                     />
 
                     <div className="topbar-right">
-                        <div className="topbar-dropdown-wrapper" ref={filterRef}>
-                            <button
-                                className={`topbar-icon-btn topbar-filter-btn${isFilterApplied ? " filter-active" : ""}`}
-                                onClick={() => setFilterOpen((v) => !v)}
-                                title="Filter tasks"
-                            >
-                                <FiFilter size={15} />
-                                {isFilterApplied && <span className="topbar-filter-dot" />}
-                            </button>
-                            {filterOpen && (
-                                <FilterPanel
-                                    members={members}
-                                    filters={filters}
-                                    isApplied={isFilterApplied}
-                                    onDraftChange={onDraftChange}
-                                    onApply={onApplyFilters}
-                                    onEdit={onEditFilters}
-                                    onClear={onFiltersClear}
-                                    onClose={() => setFilterOpen(false)}
+                        <div className="topbar-actions-pair">
+                            <div className="topbar-search-wrap">
+                                <FiSearch size={13} className="topbar-search-icon" />
+                                <input
+                                    type="text"
+                                    className="topbar-search-input"
+                                    placeholder="Search tasks…"
+                                    value={searchQuery}
+                                    onChange={(e) => onSearchChange(e.target.value)}
                                 />
-                            )}
+                                {searchQuery && (
+                                    <button className="topbar-search-clear" onClick={() => onSearchChange("")} title="Clear search">
+                                        <FiX size={12} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="topbar-dropdown-wrapper" ref={filterRef}>
+                                <button
+                                    className={`topbar-icon-btn topbar-filter-btn${isFilterApplied ? " filter-active" : ""}`}
+                                    onClick={() => setFilterOpen((v) => !v)}
+                                    title="Filter tasks"
+                                >
+                                    <FiFilter size={15} />
+                                    {isFilterApplied && <span className="topbar-filter-dot" />}
+                                </button>
+                                {filterOpen && (
+                                    <FilterPanel
+                                        members={members}
+                                        filters={filters}
+                                        isApplied={isFilterApplied}
+                                        onDraftChange={onDraftChange}
+                                        onApply={onApplyFilters}
+                                        onEdit={onEditFilters}
+                                        onClear={onFiltersClear}
+                                        onClose={() => setFilterOpen(false)}
+                                    />
+                                )}
+                            </div>
                         </div>
 
-                        <button className="topbar-icon-btn topbar-events-btn" onClick={onOpenGroupEvents} title="Group Events">
-                            📋
-                            {hasUnseenEvents && (
-                                <>
-                                    <span className="topbar-notif-badge">NEW</span>
-                                </>
-                            )}
-                        </button>
+                        <div className="topbar-selectors-pair">
+                            <button className="topbar-icon-btn topbar-events-btn" onClick={onOpenGroupEvents} title="Group Events">
+                                📋
+                                {hasUnseenEvents && (
+                                    <>
+                                        <span className="topbar-notif-badge">NEW</span>
+                                    </>
+                                )}
+                            </button>
+                            <TopBarMembersDropdown
+                                members={members}
+                                canInvite={canInvite}
+                                onOpenInvite={onOpenInvite}
+                                activeGroup={activeGroup}
+                                isLeader={isLeader}
+                                user={user}
+                                groupDetail={groupDetail}
+                                onLeaveGroup={onLeaveGroup}
+                                presenceUserIds={presenceUserIds}
+                            />
 
-                        <TopBarMembersDropdown
-                            members={members}
-                            canInvite={canInvite}
-                            onOpenInvite={onOpenInvite}
-                            activeGroup={activeGroup}
-                            isLeader={isLeader}
-                            user={user}
-                            groupDetail={groupDetail}
-                            onLeaveGroup={onLeaveGroup}
-                        />
-
-                        <TopBarGroupSelector
-                            groups={groups}
-                            activeGroup={activeGroup}
-                            onSelectGroup={onSelectGroup}
-                            onOpenNewGroup={onOpenNewGroup}
-                        />
+                            <TopBarGroupSelector
+                                groups={groups}
+                                activeGroup={activeGroup}
+                                onSelectGroup={onSelectGroup}
+                                onOpenNewGroup={onOpenNewGroup}
+                                user={user}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
 
             <button className="topbar-toggle" onClick={onToggle} title={open ? "Hide top bar" : "Show top bar"}>
-                {open ? "▲" : "▼"}
+                {open ? "⏶" : "⏷"}
             </button>
         </div>
     );

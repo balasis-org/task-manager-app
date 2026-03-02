@@ -9,6 +9,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -21,13 +22,17 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService extends BaseComponent {
     private final SecretClientProvider secretClientProvider;
+
+    @Value("${app.jwt-secret-name:TASKMANAGER-JWT-SECRET}")
+    private String jwtSecretName;
+
     private static final long EXPIRATION_MS = 1000L * 60 * 15;
 
     private SecretKey cachedSignInKey;
 
     @PostConstruct
     void initSignInKey() {
-        String secret_key = secretClientProvider.getSecret("TASKMANAGER-JWT-SECRET");
+        String secret_key = secretClientProvider.getSecret(jwtSecretName);
         byte[] bytes = Base64.getDecoder().decode(secret_key.getBytes(StandardCharsets.UTF_8));
         cachedSignInKey = new SecretKeySpec(bytes, "HmacSHA256");
     }
@@ -46,16 +51,7 @@ public class JwtService extends BaseComponent {
         return builder.compact();
     }
 
-    /**
-     * Parses and validates the JWT (signature + expiration).
-     * jjwt already rejects expired tokens with {@link ExpiredJwtException},
-     * so no manual expiration check is needed.
-     *
-     * Both {@link ExpiredJwtException} and any other {@link JwtException}
-     * (malformed, bad signature, etc.) are converted to
-     * {@link UnauthenticatedException} so the caller ({@link JwtInterceptor})
-     * can catch it uniformly and attempt a refresh-token flow.
-     */
+    // parses + validates the JWT; expired/bad tokens become UnauthenticatedException
     public Claims extractAllClaims(String token) {
         try {
             return Jwts.parser()

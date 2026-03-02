@@ -38,6 +38,12 @@
     border-bottom: 1px solid var(--border-secondary);
 }
 
+.settings-heading-hint {
+    font-size: 0.72em;
+    font-weight: 400;
+    color: var(--text-faint, #999);
+}
+
 .settings-field {
     display: flex;
     flex-direction: column;
@@ -173,4 +179,62 @@
         flex-direction: column;
         gap: 0.5em;
     }
+}
+
+/* ---- storage usage bar ---- */
+
+.settings-storage-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88em;
+    color: var(--text-secondary);
+    margin-bottom: 0.5em;
+}
+
+.settings-plan-badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.15em 0.5em;
+    border-radius: 0.375em;
+    background: var(--accent-primary);
+    color: var(--text-on-primary);
+}
+
+.settings-change-plan-btn {
+    margin-left: auto;
+    font-size: 0.8em;
+}
+
+.settings-storage-bar-track {
+    height: 0.5em;
+    border-radius: 0.25em;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.settings-storage-bar-fill {
+    height: 100%;
+    border-radius: 0.25em;
+    background: var(--accent-primary);
+    transition: width 0.4s ease;
+}
+
+.settings-storage-bar-fill.danger {
+    background: var(--danger);
+}
+
+/* discreet image-scan counter */
+.settings-image-count-limit {
+    color: var(--danger);
+    font-weight: 600;
+}
+.settings-image-hint {
+    display: block;
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--text-muted, #888);
+    margin-top: 4px;
 }

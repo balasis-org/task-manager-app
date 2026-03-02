@@ -1,11 +1,39 @@
+import { useState, useContext } from "react";
+import { FiCopy, FiRefreshCw } from "react-icons/fi";
+import { AuthContext } from "@context/AuthContext";
+import { apiPost } from "@assets/js/apiClient.js";
+import { useToast } from "@context/ToastContext";
 import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/layout/SidebarProfile.css";
 
 export default function SidebarProfile({ user }) {
     const blobUrl = useBlobUrl();
+    const { setUser } = useContext(AuthContext);
+    const showToast = useToast();
+    const [refreshing, setRefreshing] = useState(false);
 
     const rawImgPath = user?.imgUrl || user?.defaultImgUrl || null;
     const profileImg = rawImgPath ? blobUrl(rawImgPath) : null;
+
+    function handleCopy() {
+        if (user?.inviteCode) {
+            navigator.clipboard.writeText(user.inviteCode);
+            showToast("Invite code copied!", "success");
+        }
+    }
+
+    async function handleRefresh() {
+        setRefreshing(true);
+        try {
+            const updated = await apiPost("/api/users/me/refresh-invite-code");
+            setUser((prev) => (prev ? { ...prev, inviteCode: updated.inviteCode } : prev));
+            showToast("Invite code refreshed!", "success");
+        } catch (err) {
+            showToast(err?.message || "Failed to refresh code");
+        } finally {
+            setRefreshing(false);
+        }
+    }
 
     return (
         <div className="sidebar-profile">
@@ -22,15 +50,15 @@ export default function SidebarProfile({ user }) {
                 <span className="sidebar-profile-name">{user.name}</span>
             )}
             {user?.inviteCode && (
-                <span
-                    className="sidebar-profile-code"
-                    title="Your invite code — share it so others can invite you"
-                    onClick={() => {
-                        navigator.clipboard.writeText(user.inviteCode);
-                    }}
-                >
-                    {user.inviteCode}
-                </span>
+                <div className="sidebar-profile-code-row">
+                    <span className="sidebar-profile-code">{user.inviteCode}</span>
+                    <button className="sidebar-code-btn" onClick={handleCopy} title="Copy code">
+                        <FiCopy size={11} />
+                    </button>
+                    <button className="sidebar-code-btn" onClick={handleRefresh} title="Refresh code" disabled={refreshing}>
+                        <FiRefreshCw size={11} className={refreshing ? "spin" : ""} />
+                    </button>
+                </div>
             )}
         </div>
     );

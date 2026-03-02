@@ -30,7 +30,7 @@ public class UserCleanupService extends BaseComponent {
                 logger.info("User cleanup: deleted user id={}", userId);
             } else {
                 skipped++;
-                logger.warn("User cleanup: skipped user id={} (FK constraint — likely re-activated)", userId);
+                logger.warn("User cleanup: skipped user id={} (FK constraint, likely re-activated)", userId);
             }
         }
         logger.info("User cleanup: finished. deleted={}, skipped={}", deleted, skipped);
