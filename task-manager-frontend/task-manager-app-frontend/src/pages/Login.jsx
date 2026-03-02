@@ -9,19 +9,29 @@ import "@styles/pages/Login.css";
 const IS_DEV = import.meta.env.DEV;
 
 const DEV_USERS = [
-    { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader)" },
-    { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager)"},
-    { label: "Carol Dev",  email: "carol.dev@example.com" ,role:"(GA reviewer)"},
-    { label: "Dave Dev",   email: "dave.dev@example.com" ,role:"(GA member1)"},
-    { label: "Erin Dev",   email: "erin.dev@example.com" ,role:"(GA member2)"},
-    { label: "Frank Dev",  email: "frank.dev@example.com" ,role:"(GA guest)"},
-    { label: "Grace Dev",  email: "grace.dev@example.com" ,role:"(GB leader)"},
-    { label: "Heidi Dev",  email: "heidi.dev@example.com" ,role:"(GB manager)"},
-    { label: "Ivan Dev",   email: "ivan.dev@example.com" ,role:"(GB reviewer)"},
-    { label: "Judy Dev",   email: "judy.dev@example.com" ,role:"(GB member1)"},
-    { label: "Mallory dev",   email: "mallory.dev@example.com" ,role:"(GB member2)"},
-    { label: "OSCAR Dev",   email: "oscar.dev@example.com" ,role:"(GB guest)"},
+    { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader · GC leader)" },
+    { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager · GC manager)"},
+    { label: "Carol Dev",  email: "carol.dev@example.com" ,role:"(GA reviewer · GC reviewer)"},
+    { label: "Dave Dev",   email: "dave.dev@example.com" ,role:"(GA member1 · GC member)"},
+    { label: "Erin Dev",   email: "erin.dev@example.com" ,role:"(GA member2 · GC member)"},
+    { label: "Frank Dev",  email: "frank.dev@example.com" ,role:"(GA guest · GC member)"},
+    { label: "Grace Dev",  email: "grace.dev@example.com" ,role:"(GB leader · GC member)"},
+    { label: "Heidi Dev",  email: "heidi.dev@example.com" ,role:"(GB manager · GC member)"},
+    { label: "Ivan Dev",   email: "ivan.dev@example.com" ,role:"(GB reviewer · GC member)"},
+    { label: "Judy Dev",   email: "judy.dev@example.com" ,role:"(GB member1 · GC member)"},
+    { label: "Mallory dev",   email: "mallory.dev@example.com" ,role:"(GB member2 · GC member)"},
+    { label: "OSCAR Dev",   email: "oscar.dev@example.com" ,role:"(GB guest · GC member)"},
 ];
+
+// Stress-test users (stress01–stress38) — all GC members
+const STRESS_USERS = Array.from({ length: 38 }, (_, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    return {
+        label: `Stress${num} Dev`,
+        email: `stress${num}.dev@example.com`,
+        role: "(GC member)",
+    };
+});
 
 export default function Login() {
     const { user, loading, authError } = useContext(AuthContext);
@@ -123,11 +133,20 @@ export default function Login() {
                                     value={fakeEmail}
                                     onChange={(e) => setFakeEmail(e.target.value)}
                                 >
-                                    {DEV_USERS.map((u) => (
-                                        <option key={u.email} value={u.email}>
-                                            {u.label} {u.role}
-                                        </option>
-                                    ))}
+                                    <optgroup label="Core users">
+                                        {DEV_USERS.map((u) => (
+                                            <option key={u.email} value={u.email}>
+                                                {u.label} {u.role}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Stress-test users (GC)">
+                                        {STRESS_USERS.map((u) => (
+                                            <option key={u.email} value={u.email}>
+                                                {u.label} {u.role}
+                                            </option>
+                                        ))}
+                                    </optgroup>
                                 </select>
                             </label>
 
