@@ -61,6 +61,7 @@ public class DataLoader extends BaseComponent {
             try {
                 seedGroupA(users);
                 seedGroupB(users);
+                seedGroupC(users);
             } finally {
                 userContext.clear();
             }
@@ -88,6 +89,15 @@ public class DataLoader extends BaseComponent {
         seeds.put("JUDY", new SeedUser(devAzureKey("judy.dev@example.com"), "judy.dev@example.com", "Judy Dev"));
         seeds.put("MALLORY", new SeedUser(devAzureKey("mallory.dev@example.com"), "mallory.dev@example.com", "Mallory Dev"));
         seeds.put("OSCAR", new SeedUser(devAzureKey("oscar.dev@example.com"), "oscar.dev@example.com", "Oscar Dev"));
+
+        // ── Stress-test users (stress01 – stress38) ──────────────────
+        for (int i = 1; i <= 38; i++) {
+            String num   = String.format("%02d", i);
+            String key   = "STRESS" + num;
+            String email = "stress" + num + ".dev@example.com";
+            String name  = "Stress" + num + " Dev";
+            seeds.put(key, new SeedUser(devAzureKey(email), email, name));
+        }
 
         var whitelistOtherTenant = new HashSet<>(
                 Set.of(
@@ -306,6 +316,39 @@ public class DataLoader extends BaseComponent {
                         .reviewComment("Seed review: looks good, approved")
                         .build());
             });
+        });
+    }
+
+    private void seedGroupC(Map<String, User> users) {
+        logger.trace("Seeding Stress-Test Group C...");
+
+        User leader = users.get("ALICE");
+
+        withUser(leader, () -> {
+            Group group = groupService.create(Group.builder()
+                    .name("Stress Test Group C")
+                    .description("50-member group for k6 load / presence testing")
+                    .Announcement("Stress testing in progress")
+                    .build());
+
+            // Add original users as various roles
+            inviteAndAccept(group.getId(), users.get("BOB"),     Role.TASK_MANAGER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("CAROL"),   Role.REVIEWER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("DAVE"),    Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("ERIN"),    Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("FRANK"),   Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("GRACE"),   Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("HEIDI"),   Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("IVAN"),    Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("JUDY"),    Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("MALLORY"), Role.MEMBER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("OSCAR"),   Role.MEMBER, "Stress seed");
+
+            // Add all 38 stress-test users as MEMBER
+            for (int i = 1; i <= 38; i++) {
+                String key = String.format("STRESS%02d", i);
+                inviteAndAccept(group.getId(), users.get(key), Role.MEMBER, "Stress seed");
+            }
         });
     }
 
