@@ -35,7 +35,8 @@ public class PollingEndpointSampler implements Sampler {
     // Exact substrings to match inside the span name.
     // Spring MVC span names look like "GET /api/group-invitations/check-new"
     private static final Set<String> EXACT_DROP_ROUTES = Set.of(
-            "/api/group-invitations/check-new"
+            "/api/group-invitations/check-new",
+            "/presence"
     );
 
     // Suffix patterns — if the span name ends with any of these, drop it.

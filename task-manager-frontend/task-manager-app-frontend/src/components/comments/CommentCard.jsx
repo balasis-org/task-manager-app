@@ -4,7 +4,7 @@ import userImg from "@assets/js/userImg";
 import "@styles/comments/CommentCard.css";
 
 export default function CommentCard({
-    comment: c, // short alias — `comment` would clash with the `.comment` property we access below isEditing, editText, onEditTextChange,
+    comment: c, isEditing, editText, onEditTextChange,
     participantRoleMap, canEdit, canDelete,
     onStartEdit, onCancelEdit, onSaveEdit, onRequestDelete,
     blobUrl, maxLen, formatDateTime,

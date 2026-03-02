@@ -1,0 +1,126 @@
+/* ─── Presence indicator — stacked avatars with green pulse dot ─── */
+
+.presence-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    padding: 0 0.2em;
+    animation: presenceFadeIn 0.5s ease both;
+}
+
+@keyframes presenceFadeIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Avatar stack ─── */
+
+.presence-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.presence-avatar {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    margin-left: -7px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary, #fff);
+    cursor: default;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.presence-avatar:first-child {
+    margin-left: 0;
+}
+
+.presence-avatar:hover {
+    transform: scale(1.15);
+    z-index: 100 !important;
+}
+
+.presence-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-secondary, #f8f9fa);
+}
+
+/* ─── Green dot (online indicator) ─── */
+
+.presence-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border: 1.5px solid var(--bg-primary, #fff);
+    border-radius: 50%;
+    animation: presencePulse 2.5s ease-in-out infinite;
+}
+
+@keyframes presencePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50%      { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0); }
+}
+
+/* Current user gets a blue dot instead */
+.presence-avatar-me .presence-dot {
+    background: #3b82f6;
+    animation: presencePulseBlue 2.5s ease-in-out infinite;
+}
+
+@keyframes presencePulseBlue {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    50%      { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0); }
+}
+
+/* ─── Overflow badge (+N) ─── */
+
+.presence-overflow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    margin-left: -7px;
+    border-radius: 50%;
+    background: var(--bg-secondary, #e5e7eb);
+    color: var(--text-muted, #666);
+    font-size: 0.65em;
+    font-weight: 600;
+    border: 2px solid var(--bg-primary, #fff);
+    cursor: default;
+}
+
+/* ─── "N online" label ─── */
+
+.presence-label {
+    font-size: 0.7em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+/* ─── Responsive: hide label on small screens ─── */
+
+@media (max-width: 600px) {
+    .presence-label { display: none; }
+    .presence-avatar {
+        width: 22px;
+        height: 22px;
+        margin-left: -5px;
+    }
+    .presence-avatar:first-child { margin-left: 0; }
+    .presence-overflow {
+        width: 22px;
+        height: 22px;
+        margin-left: -5px;
+    }
+}

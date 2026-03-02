@@ -5,9 +5,12 @@ import {
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";
 import "@styles/pages/CookiePolicy.css";
+import usePageTitle from "@hooks/usePageTitle";
 
 export default function CookiePolicy() {
     const navigate = useNavigate();
+
+    usePageTitle("Cookie policy");
 
     return (
         <div className="legal-page">
@@ -37,7 +40,7 @@ export default function CookiePolicy() {
             <section className="legal-section">
                 <h2><FiLock size={18} /> How We Use Cookies &amp; Local Storage</h2>
                 <p>
-                    Task Manager uses only <strong>essential cookies and local
+                    MyTeamTasks uses only <strong>essential cookies and local
                     storage</strong>. We do not use any third-party tracking, advertising,
                     or analytics cookies.
                 </p>

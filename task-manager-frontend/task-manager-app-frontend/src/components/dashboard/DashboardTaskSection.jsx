@@ -17,7 +17,7 @@ export default function DashboardTaskSection({
     onDeleted,
 }) {
     return (
-        <div className="task-section">
+        <div className="task-section" data-state={state}>
             <div
                 className="task-section-header"
                 onClick={onToggle}

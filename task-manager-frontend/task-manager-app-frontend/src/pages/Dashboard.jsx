@@ -16,6 +16,7 @@ import { useToast } from "@context/ToastContext";
 import { apiGet } from "@assets/js/apiClient.js";
 import { FILTER_EMPTY, isFilterEmpty } from "@components/dashboard/FilterPanel";
 import { FiRefreshCw } from "react-icons/fi";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
@@ -52,10 +53,13 @@ export default function Dashboard() {
         removeGroupFromState,
         manualRefresh,
         markGroupEventsSeen,
+        presenceUserIds,
     } = useContext(GroupContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const showToast = useToast();
+
+    usePageTitle("Dashboard");
 
     useEffect(() => {
         if (activeGroup) refreshActiveGroup();
@@ -299,6 +303,7 @@ export default function Dashboard() {
                 onApplyFilters={handleApplyFilters}
                 onEditFilters={handleEditFilters}
                 onFiltersClear={handleClearFilters}
+                presenceUserIds={presenceUserIds}
             />
 
             {isStale && (

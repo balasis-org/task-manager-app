@@ -1246,6 +1246,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return task.getLastChangeDateInComments() != null && task.getLastChangeDateInComments().isAfter(since);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public void checkMembership(Long groupId) {
+        authorizationService.requireAnyRoleIn(groupId);
+    }
+
     private boolean computeIsDeletable(Task task, Role currentUserRole, Long groupId, Long currentUserId) {
         if (currentUserRole == null) return false;
         if (currentUserRole == Role.GROUP_LEADER) return true;

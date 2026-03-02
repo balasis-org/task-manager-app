@@ -419,4 +419,16 @@
     .topbar-members-btn span:not(.caret) {
         display: none;
     }
+
+    .topbar-dropdown {
+        position: fixed;
+        top: auto;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92vw;
+        max-width: none;
+        max-height: 60vh;
+        z-index: 200;
+    }
 }

@@ -230,7 +230,7 @@ public class CriticalExceptionAlerter {
 
         try {
             // Constant subject per type → email clients thread them into one conversation
-            String subject = "[Task Manager] Critical: " + ex.getClass().getSimpleName();
+            String subject = "[MyTeamTasks] Critical: " + ex.getClass().getSimpleName();
             String body = buildAlertBody(ex, tracker.totalOccurrences);
             emailClient.sendEmail(adminEmail, subject, body);
             logger.info("Critical alert email sent for: {} (instance={})", ex.getClass().getName(), INSTANCE_ID);
@@ -244,7 +244,7 @@ public class CriticalExceptionAlerter {
 
     private String buildAlertBody(CriticalException exception, long totalOccurrences) {
         StringBuilder body = new StringBuilder();
-        body.append("A critical exception is occurring in the Task Manager application.\n\n");
+        body.append("A critical exception is occurring in the myteamtasks application.\n\n");
         body.append("Instance         : ").append(INSTANCE_ID).append("\n");
         body.append("Exception type   : ").append(exception.getClass().getName()).append("\n");
         body.append("Message          : ").append(exception.getMessage()).append("\n");

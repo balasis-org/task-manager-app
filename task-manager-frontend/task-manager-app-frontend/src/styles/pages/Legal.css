@@ -9,14 +9,17 @@
     display: inline-flex;
     align-items: center;
     gap: 0.375em;
-    background: none;
-    border: none;
-    color: var(--text-muted);
+    color: var(--text-heading);
     font-size: 0.81em;
     cursor: pointer;
-    padding: 0;
     margin-bottom: 1.5em;
     transition: color 0.15s;
+    position:fixed;
+    padding:0.5em;
+    border-radius:2em;
+    background-color: var(--bg-hover);
+    border-color: #9a8c8c;
+    left:3em;
 }
 
 .legal-back:hover {

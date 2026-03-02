@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import "@styles/pages/Login.css";
+import usePageTitle from "@hooks/usePageTitle";
+import "@styles/pages/AuthCallback.css";
 
 export default function AuthCallback() {
     const [searchParams] = useSearchParams();
     const [error, setError] = useState("");
+
+    usePageTitle("Signing in…");
 
     useEffect(() => {
         const code = searchParams.get("code");
@@ -53,11 +56,11 @@ export default function AuthCallback() {
 
     if (error) {
         return (
-            <div className="login-page">
-                <div className="login-card">
+            <div className="callback-page">
+                <div className="callback-error-card">
                     <h1>Authentication Error</h1>
-                    <div className="login-error">{error}</div>
-                    <a href="/login" className="login-btn" style={{ textAlign: "center", textDecoration: "none", display: "block", marginTop: 16 }}>
+                    <div className="callback-error-msg">{error}</div>
+                    <a href="/login" className="callback-error-back">
                         Back to login
                     </a>
                 </div>
@@ -66,10 +69,22 @@ export default function AuthCallback() {
     }
 
     return (
-        <div className="login-page">
-            <div className="login-card">
-                <h1>Signing in…</h1>
-                <p style={{ textAlign: "center", color: "#888" }}>Completing Azure AD authentication</p>
+        <div className="callback-page">
+            <div className="callback-logo-wrapper">
+                <div className="callback-spinner" />
+                <div className="callback-logo">
+                    <img
+                        src="/static_frontend/ico/favicon.ico"
+                        alt="myteamtasks"
+                    />
+                </div>
+            </div>
+
+            <div className="callback-text">
+                <p className="callback-title">Signing in…</p>
+                <p className="callback-subtitle">
+                    Completing authentication, please wait
+                </p>
             </div>
         </div>
     );

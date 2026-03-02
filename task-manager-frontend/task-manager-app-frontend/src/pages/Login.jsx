@@ -2,7 +2,8 @@ import { useContext, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
-import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
+import { FiUsers, FiLogIn, FiTool } from "react-icons/fi";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
@@ -29,6 +30,8 @@ export default function Login() {
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
+
+    usePageTitle("Sign in");
 
     if (!loading && user) return <Navigate to="/dashboard" replace />;
     if (loading) return null;
@@ -64,7 +67,6 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            { }
             {IS_DEV && (
                 <button
                     type="button"
@@ -77,13 +79,23 @@ export default function Login() {
                 </button>
             )}
 
+            <div className="login-hero" aria-hidden="true">
+                <div className="login-hero-content">
+                    <p className="login-hero-title">myteamtasks</p>
+                    <p className="login-hero-tagline">
+                        Where teams turn plans into progress
+                    </p>
+                </div>
+            </div>
+
+            <div className="login-card-panel">
             <div className="login-card">
                 <div className="login-brand">
                     <div className="login-brand-icon">
-                        <FiShield size={28} />
+                        <img src="/static_frontend/ico/favicon.ico" alt="" />
                     </div>
-                    <h1>Task Manager</h1>
-                    <p className="login-subtitle">Sign in to your account</p>
+                    <h1>Sign in</h1>
+                    <p className="login-subtitle">Access your team workspace</p>
                 </div>
 
                 {(error || authError) && <div className="login-error">{error || authError}</div>}
@@ -98,7 +110,6 @@ export default function Login() {
                     Sign in with Microsoft
                 </button>
 
-                { }
                 {IS_DEV && devOpen && (
                     <>
                         <div className="login-divider"><span>dev only</span></div>
@@ -136,6 +147,7 @@ export default function Login() {
                     <span className="login-legal-dot">·</span>
                     <Link to="/cookie-policy">Cookie Policy</Link>
                 </div>
+            </div>
             </div>
         </div>
     );

@@ -29,6 +29,8 @@ import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidato
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.PresenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,6 +64,8 @@ public class GroupController extends BaseComponent {
     private final GroupMiniForDropdownOutboundMapper groupMiniForDropdownOutboundMapper;
         private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
         private final UserService userService;
+    private final EffectiveCurrentUser effectiveCurrentUser;
+    private final PresenceService presenceService;
 
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
@@ -104,10 +108,23 @@ public class GroupController extends BaseComponent {
             @PathVariable Long groupId,
             @RequestParam Instant lastSeen
     ) {
-        if (groupService.hasGroupChanged(groupId, lastSeen)) {
-            return ResponseEntity.status(409).build();
-        }
-        return ResponseEntity.noContent().build();
+        boolean changed = groupService.hasGroupChanged(groupId, lastSeen);
+
+        // Piggyback a presence heartbeat — the user is actively viewing this group.
+        // Best-effort: PresenceService swallows Redis failures internally.
+        try {
+            presenceService.heartbeat(groupId, effectiveCurrentUser.getUserId());
+        } catch (Exception ignored) { }
+
+        return changed
+                ? ResponseEntity.status(409).build()
+                : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(path = "/{groupId}/presence")
+    public ResponseEntity<List<Long>> getGroupPresence(@PathVariable Long groupId) {
+        groupService.checkMembership(groupId);
+        return ResponseEntity.ok(presenceService.getPresent(groupId));
     }
 
     @GetMapping(path = "/{groupId}/refresh")

@@ -7,11 +7,14 @@ import { LIMITS } from "@assets/js/inputValidation";
 import SettingsAvatar from "@components/settings/SettingsAvatar";
 import SettingsInviteCode from "@components/settings/SettingsInviteCode";
 import SettingsPreferences from "@components/settings/SettingsPreferences";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Settings.css";
 
 export default function Settings() {
     const { user, setUser } = useContext(AuthContext);
     const showToast = useToast();
+
+    usePageTitle("Settings");
 
     const [name, setName] = useState(user?.name || "");
     const [emailNotif, setEmailNotif] = useState(user?.allowEmailNotification ?? true);

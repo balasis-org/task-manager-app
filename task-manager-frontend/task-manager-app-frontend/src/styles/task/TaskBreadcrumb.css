@@ -148,7 +148,16 @@
 }
 
 @media (max-width: 480px) {
+    .task-breadcrumb {
+        gap: 0.5em;
+    }
+    .task-breadcrumb-trail {
+        max-width: 10em;
+    }
     .task-breadcrumb-right {
+        gap: 0.375em;
+    }
+    .task-meta-byline {
         display: none;
     }
 }
