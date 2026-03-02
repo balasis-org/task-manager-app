@@ -5,8 +5,11 @@ import io.github.balasis.taskmanager.context.web.jwt.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -28,6 +31,9 @@ public class WebConfig implements WebMvcConfigurer {
     private final RateLimitInterceptor rateLimitInterceptor;
     private final Environment environment;
 
+    @Value("${app.download-threads:15}")
+    private int downloadThreads;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry){
 
@@ -40,6 +46,36 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .order(2)
                 .excludePathPatterns("/auth/**", "/health", "/actuator/health", "/h2-console", "/");
+    }
+
+    /**
+     * Caps the thread pool used by StreamingResponseBody (file downloads).
+     *
+     * Without this, Spring falls back to SimpleAsyncTaskExecutor which spawns
+     * a NEW thread per download with no upper bound — that can exhaust OS
+     * threads and crash the JVM under burst traffic.
+     *
+     * 15 threads keeps the B2 instance (2 vCPU, ~250 Mbps) comfortable,
+     * and the deep queue (100) means ordinary users virtually never see a
+     * 503 rejection — the browser just shows its "waiting" spinner until a
+     * slot opens.  The per-user DownloadGate (max 3) prevents any single
+     * user from clogging the whole pool.
+     *
+     * The 150 s safety-net timeout sits above our highest per-tier cap
+     * (TEAM = 120 s) so Spring never kills a transfer that our own
+     * per-file deadline would still allow.
+     */
+    @Override
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+        ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
+        pool.setCorePoolSize(downloadThreads);
+        pool.setMaxPoolSize(downloadThreads);
+        pool.setQueueCapacity(100); // deep queue so rejections are near-impossible
+        pool.setThreadNamePrefix("dl-stream-");
+        pool.initialize();
+
+        configurer.setTaskExecutor(pool);
+        configurer.setDefaultTimeout(150_000); // sits above TEAM tier cap (120 s)
     }
 
     @Override
@@ -65,7 +101,7 @@ public class WebConfig implements WebMvcConfigurer {
                     origins.add("http://" + ip + ":" + port);
                 }
             }
-            log.info("CORS: dev-mode network origins added — {}", origins);
+            log.info("CORS: dev-mode network origins added - {}", origins);
         }
 
         registry.addMapping("/**")
@@ -94,7 +130,7 @@ public class WebConfig implements WebMvcConfigurer {
                 }
             }
         } catch (Exception e) {
-            // Fallback — no extra origins
+            // Fallback, no extra origins
         }
         return ips;
     }

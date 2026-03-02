@@ -18,6 +18,7 @@ import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.RefreshTokenRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
+import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.config.AuthConfig;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,8 @@ public class AuthService extends BaseComponent {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final DefaultImageService defaultImageService;
+    private final UserService userService;
+    private final PlanLimits planLimits;
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
@@ -93,12 +96,18 @@ public class AuthService extends BaseComponent {
 
     public Map<String,Object> authenticateThroughAzureCode(String code, boolean secureCookies){
         validateAuthorizationCode(code);
-        var idToken = extractIdToken(code);
+        var tokenResponse = exchangeCodeForToken(code);
+        var idToken = (String) tokenResponse.get("id_token");
+        if (idToken == null) {
+            throw new AuthenticationIntegrityException("Missing ID token from Azure");
+        }
+        var accessToken = (String) tokenResponse.get("access_token");
         Map<String, Object> claims = new HashMap<>(decodeIdToken(idToken));
         var tenantId = extractTenantId(claims);
         var email = extractEmail(claims);
         var azureId = (String) claims.get("oid");
         var user = findOrCreateUser(tenantId,email,azureId, (String) claims.get("name"));
+        tryFetchMicrosoftPhoto(accessToken, user);
         var refreshCode = generateRandomRefreshToken(32);
         var refreshTokenId = refreshTokenRepository.save(
                 RefreshToken.builder().refreshCode(refreshCode).user(user).build()
@@ -121,13 +130,25 @@ public class AuthService extends BaseComponent {
         }
     }
 
-    private String extractIdToken(String code) {
-        var response = exchangeCodeForToken(code);
-        var idToken = (String) response.get("id_token");
-        if (idToken == null) {
-            throw new AuthenticationIntegrityException("Missing ID token from Azure");
+    /**
+     * Best-effort: fetch the user's Microsoft profile photo and store it
+     * in blob storage. Fails silently — a missing photo must never block login.
+     */
+    private void tryFetchMicrosoftPhoto(String accessToken, User user) {
+        if (accessToken == null || accessToken.isBlank()) return;
+        try {
+            byte[] photo = webClient.get()
+                    .uri("https://graph.microsoft.com/v1.0/me/photo/$value")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+            if (photo != null && photo.length > 0) {
+                userService.storeMicrosoftPhoto(user, photo);
+            }
+        } catch (Exception e) {
+            logger.debug("Could not fetch Microsoft profile photo: {}", e.getMessage());
         }
-        return idToken;
     }
 
     private String extractEmail(Map<String, Object> claims){
@@ -170,7 +191,7 @@ public class AuthService extends BaseComponent {
                 })
                 .orElseGet(() -> {
 
-                    if (!isAdmin && userRepository.count() >= PlanLimits.MAX_USERS) {
+                    if (!isAdmin && userRepository.count() >= planLimits.getMaxUsers()) {
                         throw new LimitExceededException(
                                 "We apologize but currently the application has reached the maximum number of user");
                     }

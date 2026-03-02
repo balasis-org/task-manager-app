@@ -6,7 +6,7 @@ import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 import "@styles/popups/NewGroupPopup.css";
 
-export default function NewGroupPopup({ onClose, onCreated }) {
+export default function NewGroupPopup({ onClose, onCreated, user }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [coverImage, setCoverImage] = useState(null);
@@ -63,6 +63,8 @@ export default function NewGroupPopup({ onClose, onCreated }) {
     useEffect(() => () => {
         if (coverPreview) URL.revokeObjectURL(coverPreview);
     }, [coverPreview]);
+
+    const isFree = user?.subscriptionPlan === "FREE";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -168,6 +170,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                         <p className="popup-field-hint">You can always edit this later from group settings.</p>
                     </div>
 
+                    {!isFree && (
                     <div className="popup-field">
                         <label className="popup-label">
                             Cover image
@@ -212,6 +215,7 @@ export default function NewGroupPopup({ onClose, onCreated }) {
                             onChange={handleCoverChange}
                         />
                     </div>
+                    )}
 
                     <div className="popup-actions">
                         <button

@@ -12,9 +12,10 @@ export default function DashboardTaskSection({
     showDeleteColumn,
     onOpenNewTask,
     groupId,
-    colWidths,
+    gridTemplate,
     visCols,
     onDeleted,
+    deleteColWidth,
 }) {
     return (
         <div className="task-section" data-state={state}>
@@ -45,10 +46,11 @@ export default function DashboardTaskSection({
                 <TaskTable
                     tasks={tasks}
                     groupId={groupId}
-                    colWidths={colWidths}
+                    gridTemplate={gridTemplate}
                     visCols={visCols}
                     canManageTasks={showDeleteColumn}
                     onDeleted={onDeleted}
+                    deleteColWidth={deleteColWidth}
                 />
             )}
         </div>

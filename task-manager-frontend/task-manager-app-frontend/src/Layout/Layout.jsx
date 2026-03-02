@@ -1,15 +1,39 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
-import { apiGet } from "@assets/js/apiClient.js";
+import { apiGet, apiPost } from "@assets/js/apiClient.js";
+import { FiCopy, FiRefreshCw } from "react-icons/fi";
+import { useToast } from "@context/ToastContext";
 import Footer from "@components/footer/Footer";
 import SidebarProfile from "@components/layout/SidebarProfile";
 import SidebarNav from "@components/layout/SidebarNav";
 import "@styles/Layout.css";
 
 export default function Layout({ children }) {
-    const { user, logout } = useContext(AuthContext);
+    const { user, setUser, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const showToast = useToast();
+    const [refreshingCode, setRefreshingCode] = useState(false);
+
+    function handleCopyCode() {
+        if (user?.inviteCode) {
+            navigator.clipboard.writeText(user.inviteCode);
+            showToast("Invite code copied!", "success");
+        }
+    }
+
+    async function handleRefreshCode() {
+        setRefreshingCode(true);
+        try {
+            const updated = await apiPost("/api/users/me/refresh-invite-code");
+            setUser((prev) => (prev ? { ...prev, inviteCode: updated.inviteCode } : prev));
+            showToast("Invite code refreshed!", "success");
+        } catch (err) {
+            showToast(err?.message || "Failed to refresh invite code");
+        } finally {
+            setRefreshingCode(false);
+        }
+    }
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [hasNewInvites, setHasNewInvites] = useState(false);
@@ -121,6 +145,23 @@ export default function Layout({ children }) {
             </aside>
 
             <div className="layout-body">
+                <div className="mini-info-bar">
+                    {user?.inviteCode && (
+                        <span className="mini-info-code-group">
+                            <span className="mini-info-label">Invite code:</span>
+                            <span className="mini-info-code">{user.inviteCode}</span>
+                            <button className="mini-info-btn" onClick={handleCopyCode} title="Copy code">
+                                <FiCopy size={11} />
+                            </button>
+                            <button className="mini-info-btn" onClick={handleRefreshCode} title="Refresh code" disabled={refreshingCode}>
+                                <FiRefreshCw size={11} className={refreshingCode ? "spin" : ""} />
+                            </button>
+                        </span>
+                    )}
+                    <span className="mini-info-date">
+                        {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                </div>
                 <main className="layout-main">{children}</main>
             </div>
         </div>

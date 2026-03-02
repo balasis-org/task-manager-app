@@ -4,9 +4,12 @@ import io.github.balasis.taskmanager.context.base.model.Group;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.Instant;
 import java.util.Optional;
 
 @Repository
@@ -37,4 +40,8 @@ public interface GroupRepository extends JpaRepository<Group,Long> {
            OR o.name LIKE concat('%', :q, '%')
     """)
     Page<Group> adminSearchGroups(@Param("q") String q, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE Group g SET g.lastChangeInGroup = :now WHERE g.owner.id = :ownerId")
+    void touchLastChangeByOwnerId(@Param("ownerId") Long ownerId, @Param("now") Instant now);
 }

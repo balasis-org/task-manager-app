@@ -1,4 +1,4 @@
-/* ─── Presence indicator — stacked avatars with green pulse dot ─── */
+﻿/* --- Presence indicator - stacked avatars with green pulse dot --- */
 
 .presence-bar {
     display: flex;
@@ -13,7 +13,7 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Avatar stack ─── */
+/* --- Avatar stack --- */
 
 .presence-avatars {
     display: flex;
@@ -50,7 +50,7 @@
     background: var(--bg-secondary, #f8f9fa);
 }
 
-/* ─── Green dot (online indicator) ─── */
+/* --- Green dot (online indicator) --- */
 
 .presence-dot {
     position: absolute;
@@ -80,7 +80,7 @@
     50%      { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0); }
 }
 
-/* ─── Overflow badge (+N) ─── */
+/* --- Overflow badge (+N) --- */
 
 .presence-overflow {
     display: flex;
@@ -98,7 +98,7 @@
     cursor: default;
 }
 
-/* ─── "N online" label ─── */
+/* --- "N online" label --- */
 
 .presence-label {
     font-size: 0.7em;
@@ -108,19 +108,13 @@
     line-height: 1;
 }
 
-/* ─── Responsive: hide label on small screens ─── */
+/* --- Responsive: keep label and avatars at consistent size --- */
 
 @media (max-width: 600px) {
-    .presence-label { display: none; }
-    .presence-avatar {
-        width: 22px;
-        height: 22px;
-        margin-left: -5px;
+    .presence-bar {
+        gap: 0.3em;
     }
-    .presence-avatar:first-child { margin-left: 0; }
-    .presence-overflow {
-        width: 22px;
-        height: 22px;
-        margin-left: -5px;
+    .presence-label {
+        font-size: 0.65em;
     }
 }

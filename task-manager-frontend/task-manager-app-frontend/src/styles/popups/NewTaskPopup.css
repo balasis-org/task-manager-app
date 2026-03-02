@@ -34,7 +34,7 @@
     color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 0.375em;
+    gap: 1em;
 }
 .popup-chip-list {
     display: flex;
@@ -76,7 +76,6 @@
     align-items: center;
     gap: 0.25em;
     margin-left: auto;
-    background: var(--bg-active);
     border: 0.06em solid var(--border-primary);
     border-radius: 0.25em;
     padding: 0.125em 0.375em;
@@ -94,4 +93,26 @@
 .popup-picker-search svg {
     flex-shrink: 0;
     color: var(--text-placeholder);
+}
+
+/* ── email mode info strip ── */
+.nt-email-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1em 0;
+    font-size: 0.75em;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: 0.375em;
+    padding: 0.4em 0.65em;
+    margin-bottom: 1em;
+    flex-direction: column;
+}
+.nt-email-info-hint {
+    width: 100%;
+    margin: 0.2em 0 0;
+    font-size: 0.9em;
+    opacity: 0.7;
+    font-style:italic;
 }

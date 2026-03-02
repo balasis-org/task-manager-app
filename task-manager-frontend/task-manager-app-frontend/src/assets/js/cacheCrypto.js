@@ -1,12 +1,12 @@
-
+﻿
 const SALT = new TextEncoder().encode("tm-cache-salt-v1");
 const IV_LEN = 12;
 
 /**
- * In-memory cache: rawKey → CryptoKey.
+ * In-memory cache: rawKey -> CryptoKey.
  * PBKDF2 with 100 000 iterations costs ~50-200 ms per call (device-dependent).
  * Caching ensures we pay that cost once per session per user, not on every
- * encrypt/decrypt operation.  The cache lives only in JS heap — never persisted.
+ * encrypt/decrypt operation.  The cache lives only in JS heap - never persisted.
  */
 const derivedKeyCache = new Map();
 

@@ -1,4 +1,4 @@
-// Comments tab gets its own filter row; everything else just uses a search box
+﻿// Comments tab gets its own filter row; everything else just uses a search box
 import { FiSearch, FiFilter } from "react-icons/fi";
 import "@styles/admin/AdminSearchBar.css";
 
@@ -35,7 +35,7 @@ export default function AdminSearchBar({
         );
     }
 
-    // comments already returned above — everything else is a simple search box
+    // comments already returned above - everything else is a simple search box
     return (
         <div className="admin-search">
             <FiSearch size={14} />

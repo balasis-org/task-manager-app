@@ -1,4 +1,4 @@
-/* ── Comments page orchestrator styles ── */
+﻿/* -- Comments page orchestrator styles -- */
 
 .comments-page {
     display: flex;
@@ -17,13 +17,16 @@
     font-size: 0.94em;
 }
 
-/* ── Breadcrumb ── */
+/* -- Breadcrumb -- */
 
 .comments-breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.75em;
-    padding: 0.625em 1em;
+    padding-top:2.5em;
+    padding-bottom:1.5em;
+    padding-left:0.5em;
+    padding-right:0.5em;
     background: var(--bg-secondary);
     border-bottom: 0.06em solid var(--border-primary);
     font-size: 0.81em;
@@ -81,7 +84,7 @@
     color: var(--text-faint);
 }
 
-/* ── Top actions ── */
+/* -- Top actions -- */
 
 .comments-top-actions {
     display: flex;
@@ -112,7 +115,7 @@
     margin: 0 auto;
 }
 
-/* ── List + empty ── */
+/* -- List + empty -- */
 
 .comments-list {
     flex: 1;
@@ -136,7 +139,7 @@
     font-style: italic;
 }
 
-/* ── Pagination ── */
+/* -- Pagination -- */
 
 .comments-pagination {
     display: flex;
@@ -154,7 +157,7 @@
     color: var(--text-muted);
 }
 
-/* ── Shared button styles ── */
+/* -- Shared button styles -- */
 
 .btn-danger {
     background: var(--danger);
@@ -191,7 +194,7 @@
     font-size: 0.75em;
 }
 
-/* ── Stale banner ── */
+/* -- Stale banner -- */
 
 .comments-stale-banner {
     display: flex;
@@ -211,11 +214,10 @@
 
 @keyframes commentsStaleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Responsive ── */
+/* -- Responsive -- */
 
 @media (max-width: 768px) {
     .comments-breadcrumb {
-        padding: 0.5em 0.75em;
         font-size: 0.75em;
     }
 
@@ -228,9 +230,8 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 28em) {
     .comments-breadcrumb {
-        padding: 0.375em 0.5em;
         gap: 0.5em;
     }
 

@@ -1,9 +1,11 @@
-import { useContext, useEffect, useState } from "react";
-import { FiUser, FiMail, FiCheck, FiX } from "react-icons/fi";
+﻿import { useContext, useEffect, useState } from "react";
+import { FiUser, FiMail, FiCheck, FiX, FiHardDrive, FiDownloadCloud, FiLayers, FiImage } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
 import { useToast } from "@context/ToastContext";
-import { apiPatch } from "@assets/js/apiClient.js";
+import { useTierUpgrade } from "@context/TierUpgradeContext";
+import { apiGet, apiPatch } from "@assets/js/apiClient.js";
 import { LIMITS } from "@assets/js/inputValidation";
+import { formatFileSize } from "@assets/js/fileUtils";
 import SettingsAvatar from "@components/settings/SettingsAvatar";
 import SettingsInviteCode from "@components/settings/SettingsInviteCode";
 import SettingsPreferences from "@components/settings/SettingsPreferences";
@@ -13,6 +15,7 @@ import "@styles/pages/Settings.css";
 export default function Settings() {
     const { user, setUser } = useContext(AuthContext);
     const showToast = useToast();
+    const openTierUpgrade = useTierUpgrade();
 
     usePageTitle("Settings");
 
@@ -46,6 +49,10 @@ export default function Settings() {
             setDarkMode(true);
             document.documentElement.setAttribute("data-theme", "dark");
         }
+    }, []);
+
+    useEffect(() => {
+        apiGet("/api/users/me").then(setUser).catch(() => {});
     }, []);
 
     const hasChanges = name.trim() !== serverName || emailNotif !== serverNotif;
@@ -108,7 +115,7 @@ export default function Settings() {
                         <span className="settings-label">
                             <FiMail size={13} /> Email
                         </span>
-                        <span className="settings-value-ro">{user?.email || "—"}</span>
+                        <span className="settings-value-ro">{user?.email || "-"}</span>
                         <span className="settings-hint">Managed by your identity provider</span>
                     </div>
 
@@ -121,6 +128,115 @@ export default function Settings() {
                     darkMode={darkMode}
                     onDarkModeChange={setDarkMode}
                 />
+
+                <section className="settings-card">
+                    <h2 className="settings-card-heading">
+                        <FiLayers size={16} /> Subscription Plan
+                    </h2>
+                    <div className="settings-storage-info">
+                        <span className="settings-plan-badge">{user?.subscriptionPlan || "FREE"}</span>
+                        <button className="settings-btn settings-btn-secondary settings-change-plan-btn" onClick={openTierUpgrade}>
+                            View Plans
+                        </button>
+                    </div>
+                </section>
+
+                {/* storage usage — only shown for paid plans (budget > 0) */}
+                {user?.storageBudgetBytes > 0 && (
+                    <section className="settings-card">
+                        <h2 className="settings-card-heading">
+                            <FiHardDrive size={16} /> Storage
+                        </h2>
+                        <div className="settings-storage-info">
+                            <span>
+                                {formatFileSize(user.usedStorageBytes ?? 0)} / {formatFileSize(user.storageBudgetBytes)} used
+                            </span>
+                            <span className="settings-plan-badge">{user.subscriptionPlan}</span>
+                        </div>
+                        <div className="settings-storage-bar-track">
+                            <div
+                                className={`settings-storage-bar-fill${
+                                    (user.usedStorageBytes ?? 0) / user.storageBudgetBytes > 0.9 ? " danger" : ""
+                                }`}
+                                style={{
+                                    width: `${Math.min(100, ((user.usedStorageBytes ?? 0) / user.storageBudgetBytes) * 100)}%`,
+                                }}
+                            />
+                        </div>
+                    </section>
+                )}
+
+                {/* monthly download budget — shown for all plans */}
+                {user?.downloadBudgetBytes > 0 && (
+                    <section className="settings-card">
+                        <h2 className="settings-card-heading">
+                            <FiDownloadCloud size={16} /> Download Budget{" "}
+                            <span className="settings-heading-hint">(for groups you own)</span>
+                        </h2>
+                        <div className="settings-storage-info">
+                            <span>
+                                {formatFileSize(user.usedDownloadBytesMonth ?? 0)} / {formatFileSize(user.downloadBudgetBytes)} used this month
+                            </span>
+                            <span className="settings-plan-badge">{user.subscriptionPlan}</span>
+                        </div>
+                        <div className="settings-storage-bar-track">
+                            <div
+                                className={`settings-storage-bar-fill${
+                                    (user.usedDownloadBytesMonth ?? 0) / user.downloadBudgetBytes > 0.9 ? " danger" : ""
+                                }`}
+                                style={{
+                                    width: `${Math.min(100, ((user.usedDownloadBytesMonth ?? 0) / user.downloadBudgetBytes) * 100)}%`,
+                                }}
+                            />
+                        </div>
+                    </section>
+                )}
+
+                {/* image uploads this month — paid plans only, discreet count */}
+                {user?.imageScansPerMonth > 0 && (
+                    <section className="settings-card">
+                        <h2 className="settings-card-heading">
+                            <FiImage size={16} /> Images Uploaded
+                        </h2>
+                        <div className="settings-storage-info">
+                            <span className={
+                                (user.usedImageScansMonth ?? 0) >= user.imageScansPerMonth
+                                    ? "settings-image-count-limit" : ""
+                            }>
+                                {user.usedImageScansMonth ?? 0} this month
+                            </span>
+                        </div>
+                        <span className="settings-image-hint">
+                            Resets monthly. Choosing a default or your Microsoft image doesn&rsquo;t count.
+                        </span>
+                    </section>
+                )}
+
+                {/* monthly email quota — shown for plans with email budget */}
+                {user?.emailsPerMonth > 0 && (
+                    <section className="settings-card">
+                        <h2 className="settings-card-heading">
+                            <FiMail size={16} /> Email Quota{" "}
+                            <span className="settings-heading-hint">(for groups you own)</span>
+                        </h2>
+                        <div className="settings-storage-info">
+                            <span>
+                                {user.usedEmailsMonth ?? 0} / {user.emailsPerMonth} sent this month
+                            </span>
+                            <span className="settings-plan-badge">{user.subscriptionPlan}</span>
+                        </div>
+                        <div className="settings-storage-bar-track">
+                            <div
+                                className={`settings-storage-bar-fill${
+                                    (user.usedEmailsMonth ?? 0) / user.emailsPerMonth > 0.9 ? " danger" : ""
+                                }`}
+                                style={{
+                                    width: `${Math.min(100, ((user.usedEmailsMonth ?? 0) / user.emailsPerMonth) * 100)}%`,
+                                }}
+                            />
+                        </div>
+                    </section>
+                )}
             </div>
 
             {hasChanges && (

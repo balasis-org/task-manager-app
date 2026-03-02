@@ -41,8 +41,9 @@ export default function AuthCallback() {
                 }
 
                 if (!cancelled) {
-
-                    window.location.href = "/dashboard";
+                    const returnUrl = sessionStorage.getItem("returnUrl") || "/dashboard";
+                    sessionStorage.removeItem("returnUrl");
+                    window.location.href = returnUrl;
                 }
             } catch (err) {
                 if (!cancelled) {

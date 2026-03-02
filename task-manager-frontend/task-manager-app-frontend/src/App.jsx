@@ -19,6 +19,7 @@ import AuthProvider from "@context/AuthProvider.jsx";
 import GroupProvider from "@context/GroupProvider.jsx";
 import { BlobSasProvider } from "@context/BlobSasContext.jsx";
 import { ToastProvider } from "@context/ToastContext.jsx";
+import TierUpgradeProvider from "@context/TierUpgradeContext.jsx";
 
 export default function App() {
     return (
@@ -27,6 +28,7 @@ export default function App() {
             <ToastProvider>
             <AuthProvider>
             <BlobSasProvider>
+                <TierUpgradeProvider>
                 <GroupProvider>
                 <Routes>
                     <Route path="/about-us" element={<ProtectedRoute><Layout><AboutUs /></Layout></ProtectedRoute>} />
@@ -46,6 +48,7 @@ export default function App() {
                     <Route path="*" element={<NotFound />} />
                 </Routes>
                 </GroupProvider>
+                </TierUpgradeProvider>
             </BlobSasProvider>
             </AuthProvider>
             </ToastProvider>

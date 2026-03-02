@@ -1,4 +1,4 @@
-import { formatDate } from "@assets/js/formatDate";
+﻿import { formatDate } from "@assets/js/formatDate";
 import "@styles/invitations/InvitationCard.css";
 
 // isPending controls the two layouts: action buttons vs. status badge
@@ -13,7 +13,7 @@ export default function InvitationCard({ inv, isUnread, isPending, onRespond }) 
                 </span>
                 {isPending ? (
                     <span className="invitation-from">
-                        Inviter: {inv.invitedBy?.name || inv.invitedBy?.email || "—"}
+                        Inviter: {inv.invitedBy?.name || inv.invitedBy?.email || "-"}
                     </span>
                 ) : (
                     <span className={`invitation-status ${inv.invitationStatus?.toLowerCase()}`}>
@@ -47,7 +47,7 @@ export default function InvitationCard({ inv, isUnread, isPending, onRespond }) 
                     </div>
                 ) : (
                     <span className="invitation-from">
-                        From: {inv.invitedBy?.name || inv.invitedBy?.email || "—"}
+                        From: {inv.invitedBy?.name || inv.invitedBy?.email || "-"}
                     </span>
                 )}
             </div>

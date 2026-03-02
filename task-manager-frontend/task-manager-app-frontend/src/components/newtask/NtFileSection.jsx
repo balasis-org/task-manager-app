@@ -1,18 +1,16 @@
 import { useState, useRef } from "react";
 import { FiX, FiPlus } from "react-icons/fi";
-import { LIMITS } from "@assets/js/inputValidation";
-import { isFileTooLarge, getFileIcon } from "@assets/js/fileUtils";
+import { isFileTooLarge, getFileIcon, formatFileSize } from "@assets/js/fileUtils";
 import "@styles/newtask/NtFileSection.css";
 
-export default function NtFileSection({ files, onFilesChange, onError }) {
+export default function NtFileSection({ files, onFilesChange, onError, maxFiles, maxFileSizeBytes }) {
     const [fileDragOver, setFileDragOver] = useState(false);
     const fileInputRef = useRef(null);
-    const maxFiles = LIMITS.MAX_TASK_FILES;
 
     function addFiles(incoming) {
-        const oversized = incoming.filter(isFileTooLarge);
+        const oversized = incoming.filter(f => isFileTooLarge(f, maxFileSizeBytes));
         if (oversized.length) {
-            onError(`File(s) exceed ${LIMITS.MAX_FILE_SIZE_MB} MB limit: ${oversized.map((f) => f.name).join(", ")}`);
+            onError(`File(s) exceed ${formatFileSize(maxFileSizeBytes)} limit: ${oversized.map((f) => f.name).join(", ")}`);
             return;
         }
         const combined = [...files, ...incoming];

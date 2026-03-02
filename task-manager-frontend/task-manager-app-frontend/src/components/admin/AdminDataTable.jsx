@@ -1,4 +1,4 @@
-// One table for all admin tabs — columns switch based on `tab`.
+﻿// One table for all admin tabs - columns switch based on `tab`.
 // Intentionally inline JSX per tab rather than a column-config object;
 // we tried the config approach and it was harder to read with mixed JSX badges/buttons.
 import { FiTrash2, FiChevronLeft, FiChevronRight } from "react-icons/fi";
@@ -35,7 +35,7 @@ export default function AdminDataTable({
                                             <td>{item.email}</td>
                                             <td><span className={`admin-badge ${item.systemRole === "ADMIN" ? "admin" : "user"}`}>{item.systemRole}</span></td>
                                             <td>{item.subscriptionPlan}</td>
-                                            <td>{formatDate(item.lastActiveAt, "—")}</td>
+                                            <td>{formatDate(item.lastActiveAt, "-")}</td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 {item.systemRole !== "ADMIN" && (
                                                     <button className="admin-delete-btn" onClick={() => onRequestDelete({ type: "users", id: item.id, label: item.name || item.email })} title="Delete user">
@@ -52,7 +52,7 @@ export default function AdminDataTable({
                                             <td>{item.ownerName || item.ownerEmail}</td>
                                             <td>{item.memberCount}</td>
                                             <td>{item.taskCount}</td>
-                                            <td>{formatDate(item.createdAt, "—")}</td>
+                                            <td>{formatDate(item.createdAt, "-")}</td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => onRequestDelete({ type: "groups", id: item.id, label: item.name })} title="Delete group">
                                                     <FiTrash2 size={14} />
@@ -66,8 +66,8 @@ export default function AdminDataTable({
                                             <td className="admin-cell-clamp">{item.title}</td>
                                             <td><span className={`admin-badge state-${(item.taskState || "").toLowerCase()}`}>{item.taskState}</span></td>
                                             <td>{item.groupName || `#${item.groupId}`}</td>
-                                            <td>{item.creatorNameSnapshot || "—"}</td>
-                                            <td>{formatDate(item.dueDate, "—")}</td>
+                                            <td>{item.creatorNameSnapshot || "-"}</td>
+                                            <td>{formatDate(item.dueDate, "-")}</td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => onRequestDelete({ type: "tasks", id: item.id, label: item.title })} title="Delete task">
                                                     <FiTrash2 size={14} />
@@ -79,10 +79,10 @@ export default function AdminDataTable({
                                         <>
                                             <td>{item.id}</td>
                                             <td className="admin-cell-clamp">{item.comment}</td>
-                                            <td>{item.creatorName || "—"}</td>
+                                            <td>{item.creatorName || "-"}</td>
                                             <td>{item.taskTitle || `#${item.taskId}`}</td>
-                                            <td>{item.groupName || (item.groupId ? `#${item.groupId}` : "—")}</td>
-                                            <td>{formatDate(item.createdAt, "—")}</td>
+                                            <td>{item.groupName || (item.groupId ? `#${item.groupId}` : "-")}</td>
+                                            <td>{formatDate(item.createdAt, "-")}</td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 <button className="admin-delete-btn" onClick={() => onRequestDelete({ type: "comments", id: item.id, label: `Comment #${item.id}` })} title="Delete comment">
                                                     <FiTrash2 size={14} />

@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+﻿import { useState, useContext } from "react";
 import { FiCopy, FiRefreshCw } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
 import { useToast } from "@context/ToastContext";
@@ -34,7 +34,7 @@ export default function SettingsInviteCode() {
         <div className="settings-field">
             <span className="settings-label">Invite code</span>
             <div className="settings-invite-code-row">
-                <span className="settings-invite-code">{user?.inviteCode || "—"}</span>
+                <span className="settings-invite-code">{user?.inviteCode || "-"}</span>
                 <button
                     type="button"
                     className="settings-code-btn"

@@ -1,4 +1,4 @@
-// Dropdown for picking a member by name/email — used in the filter panel
+﻿// Dropdown for picking a member by name/email - used in the filter panel
 import { useState, useRef, useEffect } from "react";
 import { FiX } from "react-icons/fi";
 import "@styles/filterpanel/FilterMemberPicker.css";

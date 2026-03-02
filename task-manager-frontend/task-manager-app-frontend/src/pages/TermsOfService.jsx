@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import {
     FiArrowLeft, FiFileText, FiInfo, FiUserPlus, FiShield,
     FiUploadCloud, FiAlertCircle, FiEye, FiLock, FiClock,
-    FiAlertTriangle, FiRefreshCw, FiMail
+    FiAlertTriangle, FiRefreshCw, FiMail, FiLayers
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";
 import "@styles/pages/TermsOfService.css";
@@ -23,7 +23,7 @@ export default function TermsOfService() {
             <section className="legal-hero">
                 <div className="legal-hero-icon"><FiFileText size={28} /></div>
                 <h1>Terms of Service</h1>
-                <p>Last updated &mdash; February 2026</p>
+                <p>Last updated &mdash; March 2026</p>
             </section>
 
             { }
@@ -44,6 +44,149 @@ export default function TermsOfService() {
                     part of a university thesis project. It enables teams to create
                     groups, assign tasks, track progress with review workflows, share
                     files, and communicate through comments.
+                </p>
+            </section>
+
+            { }
+            <section className="legal-section">
+                <h2><FiLayers size={18} /> Subscription Tiers</h2>
+                <p>
+                    MyTeamTasks defines four subscription tiers. Each tier determines
+                    the limits that apply to your account. The group owner&rsquo;s
+                    tier governs all members of that group.
+                </p>
+                <div className="legal-warning">
+                    <strong>Academic Thesis Notice:</strong> This application was
+                    developed as part of a university thesis project.{" "}
+                    <strong>No payment gateway exists and no real charges are
+                    made.</strong> The tiers and their pricing labels are included
+                    solely to demonstrate a fully functional, production-grade
+                    subscription system. The functionality behind each tier is{" "}
+                    <strong>real and fully implemented</strong>&mdash;different limits,
+                    quotas, and features do apply depending on the tier&mdash;but
+                    tiers above Free can only be assigned by a platform administrator
+                    for demonstration and thesis-evaluation purposes. Because no one
+                    pays for any tier, no financial obligation of any kind exists
+                    between the operator and any user.
+                </div>
+                <div className="tos-tier-table-wrap">
+                    <table className="tos-tier-table">
+                        <thead>
+                            <tr>
+                                <th>Limit</th>
+                                <th>Free</th>
+                                <th>Student</th>
+                                <th>Organizer</th>
+                                <th>Team</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Indicative price</td>
+                                <td>$0</td>
+                                <td>$1.90/mo</td>
+                                <td>$6.20/mo</td>
+                                <td>$10/mo</td>
+                            </tr>
+                            <tr>
+                                <td>Members / group</td>
+                                <td>8</td>
+                                <td>20</td>
+                                <td>30</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Groups</td>
+                                <td>2</td>
+                                <td>5</td>
+                                <td>10</td>
+                                <td>15</td>
+                            </tr>
+                            <tr>
+                                <td>Tasks per group</td>
+                                <td>30</td>
+                                <td>100</td>
+                                <td>300</td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>Creator files / task</td>
+                                <td>1</td>
+                                <td>3</td>
+                                <td>5</td>
+                                <td>5</td>
+                            </tr>
+                            <tr>
+                                <td>Assignee files / task</td>
+                                <td>1</td>
+                                <td>3</td>
+                                <td>5</td>
+                                <td>5</td>
+                            </tr>
+                            <tr>
+                                <td>Max file size</td>
+                                <td>5 MB</td>
+                                <td>100 MB</td>
+                                <td>100 MB</td>
+                                <td>100 MB</td>
+                            </tr>
+                            <tr>
+                                <td>Storage budget</td>
+                                <td>&mdash;</td>
+                                <td>500 MB</td>
+                                <td>2 GB</td>
+                                <td>5 GB</td>
+                            </tr>
+                            <tr>
+                                <td>Download budget / mo</td>
+                                <td>500 MB</td>
+                                <td>4 GB</td>
+                                <td>25 GB</td>
+                                <td>50 GB</td>
+                            </tr>
+                            <tr>
+                                <td>Download timeout</td>
+                                <td>30 s</td>
+                                <td>60 s</td>
+                                <td>90 s</td>
+                                <td>120 s</td>
+                            </tr>
+                            <tr>
+                                <td>Email notifications</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>Yes</td>
+                                <td>Yes</td>
+                            </tr>
+                            <tr>
+                                <td>Email invitations</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>Yes</td>
+                                <td>Yes</td>
+                            </tr>
+                            <tr>
+                                <td>Custom images</td>
+                                <td>&mdash;</td>
+                                <td>Yes</td>
+                                <td>Yes</td>
+                                <td>Yes</td>
+                            </tr>
+                            <tr>
+                                <td>Image uploads / mo</td>
+                                <td>&mdash;</td>
+                                <td>50</td>
+                                <td>100</td>
+                                <td>150</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    The prices shown are <strong>indicative only</strong> and reflect
+                    the projected cost model designed for the thesis. No payments are
+                    collected. Limits are subject to change; the current values are
+                    always reflected inside the application interface.
                 </p>
             </section>
 
@@ -121,7 +264,17 @@ export default function TermsOfService() {
                 <p>
                     <strong>File upload limits apply.</strong> Each task may have a
                     maximum number of files, and individual files are subject to size
-                    restrictions as displayed in the application.
+                    restrictions that vary by subscription tier (see the{" "}
+                    <strong>Subscription Tiers</strong> table above).
+                </p>
+                <p>
+                    <strong>Minimum connection speed.</strong> File downloads require a
+                    sustained connection of at least <strong>16&nbsp;Mbps</strong>{" "}
+                    (approximately 2&nbsp;MB/s). Transfers that fall below this
+                    threshold may be terminated automatically to protect shared server
+                    resources. We recommend a broadband or 4G/5G connection for the
+                    best experience. Users on extremely slow or unstable connections
+                    may encounter interrupted downloads.
                 </p>
             </section>
 
@@ -250,12 +403,18 @@ export default function TermsOfService() {
                         any kind, whether express or implied.</li>
                     <li>We shall not be liable for any indirect, incidental, special,
                         consequential, or punitive damages.</li>
-                    <li>Our total liability shall not exceed the amount you paid to use
-                        the Service (which is zero, as the Service is provided free of
-                        charge).</li>
                     <li>We are not responsible for any loss of data, interruption of
                         service, or damage resulting from the use of the Service.</li>
                 </ul>
+                <div className="legal-warning">
+                    <strong>No Financial Obligation:</strong> This Service is entirely
+                    free. No payment is collected, no payment gateway exists, and no
+                    financial transaction of any kind takes place between the operator
+                    and any user. Subscription tiers are assigned exclusively by a
+                    platform administrator for thesis-demonstration purposes.
+                    Because no user has paid for any tier or feature, the operator
+                    bears <strong>zero financial obligation</strong> to any user.
+                </div>
             </section>
 
             { }

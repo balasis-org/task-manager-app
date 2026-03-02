@@ -8,7 +8,7 @@
 }
 
 .dashboard-announcement {
-    padding: 0.5em 1em;
+    padding: 2em 1em;
     font-size: 0.81em;
     border-bottom: 0.06em solid var(--border-primary);
 }
@@ -27,52 +27,18 @@
 
 .dashboard-tasks {
     flex: 1;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: auto;
     padding: 0 0 1.5em;
-}
-
-.dashboard-search {
-    display: flex;
-    align-items: center;
-    padding: 0.5em 1em;
-    gap: 0.375em;
-    background: var(--bg-primary);
-    border-bottom: 0.06em solid var(--border-secondary);
-}
-
-.dashboard-search-input {
-    flex: 1;
-    padding: 0.375em 0.625em;
-    font-size: 0.81em;
-    border: 0.06em solid var(--border-input);
-    border-radius: 0.375em;
-    outline: none;
-    transition: border-color 0.15s;
-}
-
-.dashboard-search-input:focus {
-    border-color: #5b8def;
-}
-
-.dashboard-search-clear {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.875em;
-    color: var(--text-placeholder);
-    padding: 0.25em;
-}
-
-.dashboard-search-clear:hover {
-    color: var(--text-tertiary);
+    min-width: 0;
 }
 
 .dashboard-limits-bar {
     display: flex;
     gap: 0.75em;
-    padding: 0.25em 0 0.5em;
+    padding: 1.7em 1.3em 1.7em;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .dashboard-limit-tag {
@@ -85,6 +51,42 @@
     letter-spacing: 0.02em;
 }
 
+.dashboard-tier-badge {
+    text-transform: uppercase;
+    background: var(--accent-primary);
+    color: var(--text-on-primary);
+}
+
+.dashboard-access-toggle {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.69em;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    background: var(--bg-primary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+}
+
+.dashboard-access-toggle:hover {
+    background: var(--bg-active);
+}
+
+.dashboard-access-toggle.active {
+    color: var(--accent-primary, #2563eb);
+    border-color: var(--accent-primary, #2563eb);
+}
+
+.dashboard-guard-badge {
+    margin-left: 0.25em;
+    font-size: 0.9em;
+}
 
 .dashboard-stale-banner {
     display: flex;
@@ -103,25 +105,9 @@
 }
 @keyframes staleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-@media (max-width: 1024px) {
-    .dashboard-search {
-        padding: 0.5em 0.75em;
-    }
-}
-
 @media (max-width: 768px) {
     .dashboard-announcement {
         font-size: 0.75em;
-        padding: 0.375em 0.75em;
-    }
-}
 
-@media (max-width: 480px) {
-    .dashboard-search {
-        padding: 0.375em 0.5em;
-    }
-
-    .dashboard-search-input {
-        font-size: 0.75em;
     }
 }

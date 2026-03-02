@@ -51,10 +51,10 @@ public class RedisRateLimitService extends BaseComponent implements RateLimitSer
             throw e;
         } catch (Exception e) {
 
-            logger.error("Rate limiter unavailable — rejecting request: {}",
+            logger.error("Rate limiter unavailable, rejecting request: {}",
                     e.getMessage() != null ? e.getMessage() : "");
             throw new CriticalInfrastructureException(
-                "Redis rate limiter unavailable — rejecting request");
+                "Redis rate limiter unavailable, rejecting request");
         }
     }
 }

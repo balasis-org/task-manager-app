@@ -1,6 +1,8 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.AdminOutboundMapper;
 import io.github.balasis.taskmanager.context.web.resource.admin.outbound.*;
@@ -12,29 +14,30 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin")
+@Transactional(readOnly = true)
 public class AdminController extends BaseComponent {
-
-    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
 
     private final AdminService adminService;
     private final AdminOutboundMapper adminOutboundMapper;
+    private final PlanLimits planLimits;
 
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserResource>> listUsers(
             @RequestParam(required = false) String q, Pageable pageable) {
         return ResponseEntity.ok(adminService.listUsers(q, pageable)
-                .map(adminOutboundMapper::toUserResource));
+                .map(this::toUserResourceWithLimits));
     }
 
     @GetMapping("/users/{userId}")
     public ResponseEntity<AdminUserResource> getUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(adminOutboundMapper.toUserResource(adminService.getUser(userId)));
+        return ResponseEntity.ok(toUserResourceWithLimits(adminService.getUser(userId)));
     }
 
     @DeleteMapping("/users/{userId}")
@@ -84,9 +87,10 @@ public class AdminController extends BaseComponent {
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadTaskFile(taskId, fileId);
+        long timeoutMs = planLimits.computeDownloadTimeoutMs(download.size(), SubscriptionPlan.TEAM);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+                transferWithTimeout(in, out, timeoutMs);
             }
         };
         return ResponseEntity.ok()
@@ -102,9 +106,10 @@ public class AdminController extends BaseComponent {
             @PathVariable Long taskId,
             @PathVariable Long fileId) {
         TaskFileDownload download = adminService.downloadAssigneeTaskFile(taskId, fileId);
+        long timeoutMs = planLimits.computeDownloadTimeoutMs(download.size(), SubscriptionPlan.TEAM);
         StreamingResponseBody body = out -> {
             try (var in = download.content()) {
-                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
+                transferWithTimeout(in, out, timeoutMs);
             }
         };
         return ResponseEntity.ok()
@@ -134,5 +139,38 @@ public class AdminController extends BaseComponent {
     public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
         adminService.deleteComment(commentId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Transactional
+    @PatchMapping("/users/{userId}/plan")
+    public ResponseEntity<AdminUserResource> updateUserPlan(
+            @PathVariable Long userId,
+            @RequestBody java.util.Map<String, String> body) {
+        SubscriptionPlan plan = SubscriptionPlan.valueOf(body.get("subscriptionPlan"));
+        var updated = adminService.updateUser(userId, null, null, null, plan, null);
+        return ResponseEntity.ok(toUserResourceWithLimits(updated));
+    }
+
+    @Transactional
+    @PostMapping("/users/{userId}/reset-email-usage")
+    public ResponseEntity<AdminUserResource> resetEmailUsage(@PathVariable Long userId) {
+        var updated = adminService.resetUserEmailUsage(userId);
+        return ResponseEntity.ok(toUserResourceWithLimits(updated));
+    }
+
+    @Transactional
+    @PostMapping("/users/{userId}/reset-download-usage")
+    public ResponseEntity<AdminUserResource> resetDownloadUsage(@PathVariable Long userId) {
+        var updated = adminService.resetUserDownloadUsage(userId);
+        return ResponseEntity.ok(toUserResourceWithLimits(updated));
+    }
+
+    private AdminUserResource toUserResourceWithLimits(io.github.balasis.taskmanager.context.base.model.User user) {
+        AdminUserResource r = adminOutboundMapper.toUserResource(user);
+        r.setStorageBudgetBytes(planLimits.storageBudgetBytes(user.getSubscriptionPlan()));
+        r.setDownloadBudgetBytes(planLimits.downloadBudgetBytes(user.getSubscriptionPlan()));
+        r.setEmailsPerMonth(planLimits.emailQuotaPerMonth(user.getSubscriptionPlan()));
+        r.setImageScansPerMonth(planLimits.imageScansPerMonth(user.getSubscriptionPlan()));
+        return r;
     }
 }

@@ -14,7 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "lged", "ct", "dti"})
+@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "aaen", "lged", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ct", "dti"})
 public class GroupRefreshDto {
 
     @JsonProperty("sn")   private Instant serverNow;
@@ -30,6 +30,24 @@ public class GroupRefreshDto {
     @JsonProperty("iu")   private String imgUrl;
     @JsonProperty("aen")  private Boolean allowEmailNotification;
     @JsonProperty("lged") private Instant lastGroupEventDate;
+
+    // owner plan & download budget
+    @JsonProperty("op")  private String ownerPlan;
+    @JsonProperty("db")  private Long downloadBudgetBytes;
+    @JsonProperty("udb") private Long usedDownloadBytesMonth;
+
+    // owner storage budget
+    @JsonProperty("sb")  private Long storageBudgetBytes;
+    @JsonProperty("usb") private Long usedStorageBytes;
+
+    // file & task limits derived from the group owner's subscription plan
+    @JsonProperty("mcf")  private Integer maxCreatorFiles;
+    @JsonProperty("maf")  private Integer maxAssigneeFiles;
+    @JsonProperty("mfsb") private Long maxFileSizeBytes;
+    @JsonProperty("mt")   private Integer maxTasks;
+    @JsonProperty("mm")   private Integer maxMembers;
+    @JsonProperty("ddce") private Boolean dailyDownloadCapEnabled;
+    @JsonProperty("aaen") private Boolean allowAssigneeEmailNotification;
 
     @JsonProperty("ct")   private Set<TaskPreviewDto> changedTasks;
 

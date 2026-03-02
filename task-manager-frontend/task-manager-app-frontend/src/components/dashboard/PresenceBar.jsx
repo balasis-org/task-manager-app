@@ -1,16 +1,16 @@
-import { useBlobUrl } from "@context/BlobSasContext";
+﻿import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/dashboard/PresenceBar.css";
 
 /**
  * Stacked avatar row showing which group members are currently viewing the dashboard.
- * Matches presence user-IDs against the already-loaded members array — zero extra backend calls.
+ * Matches presence user-IDs against the already-loaded members array - zero extra backend calls.
  */
 export default function PresenceBar({ members, presenceUserIds, currentUserId }) {
     const blobUrl = useBlobUrl();
 
     if (!presenceUserIds?.length || !members?.length) return null;
 
-    // Map IDs → member objects, skip any that aren't in the local members list
+    // Map IDs -> member objects, skip any that aren't in the local members list
     const onlineMembers = presenceUserIds
         .map(id => members.find(m => m.user?.id === id))
         .filter(Boolean);

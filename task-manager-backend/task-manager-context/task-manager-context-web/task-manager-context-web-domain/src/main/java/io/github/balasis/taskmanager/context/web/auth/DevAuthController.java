@@ -1,6 +1,7 @@
 package io.github.balasis.taskmanager.context.web.auth;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
 import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
@@ -23,7 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
+@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql", "prod-arena"})
 @RequestMapping("/auth")
 public class DevAuthController extends BaseComponent {
 
@@ -31,11 +32,12 @@ public class DevAuthController extends BaseComponent {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final DefaultImageService defaultImageService;
+    private final PlanLimits planLimits;
 
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
-    public record FakeLoginRequest(String email, String name) {}
+    public record FakeLoginRequest(String email, String name, String subscriptionPlan) {}
 
     @PostMapping("/fake-login")
     public ResponseEntity<Map<String, Object>> fakeLogin(@RequestBody FakeLoginRequest request) {
@@ -60,11 +62,14 @@ public class DevAuthController extends BaseComponent {
             .or(() -> userRepository.findByAzureKey(azureKey))
             .map(existing -> {
                 existing.setLastActiveAt(java.time.Instant.now());
+                if (request.subscriptionPlan() != null && !request.subscriptionPlan().isBlank()) {
+                    existing.setSubscriptionPlan(resolveSubscriptionPlan(request.subscriptionPlan()));
+                }
                 return userRepository.save(existing);
             })
             .orElseGet(() -> {
-                if (userRepository.count() >= PlanLimits.MAX_USERS) {
-                    throw new LimitExceededException("Maximum number of users (" + PlanLimits.MAX_USERS + ") reached");
+                if (userRepository.count() >= planLimits.getMaxUsers()) {
+                    throw new LimitExceededException("Maximum number of users (" + planLimits.getMaxUsers() + ") reached");
                 }
                 return userRepository.save(
                     User.builder()
@@ -74,6 +79,7 @@ public class DevAuthController extends BaseComponent {
                         .name(name)
                         .isOrg(false)
                         .allowEmailNotification(false)
+                        .subscriptionPlan(resolveSubscriptionPlan(request.subscriptionPlan()))
                         .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
                         .build()
                 );
@@ -105,6 +111,15 @@ public class DevAuthController extends BaseComponent {
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         }
+
+    private SubscriptionPlan resolveSubscriptionPlan(String raw) {
+        if (raw == null || raw.isBlank()) return SubscriptionPlan.FREE;
+        try {
+            return SubscriptionPlan.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return SubscriptionPlan.FREE;
+        }
+    }
 
     private ResponseCookie createJwtCookie(String jwt) {
         return ResponseCookie.from("jwt", jwt)

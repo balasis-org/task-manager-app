@@ -2,8 +2,12 @@ package io.github.balasis.taskmanager.engine.infrastructure.redis.config;
 
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.PresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.RateLimitService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisDownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisImageChangeLimiterService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisPresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisRateLimitService;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
@@ -17,17 +21,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 
 import java.time.Duration;
+import java.util.Arrays;
 
 @Configuration
-@Profile({"prod-h2", "prod-azuresql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena"})
 @RequiredArgsConstructor
 public class RateLimitProdConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitProdConfig.class);
+    private static final String ARENA_PREFIX = "a:";
 
     private final SecretClientProvider secretClientProvider;
+    private final Environment environment;
 
     @Bean
     public StatefulRedisConnection<byte[], byte[]> redisConnection() {
@@ -81,6 +89,22 @@ public class RateLimitProdConfig {
 
     @Bean
     public PresenceService presenceService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
-        return new RedisPresenceService(redisConnection);
+        String prefix = Arrays.asList(environment.getActiveProfiles()).contains("prod-arena")
+                ? ARENA_PREFIX : "";
+        return new RedisPresenceService(redisConnection, prefix);
+    }
+
+    @Bean
+    public DownloadGuardService downloadGuardService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        String prefix = Arrays.asList(environment.getActiveProfiles()).contains("prod-arena")
+                ? ARENA_PREFIX : "";
+        return new RedisDownloadGuardService(redisConnection, prefix);
+    }
+
+    @Bean
+    public ImageChangeLimiterService imageChangeLimiterService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        String prefix = Arrays.asList(environment.getActiveProfiles()).contains("prod-arena")
+                ? ARENA_PREFIX : "";
+        return new RedisImageChangeLimiterService(redisConnection, prefix);
     }
 }

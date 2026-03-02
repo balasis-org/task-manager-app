@@ -1,0 +1,54 @@
+.tier-upgrade-popup {
+    width: 36em;
+    position: relative;
+}
+
+.tier-upgrade-close {
+    position: absolute;
+    top: 0.75em;
+    right: 0.75em;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.35em;
+    border-radius: 0.375em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tier-upgrade-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-heading);
+}
+
+.tier-upgrade-subtitle {
+    font-size: 0.84em;
+    color: var(--text-secondary);
+    margin: -0.5em 0 1em;
+}
+
+.tier-upgrade-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.25em;
+}
+
+/* ── small-screen responsive ─────────────────────────────── */
+@media (max-width: 40em) {
+    .tier-upgrade-popup {
+        width: 96vw;
+        padding: 1.25em 1em;
+    }
+
+    .tier-upgrade-popup .tos-tier-table {
+        font-size: 0.72em;
+    }
+
+    .tier-upgrade-popup .tos-tier-table th,
+    .tier-upgrade-popup .tos-tier-table td {
+        padding: 0.4em 0.45em;
+    }
+}

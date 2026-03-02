@@ -72,9 +72,11 @@ async function apiRequest(path, options = {}, retry = true) {
     }
 
     if (res.status === 503) {
+        let body = null;
+        try { body = await res.text(); } catch {}
         throw {
             status: 503,
-            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
+            message: body || "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
         };
     }
 
@@ -140,9 +142,11 @@ export async function apiMultipart(path, formData, options = {}) {
     }
 
     if (res.status === 503) {
+        let svcBody = null;
+        try { svcBody = await res.text(); } catch {}
         throw {
             status: 503,
-            message: "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
+            message: svcBody || "We are sorry but currently we are under heavy traffic. We cannot accept your request at this time, please try again later.",
         };
     }
 

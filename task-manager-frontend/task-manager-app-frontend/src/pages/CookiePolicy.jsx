@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import {
     FiArrowLeft, FiShield, FiInfo, FiLock,
     FiSlash, FiSettings, FiRefreshCw, FiMail
@@ -22,7 +22,7 @@ export default function CookiePolicy() {
             <section className="legal-hero">
                 <div className="legal-hero-icon"><FiShield size={28} /></div>
                 <h1>Cookie Policy</h1>
-                <p>Last updated &mdash; February 2026</p>
+                <p>Last updated &mdash; March 2026</p>
             </section>
 
             { }
@@ -47,15 +47,30 @@ export default function CookiePolicy() {
 
                 <h3>Authentication Cookies</h3>
                 <p>
-                    When you sign in, session cookies are used to maintain your
-                    authenticated state. These cookies are essential for the Service to
-                    function and cannot be disabled while using the application.
+                    When you sign in, the following HTTP-only cookies are set to
+                    maintain your authenticated state. These cookies are essential for
+                    the Service to function and cannot be disabled while using the
+                    application.
                 </p>
                 <ul>
-                    <li><strong>Purpose:</strong> Keep you signed in and verify your
-                        identity on each request.</li>
-                    <li><strong>Duration:</strong> Session-based (cleared when you close
-                        your browser) or as defined by the authentication provider.</li>
+                    <li><strong><code>jwt</code></strong> &mdash; A short-lived JSON Web
+                        Token used to authenticate each request. Expires after
+                        10&nbsp;minutes and is refreshed automatically.</li>
+                    <li><strong><code>RefreshKey</code></strong> &mdash; A long-lived
+                        refresh credential used to obtain a new JWT without requiring
+                        you to sign in again. Expires after 24&nbsp;hours.</li>
+                    <li><strong><code>oauth_state</code></strong> &mdash; A one-time
+                        token created during the sign-in flow to prevent cross-site
+                        request forgery. Expires after 5&nbsp;minutes and is removed
+                        immediately after authentication completes.</li>
+                </ul>
+                <p>
+                    All authentication cookies are <strong>HttpOnly</strong>,{" "}
+                    <strong>Secure</strong>, and use the <strong>Strict</strong>{" "}
+                    (or Lax for oauth_state) SameSite policy. They are not accessible
+                    to client-side JavaScript.
+                </p>
+                <ul>
                     <li><strong>Type:</strong> Essential / Strictly Necessary.</li>
                 </ul>
 
@@ -70,7 +85,27 @@ export default function CookiePolicy() {
                     <li><strong>Storage key:</strong> <code>theme</code></li>
                     <li><strong>Duration:</strong> Persistent until you clear browser
                         data or change the setting.</li>
-                    <li><strong>Type:</strong> Functional.</li>
+                    <li><strong>Type:</strong> Functional (essential for user
+                        preference).</li>
+                </ul>
+
+                <h3>Application Cache</h3>
+                <p>
+                    To provide a faster experience, the application stores encrypted
+                    copies of your group data (e.g.&nbsp;group list, group detail,
+                    active selection) in your browser&rsquo;s local storage. This data
+                    is encrypted with a server-provided key that rotates
+                    periodically and is scoped to your user account.
+                </p>
+                <ul>
+                    <li><strong>Purpose:</strong> Show cached group data instantly
+                        while fresh data is fetched in the background.</li>
+                    <li><strong>Storage keys:</strong> Prefixed
+                        with <code>tm_u&lt;userId&gt;_</code></li>
+                    <li><strong>Duration:</strong> Persistent until you sign out,
+                        the encryption key rotates, or you clear browser data.</li>
+                    <li><strong>Type:</strong> Essential / Performance (no personal
+                        data is stored in plain text).</li>
                 </ul>
             </section>
 
@@ -91,18 +126,25 @@ export default function CookiePolicy() {
                     You can manage or delete cookies through your browser settings:
                 </p>
                 <ul>
-                    <li><strong>Chrome:</strong> Settings → Privacy and Security →
+                    <li><strong>Chrome:</strong> Settings &rarr; Privacy and Security &rarr;
                         Cookies</li>
-                    <li><strong>Firefox:</strong> Settings → Privacy &amp; Security →
+                    <li><strong>Firefox:</strong> Settings &rarr; Privacy &amp; Security &rarr;
                         Cookies</li>
-                    <li><strong>Edge:</strong> Settings → Cookies and Site
+                    <li><strong>Edge:</strong> Settings &rarr; Cookies and Site
                         Permissions</li>
-                    <li><strong>Safari:</strong> Preferences → Privacy → Cookies</li>
+                    <li><strong>Safari:</strong> Preferences &rarr; Privacy &rarr; Cookies</li>
                 </ul>
                 <div className="legal-highlight">
-                    Disabling essential cookies may prevent you from using the Service.
+                    Disabling essential cookies will prevent you from using the Service.
                     Clearing your browser&rsquo;s local storage will reset your theme
-                    preference to the default (light mode).
+                    preference and remove the cached group data (it will be re-fetched
+                    on your next visit).
+                </div>
+                <div className="legal-highlight">
+                    <strong>No consent banner is required</strong> because every cookie
+                    and local-storage entry listed above is strictly necessary for the
+                    Service to operate or to remember a preference you explicitly set.
+                    We do not use any optional, analytics, or advertising cookies.
                 </div>
             </section>
 

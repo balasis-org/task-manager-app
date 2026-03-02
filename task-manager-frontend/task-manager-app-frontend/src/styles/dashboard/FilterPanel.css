@@ -1,8 +1,7 @@
-
+﻿
 .filter-panel {
     position: absolute;
     top: 100%;
-    right: 0;
     z-index: 55;
     background: var(--bg-primary);
     border: 0.06em solid var(--border-primary);
@@ -10,7 +9,7 @@
     box-shadow: var(--shadow-md);
     width: 20em;
     margin-top: 0.25em;
-    animation: filterSlideIn 0.15s ease;
+    /*animation: filterSlideIn 0.15s ease;*/
 }
 
 @keyframes filterSlideIn {
@@ -227,27 +226,20 @@
     letter-spacing: 0.03em;
 }
 
-/* ── responsive ── */
+/* -- responsive -- */
 
 @media (max-width: 768px) {
     .filter-panel {
-        width: 80vw;
-        max-width: 20em;
-    }
-}
-
-@media (max-width: 480px) {
-    .filter-panel {
         position: fixed;
-        top: auto;
-        right: auto;
+        top: 55%;
         left: 50%;
-        transform: translateX(-50%);
+        right: auto;
+        transform: translate(-50%, -50%);
         width: 92vw;
-        max-width: none;
-        max-height: 70vh;
+        max-width: 22em;
+        max-height: 80vh;
         overflow-y: auto;
         z-index: 200;
-        margin-top: 0.5em;
+        margin-top: 0;
     }
 }

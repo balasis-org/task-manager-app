@@ -17,8 +17,9 @@ public class GroupOutboundResource extends BaseOutboundResource {
     private String defaultImgUrl;
     private String imgUrl;
     private UserOutboundResource owner;
-    private String Announcement;
+    private String announcement;
     private Instant createdAt;
     private Instant lastGroupEventDate;
     private Boolean allowEmailNotification;
+    private Boolean allowAssigneeEmailNotification;
 }

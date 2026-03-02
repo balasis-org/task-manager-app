@@ -213,6 +213,24 @@
     font-weight: 400;
 }
 
+.invite-email-check {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.5em !important;
+    cursor: pointer;
+}
+
+.invite-email-check.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.invite-email-check input[type="checkbox"] {
+    width: 1.1em;
+    height: 1.1em;
+    cursor: inherit;
+}
+
 .muted {
     color: var(--text-placeholder);
 }

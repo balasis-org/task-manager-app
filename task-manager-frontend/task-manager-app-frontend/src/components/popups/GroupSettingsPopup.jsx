@@ -1,24 +1,26 @@
-import { LIMITS } from "@assets/js/inputValidation";
+﻿import { LIMITS } from "@assets/js/inputValidation";
 import GsEditableField from "@components/groupsettings/GsEditableField";
+import GsToggleField from "@components/groupsettings/GsToggleField";
 import GsImageSection from "@components/groupsettings/GsImageSection";
-import GsTransferSection from "@components/groupsettings/GsTransferSection";
 import GsDeleteSection from "@components/groupsettings/GsDeleteSection";
 import "@styles/popups/Popup.css";
 import "@styles/popups/GroupSettingsPopup.css";
 
-export default function GroupSettingsPopup({ group, members, user, onClose, onUpdated, onDeleted }) {
+export default function GroupSettingsPopup({ group, groupDetail, members, user, onClose, onUpdated, onDeleted }) {
+    const emailDisabled = groupDetail?.op === "FREE" || groupDetail?.op === "STUDENT";
+
     return (
         <div className="popup-overlay" onClick={onClose}>
             <div className="popup-card popup-card-wide gs-popup" onClick={e => e.stopPropagation()}>
                 <h2 title={group.name} className="popup-heading-ellipsis">
-                    {group.name} — Settings
+                    {group.name} - Settings
                 </h2>
 
                 <GsEditableField
                     label="Description"
                     groupId={group.id}
                     fieldKey="description"
-                    initialValue={group.description || ""}
+                    initialValue={groupDetail?.d || ""}
                     emptyText="No description"
                     onUpdated={onUpdated}
                     maxLength={LIMITS.GROUP_DESCRIPTION}
@@ -29,31 +31,33 @@ export default function GroupSettingsPopup({ group, members, user, onClose, onUp
                     label="Announcement"
                     groupId={group.id}
                     fieldKey="announcement"
-                    initialValue={group.announcement || ""}
+                    initialValue={groupDetail?.an ?? ""}
                     emptyText="No announcement"
                     onUpdated={onUpdated}
                     maxLength={LIMITS.GROUP_ANNOUNCEMENT}
                     rows={2}
                 />
 
-                <GsEditableField
-                    label="Email notifications"
+                <GsToggleField
+                    label="Assignee → reviewer email"
                     groupId={group.id}
-                    fieldKey="allowEmailNotification"
-                    initialValue={(group.allowEmailNotification ?? true) ? "on" : "off"}
+                    fieldKey="allowAssigneeEmailNotification"
+                    value={groupDetail?.aaen ?? false}
                     onUpdated={onUpdated}
-                    selectOptions={[{ value: "on", label: "On" }, { value: "off", label: "Off" }]}
-                    transformValue={v => v === "on"}
+                    disabled={emailDisabled}
+                    disabledHint="Email notifications require a paid plan"
                 />
 
-                <GsImageSection group={group} onUpdated={onUpdated} />
-
-                <GsTransferSection
-                    group={group}
-                    members={members}
-                    user={user}
-                    onClose={onClose}
+                <GsToggleField
+                    label="Repeat download guard"
+                    groupId={group.id}
+                    fieldKey="dailyDownloadCapEnabled"
+                    value={groupDetail?.ddce ?? true}
+                    onUpdated={onUpdated}
+                    note="When enabled, each member can only download the same file once per day. Repeated downloads within 24 hours are served from cache at no cost to the download budget."
                 />
+
+                <GsImageSection group={group} ownerPlan={groupDetail?.op} onUpdated={onUpdated} />
 
                 <GsDeleteSection group={group} onDeleted={onDeleted} />
 

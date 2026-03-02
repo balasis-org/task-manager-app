@@ -13,8 +13,15 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
 
     @Mapping(source = "imgUrl", target = "imgUrl", qualifiedByName = "convertUserImgUrl")
     @Mapping(source = "defaultImgUrl", target = "defaultImgUrl", qualifiedByName = "convertUserDefaultImgUrl")
+    @Mapping(source = "msProfilePhotoUrl", target = "msProfilePhotoUrl", qualifiedByName = "convertUserImgUrl")
     @Mapping(target = "inviteCode", source = "inviteCode")
     @Mapping(target = "sameOrg", ignore = true)
+    @Mapping(target = "storageBudgetBytes", ignore = true)
+    @Mapping(target = "maxGroups", ignore = true)
+    @Mapping(target = "downloadBudgetBytes", ignore = true)
+    @Mapping(target = "maxMembersPerGroup", ignore = true)
+    @Mapping(target = "imageScansPerMonth", ignore = true)
+    @Mapping(target = "emailsPerMonth", ignore = true)
     UserOutboundResource toResource(User user);
 
     @Named("convertUserImgUrl")

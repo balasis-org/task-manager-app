@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+﻿import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMessageCircle, FiLock, FiTrash2 } from "react-icons/fi";
 import { apiDelete } from "@assets/js/apiClient.js";
@@ -8,17 +8,17 @@ import "@styles/dashboard/TaskTable.css";
 
 // thresholds match the backend's priority scale (1-10).
 // we could make these configurable per-group but it's not worth the
-// complexity right now — every group uses the same scale.
+// complexity right now - every group uses the same scale.
 function priorityTag(p) {
-    if (p == null) return "—";
+    if (p == null) return "-";
     let label, cls;
-    if (p <= 4)      { label = "Low";    cls = "priority-low"; }
-    else if (p <= 7) { label = "Medium"; cls = "priority-med"; }
-    else             { label = "High";   cls = "priority-high"; }
-    return <span className={`priority-tag ${cls}`}>{label} ({p})</span>;
+    if (p <= 4)      { label = "L";  cls = "priority-low"; }
+    else if (p <= 7) { label = "M";  cls = "priority-med"; }
+    else             { label = "H";  cls = "priority-high"; }
+    return <span className={`priority-tag ${cls}`}>{label}({p})</span>;
 }
 
-export default function TaskTable({ tasks, groupId, colWidths, visCols, canManageTasks, onDeleted }) {
+export default function TaskTable({ tasks, groupId, gridTemplate, visCols, canManageTasks, onDeleted, deleteColWidth = "42px" }) {
     const navigate = useNavigate();
     const showToast = useToast();
     const [flashId, setFlashId] = useState(null);
@@ -39,13 +39,10 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
         t.p  = priority (1-10)  t.cc = comment count
         t.dd = due date         t.dl = deletable (bool)
         t.a  = accessible (bool)
-        — short keys from the backend list-tasks DTO to keep payloads small */
+        - short keys from the backend list-tasks DTO to keep payloads small */
 
-    const baseGrid = colWidths && visCols
-        ? visCols.map((ci) => (ci === 0 ? "minmax(0,1fr)" : colWidths[ci] + "px")).join(" ")
-        : undefined;
-    const gridStyle = baseGrid
-        ? { gridTemplateColumns: canManageTasks ? baseGrid + " 42px" : baseGrid }
+    const gridStyle = gridTemplate
+        ? { gridTemplateColumns: canManageTasks ? gridTemplate + " " + deleteColWidth : gridTemplate }
         : undefined;
 
     const visSet = new Set(visCols || [0, 1, 2, 3, 4, 5]);
@@ -58,7 +55,7 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
 
     async function handleConfirmDelete() {
         if (!confirmDeleteId) return;
-        // snapshot — state may change while the request is in flight
+        // snapshot - state may change while the request is in flight
         const id = confirmDeleteId;
         setConfirmDeleteId(null);
         setDeletingId(id);
@@ -96,7 +93,7 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
                         )}
                         {visSet.has(1) && (
                             <span className="task-cell cell-creator">
-                                {t.cn || "—"}
+                                {t.cn || "-"}
                             </span>
                         )}
                         {visSet.has(2) && (
@@ -106,7 +103,7 @@ export default function TaskTable({ tasks, groupId, colWidths, visCols, canManag
                         )}
                         {visSet.has(3) && (
                             <span className="task-cell cell-due">
-                                {formatDate(t.dd, "—")}
+                                {formatDate(t.dd, "-")}
                             </span>
                         )}
                         {visSet.has(4) && (
