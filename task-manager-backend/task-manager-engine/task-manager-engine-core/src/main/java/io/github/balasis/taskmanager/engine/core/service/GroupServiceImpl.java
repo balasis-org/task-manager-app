@@ -583,6 +583,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Page<TaskComment> findAllTaskComments(Long groupId, Long taskId ,Pageable pageable){
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        if (!task.getGroup().getId().equals(groupId))
+            throw new TaskNotFoundException("Task does not belong to this group");
+
         var taskParticipants = taskParticipantRepository.findAllByTask_idAndUser_id(taskId, effectiveCurrentUser.getUserId());
         if (!taskParticipants.isEmpty()) {
             Instant now = Instant.now();

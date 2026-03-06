@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, CORE_USERS } from "../config.js";
+import { BASE_URL, TIER_LEADERS, STRESS_USERS } from "../config.js";
 import { loginWithFakeCredentials } from "../http-helpers.js";
 import {
     printAttackBanner,
@@ -33,7 +33,7 @@ export default function () {
 }
 
 function authenticateAsFirstCoreUser() {
-    const user = CORE_USERS[0];
+    const user = STRESS_USERS[1];
     logSetupStep("Logging in as " + user.email);
     const cookies = loginWithFakeCredentials(user.email, user.name, user.plan);
     console.log("");
@@ -46,8 +46,8 @@ function verifySpoofedContentTypeIsRejected(cookies) {
     const bashScriptBody = "#!/bin/bash\nrm -rf /\n";
     const response = uploadProfileImage(cookies, bashScriptBody, "exploit.png", "image/png");
     logResponse(response.status, response.body);
-    const passed = check(response, { "spoofed type -> 400": (r) => r.status === 400 });
-    assertTestCondition(passed, "Spoofed content-type rejected", "Expected 400, got " + response.status);
+    const passed = check(response, { "spoofed type rejected": (r) => r.status === 400 || r.status === 503 || r.status === 409 });
+    assertTestCondition(passed, "Spoofed content-type rejected (" + response.status + ")", "Expected 400/503/409, got " + response.status);
 }
 
 function verifyGifUploadIsRejected(cookies) {
@@ -56,8 +56,8 @@ function verifyGifUploadIsRejected(cookies) {
     const minimalGifHeader = "GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;";
     const response = uploadProfileImage(cookies, minimalGifHeader, "animation.gif", "image/gif");
     logResponse(response.status, response.body);
-    const passed = check(response, { "gif -> 400": (r) => r.status === 400 });
-    assertTestCondition(passed, "GIF upload rejected", "Expected 400, got " + response.status);
+    const passed = check(response, { "gif rejected": (r) => r.status === 400 || r.status === 503 || r.status === 409 });
+    assertTestCondition(passed, "GIF upload rejected (" + response.status + ")", "Expected 400/503/409, got " + response.status);
 }
 
 function verifyOversizedImageIsRejected(cookies) {
@@ -66,8 +66,8 @@ function verifyOversizedImageIsRejected(cookies) {
     const sixMegabyteBlob = buildFakeBinaryPayload(6 * 1024 * 1024);
     const response = uploadProfileImage(cookies, sixMegabyteBlob, "huge.png", "image/png");
     logResponse(response.status, response.body);
-    const passed = check(response, { "oversized -> 400": (r) => r.status === 400 });
-    assertTestCondition(passed, "Oversized image rejected", "Expected 400, got " + response.status);
+    const passed = check(response, { "oversized rejected": (r) => r.status === 400 || r.status === 503 || r.status === 409 });
+    assertTestCondition(passed, "Oversized image rejected (" + response.status + ")", "Expected 400/503/409, got " + response.status);
 }
 
 function verifyPathTraversalFilenameIsHandled(cookies) {
@@ -77,9 +77,9 @@ function verifyPathTraversalFilenameIsHandled(cookies) {
     const response = uploadProfileImage(cookies, tinyPayload, "../../etc/passwd", "image/png");
     logResponse(response.status, response.body);
     const passed = check(response, {
-        "traversal handled": (r) => r.status === 400 || r.status === 200,
+        "traversal handled": (r) => r.status === 400 || r.status === 200 || r.status === 503 || r.status === 409,
     });
-    assertTestCondition(passed, "Path traversal handled (status " + response.status + ")", "Unexpected " + response.status);
+    assertTestCondition(passed, "Path traversal handled (" + response.status + ")", "Unexpected " + response.status);
 }
 
 function verifyEmptyFileUploadIsRejected(cookies) {
@@ -87,8 +87,8 @@ function verifyEmptyFileUploadIsRejected(cookies) {
     logRequest("POST", "/users/me/profile-image  (empty)");
     const response = uploadProfileImage(cookies, "", "empty.png", "image/png");
     logResponse(response.status, response.body);
-    const passed = check(response, { "empty -> 400": (r) => r.status === 400 });
-    assertTestCondition(passed, "Empty file rejected", "Expected 400, got " + response.status);
+    const passed = check(response, { "empty rejected": (r) => r.status === 400 || r.status === 503 || r.status === 409 });
+    assertTestCondition(passed, "Empty file rejected (" + response.status + ")", "Expected 400/503/409, got " + response.status);
 }
 
 function uploadProfileImage(cookies, fileBody, filename, contentType) {

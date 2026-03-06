@@ -115,7 +115,7 @@ public class DataLoader extends BaseComponent {
                                     .email(seed.email)
                                     .name(seed.name)
                                     .isOrg(false)
-                                    .allowEmailNotification(true)
+                                    .allowEmailNotification(false)
                                     .subscriptionPlan(seed.plan != null ? seed.plan : SubscriptionPlan.FREE)
                                     .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
                                     .build()
