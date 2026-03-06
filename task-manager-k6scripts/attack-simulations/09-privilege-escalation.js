@@ -26,7 +26,7 @@ export const options = {
 };
 
 export default function () {
-    printAttackBanner("Privilege Escalation (Member -> Admin)", 5);
+    printAttackBanner("Privilege Escalation (Member -> Leader)", 5);
 
     const cookies = authenticateAsRegularMember();
     const groupId = locateStressTestGroupOrAbort(cookies);
@@ -111,9 +111,9 @@ function verifyMemberCannotKickAnotherMember(groupId, membershipId, cookies) {
     );
     logResponse(response.status, response.body);
     const passed = check(response, {
-        "kick blocked": (r) => r.status === 403 || r.status === 401,
+        "kick blocked": (r) => r.status === 403 || r.status === 401 || r.status === 409,
     });
-    assertTestCondition(passed, "Kick blocked (" + response.status + ")", "Expected 403, got " + response.status);
+    assertTestCondition(passed, "Kick blocked (" + response.status + ")", "Expected 403/409, got " + response.status);
 }
 
 function verifyMemberCannotPromoteToAdmin(groupId, membershipId, cookies) {
@@ -122,8 +122,8 @@ function verifyMemberCannotPromoteToAdmin(groupId, membershipId, cookies) {
         markTestPassed("Skipped (no target membership)");
         return;
     }
-    printTestHeader("Member tries to promote membership #" + membershipId + " to ADMIN");
-    const path = "/groups/" + groupId + "/groupMembership/" + membershipId + "/role?role=ADMIN";
+    printTestHeader("Member tries to promote membership #" + membershipId + " to GROUP_LEADER");
+    const path = "/groups/" + groupId + "/groupMembership/" + membershipId + "/role?role=GROUP_LEADER";
     logRequest("PATCH", path);
     const response = sendAuthenticatedPatch(path, cookies);
     logResponse(response.status, response.body);

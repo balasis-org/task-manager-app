@@ -1,7 +1,7 @@
 import http from "k6/http";
 import { check } from "k6";
 import { Counter, Rate } from "k6/metrics";
-import { BASE_URL, CORE_USERS } from "../config.js";
+import { BASE_URL, STRESS_USERS } from "../config.js";
 import { loginWithFakeCredentials, sendAuthenticatedGet } from "../http-helpers.js";
 import {
     printAttackBanner,
@@ -39,7 +39,7 @@ export default function () {
 }
 
 function authenticateAsFirstCoreUser() {
-    const user = CORE_USERS[0];
+    const user = STRESS_USERS[0];
     printTestHeader("Authenticate as " + user.email);
     const cookies = loginWithFakeCredentials(user.email, user.name, user.plan);
     logProgressTick("[PASS] Logged in\n");

@@ -1,9 +1,10 @@
 import { check } from "k6";
-import { CORE_USERS } from "../config.js";
+import { TIER_LEADERS } from "../config.js";
 import {
     loginWithFakeCredentials,
     findFirstAvailableGroupId,
     postJsonPayload,
+    postTaskPayload,
     postRawPayload,
     buildRepeatString,
 } from "../http-helpers.js";
@@ -40,7 +41,7 @@ export default function () {
 }
 
 function authenticateAsFirstCoreUser() {
-    const user = CORE_USERS[0];
+    const user = TIER_LEADERS.STUDENT;
     logSetupStep("Logging in as " + user.email);
     return loginWithFakeCredentials(user.email, user.name, user.plan);
 }
@@ -72,8 +73,8 @@ function verifyOversizedGroupNameIsRejected(cookies) {
 function verifyBlankTaskTitleIsRejected(groupId, cookies) {
     printTestHeader("Blank task title");
     logRequest("POST", "/groups/" + groupId + '/tasks  { title: "" }');
-    const response = postJsonPayload("/groups/" + groupId + "/tasks", {
-        title: "", description: "some desc", priority: 5,
+    const response = postTaskPayload("/groups/" + groupId + "/tasks", {
+        title: "", description: "some desc", priority: 5, taskState: "TODO",
     }, cookies);
     logResponse(response.status, response.body);
     const passed = check(response, { "blank title -> 400": (r) => r.status === 400 });
@@ -83,8 +84,8 @@ function verifyBlankTaskTitleIsRejected(groupId, cookies) {
 function verifyOutOfRangePriorityIsRejected(groupId, cookies) {
     printTestHeader("Priority = 99 (valid: 0-10)");
     logRequest("POST", "/groups/" + groupId + "/tasks  { priority: 99 }");
-    const response = postJsonPayload("/groups/" + groupId + "/tasks", {
-        title: "Evil Task", description: "valid desc", priority: 99,
+    const response = postTaskPayload("/groups/" + groupId + "/tasks", {
+        title: "Evil Task", description: "valid desc", priority: 99, taskState: "TODO",
     }, cookies);
     logResponse(response.status, response.body);
     const passed = check(response, { "priority 99 -> 400": (r) => r.status === 400 });
@@ -94,8 +95,8 @@ function verifyOutOfRangePriorityIsRejected(groupId, cookies) {
 function verifyOversizedDescriptionIsRejected(groupId, cookies) {
     printTestHeader("Oversized description (1501 chars, max 1500)");
     logRequest("POST", "/groups/" + groupId + "/tasks  { desc: 1501x'B' }");
-    const response = postJsonPayload("/groups/" + groupId + "/tasks", {
-        title: "Evil Task", description: buildRepeatString("B", 1501), priority: 5,
+    const response = postTaskPayload("/groups/" + groupId + "/tasks", {
+        title: "Evil Task", description: buildRepeatString("B", 1501), priority: 5, taskState: "TODO",
     }, cookies);
     logResponse(response.status, response.body);
     const passed = check(response, { "oversized desc -> 400": (r) => r.status === 400 });

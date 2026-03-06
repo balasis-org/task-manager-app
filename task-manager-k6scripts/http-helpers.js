@@ -60,6 +60,16 @@ export function postJsonPayload(path, body, cookies) {
     });
 }
 
+export function postTaskPayload(path, taskData, cookies) {
+    const payload = {
+        data: http.file(JSON.stringify(taskData), "data.json", "application/json"),
+    };
+    return http.post(`${BASE_URL}${path}`, payload, {
+        headers: { Cookie: cookies },
+        redirects: 0,
+    });
+}
+
 export function postRawPayload(path, rawBody, cookies) {
     return http.post(`${BASE_URL}${path}`, rawBody, {
         headers: { "Content-Type": "application/json", Cookie: cookies },

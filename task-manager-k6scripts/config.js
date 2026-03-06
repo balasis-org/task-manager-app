@@ -37,7 +37,7 @@ export const CORE_USERS = [
     ...MEMBER_USERS,
 ];
 
-export const STRESS_USERS = generateStressUsers(1);
+export const STRESS_USERS = generateStressUsers(38);
 
 export const ALL_USERS = [...CORE_USERS, ...STRESS_USERS];
 

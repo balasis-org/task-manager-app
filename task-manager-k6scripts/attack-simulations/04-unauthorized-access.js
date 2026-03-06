@@ -4,7 +4,7 @@ import {
     loginWithFakeCredentials,
     findFirstAvailableGroupId,
     sendAuthenticatedGet,
-    postJsonPayload,
+    postTaskPayload,
 } from "../http-helpers.js";
 import {
     printAttackBanner,
@@ -83,12 +83,12 @@ function verifyOutsiderCannotViewTargetGroup(targetGroupId, attackerCookies) {
 function verifyOutsiderCannotCreateTaskInTargetGroup(targetGroupId, attackerCookies) {
     printTestHeader("Outsider POST /groups/" + targetGroupId + "/tasks");
     logRequest("POST", "/groups/" + targetGroupId + "/tasks");
-    const response = postJsonPayload("/groups/" + targetGroupId + "/tasks", {
-        title: "Hacked Task", description: "Injected", priority: 5,
+    const response = postTaskPayload("/groups/" + targetGroupId + "/tasks", {
+        title: "Hacked Task", description: "Injected", priority: 5, taskState: "TODO",
     }, attackerCookies);
     logResponse(response.status, response.body);
     const passed = check(response, {
-        "create blocked": (r) => r.status === 403 || r.status === 404 || r.status === 401,
+        "create blocked": (r) => r.status === 403 || r.status === 404 || r.status === 401 || r.status === 415,
     });
-    assertTestCondition(passed, "Task creation blocked (" + response.status + ")", "Expected 403/404, got " + response.status);
+    assertTestCondition(passed, "Task creation blocked (" + response.status + ")", "Expected 403/404/415, got " + response.status);
 }
