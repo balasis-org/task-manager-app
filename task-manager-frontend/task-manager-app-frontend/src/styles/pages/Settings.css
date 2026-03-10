@@ -1,4 +1,3 @@
-
 .settings-page {
     max-width: 44em;
     margin: 0 auto;
@@ -181,8 +180,6 @@
     }
 }
 
-/* ---- storage usage bar ---- */
-
 .settings-storage-info {
     display: flex;
     justify-content: space-between;
@@ -226,7 +223,6 @@
     background: var(--danger);
 }
 
-/* discreet image-scan counter */
 .settings-image-count-limit {
     color: var(--danger);
     font-weight: 600;

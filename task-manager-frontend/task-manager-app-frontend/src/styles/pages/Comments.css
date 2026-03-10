@@ -1,5 +1,3 @@
-﻿/* -- Comments page orchestrator styles -- */
-
 .comments-page {
     display: flex;
     flex-direction: column;
@@ -16,8 +14,6 @@
     color: var(--danger);
     font-size: 0.94em;
 }
-
-/* -- Breadcrumb -- */
 
 .comments-breadcrumb {
     display: flex;
@@ -84,8 +80,6 @@
     color: var(--text-faint);
 }
 
-/* -- Top actions -- */
-
 .comments-top-actions {
     display: flex;
     padding: 0.625em 1em;
@@ -115,8 +109,6 @@
     margin: 0 auto;
 }
 
-/* -- List + empty -- */
-
 .comments-list {
     flex: 1;
     overflow-y: auto;
@@ -139,8 +131,6 @@
     font-style: italic;
 }
 
-/* -- Pagination -- */
-
 .comments-pagination {
     display: flex;
     align-items: center;
@@ -156,8 +146,6 @@
     font-size: 0.75em;
     color: var(--text-muted);
 }
-
-/* -- Shared button styles -- */
 
 .btn-danger {
     background: var(--danger);
@@ -194,8 +182,6 @@
     font-size: 0.75em;
 }
 
-/* -- Stale banner -- */
-
 .comments-stale-banner {
     display: flex;
     align-items: center;
@@ -213,8 +199,6 @@
 }
 
 @keyframes commentsStaleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-
-/* -- Responsive -- */
 
 @media (max-width: 768px) {
     .comments-breadcrumb {

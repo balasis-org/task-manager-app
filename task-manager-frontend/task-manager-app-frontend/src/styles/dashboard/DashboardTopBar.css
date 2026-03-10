@@ -1,4 +1,3 @@
-﻿
 .topbar {
     background: var(--bg-secondary);
     border-bottom: 0.06em solid var(--border-primary);
@@ -42,7 +41,6 @@
     background: var(--bg-active);
 }
 
-/* When topbar is collapsed, the toggle tab hangs outside so it stays clickable */
 .topbar-collapsed .topbar-toggle {
     bottom: -1.2em;
     border: 0.04em solid var(--border-primary);
@@ -76,8 +74,6 @@
     justify-content: flex-end;
 }
 
-/* -- Wrap-pair groups: items inside a pair always stay together -- */
-
 .topbar-actions-pair {
     display: flex;
     align-items: center;
@@ -94,8 +90,6 @@
     min-width: 0;
 }
 
-/* Within .topbar-selectors-pair the group combo can shrink (name truncates)
-   while the members combo stays fixed width. */
 .topbar-selectors-pair > .topbar-combo:last-child {
     flex-shrink: 1;
     min-width: 6em;
@@ -361,7 +355,6 @@
     background: var(--bg-active);
 }
 
-/* Pairs handle their own gap - no extra margin between adjacent wrappers */
 .topbar-dropdown-wrapper + .topbar-dropdown-wrapper {
     margin-left: 0;
 }
@@ -397,8 +390,6 @@
     line-height: 1.4;
     flex-shrink: 0;
 }
-
-/* -- Topbar inline search -- */
 
 .topbar-search-wrap {
     display: flex;
@@ -455,7 +446,6 @@
     color: var(--text-tertiary);
 }
 
-/* -- 900px: topbar-right wraps to its own line -- */
 @media (max-width: 900px) {
     .topbar-content {
         padding: 1.55em 0.625em 2.5em;
@@ -490,7 +480,6 @@
     }
 }
 
-/* -- 680px: selectors pair wraps below actions pair -- */
 @media (max-width: 680px) {
     .topbar-content {
         gap: 1em 0.5em;
@@ -521,7 +510,6 @@
     }
 }
 
-/* -- 480px: search collapses tighter -- */
 @media (max-width: 28em) {
     .topbar-group-btn {
         max-width: 7em;
@@ -533,7 +521,6 @@
     }
 }
 
-/* -- 768px: dropdowns become fixed/centered for usability -- */
 @media (max-width: 768px) {
     .topbar-dropdown {
         position: fixed;

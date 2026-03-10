@@ -1,9 +1,3 @@
-/* ===== NewTaskPopup.css =====
-   Picker sections (reviewer / assignee dropdowns), chip lists,
-   file drag-drop area, inline search bar, and form row layout
-   used exclusively by the new-task creation popup.
-   ================================================= */
-
 .popup-form-row {
     display: flex;
     gap: 0.75em;
@@ -95,7 +89,6 @@
     color: var(--text-placeholder);
 }
 
-/* ── email mode info strip ── */
 .nt-email-info {
     display: flex;
     flex-wrap: wrap;

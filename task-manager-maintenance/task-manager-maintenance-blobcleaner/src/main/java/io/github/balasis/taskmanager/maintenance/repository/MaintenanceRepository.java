@@ -57,11 +57,7 @@ public class MaintenanceRepository {
         }
     }
 
-    /**
-     * Purge refresh tokens that expired more than 1 day ago.
-     * Every login creates a new row; logout only deletes the current one,
-     * so expired rows pile up for active users over time.
-     */
+    // expired > 1 day ago — rows pile up because logout only deletes the current token
     public int purgeExpiredRefreshTokens() {
         return jdbcTemplate.update("""
             DELETE FROM RefreshTokens
@@ -69,11 +65,7 @@ public class MaintenanceRepository {
         """);
     }
 
-    /**
-     * Purge soft-delete tombstones older than 30 days.
-     * The frontend only needs these for short-term sync;
-     * keeping them forever wastes storage and slows queries.
-     */
+    // tombstones older than retentionDays — frontend never queries them after sync window
     public int purgeOldDeletedTasks(int retentionDays) {
         return jdbcTemplate.update("""
             DELETE FROM DeletedTasks
@@ -81,11 +73,6 @@ public class MaintenanceRepository {
         """, -retentionDays);
     }
 
-    /**
-     * Purge accepted/declined invitations older than 30 days.
-     * Only PENDING invitations need to stay - resolved ones are
-     * never queried again but accumulate indefinitely.
-     */
     public int purgeResolvedInvitations(int retentionDays) {
         return jdbcTemplate.update("""
             DELETE FROM GroupInvitations
@@ -94,11 +81,7 @@ public class MaintenanceRepository {
         """, -retentionDays);
     }
 
-    /**
-     * Upsert the singleton MaintenanceStatus row (id = 1).
-     * Updates either the blob-only timestamp or the full-run timestamp
-     * depending on the mode flag.
-     */
+    // upserts row id=1 — blob-only or full-run timestamp depending on mode
     public void upsertMaintenanceStatus(boolean isFull, int orphanCount, int blobsScanned,
                                         long intervalHours) {
         if (isFull) {
@@ -130,10 +113,6 @@ public class MaintenanceRepository {
         }
     }
 
-    /**
-     * Reset every user's rolling group-creation counter back to zero.
-     * Called once per full daily maintenance run so the budget refreshes.
-     */
     public int resetGroupCreationCounters() {
         return jdbcTemplate.update("""
             UPDATE Users
@@ -143,17 +122,8 @@ public class MaintenanceRepository {
         """);
     }
 
-    /**
-     * Recalculate usedStorageBytes for every user from actual file rows.
-     *
-     * The counter is incremented/decremented atomically on upload/delete,
-     * but edge cases (crash mid-upload, manual DB fix, orphan cleanup
-     * deleting blobs without adjusting counters) can cause drift. This
-     * query re-derives the value from the ground truth: the sum of
-     * fileSize across all TaskFiles and TaskAssigneeFiles in groups owned
-     * by the user. Users whose counter is already correct are skipped so
-     * we only write rows that actually changed.
-     */
+    // re-derive usedStorageBytes from actual file rows — the atomic
+    // inc/dec on upload/delete can drift after crashes or manual DB fixes
     public int reconcileStorageBudgets() {
         return jdbcTemplate.update("""
             WITH actual AS (
@@ -186,11 +156,7 @@ public class MaintenanceRepository {
         """);
     }
 
-    /**
-     * Reset monthly download and email counters for all users.
-     * Called once per full daily maintenance run. Only writes rows
-     * that actually have a non-zero counter to avoid unnecessary IO.
-     */
+    // only touches rows with non-zero counters
     public int resetMonthlyBudgets() {
         return jdbcTemplate.update("""
             UPDATE Users

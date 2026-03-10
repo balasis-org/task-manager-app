@@ -36,7 +36,6 @@
     margin-top: 1.25em;
 }
 
-/* ── small-screen responsive ─────────────────────────────── */
 @media (max-width: 40em) {
     .tier-upgrade-popup {
         width: 96vw;

@@ -170,7 +170,9 @@ public class AuthService extends BaseComponent {
 
     private User findOrCreateUser(String tenantId,String email, String azureId ,String name){
 
-        boolean isOrg = !"consumers".equalsIgnoreCase(tenantId);
+        // MSA personal accounts all share this well-known tenant GUID.
+        // Any other tid means the user belongs to an actual organization.
+        boolean isOrg = !"9188040d-6c67-4c5b-b112-36a304b66dad".equalsIgnoreCase(tenantId);
         if (azureId == null || azureId.isBlank()) {
             throw new AuthenticationIntegrityException("Missing Azure object id (oid) in token");
         }

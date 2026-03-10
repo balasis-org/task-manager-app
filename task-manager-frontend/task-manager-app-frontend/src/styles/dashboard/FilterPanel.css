@@ -1,4 +1,3 @@
-﻿
 .filter-panel {
     position: absolute;
     top: 100%;
@@ -9,7 +8,7 @@
     box-shadow: var(--shadow-md);
     width: 20em;
     margin-top: 0.25em;
-    /*animation: filterSlideIn 0.15s ease;*/
+
 }
 
 @keyframes filterSlideIn {
@@ -225,8 +224,6 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
-
-/* -- responsive -- */
 
 @media (max-width: 768px) {
     .filter-panel {

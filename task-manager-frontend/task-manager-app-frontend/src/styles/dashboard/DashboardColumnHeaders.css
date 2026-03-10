@@ -1,4 +1,4 @@
-﻿.task-col-header {
+.task-col-header {
     display: grid;
     column-gap: 1.5rem;
     padding: 0.5em 1rem;
@@ -31,8 +31,6 @@
     justify-content: center;
     text-align: center;
 }
-
-/* -- Responsive -- */
 
 @media (max-width: 64em) {
     .task-col-header {

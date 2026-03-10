@@ -18,15 +18,8 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Periodically checks whether the full maintenance job has run recently.
- * If the maintenance status row shows the job is overdue (nextResetAt is
- * far in the past), this checker logs a CRITICAL-level alert with MDC
- * fields (picked up by App Insights) and sends an email to the admin.
- *
- * <p>This is NOT a HealthIndicator on purpose: a stale maintenance job
- * should not make /health report DOWN and trigger container restarts.
- * The app still functions; the only impact is that group-creation
- * counters stop resetting and orphan blobs accumulate.</p>
+ * Checks if the daily maintenance job is overdue and alerts the admin.
+ * NOT a HealthIndicator — stale maintenance shouldn't restart the container.
  */
 @Component
 public class MaintenanceStalenessChecker {

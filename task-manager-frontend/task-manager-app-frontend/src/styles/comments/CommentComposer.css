@@ -1,5 +1,3 @@
-﻿/* CommentComposer - sticky bottom bar: emoji picker + textarea + submit */
-
 .comments-composer {
     background: var(--bg-primary);
     border-top: 0.06em solid var(--border-primary);

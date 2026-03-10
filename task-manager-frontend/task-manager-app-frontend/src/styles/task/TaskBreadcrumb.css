@@ -1,5 +1,3 @@
-﻿/* TaskBreadcrumb - back link, breadcrumb trail, right-side meta (creator, edit/delete, chat) */
-
 .task-breadcrumb {
     display: flex;
     align-items: center;
@@ -120,8 +118,6 @@
 .task-chat-btn:hover {
     color: var(--text-primary);
 }
-
-/* -- responsive -- */
 
 @media (max-width: 1024px) {
     .task-breadcrumb-right {

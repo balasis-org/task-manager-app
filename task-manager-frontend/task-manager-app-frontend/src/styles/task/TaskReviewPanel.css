@@ -1,6 +1,3 @@
-﻿/* TaskReviewPanel - review info + review form (reviewer-specific styles) */
-/* Participant picker/list styles are shared and live in Task.css */
-
 .task-review-info {
     display: flex;
     flex-direction: column;
