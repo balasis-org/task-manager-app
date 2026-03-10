@@ -1,16 +1,20 @@
-# React + Vite
+# Task Manager Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 SPA built with Vite 7. Deployed to Azure Blob Storage and served through Azure Front Door CDN.
 
-Currently, two official plugins are available:
+## local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Starts the Vite dev server at `http://localhost:5173`. See [docs/local-development.md](../../docs/local-development.md) for the full setup (backend, database, etc.).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## build
 
-## Expanding the ESLint configuration
+```bash
+npm run build
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Produces a static bundle in `dist/`. In production this is uploaded to Azure Blob Storage by the `frontend-ci-cd` workflow.

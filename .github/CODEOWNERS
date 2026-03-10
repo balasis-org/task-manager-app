@@ -1,0 +1,19 @@
+# Default owner for the entire repository
+* @Balasis
+
+# Backend
+/task-manager-backend/ @Balasis
+/task-manager-contracts/ @Balasis
+
+# Frontend
+/task-manager-frontend/ @Balasis
+
+# Maintenance
+/task-manager-maintenance/ @Balasis
+
+# Infrastructure and CI/CD
+/.github/ @Balasis
+/docs/iac/ @Balasis
+
+# Security tests
+/task-manager-k6scripts/ @Balasis

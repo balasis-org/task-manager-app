@@ -112,11 +112,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return planDefault;
     }
 
-    /**
-     * Charges the leader's storage budget atomically.
-     * FREE tier has no budget tracking (returns immediately).
-     * Throws if the paid-tier budget would be exceeded.
-     */
+    // atomic budget charge — FREE tier skips, paid tier throws if over
     private void chargeStorageBudget(User leader, long sizeBytes) {
         if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
         long budget = planLimits.storageBudgetBytes(leader.getSubscriptionPlan());
@@ -126,10 +122,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
     }
 
-    /**
-     * Refunds storage on file deletion. NULL / zero sizes (legacy files
-     * uploaded before budget tracking) are silently skipped.
-     */
     private void refundStorageBudget(User leader, Long fileSizeBytes) {
         if (fileSizeBytes == null || fileSizeBytes <= 0) return;
         if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
@@ -150,8 +142,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
     }
 
-    // If the group's repeat download guard is enabled, delegates to Redis
-    // to enforce the per-file daily cap. Best-effort — failures are swallowed.
+    // per-file daily cap via Redis (best-effort, failures swallowed)
     private void checkRepeatGuard(Group group, Long fileId) {
         if (!Boolean.TRUE.equals(group.getDailyDownloadCapEnabled())) return;
         long userId = effectiveCurrentUser.getUserId();

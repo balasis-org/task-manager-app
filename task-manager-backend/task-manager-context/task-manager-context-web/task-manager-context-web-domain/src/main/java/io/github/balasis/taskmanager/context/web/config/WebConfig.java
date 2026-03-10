@@ -48,23 +48,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/auth/**", "/health", "/actuator/health", "/h2-console", "/");
     }
 
-    /**
-     * Caps the thread pool used by StreamingResponseBody (file downloads).
-     *
-     * Without this, Spring falls back to SimpleAsyncTaskExecutor which spawns
-     * a NEW thread per download with no upper bound — that can exhaust OS
-     * threads and crash the JVM under burst traffic.
-     *
-     * 15 threads keeps the B2 instance (2 vCPU, ~250 Mbps) comfortable,
-     * and the deep queue (100) means ordinary users virtually never see a
-     * 503 rejection — the browser just shows its "waiting" spinner until a
-     * slot opens.  The per-user DownloadGate (max 3) prevents any single
-     * user from clogging the whole pool.
-     *
-     * The 150 s safety-net timeout sits above our highest per-tier cap
-     * (TEAM = 120 s) so Spring never kills a transfer that our own
-     * per-file deadline would still allow.
-     */
+    // without this Spring spawns unbounded threads per download (SimpleAsyncTaskExecutor)
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();

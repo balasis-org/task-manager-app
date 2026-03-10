@@ -6,8 +6,6 @@
 *.iml
 *.log
 *.txt
-backcicd.bat
-frontendcicd.bat
 azurite-data
 # =========================
 # Documentation / temp
@@ -26,16 +24,17 @@ build/
 # Misc
 # =========================
 *.old
-
-
-# =========================
-# default images
-# =========================
-
+*.bat
 default-images/
 
+# =========================
+# Bicep files
+# =========================
+# bicepparam files are safe to commit — secrets are read via
+# readEnvironmentVariable() at deploy time, not stored in the file.
+!*.bicepparam.example
 
 # =========================
-# bat files
+# IAC env files (secrets)
 # =========================
-*.bat
+docs/iac/ps1-az-scripts/.env

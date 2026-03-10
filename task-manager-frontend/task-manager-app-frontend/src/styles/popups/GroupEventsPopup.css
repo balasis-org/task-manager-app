@@ -1,8 +1,3 @@
-/* ===== GroupEventsPopup.css =====
-   Styles for the group events timeline popup: event list items,
-   new-event highlighting, and pagination controls.
-   ================================================= */
-
 .popup-events-body {
     min-height: 14em;
 }
@@ -74,7 +69,6 @@
     cursor: not-allowed;
 }
 
-/* ===== Clear-all inline confirm ===== */
 .popup-clear-btn {
     display: inline-flex;
     align-items: center;

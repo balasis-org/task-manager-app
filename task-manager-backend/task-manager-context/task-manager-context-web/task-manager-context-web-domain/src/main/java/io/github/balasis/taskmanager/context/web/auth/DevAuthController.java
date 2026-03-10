@@ -24,7 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql", "prod-arena"})
+@Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql", "prod-arena-stress", "prod-arena-security"})
 @RequestMapping("/auth")
 public class DevAuthController extends BaseComponent {
 

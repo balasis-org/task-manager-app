@@ -1,0 +1,41 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 25
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        generate_statistics: true
+    show-sql: false
+  flyway:
+    enabled: false
+
+app:
+  jwt-secret-name: TASKMANAGER-JWT-SECRET
+  hikari:
+    maximum-pool-size: 8
+    minimum-idle: 4
+    connection-timeout: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    io.github.balasis.taskmanager: INFO
+    io.github.balasis.taskmanager.engine.monitoring: INFO
+    org.springframework: WARN
+    org.springframework.boot.web.embedded: INFO
+    com.azure: WARN
+    org.hibernate.stat: INFO

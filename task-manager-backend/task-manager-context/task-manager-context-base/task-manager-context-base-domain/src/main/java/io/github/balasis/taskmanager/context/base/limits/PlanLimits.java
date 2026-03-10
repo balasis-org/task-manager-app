@@ -178,23 +178,7 @@ public class PlanLimits {
         };
     }
 
-    /**
-     * Computes a per-file download timeout based on its size and the
-     * downloader's plan.
-     *
-     * We assume a minimum viable speed of 2 MB/s (≈ 16 Mbps). That's
-     * well below what any broadband or decent 4G connection does in 2025,
-     * so only genuinely stalled transfers will hit this. A 5-second base
-     * covers the Azure-Blob-to-Tomcat round-trip and initial TCP ramp-up.
-     *
-     * Result is clamped between 10 s (even a tiny file gets breathing
-     * room) and the tier cap from {@link #downloadTimeoutCapMs}.
-     *
-     * Examples at 2 MB/s:
-     *   5 MB → 5 s base + 2.5 s transfer = 7.5 s → clamped to 10 s
-     *  50 MB → 5 s + 25 s = 30 s
-     * 100 MB → 5 s + 50 s = 55 s (within STUDENT 60 s cap)
-     */
+    // 5 s base (blob RTT + TCP ramp) + transfer at assumed 2 MB/s floor, clamped to [10 s .. tier cap]
     public long computeDownloadTimeoutMs(long fileSizeBytes, SubscriptionPlan downloaderPlan) {
         long minSpeedBytesPerSec = 2048L * 1024; // 2 MB/s — see ToS minimum-speed clause
         long transferMs = (fileSizeBytes * 1000) / minSpeedBytesPerSec;

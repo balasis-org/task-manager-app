@@ -67,8 +67,6 @@
     color: var(--text-muted, #888);
 }
 
-/* ── staged-file actions (cancel / upload) ──────────── */
-
 .gs-pick-actions {
     display: flex;
     align-items: center;
@@ -113,8 +111,6 @@
 }
 .gs-save-btn:hover { opacity: 0.85; }
 .gs-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ── limit-reached state ────────────────────────────── */
 
 .gs-image-row-disabled {
     opacity: 0.5;

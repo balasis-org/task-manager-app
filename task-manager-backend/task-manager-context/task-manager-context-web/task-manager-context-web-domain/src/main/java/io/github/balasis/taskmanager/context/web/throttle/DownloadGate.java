@@ -7,20 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Caps how many downloads a single user can run at the same time.
- *
- * Without this a single user (or attacker) could spam-click download on
- * every file and monopolise the entire async-download thread pool,
- * starving everyone else out. We keep per-user counts in a
- * ConcurrentHashMap so different users never contend with each other and
- * same-user contention is just an atomic CAS — negligible overhead.
- *
- * Edge case we accept: if acquire() succeeds on the servlet thread but
- * Spring then rejects the StreamingResponseBody (queue-full → 503), the
- * counter stays +1 because the lambda's finally block never runs. With
- * queue=100 that needs 115+ simultaneous downloads to trigger, and even
- * then the user just loses one slot until the next restart. Not worth a
- * background-cleanup for something that basically can't happen.
+ * Per-user concurrent-download limiter backed by ConcurrentHashMap + AtomicInteger.
+ * Prevents one user from hogging the whole async thread pool.
  */
 @Component
 public class DownloadGate {

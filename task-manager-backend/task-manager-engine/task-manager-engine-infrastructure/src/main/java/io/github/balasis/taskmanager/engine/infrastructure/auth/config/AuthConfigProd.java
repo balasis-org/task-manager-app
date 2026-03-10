@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Profile;
 
 @Getter
 @Configuration
-@Profile({"prod-azuresql", "prod-h2", "prod-arena"})
+@Profile({"prod-azuresql", "prod-h2", "prod-arena-stress", "prod-arena-security"})
 public class AuthConfigProd implements AuthConfig {
 
     private final SecretClientProvider secretClientProvider;

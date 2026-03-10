@@ -1,4 +1,3 @@
-﻿
 .task-row {
     display: grid;
     column-gap: 1.5rem;
@@ -22,7 +21,6 @@
 .task-row:nth-child(8)  { animation-delay: 0.28s; }
 .task-row:nth-child(9)  { animation-delay: 0.32s; }
 .task-row:nth-child(10) { animation-delay: 0.36s; }
-/* rows beyond 10 use the base 0s delay - still animate, just not staggered */
 
 @keyframes rowSlideIn {
     from {

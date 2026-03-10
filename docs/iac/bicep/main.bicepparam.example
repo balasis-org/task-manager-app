@@ -1,0 +1,6 @@
+
+
+using './main.bicep'
+
+param location = 'italynorth'
+param contentSafetyLocation = 'westeurope'
