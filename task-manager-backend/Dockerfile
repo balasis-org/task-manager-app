@@ -1,6 +1,10 @@
 
 FROM eclipse-temurin:21-jre-alpine
 
+LABEL maintainer="balasis" \
+      description="Task Manager REST API — Spring Boot 3.5 / Java 21" \
+      org.opencontainers.image.source="https://github.com/balasis-org/task-manager-app"
+
 RUN addgroup -S appgrp && adduser -S appuser -G appgrp
 
 WORKDIR /app
