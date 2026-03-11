@@ -18,4 +18,6 @@ public interface UserService {
     User refreshInviteCode();
     List<String> findDefaultImages(BlobContainerType type);
     User pickDefaultProfileImage(String fileName);
+    User pickMicrosoftProfilePhoto();
+    void storeMicrosoftPhoto(User user, byte[] photoBytes);
 }

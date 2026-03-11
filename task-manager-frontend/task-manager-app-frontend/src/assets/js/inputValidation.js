@@ -1,4 +1,5 @@
 
+// text-length limits — these never vary by plan
 export const LIMITS = Object.freeze({
 
     GROUP_NAME:        50,
@@ -13,10 +14,33 @@ export const LIMITS = Object.freeze({
 
     INVITE_COMMENT:    400,
 
+    EMAIL_CUSTOM_NOTE: 300,
+
     USER_NAME:         100,
 
-    MAX_TASK_FILES:       3,
-    MAX_ASSIGNEE_FILES:   3,
-    MAX_FILE_SIZE_MB:     20,
+    // image uploads (avatar / group picture) are not plan-dependent
     MAX_IMAGE_SIZE_MB:    5,
 });
+
+// safe fallbacks for file limits when groupDetail hasn't loaded yet
+const FILE_LIMIT_DEFAULTS = Object.freeze({
+    maxCreatorFiles:   1,
+    maxAssigneeFiles:  1,
+    maxFileSizeBytes:  5 * 1024 * 1024,   // 5 MB (FREE plan)
+    maxTasks:          30,
+    maxMembers:        8,
+});
+
+/**
+ * Extracts file/task limits from a GroupWithPreviewDto, falling back to
+ * conservative FREE-tier defaults when the detail hasn't loaded yet.
+ */
+export function groupFileLimits(groupDetail) {
+    return {
+        maxCreatorFiles:  groupDetail?.mcf  ?? FILE_LIMIT_DEFAULTS.maxCreatorFiles,
+        maxAssigneeFiles: groupDetail?.maf  ?? FILE_LIMIT_DEFAULTS.maxAssigneeFiles,
+        maxFileSizeBytes: groupDetail?.mfsb ?? FILE_LIMIT_DEFAULTS.maxFileSizeBytes,
+        maxTasks:         groupDetail?.mt   ?? FILE_LIMIT_DEFAULTS.maxTasks,
+        maxMembers:       groupDetail?.mm   ?? FILE_LIMIT_DEFAULTS.maxMembers,
+    };
+}

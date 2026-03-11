@@ -25,4 +25,13 @@ public class AdminUserResource extends BaseOutboundResource {
     private String defaultImgUrl;
     private Instant lastSeenInvites;
     private Instant lastInviteReceivedAt;
+    private Long usedStorageBytes;
+    private Long usedDownloadBytesMonth;
+    private Integer usedEmailsMonth;
+    private Integer usedImageScansMonth;
+    /** Populated at the controller level */
+    private Long storageBudgetBytes;
+    private Long downloadBudgetBytes;
+    private Integer emailsPerMonth;
+    private Integer imageScansPerMonth;
 }

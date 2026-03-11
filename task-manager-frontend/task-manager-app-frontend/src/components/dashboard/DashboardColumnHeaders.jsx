@@ -1,14 +1,12 @@
 import "@styles/dashboard/DashboardColumnHeaders.css";
 
-const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "Accessible", "\uD83D\uDCAC"];
+const COL_NAMES   = ["Title", "Creator", "Priority", "Due date", "\u{1F512}", "\uD83D\uDCAC"];
 const COL_CLASSES = ["col-title", "col-creator", "col-priority", "col-due", "col-access", "col-comments"];
 
 export default function DashboardColumnHeaders({
     visCols,
     gridTemplate,
     showDeleteColumn,
-    onTitleHandleDown,
-    onPointerDown,
 }) {
     return (
         <div
@@ -17,21 +15,12 @@ export default function DashboardColumnHeaders({
         >
             {visCols.map((ci) => (
                 <span key={ci} className={`col-header-cell ${COL_CLASSES[ci]}`}>
-                    {COL_NAMES[ci]}
-                    {/* Title → next-col resize handle */}
-                    {ci === 0 && visCols.length > 1 && (
-                        <span
-                            className="col-resize-handle"
-                            onPointerDown={(e) => onTitleHandleDown(visCols[1], e)}
-                        />
-                    )}
-                    {/* Mid-column resize handle */}
-                    {ci !== 0 && ci !== visCols[visCols.length - 1] && (
-                        <span
-                            className="col-resize-handle"
-                            onPointerDown={(e) => onPointerDown(ci, e)}
-                        />
-                    )}
+                    {ci === 2 ? (
+                        <>
+                            <span className="col-text-full">Priority</span>
+                            <span className="col-text-short">PR</span>
+                        </>
+                    ) : COL_NAMES[ci]}
                 </span>
             ))}
             {showDeleteColumn && (

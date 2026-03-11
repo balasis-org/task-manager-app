@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Profile;
 
 @Getter
 @Configuration
-@Profile({"prod-azuresql", "prod-h2"})
+@Profile({"prod-azuresql", "prod-h2", "prod-arena-stress", "prod-arena-security"})
 public class AuthConfigProd implements AuthConfig {
 
     private final SecretClientProvider secretClientProvider;
@@ -26,7 +26,7 @@ public class AuthConfigProd implements AuthConfig {
         this.tenantId = secretClientProvider.getSecret("TASKMANAGER-AUTH-TENANT-ID");
         this.redirectUri = secretClientProvider.getSecret("TASKMANAGER-AUTH-REDIRECT-URI");
         this.authority = "https://login.microsoftonline.com/" + tenantId;
-        this.scope = "openid profile email";
+        this.scope = "openid profile email User.Read";
         this.clientSecret = secretClientProvider.getSecret("TASKMANAGER-AUTH-CLIENT-SECRET");
     }
 

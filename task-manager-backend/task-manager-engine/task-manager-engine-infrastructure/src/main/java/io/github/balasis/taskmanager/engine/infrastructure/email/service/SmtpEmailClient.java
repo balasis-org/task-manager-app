@@ -39,7 +39,7 @@ public class SmtpEmailClient implements EmailClient {
             Transport.send(message);
             log.info("Email sent successfully to={}", to);
         } catch (MessagingException e) {
-            log.error("Failed to send email to={} via {}:{} — {}", to, host, port, e.getMessage(), e);
+            log.error("Failed to send email to={} via {}:{} - {}", to, host, port, e.getMessage(), e);
         }
     }
 }

@@ -6,16 +6,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-/**
- * Reports Redis connectivity status in the /actuator/health endpoint.
- *
- * Sends a synchronous PING command to Redis. If the response is "PONG",
- * health is UP. Any failure (connection refused, timeout, auth error)
- * results in DOWN — which causes Azure health probes to mark the instance
- * unhealthy and trigger a restart.
- *
- * The StatefulRedisConnection bean is exposed by RateLimitDevConfig / RateLimitProdConfig.
- */
+// Health indicator for Redis - sends PING and reports UP/DOWN for /actuator/health.
 @Component
 public class RedisHealthIndicator implements HealthIndicator {
 

@@ -13,7 +13,7 @@ public class AuthConfigDev implements AuthConfig {
     private final String tenantId = System.getenv("tenant-id");
     private final String redirectUri = System.getenv("auth-redirectUri");
     private final String authority = "https://login.microsoftonline.com/" + tenantId;
-    private final String scope = "openid profile email";
+    private final String scope = "openid profile email User.Read";
     private final String clientSecret = System.getenv("auth-client-secret");
 
     @Override

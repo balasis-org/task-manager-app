@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { GroupContext } from "@context/GroupContext";
 import { AuthContext } from "@context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -13,26 +13,39 @@ import DashboardColumnHeaders from "@components/dashboard/DashboardColumnHeaders
 import DashboardTaskSection from "@components/dashboard/DashboardTaskSection";
 import Spinner from "@components/Spinner";
 import { useToast } from "@context/ToastContext";
+import { groupFileLimits } from "@assets/js/inputValidation";
 import { apiGet } from "@assets/js/apiClient.js";
+import { formatFileSize } from "@assets/js/fileUtils";
 import { FILTER_EMPTY, isFilterEmpty } from "@components/dashboard/FilterPanel";
 import { FiRefreshCw } from "react-icons/fi";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 
-const COL_DEFAULTS = [1, 130, 90, 120, 90, 60];
-const COL_MIN      = [120, 70, 60, 80, 60, 40];
+/* fixed column widths - rem so they stay identical regardless of local font-size */
+const COL_WIDTHS    = ["minmax(7rem,1fr)", "6.5rem", "7.5rem", "6.25rem", "3rem", "3rem"];
+const COL_WIDTHS_SM = ["minmax(7rem,1fr)", "6.5rem", "3.75rem", "6.25rem", "3rem", "3rem"];
 
-function visibleCols(width) {
-    if (width <= 480) return [0, 2, 5];
-    if (width <= 768) return [0, 2, 3, 4, 5];
-    if (width <= 768) return [0, 2, 4, 5];
+function pxToEm(px) {
+    return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+function visibleCols(widthPx) {
+    const w = pxToEm(widthPx);
+    if (w <= 48) return [0, 2, 3, 4];       // hide Creator + Comments
+    if (w <= 64) return [0, 2, 3, 4, 5];    // hide Creator
     return [0, 1, 2, 3, 4, 5];
 }
 
-function gridCols(w, vis) {
-    return vis.map((ci) => (ci === 0 ? "minmax(0,1fr)" : w[ci] + "px")).join(" ");
+function gridCols(vis, widthPx) {
+    const widths = pxToEm(widthPx) <= 48 ? COL_WIDTHS_SM : COL_WIDTHS;
+    return vis.map((ci) => widths[ci]).join(" ");
+}
+
+function deleteColWidth(widthPx) {
+    return pxToEm(widthPx) <= 48 ? "1.75rem" : "2.625rem";
 }
 
 export default function Dashboard() {
@@ -52,10 +65,14 @@ export default function Dashboard() {
         removeGroupFromState,
         manualRefresh,
         markGroupEventsSeen,
+        presenceUserIds,
     } = useContext(GroupContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const showToast = useToast();
+    const fileLimits = groupFileLimits(groupDetail);
+
+    usePageTitle("Dashboard");
 
     useEffect(() => {
         if (activeGroup) refreshActiveGroup();
@@ -77,63 +94,13 @@ export default function Dashboard() {
         return () => window.removeEventListener("resize", onResize);
     }, []);
     const visCols = visibleCols(vpWidth);
-
-    const [colWidths, setColWidths] = useState(COL_DEFAULTS);
-
-    const onPointerDown = useCallback((leftIdx, e) => {
-        e.preventDefault();
-        const rightIdx = leftIdx + 1;
-        if (rightIdx >= COL_DEFAULTS.length) return;
-        const startX = e.clientX;
-        const startL = colWidths[leftIdx];
-        const startR = colWidths[rightIdx];
-
-        function onMove(ev) {
-            const dx = ev.clientX - startX;
-            setColWidths((prev) => {
-                const next = [...prev];
-                const newL = Math.max(COL_MIN[leftIdx], startL + dx);
-                const newR = Math.max(COL_MIN[rightIdx], startR - dx);
-
-                if (newL >= COL_MIN[leftIdx] && newR >= COL_MIN[rightIdx]) {
-                    next[leftIdx] = newL;
-                    next[rightIdx] = newR;
-                }
-                return next;
-            });
-        }
-        function onUp() {
-            window.removeEventListener("pointermove", onMove);
-            window.removeEventListener("pointerup", onUp);
-        }
-        window.addEventListener("pointermove", onMove);
-        window.addEventListener("pointerup", onUp);
-    }, [colWidths]);
-
-    const onTitleHandleDown = useCallback((nextColIdx, e) => {
-        e.preventDefault();
-        const startX = e.clientX;
-        const startW = colWidths[nextColIdx];
-
-        function onMove(ev) {
-            const dx = ev.clientX - startX;
-            setColWidths((prev) => {
-                const next = [...prev];
-                next[nextColIdx] = Math.max(COL_MIN[nextColIdx], startW - dx);
-                return next;
-            });
-        }
-        function onUp() {
-            window.removeEventListener("pointermove", onMove);
-            window.removeEventListener("pointerup", onUp);
-        }
-        window.addEventListener("pointermove", onMove);
-        window.addEventListener("pointerup", onUp);
-    }, [colWidths]);
+    const gridTemplate = gridCols(visCols, vpWidth);
+    const delColW = deleteColWidth(vpWidth);
 
     const [collapsedSections, setCollapsedSections] = useState({});
     const [topBarOpen, setTopBarOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [hideInaccessible, setHideInaccessible] = useState(false);
 
     const [showNewGroup, setShowNewGroup] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
@@ -255,6 +222,8 @@ export default function Dashboard() {
         const q = searchQuery.toLowerCase().trim();
         for (const task of groupDetail.tp) {
 
+            if (hideInaccessible && task.a === false) continue;
+
             if (filterIds && !filterIds.has(task.i)) continue;
 
             if (q && !task.t?.toLowerCase().includes(q)) continue;
@@ -272,6 +241,7 @@ export default function Dashboard() {
                 onOpenNewGroup={() => setShowNewGroup(true)}
                 onCloseNewGroup={() => setShowNewGroup(false)}
                 onGroupCreated={handleGroupCreated}
+                user={user}
             />
         );
     }
@@ -299,6 +269,9 @@ export default function Dashboard() {
                 onApplyFilters={handleApplyFilters}
                 onEditFilters={handleEditFilters}
                 onFiltersClear={handleClearFilters}
+                presenceUserIds={presenceUserIds}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
             />
 
             {isStale && (
@@ -321,40 +294,46 @@ export default function Dashboard() {
                 <Spinner />
             ) : (
                 <div className="dashboard-tasks">
-                    <div className="dashboard-search">
-                        <input
-                            type="text"
-                            className="dashboard-search-input"
-                            placeholder="Search tasks by title…"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searchQuery && (
-                            <button
-                                className="dashboard-search-clear"
-                                onClick={() => setSearchQuery("")}
-                            >
-                                ✕
-                            </button>
-                        )}
-                    </div>
-
                     <div className="dashboard-limits-bar">
+                        {groupDetail?.op && (
+                            <span className="dashboard-limit-tag dashboard-tier-badge" title="Group owner's plan">
+                                {groupDetail.op}
+                            </span>
+                        )}
                         <span className="dashboard-limit-tag" title="Groups you belong to">
-                            Groups: {groups.length}/3
+                            Groups: {groups.length}/{user?.maxGroups ?? "?"}
                         </span>
                         <span className="dashboard-limit-tag" title="Tasks in this group">
-                            Tasks: {groupDetail?.tp?.length ?? 0}/50
+                            Tasks: {groupDetail?.tp?.length ?? 0}/{fileLimits.maxTasks}
                         </span>
+                        {groupDetail?.db > 0 && (
+                            <span
+                                className="dashboard-limit-tag"
+                                title={`Owner's download budget this month${groupDetail?.ddce ? ". Repeat download guard is ON — each member can only download the same file once per day" : ""}`}
+                            >
+                                Downloads: {formatFileSize(groupDetail.udb ?? 0)}/{formatFileSize(groupDetail.db)}
+                                {groupDetail?.ddce && <span className="dashboard-guard-badge">🛡</span>}
+                            </span>
+                        )}
+                        {groupDetail?.sb > 0 && (
+                            <span className="dashboard-limit-tag" title="Owner's storage usage">
+                                Storage: {formatFileSize(groupDetail.usb ?? 0)}/{formatFileSize(groupDetail.sb)}
+                            </span>
+                        )}
+                        <button
+                            className={`dashboard-access-toggle${hideInaccessible ? " active" : ""}`}
+                            onClick={() => setHideInaccessible((v) => !v)}
+                            title={hideInaccessible ? "Showing accessible only - click to show all" : "Hide tasks not accessible to you"}
+                        >
+                            {hideInaccessible ? "\uD83D\uDD13 Accessible only" : "\uD83D\uDD12 Show all"}
+                        </button>
                     </div>
 
                     { }
                     <DashboardColumnHeaders
                         visCols={visCols}
-                        gridTemplate={gridCols(colWidths, visCols) + (showDeleteColumn ? " 42px" : "")}
+                        gridTemplate={gridTemplate + (showDeleteColumn ? " " + delColW : "")}
                         showDeleteColumn={showDeleteColumn}
-                        onTitleHandleDown={onTitleHandleDown}
-                        onPointerDown={onPointerDown}
                     />
 
                     {TASK_STATES.map((state) => (
@@ -369,9 +348,10 @@ export default function Dashboard() {
                             showDeleteColumn={showDeleteColumn}
                             onOpenNewTask={handleOpenNewTask}
                             groupId={activeGroup?.id}
-                            colWidths={colWidths}
+                            gridTemplate={gridTemplate}
                             visCols={visCols}
                             onDeleted={refreshActiveGroup}
+                            deleteColWidth={delColW}
                         />
                     ))}
                 </div>
@@ -381,17 +361,20 @@ export default function Dashboard() {
                 <NewGroupPopup
                     onClose={() => setShowNewGroup(false)}
                     onCreated={handleGroupCreated}
+                    user={user}
                 />
             )}
             {showInvite && activeGroup && (
                 <InviteToGroupPopup
                     groupId={activeGroup.id}
+                    groupDetail={groupDetail}
                     onClose={() => setShowInvite(false)}
                 />
             )}
             {showGroupSettings && activeGroup && (
                 <GroupSettingsPopup
                     group={activeGroup}
+                    groupDetail={groupDetail}
                     members={members}
                     user={user}
                     onClose={() => setShowGroupSettings(false)}
@@ -405,6 +388,7 @@ export default function Dashboard() {
             {showGroupEvents && activeGroup && (
                 <GroupEventsPopup
                     groupId={activeGroup.id}
+                    isLeader={myRole === "GROUP_LEADER"}
                     lastSeenGroupEvents={
                         members?.find((m) => m.user?.id === user?.id)?.lastSeenGroupEvents
                     }
@@ -419,9 +403,12 @@ export default function Dashboard() {
                     groupId={activeGroup.id}
                     initialState={newTaskState}
                     members={members}
+                    groupDetail={groupDetail}
                     onClose={() => setShowNewTask(false)}
                     onCreated={handleTaskCreated}
                     onRefresh={refreshActiveGroup}
+                    maxCreatorFiles={fileLimits.maxCreatorFiles}
+                    maxFileSizeBytes={fileLimits.maxFileSizeBytes}
                 />
             )}
         </div>

@@ -14,7 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"i", "n", "d", "diu", "iu", "oi", "on", "an", "ca", "tp"})
+@JsonPropertyOrder({"i", "n", "d", "diu", "iu", "oi", "on", "an", "aen", "aaen", "ca", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ue", "eq", "tp"})
 public class GroupWithPreviewDto {
     @JsonProperty("i")   private Long id;
     @JsonProperty("n")   private String name;
@@ -24,6 +24,28 @@ public class GroupWithPreviewDto {
     @JsonProperty("oi")  private Long ownerId;
     @JsonProperty("on")  private String ownerName;
     @JsonProperty("an")  private String announcement;
+    @JsonProperty("aen") private Boolean allowEmailNotification;
     @JsonProperty("ca")  private Instant createdAt;
+
+    // owner plan & download budget so the frontend can display tier/budget per group
+    @JsonProperty("op")  private String ownerPlan;
+    @JsonProperty("db")  private Long downloadBudgetBytes;
+    @JsonProperty("udb") private Long usedDownloadBytesMonth;
+
+    // owner storage budget
+    @JsonProperty("sb")  private Long storageBudgetBytes;
+    @JsonProperty("usb") private Long usedStorageBytes;
+
+    // file & task limits derived from the group owner's subscription plan
+    @JsonProperty("mcf")  private Integer maxCreatorFiles;
+    @JsonProperty("maf")  private Integer maxAssigneeFiles;
+    @JsonProperty("mfsb") private Long maxFileSizeBytes;
+    @JsonProperty("mt")   private Integer maxTasks;
+    @JsonProperty("mm")   private Integer maxMembers;
+    @JsonProperty("ddce") private Boolean dailyDownloadCapEnabled;
+    @JsonProperty("aaen") private Boolean allowAssigneeEmailNotification;
+    @JsonProperty("ue")   private Integer usedEmailsMonth;
+    @JsonProperty("eq")   private Integer emailQuotaPerMonth;
+
     @JsonProperty("tp")  private Set<TaskPreviewDto> taskPreviews;
 }

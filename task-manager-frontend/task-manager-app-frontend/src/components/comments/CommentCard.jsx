@@ -1,28 +1,36 @@
-// Single comment bubble. Handles the edge case where the creator
-// was deleted — falls back to creatorNameSnapshot.
+﻿// Single comment bubble. Handles the edge case where the creator
+// was deleted - falls back to creatorNameSnapshot.
 import userImg from "@assets/js/userImg";
 import "@styles/comments/CommentCard.css";
 
 export default function CommentCard({
-    comment: c, // short alias — `comment` would clash with the `.comment` property we access below isEditing, editText, onEditTextChange,
+    comment: c, isEditing, editText, onEditTextChange,
     participantRoleMap, canEdit, canDelete,
     onStartEdit, onCancelEdit, onSaveEdit, onRequestDelete,
     blobUrl, maxLen, formatDateTime,
+    presenceUserIds,
 }) {
     const isDeletedCreator = !c.creator;
     const taskRole = !isDeletedCreator ? participantRoleMap[c.creator?.id] : null;
+    const onlineSet = new Set(presenceUserIds || []);
+    const isOnline = !isDeletedCreator && onlineSet.has(c.creator?.id);
 
     return (
         <div className="comment-card">
-            {isDeletedCreator ? (
-                <div className="comment-avatar comment-avatar-deleted" title="Deleted user" />
-            ) : (
-                <img
-                    src={userImg(c.creator, blobUrl)}
-                    alt=""
-                    className="comment-avatar"
-                />
-            )}
+            <div className="comment-avatar-wrap">
+                {isDeletedCreator ? (
+                    <div className="comment-avatar comment-avatar-deleted" title="Deleted user" />
+                ) : (
+                    <img
+                        src={userImg(c.creator, blobUrl)}
+                        alt=""
+                        className="comment-avatar"
+                    />
+                )}
+                {!isDeletedCreator && (
+                    <span className={`comment-presence-dot${isOnline ? " online" : ""}`} />
+                )}
+            </div>
             <div className="comment-body">
                 <div className="comment-header">
                     <span className="comment-author">

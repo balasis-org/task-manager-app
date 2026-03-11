@@ -1,0 +1,135 @@
+.callback-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    background:
+        radial-gradient(ellipse 600px 520px at 35% 30%, rgba(79, 70, 229, 0.25) 0%, transparent 100%),
+        radial-gradient(ellipse 500px 600px at 65% 70%, rgba(124, 58, 237, 0.18) 0%, transparent 100%),
+        linear-gradient(160deg, #0d0d1a 0%, #171732 40%, #1e1e2f 100%);
+    padding: 2em;
+}
+
+.callback-logo-wrapper {
+    position: relative;
+    width: 5.5em;
+    height: 5.5em;
+    margin-bottom: 2em;
+}
+
+.callback-spinner {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 0.22em solid rgba(167, 139, 250, 0.15);
+    border-top-color: #a78bfa;
+    animation: callbackSpin 1s linear infinite;
+}
+
+.callback-logo {
+    position: absolute;
+    inset: 0.5em;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.callback-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+@keyframes callbackSpin {
+    to { transform: rotate(360deg); }
+}
+
+.callback-text {
+    text-align: center;
+}
+
+.callback-title {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: #e0e7ff;
+    margin: 0 0 0.35em;
+}
+
+.callback-subtitle {
+    font-size: 0.875em;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0;
+}
+
+.callback-error-card {
+    background: var(--bg-primary, #fff);
+    border-radius: 0.75em;
+    box-shadow: 0 0.25em 1.5em rgba(0, 0, 0, 0.12);
+    padding: 2.5em 2em 2em;
+    max-width: 24em;
+    width: 100%;
+    text-align: center;
+}
+
+.callback-error-card h1 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: var(--text-heading, #1e1e2f);
+    margin: 0 0 0.75em;
+}
+
+.callback-error-msg {
+    background: var(--danger-bg, #fce4e4);
+    color: var(--danger-text, #c0392b);
+    padding: 0.62em 0.875em;
+    border-radius: 0.375em;
+    font-size: 0.81em;
+    margin-bottom: 1.5em;
+    line-height: 1.45;
+}
+
+.callback-error-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    padding: 0.62em 1.5em;
+    border: none;
+    border-radius: 0.5em;
+    font-size: 0.94em;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    background: var(--accent-primary, #1a73e8);
+    color: var(--text-on-primary, #fff);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.callback-error-back:hover {
+    background: var(--accent-primary-hover, #1557b0);
+    box-shadow: 0 0.125em 0.5em rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 28em) {
+    .callback-page {
+        padding: 1.5em 1em;
+    }
+
+    .callback-logo-wrapper {
+        width: 4.5em;
+        height: 4.5em;
+        margin-bottom: 1.5em;
+    }
+
+    .callback-title {
+        font-size: 1.12em;
+    }
+
+    .callback-error-card {
+        padding: 2em 1.5em 1.5em;
+    }
+}

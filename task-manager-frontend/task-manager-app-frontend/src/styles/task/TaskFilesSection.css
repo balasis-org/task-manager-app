@@ -1,5 +1,3 @@
-/* TaskFilesSection — reusable drag-drop + file list for creator and assignee files */
-
 .task-files-section {
     margin-top: 1.5em;
 }
@@ -152,4 +150,11 @@
     font-size: 0.81em;
     font-style: italic;
     margin: 0.25em 0;
+}
+
+.task-file-size {
+    flex-shrink: 0;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    white-space: nowrap;
 }

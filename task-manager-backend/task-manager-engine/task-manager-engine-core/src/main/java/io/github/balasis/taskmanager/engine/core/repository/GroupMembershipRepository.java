@@ -58,4 +58,6 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     GroupMembership findByUser_IdAndGroup_Id(Long currentUserId, Long groupId);
 
     long countByUser_Id(Long userId);
+
+    long countByGroup_Id(Long groupId);
 }

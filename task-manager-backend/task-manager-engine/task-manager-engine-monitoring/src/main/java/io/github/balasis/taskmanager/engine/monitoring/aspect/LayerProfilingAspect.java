@@ -9,42 +9,17 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/**
- * Inner profiling ring — records timing for every layer below the controller.
- *
- * Uses a single wide pointcut that matches all app beans, then classifies each call
- * into its layer at runtime by inspecting the declaring type's package name.
- * This avoids referencing packages outside the monitoring module's dependency graph
- * (engine-core, context-web) in the AOP expression — those packages are only available
- * at runtime when the full application is assembled.
- *
- * Active only when the "benchmark" profile is enabled.
- * Works together with ApiResponseTimes (the outer ring that starts/stops the tree).
- *
- * Layer classification (by package segment):
- *   .repository      → db        (JPA repository calls)
- *   .authorization   → auth      (AuthorizationService, RolePolicyService)
- *   .validation      → validator (GroupValidatorImpl, ResourceDataValidator, etc.)
- *   .redis           → redis     (RedisRateLimitService)
- *   .blob            → blob      (BlobStorageService)
- *   .email           → email     (AzureEmailClient, SmtpEmailClient)
- *   .contentsafety   → safety    (ContentSafetyServiceImpl)
- *   .service         → service   (GroupServiceImpl, UserServiceImpl, etc.)
- *
- * Order(10) ensures this fires INSIDE the controller aspect (Order(1)), so timings nest correctly.
- */
+// Inner profiling aspect - records timing for layers below the controller.
+// Classifies beans into layers (db, auth, validator, service, etc) by package name.
+// Only active under the "benchmark" profile.
+// Order(10) so it fires inside the controller aspect at Order(1).
 @Aspect
 @Component
 @Profile("benchmark")
 @Order(10)
 public class LayerProfilingAspect {
 
-    /**
-     * Matches every method in the app namespace except the monitoring module itself.
-     * Spring AOP only intercepts Spring-managed beans, so entities, DTOs, and exceptions
-     * are naturally excluded (they aren't beans).
-     * The layer label is determined at runtime via {@link #classifyLayer}.
-     */
+    // matches all app beans except monitoring, bootstrap, config, interceptor, advice, filters
     @Around("execution(* io.github.balasis.taskmanager..*(..)) && " +
             "!within(io.github.balasis.taskmanager.engine.monitoring..*) && " +
             "!within(io.github.balasis.taskmanager..bootstrap..*) && " +
@@ -61,7 +36,7 @@ public class LayerProfilingAspect {
         String packageName = signature.getDeclaringType().getPackageName();
         String layerLabel = classifyLayer(packageName);
 
-        // Unrecognized layer (controller, config, interceptor, etc.) — pass through silently
+        // not a tracked layer, skip
         if (layerLabel == null) {
             return joinPoint.proceed();
         }
@@ -77,14 +52,8 @@ public class LayerProfilingAspect {
         }
     }
 
-    // ── Runtime layer classification ────────────────────────────────────
-
-    /**
-     * Maps a package name to its profiling layer label.
-     * Order matters: more specific segments (authorization, contentsafety) are checked
-     * before broader ones (service) to avoid false matches.
-     * Returns null for packages that don't belong to any profiled layer.
-     */
+    // maps package name to a layer label, returns null if not a tracked layer
+    // more specific segments checked first to avoid false matches
     private static String classifyLayer(String packageName) {
         if (packageName.contains(".repository"))    return "db";
         if (packageName.contains(".authorization"))  return "auth";

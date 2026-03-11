@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { FiX, FiInfo, FiEdit2, FiCheck } from "react-icons/fi";
 import FilterMemberPicker from "@components/filterpanel/FilterMemberPicker";
 import "@styles/dashboard/FilterPanel.css";
@@ -65,6 +65,21 @@ export default function FilterPanel({
 
     const updateFilter = useCallback(
         (key, value) => onDraftChange({ ...filters, [key]: value }),
+        [filters, onDraftChange]
+    );
+
+    /** Clamp a priority value into [PRIORITY_MIN, PRIORITY_MAX] on blur. */
+    const clampPriority = useCallback(
+        (key) => {
+            const raw = filters[key];
+            if (raw === "" || raw == null) return;
+            const num = Number(raw);
+            if (isNaN(num)) { onDraftChange({ ...filters, [key]: "" }); return; }
+            const clamped = Math.min(PRIORITY_MAX, Math.max(PRIORITY_MIN, Math.round(num)));
+            if (String(clamped) !== String(raw)) {
+                onDraftChange({ ...filters, [key]: String(clamped) });
+            }
+        },
         [filters, onDraftChange]
     );
 
@@ -153,7 +168,7 @@ export default function FilterPanel({
 
                 { }
                 <div className="filter-field filter-priority-range">
-                    <span className="filter-field-label">Priority (1–10)</span>
+                    <span className="filter-field-label">Priority (1-10)</span>
                     <div className="filter-range-inputs">
                         <input
                             type="number"
@@ -162,10 +177,11 @@ export default function FilterPanel({
                             placeholder="Min"
                             value={filters.priorityMin}
                             onChange={(e) => updateFilter("priorityMin", e.target.value)}
+                            onBlur={() => clampPriority("priorityMin")}
                             disabled={locked}
                             className="filter-range-input"
                         />
-                        <span className="filter-range-sep">–</span>
+                        <span className="filter-range-sep">-</span>
                         <input
                             type="number"
                             min={PRIORITY_MIN}
@@ -173,6 +189,7 @@ export default function FilterPanel({
                             placeholder="Max"
                             value={filters.priorityMax}
                             onChange={(e) => updateFilter("priorityMax", e.target.value)}
+                            onBlur={() => clampPriority("priorityMax")}
                             disabled={locked}
                             className="filter-range-input"
                         />

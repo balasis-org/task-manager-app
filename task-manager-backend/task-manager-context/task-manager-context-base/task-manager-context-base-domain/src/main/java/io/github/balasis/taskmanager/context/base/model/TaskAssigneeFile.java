@@ -21,6 +21,9 @@ public class TaskAssigneeFile extends BaseModel {
     @Column(length = 255)
     private String name;
 
+    @Column
+    private Long fileSize;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id")
     private Task task;

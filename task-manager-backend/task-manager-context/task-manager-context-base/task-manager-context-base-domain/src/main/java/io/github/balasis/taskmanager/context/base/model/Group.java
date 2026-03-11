@@ -26,7 +26,7 @@ public class Group extends BaseModel{
     private String description;
 
     @Column(length = 150)
-    private String Announcement;
+    private String announcement;
 
     @Column(length = 500)
     private String defaultImgUrl;
@@ -58,6 +58,10 @@ public class Group extends BaseModel{
     private Boolean allowEmailNotification = true;
 
     @Column
+    @Builder.Default
+    private Boolean allowAssigneeEmailNotification = false;
+
+    @Column
     private Instant lastChangeInGroup;
 
     @Column
@@ -74,6 +78,21 @@ public class Group extends BaseModel{
 
     @Column
     private Instant createdAt;
+
+    // ── group-level override columns (nullable = use plan default) ──
+
+    @Column
+    private Integer maxCreatorFilesPerTask;
+
+    @Column
+    private Integer maxAssigneeFilesPerTask;
+
+    @Column
+    private Long maxFileSizeBytes;
+
+    @Column
+    @Builder.Default
+    private Boolean dailyDownloadCapEnabled = true;
 
     @PrePersist
     protected void onCreate(){

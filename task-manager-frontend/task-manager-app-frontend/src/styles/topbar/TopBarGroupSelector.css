@@ -54,3 +54,32 @@
 .topbar-group-btn {
     font-weight: 600;
 }
+
+.group-limit-card {
+    width: 22em;
+    text-align: center;
+}
+
+.group-limit-text {
+    font-size: 0.88em;
+    color: var(--text-secondary);
+    margin: 0 0 0.5em;
+    line-height: 1.5;
+}
+
+.group-limit-plans-link {
+    color: var(--link-color);
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.group-limit-plans-link:hover {
+    opacity: 0.8;
+}
+
+.group-limit-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.25em;
+}

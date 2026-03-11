@@ -1,5 +1,5 @@
-// formatDate     → "Feb 28, 2026"
-// formatDateTime → "Feb 28, 2026, 02:30 PM"
+﻿// formatDate     -> "Feb 28, 2026"
+// formatDateTime -> "Feb 28, 2026, 02:30 PM"
 
 export function formatDate(iso, fallback = "") {
     if (!iso) return fallback;

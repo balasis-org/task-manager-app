@@ -9,48 +9,9 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
-/**
- * Records application-level business metrics via Micrometer.
- *
- * These metrics are automatically exported to Azure Application Insights
- * through the OTel-Micrometer bridge (azure-monitor-opentelemetry-autoconfigure).
- * They appear in the 'customMetrics' table in Log Analytics and can be queried
- * with KQL, charted on dashboards, and used as alert rule conditions.
- *
- * Cost / performance notes (see class-level doc at bottom).
- *
- * Metrics recorded:
- *
- *   rate_limit_rejections_total  (counter) — incremented on HTTP 429
- *   rate_limit_infra_failures_total (counter) — Redis unreachable
- *   blob_uploads_total           (counter, tag result=success|failure)
- *   blob_upload_duration         (timer)  — upload wall-clock time
- *   critical_exceptions_total    (counter, tag type=class name)
- *   authentication_attempts_total (counter, tag result=success|failure)
- *
- * How counters work:
- *   Micrometer counters are monotonically increasing in-memory doubles.
- *   They NEVER reset during the lifetime of the JVM.  When the OTel exporter
- *   pushes to Application Insights (every 60 s by default), it sends the DELTA
- *   (difference since last push), not the absolute value.  So Application
- *   Insights stores small per-minute increments, not a growing number.
- *   On container restart the counter starts from 0 — this is expected and
- *   the delta exporter handles it transparently (no data loss, no double-count).
- *
- * Performance impact:
- *   Counter.increment() — a single volatile long add.  ~5 ns.  No lock.
- *   Timer.Sample — two System.nanoTime() calls + one volatile add.  ~10 ns.
- *   The AOP proxy overhead per pointcut is ~0.2 µs (Spring CGLIB dynamic proxy).
- *   Total added latency per request: ≤ 1 µs — completely invisible.
- *   All aspects are non-blocking and allocation-free on the hot path.
- *
- * Cost impact:
- *   The OTel exporter batches metrics into a single HTTPS POST every 60 s.
- *   Each metric is one row in customMetrics (≈ 200 bytes).  With 6 metrics
- *   that's ~1.2 KB/min → ~1.7 MB/month per instance → ~3.4 MB for 2 instances.
- *   Application Insights charges $2.76/GB after the free 5 GB.
- *   3.4 MB is 0.07% of the free tier — effectively zero cost.
- */
+// Records app-level business metrics (rate limit rejections, blob uploads,
+// critical exceptions, auth attempts) using Micrometer counters/timers.
+// Exported to App Insights via the OTel-Micrometer bridge.
 @Aspect
 @Component
 public class ApplicationMetrics {
@@ -101,11 +62,9 @@ public class ApplicationMetrics {
                 .register(registry);
     }
 
-    // ── AOP intercepts ──────────────────────────────────────────────────
+    // --- AOP intercepts ---
 
-    /**
-     * Intercepts RedisRateLimitService.checkRateLimit() and counts rejections/infra failures.
-     */
+    // counts rate limit rejections and infra failures
     @AfterThrowing(
             pointcut = "execution(* io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisRateLimitService.checkRateLimit(..))",
             throwing = "ex"
@@ -119,10 +78,7 @@ public class ApplicationMetrics {
         }
     }
 
-    /**
-     * Intercepts BlobStorageService.upload*() — records duration + success/failure.
-     * Uses Timer.Sample instead of recordCallable to avoid the Callable checked-exception limitation.
-     */
+    // blob upload duration + success/failure tracking
     @Around("execution(* io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService.upload*(..))")
     public Object measureBlobUpload(ProceedingJoinPoint joinPoint) throws Throwable {
         Timer.Sample sample = Timer.start(registry);
@@ -138,9 +94,7 @@ public class ApplicationMetrics {
         }
     }
 
-    /**
-     * Intercepts CriticalExceptionAlerter.handleCriticalException() — counts by exception type.
-     */
+    // counts critical exceptions by type
     @Around("execution(* io.github.balasis.taskmanager.engine.monitoring.alert.CriticalExceptionAlerter.handleCriticalException(..))")
     public Object countCritical(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
@@ -155,9 +109,7 @@ public class ApplicationMetrics {
         return joinPoint.proceed();
     }
 
-    /**
-     * Intercepts AuthService.authenticateThroughAzureCode() — counts success/failure.
-     */
+    // auth success / failure counter
     @Around("execution(* io.github.balasis.taskmanager..auth.AuthService.authenticateThroughAzureCode(..))")
     public Object countAuthAttempt(ProceedingJoinPoint joinPoint) throws Throwable {
         try {

@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.model.DefaultImage;
 import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
 import io.github.balasis.taskmanager.engine.core.repository.DefaultImageRepository;
+import io.github.balasis.taskmanager.engine.infrastructure.bootstrap.StartupGate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;

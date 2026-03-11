@@ -5,13 +5,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-/**
- * Reports Azure Blob Storage connectivity in /actuator/health.
- *
- * Lists containers (max 1 page) — a lightweight metadata request that verifies
- * credentials and network reach without touching any blob data.
- * Failure results in DOWN and triggers Azure health-probe restart.
- */
+// Health indicator for Blob Storage - lists containers to verify credentials and network.
 @Component
 public class BlobStorageHealthIndicator implements HealthIndicator {
 

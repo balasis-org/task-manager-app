@@ -1,8 +1,3 @@
-/*
- * AdminPanel.css — shared / orchestrator-level styles only.
- * Component-specific rules live in styles/admin/*.css.
- */
-
 .admin-panel {
     display: flex;
     flex-direction: column;
@@ -49,7 +44,6 @@
     color: var(--text-primary);
 }
 
-/* shared overlay backdrop (detail modal + delete confirm) */
 .admin-overlay {
     position: fixed;
     inset: 0;
@@ -60,7 +54,6 @@
     z-index: 100;
 }
 
-/* shared loading / empty states */
 .admin-loading,
 .admin-empty {
     display: flex;
@@ -71,7 +64,6 @@
     font-size: 0.88em;
 }
 
-/* shared button pair (cancel / danger) */
 .admin-btn-cancel,
 .admin-btn-danger {
     padding: 0.4em 1em;

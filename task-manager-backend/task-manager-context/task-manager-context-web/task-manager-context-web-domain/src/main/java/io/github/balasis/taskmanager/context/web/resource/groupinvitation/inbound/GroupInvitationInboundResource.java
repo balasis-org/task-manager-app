@@ -20,4 +20,6 @@ public class GroupInvitationInboundResource extends BaseInboundResource {
 
     @Size(max = 400, message = "comment must be at most 400 characters")
     private String comment;
+
+    private Boolean sendEmail;
 }

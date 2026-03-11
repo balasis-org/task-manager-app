@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { apiPatch, apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { useBlobUrl } from "@context/BlobSasContext";
@@ -15,6 +15,7 @@ export default function MemberDetailPopup({
     taskPreviews,
     onClose,
     onRefresh,
+    isOnline,
 }) {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
@@ -72,11 +73,14 @@ export default function MemberDetailPopup({
             <div className="popup-card mdp-card" onClick={(e) => e.stopPropagation()}>
                 { }
                 <div className="mdp-header">
-                    {imgSrc ? (
-                        <img src={imgSrc} alt="" className="mdp-avatar" />
-                    ) : (
-                        <span className="mdp-avatar mdp-avatar-placeholder" />
-                    )}
+                    <div className="mdp-avatar-wrapper">
+                        <span className={`mdp-status-dot${isOnline ? " online" : ""}`} />
+                        {imgSrc ? (
+                            <img src={imgSrc} alt="" className="mdp-avatar" />
+                        ) : (
+                            <span className="mdp-avatar mdp-avatar-placeholder" />
+                        )}
+                    </div>
                     <div className="mdp-header-info">
                         <h2 className="mdp-name">{userName}</h2>
                         <span className="mdp-role-badge">{member.role.replace(/_/g, " ")}</span>
@@ -121,9 +125,6 @@ export default function MemberDetailPopup({
                                 {busy ? "Saving…" : "Save"}
                             </button>
                         </div>
-                        <span className="mdp-hint">
-                            Leadership can only be transferred through Group Settings → Transfer Leadership.
-                        </span>
                     </div>
                 )}
 

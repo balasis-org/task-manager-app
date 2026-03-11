@@ -1,6 +1,10 @@
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev-h2}
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 550MB
   jpa:
     properties:
       hibernate:
@@ -12,9 +16,12 @@ spring:
     open-in-view: false
   jackson:
     time-zone: UTC
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
 
 server:
   port: 8080
+  shutdown: graceful
 
 management:
   endpoints:
@@ -41,3 +48,8 @@ logging:
     io.netty: WARN
     reactor: WARN
     org.flywaydb: WARN
+
+app:
+  jwt-secret-name: TASKMANAGER-JWT-SECRET
+  download-threads: 15
+  public-url: ${APP_PUBLIC_URL:http://localhost:5173}

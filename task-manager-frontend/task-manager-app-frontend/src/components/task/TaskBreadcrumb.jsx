@@ -1,4 +1,4 @@
-// Breadcrumb bar + action buttons (edit, delete, chat link).
+﻿// Breadcrumb bar + action buttons (edit, delete, chat link).
 // `creator` can be null if the user was removed from the system.
 import { Link } from "react-router-dom";
 import {
@@ -10,7 +10,9 @@ import "@styles/task/TaskBreadcrumb.css";
 export default function TaskBreadcrumb({
     groupId, taskId, groupName, creator, lastEditBy,
     canEdit, canDelete, editing, onEdit, onDelete,
+    presenceUserIds,
 }) {
+    const onlineSet = new Set(presenceUserIds || []);
     return (
         <div className="task-breadcrumb">
             <Link to="/dashboard" className="task-breadcrumb-back" title="Back to group">
@@ -28,7 +30,10 @@ export default function TaskBreadcrumb({
 
             <div className="task-breadcrumb-right">
                 <span className="task-meta-byline">
-                    By: {creator?.user?.name || creator?.user?.email || "—"}
+                    By: {creator?.user?.name || creator?.user?.email || "-"}
+                    {creator?.user?.id && (
+                        <span className={`task-presence-dot${onlineSet.has(creator.user.id) ? " online" : ""}`} />
+                    )}
                 </span>
 
                 {canEdit && !editing && (

@@ -5,7 +5,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientPr
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-@Profile({"prod-h2","prod-azuresql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-stress", "prod-arena-security"})
 @Component
 public class AzureSecretClientProviderImpl implements SecretClientProvider {
     private final SecretClient secretClient;

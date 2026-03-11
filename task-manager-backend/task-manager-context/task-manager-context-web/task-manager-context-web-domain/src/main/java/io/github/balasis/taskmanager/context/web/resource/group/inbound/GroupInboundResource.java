@@ -20,6 +20,6 @@ public class GroupInboundResource extends BaseInboundResource {
     private String description;
 
     @Size(max = 150, message = "announcement must be at most 150 characters")
-    private String Announcement;
+    private String announcement;
     private Boolean allowEmailNotification;
 }

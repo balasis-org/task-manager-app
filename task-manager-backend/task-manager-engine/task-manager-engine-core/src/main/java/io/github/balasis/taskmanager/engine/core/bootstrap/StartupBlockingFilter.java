@@ -7,6 +7,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.github.balasis.taskmanager.engine.infrastructure.bootstrap.StartupGate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +48,7 @@ public class StartupBlockingFilter implements Filter {
         }
 
         return path.startsWith("/actuator/health")
+                || path.equals("/health")
                 || path.startsWith("/h2-console")
                 || path.equals("/error");
     }

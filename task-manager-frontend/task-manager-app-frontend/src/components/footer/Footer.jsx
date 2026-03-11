@@ -22,7 +22,7 @@ export default function Footer() {
                 </div>
             </div>
             <div className="footer-copyright">
-                &copy; {new Date().getFullYear()} Task Manager. All rights reserved.
+                &copy; {new Date().getFullYear()} myteamtasks. All rights reserved.
             </div>
         </footer>
     );

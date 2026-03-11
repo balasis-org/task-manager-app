@@ -17,90 +17,35 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Catches every {@link CriticalException} thrown by the application, logs with exponential
- * backoff, sends a periodic email digest to the admin, and returns 500 to the client.
- *
- * This is a separate @RestControllerAdvice — the GlobalExceptionHandler intentionally
- * has no handler for CriticalException. Spring picks this handler because CriticalException
- * is more specific than TaskManagerException (handled by GlobalExceptionHandler).
- *
- * Critical exception types:
- *   CriticalBlobStorageException    — Azure Blob Storage infrastructure failure
- *   CriticalAuthIntegrityException  — JWT/token integrity breach (forged key, bad signature)
- *   CriticalInfrastructureException — Redis or other infrastructure component failure
- *
- * Logging strategy — exponential backoff per exception type (per instance):
- *   The FIRST occurrence always logs immediately (with full stack trace).
- *   Subsequent occurrences are suppressed for an interval that doubles each time:
- *     1min → 2min → 4min → 8min → 16min → 32min → 64min → 128min → 240min (cap).
- *   When the backoff elapses and a new log is emitted, the entry includes a count of
- *   how many occurrences were suppressed since the last log — so no data is ever lost,
- *   but a broken Redis hammered by 10k requests doesn't produce 10k log lines.
- *   If 40 minutes pass with ZERO occurrences, the backoff resets so the next event
- *   logs immediately again (the incident is likely over).
- *
- * Email strategy — fixed 4-hour cooldown per exception type (per instance):
- *   One email every 4 hours at most, per exception type. The email body includes the
- *   total occurrence count, instance ID, and the original error message + stack trace.
- *   Subject line is constant per type so email clients (Outlook, Gmail) thread them
- *   into a single conversation — one thread per critical category per day.
- *
- * Horizontal scaling:
- *   All counters/timers are per-instance (in-memory ConcurrentHashMap). Each instance
- *   independently tracks and logs. The instance ID (from WEBSITE_INSTANCE_ID on Azure,
- *   or "local" in dev) is included in every log line and email so the admin can see
- *   which instances are affected and correlate across the fleet.
- *
- * Container safety:
- *   Container restarts clear all state. Worst case: one extra immediate log + one extra
- *   email per type per restart — acceptable for an event that should be rare.
- *
- * Activation:
- *   Email requires the ADMIN_EMAIL env var (or admin.email property).
- *   Logging always works regardless of email configuration.
- *   Instance ID is read from WEBSITE_INSTANCE_ID (Azure App Service sets this automatically).
- *   In dev environments where this env var doesn't exist, it falls back to "local".
- */
+// Catches CriticalException subclasses, logs them with exponential backoff
+// (so a broken Redis doesn't spam 10k log lines) and sends an email digest
+// every 4h to the admin. Returns 500 to the client.
+// Separate from GlobalExceptionHandler because Spring matches CriticalException
+// more specifically than the generic TaskManagerException handler.
 @RestControllerAdvice
 @Order(1)
 public class CriticalExceptionAlerter {
 
     private static final Logger logger = LoggerFactory.getLogger(CriticalExceptionAlerter.class);
 
-    // ── Tuning constants ────────────────────────────────────────────────
-
-    /** Starting log backoff interval — doubles on each suppressed log. */
-    private static final Duration INITIAL_LOG_BACKOFF = Duration.ofMinutes(1);
-
-    /** Maximum log backoff — once reached, it stays here until the incident ends. */
+    // backoff / cooldown tuning
+    private static final Duration INITIAL_LOG_BACKOFF = Duration.ofMinutes(1);  // doubles each time
     private static final Duration MAX_LOG_BACKOFF = Duration.ofHours(4);
-
-    /** If no occurrences arrive within this window, the backoff resets to INITIAL.
-     *  This means a NEW incident (after silence) always logs immediately. */
-    private static final Duration BACKOFF_RESET_AFTER_SILENCE = Duration.ofMinutes(40);
-
-    /** Fixed email cooldown — one email per type per 4 hours. */
+    private static final Duration BACKOFF_RESET_AFTER_SILENCE = Duration.ofMinutes(40); // resets if quiet
     private static final Duration EMAIL_COOLDOWN = Duration.ofHours(4);
 
     private static final int MAX_STACK_TRACE_LENGTH = 2000;
 
-    // ── Instance identity (for multi-instance correlation) ──────────────
-
-    /** Azure App Service injects WEBSITE_INSTANCE_ID automatically.
-     *  Falls back to "local" in dev environments where it doesn't exist. */
+    // WEBSITE_INSTANCE_ID is set by Azure App Service; fallback to "local" in dev
     private static final String INSTANCE_ID = resolveInstanceId();
 
     private static String resolveInstanceId() {
         String azureId = System.getenv("WEBSITE_INSTANCE_ID");
         if (azureId != null && !azureId.isBlank()) {
-            // Azure IDs are long hex strings — use last 8 chars for readability
             return azureId.length() > 8 ? azureId.substring(azureId.length() - 8) : azureId;
         }
         return "local";
     }
-
-    // ── Per-exception-type tracking ─────────────────────────────────────
 
     private final ConcurrentHashMap<String, ExceptionTracker> trackers = new ConcurrentHashMap<>();
 
@@ -113,8 +58,6 @@ public class CriticalExceptionAlerter {
         this.emailClient = emailClient;
         this.adminEmail = adminEmail;
     }
-
-    // ── Exception handler ───────────────────────────────────────────────
 
     @ExceptionHandler(CriticalException.class)
     public ResponseEntity<String> handleCriticalException(CriticalException ex) {
@@ -129,10 +72,8 @@ public class CriticalExceptionAlerter {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("A critical error occurred — please try again later");
+                .body("A critical error occurred. Please try again later");
     }
-
-    // ── Exponential backoff logging ─────────────────────────────────────
 
     private void logWithBackoff(ExceptionTracker tracker, CriticalException ex) {
         String typeName = ex.getClass().getSimpleName();
@@ -143,7 +84,7 @@ public class CriticalExceptionAlerter {
             tracker.suppressedSinceLastLog++;
             tracker.lastOccurrenceAt = now;
 
-            // First time ever — always log immediately
+            // first occurrence - log right away
             if (tracker.lastLogAt == null) {
                 tracker.lastLogAt = now;
                 tracker.suppressedSinceLastLog = 0;
@@ -161,7 +102,7 @@ public class CriticalExceptionAlerter {
                 tracker.suppressedSinceLastLog = 0;
                 tracker.currentLogBackoff = INITIAL_LOG_BACKOFF;
                 logCritical(typeName, tracker,
-                        "CRITICAL [{}] instance={}: {} (recurring — backoff reset after {}min silence, total: {})",
+                        "CRITICAL [{}] instance={}: {} (recurring - backoff reset after {}min silence, total: {})",
                         typeName, INSTANCE_ID, ex.getMessage(),
                         silenceGap.toMinutes(), tracker.totalOccurrences, ex);
                 return;
@@ -186,15 +127,11 @@ public class CriticalExceptionAlerter {
                         suppressed, tracker.totalOccurrences,
                         tracker.currentLogBackoff.toMinutes(), ex);
             }
-            // else: still within backoff window — occurrence counted but not logged
+            // else: still within backoff window, occurrence counted but not logged
         }
     }
 
-    /**
-     * Logs with MDC context so OpenTelemetry auto-instrumentation exports structured
-     * custom dimensions to Azure Application Insights. KQL queries can then filter:
-     *   traces | where customDimensions.criticalType == "CriticalBlobStorageException"
-     */
+    // sets MDC fields so OTel exports them as custom dimensions in App Insights
     private void logCritical(String typeName, ExceptionTracker tracker,
                              String format, Object... args) {
         MDC.put("criticalType", typeName);
@@ -208,8 +145,6 @@ public class CriticalExceptionAlerter {
             MDC.remove("totalOccurrences");
         }
     }
-
-    // ── Email with fixed 4-hour cooldown ────────────────────────────────
 
     private void sendEmailIfCooldownElapsed(ExceptionTracker tracker, CriticalException ex) {
         Instant now = Instant.now();
@@ -229,8 +164,8 @@ public class CriticalExceptionAlerter {
         if (!shouldSend) return;
 
         try {
-            // Constant subject per type → email clients thread them into one conversation
-            String subject = "[Task Manager] Critical: " + ex.getClass().getSimpleName();
+            // same subject per type so email clients group them together
+            String subject = "[MyTeamTasks] Critical: " + ex.getClass().getSimpleName();
             String body = buildAlertBody(ex, tracker.totalOccurrences);
             emailClient.sendEmail(adminEmail, subject, body);
             logger.info("Critical alert email sent for: {} (instance={})", ex.getClass().getName(), INSTANCE_ID);
@@ -240,11 +175,9 @@ public class CriticalExceptionAlerter {
         }
     }
 
-    // ── Email body ──────────────────────────────────────────────────────
-
     private String buildAlertBody(CriticalException exception, long totalOccurrences) {
         StringBuilder body = new StringBuilder();
-        body.append("A critical exception is occurring in the Task Manager application.\n\n");
+        body.append("A critical exception is occurring in the myteamtasks application.\n\n");
         body.append("Instance         : ").append(INSTANCE_ID).append("\n");
         body.append("Exception type   : ").append(exception.getClass().getName()).append("\n");
         body.append("Message          : ").append(exception.getMessage()).append("\n");
@@ -263,19 +196,11 @@ public class CriticalExceptionAlerter {
         return body.toString();
     }
 
-    // ── Guard ───────────────────────────────────────────────────────────
-
     private boolean isEmailActive() {
         return emailClient != null && adminEmail != null && !adminEmail.isBlank();
     }
 
-    // ── Per-type state tracker ──────────────────────────────────────────
-
-    /**
-     * Mutable state for one exception type. All fields are guarded by synchronizing
-     * on the tracker instance itself — no need for atomics since contention per type
-     * is low (one request thread at a time hits the same exception type in practice).
-     */
+    // per-type mutable state, synchronized on the tracker instance
     private static class ExceptionTracker {
         long totalOccurrences;
         long suppressedSinceLastLog;

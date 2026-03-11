@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { FiUsers, FiPlus, FiSearch } from "react-icons/fi";
 import { useBlobUrl } from "@context/BlobSasContext";
 import MemberDetailPopup from "@components/popups/MemberDetailPopup";
@@ -13,6 +13,7 @@ export default function TopBarMembersDropdown({
     user,
     groupDetail,
     onLeaveGroup,
+    presenceUserIds,
 }) {
     const blobUrl = useBlobUrl();
     const [membersDropdown, setMembersDropdown] = useState(false);
@@ -30,6 +31,8 @@ export default function TopBarMembersDropdown({
         );
     });
 
+    const onlineSet = new Set(presenceUserIds || []);
+
     useEffect(() => {
         if (membersDropdown && memberSearchRef.current) {
             memberSearchRef.current.focus();
@@ -39,7 +42,7 @@ export default function TopBarMembersDropdown({
         }
     }, [membersDropdown]);
 
-    // mousedown, not click — so the dropdown closes before the click
+    // mousedown, not click - so the dropdown closes before the click
     // event reaches whatever the user tapped on next
     useEffect(() => {
         function handleClick(e) {
@@ -94,6 +97,7 @@ export default function TopBarMembersDropdown({
                                             setMembersDropdown(false);
                                         }}
                                     >
+                                        <span className={`topbar-member-status-dot${onlineSet.has(m.user?.id) ? " online" : ""}`} />
                                         <img
                                             src={(m.user?.imgUrl) ? blobUrl(m.user.imgUrl) : (m.user?.defaultImgUrl)
                                                 ? blobUrl(m.user.defaultImgUrl) : ""}
@@ -122,6 +126,7 @@ export default function TopBarMembersDropdown({
                     taskPreviews={groupDetail?.tp}
                     onClose={() => setSelectedMember(null)}
                     onRefresh={() => { if (onLeaveGroup) onLeaveGroup("refresh"); }}
+                    isOnline={onlineSet.has(selectedMember.user?.id)}
                 />
             )}
         </>

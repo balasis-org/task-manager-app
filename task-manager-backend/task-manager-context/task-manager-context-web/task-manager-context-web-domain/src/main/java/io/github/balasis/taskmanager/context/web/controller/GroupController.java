@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.context.web.controller;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
+import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
@@ -25,14 +26,18 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskPrev
 import io.github.balasis.taskmanager.context.web.resource.taskcomment.inbound.TaskCommentInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.taskcomment.outbound.TaskCommentOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.taskparticipant.inbound.TaskParticipantInboundResource;
+import io.github.balasis.taskmanager.context.web.throttle.DownloadGate;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
+import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.PresenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -62,6 +67,10 @@ public class GroupController extends BaseComponent {
     private final GroupMiniForDropdownOutboundMapper groupMiniForDropdownOutboundMapper;
         private final UserMiniForDropdownOutboundMapper userMiniForDropdownOutboundMapper;
         private final UserService userService;
+    private final EffectiveCurrentUser effectiveCurrentUser;
+    private final PresenceService presenceService;
+    private final PlanLimits planLimits;
+    private final DownloadGate downloadGate;
 
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
@@ -104,10 +113,30 @@ public class GroupController extends BaseComponent {
             @PathVariable Long groupId,
             @RequestParam Instant lastSeen
     ) {
-        if (groupService.hasGroupChanged(groupId, lastSeen)) {
-            return ResponseEntity.status(409).build();
-        }
-        return ResponseEntity.noContent().build();
+        boolean changed = groupService.hasGroupChanged(groupId, lastSeen);
+
+        // Piggyback a presence heartbeat, the user is actively viewing this group.
+        // Best-effort: PresenceService swallows Redis failures internally.
+        try {
+            presenceService.heartbeat(groupId, effectiveCurrentUser.getUserId());
+        } catch (Exception ignored) { }
+
+        return changed
+                ? ResponseEntity.status(409).build()
+                : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(path = "/{groupId}")
+    public ResponseEntity<GroupWithPreviewDto> getGroupWithPreviewTasks(
+            @PathVariable Long groupId
+    ){
+        return ResponseEntity.ok(groupService.findGroupWithPreviewTasks(groupId));
+    }
+
+    @GetMapping(path = "/{groupId}/presence")
+    public ResponseEntity<List<Long>> getGroupPresence(@PathVariable Long groupId) {
+        groupService.checkMembership(groupId);
+        return ResponseEntity.ok(presenceService.getPresent(groupId));
     }
 
     @GetMapping(path = "/{groupId}/refresh")
@@ -142,12 +171,7 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping(path = "/{groupId}")
-    public ResponseEntity<GroupWithPreviewDto> getGroupWithPreviewTasks(
-            @PathVariable Long groupId
-    ){
-        return ResponseEntity.ok(groupService.findGroupWithPreviewTasks(groupId));
-    }
+
 
     @GetMapping("/{groupId}/groupMemberships")
     public ResponseEntity<Page<GroupMembershipOutboundResource>> getAllGroupMembers(
@@ -222,7 +246,8 @@ public class GroupController extends BaseComponent {
         resourceDataValidator.validateResourceData(groupInvitationInboundResource);
         groupService.createGroupInvitation(groupId,groupInvitationInboundResource.getInviteCode(),
                         groupInvitationInboundResource.getUserToBeInvitedRole(),
-                        groupInvitationInboundResource.getComment());
+                        groupInvitationInboundResource.getComment(),
+                        Boolean.TRUE.equals(groupInvitationInboundResource.getSendEmail()));
         return ResponseEntity.ok().build();
     }
 
@@ -328,6 +353,14 @@ public class GroupController extends BaseComponent {
                 groupService.findAllGroupEvents(groupId, pageable)
                         .map(groupEventOutboundMapper::toResource)
         );
+    }
+
+    @DeleteMapping("/{groupId}/events")
+    public ResponseEntity<Void> deleteAllGroupEvents(
+            @PathVariable Long groupId
+    ) {
+        groupService.deleteAllGroupEvents(groupId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping(path = "/{groupId}/task/{taskId}")
@@ -483,46 +516,93 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
-
     @GetMapping("/{groupId}/task/{taskId}/files/{fileId}/download")
     public ResponseEntity<StreamingResponseBody> downloadTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
-            @PathVariable Long fileId
+            @PathVariable Long fileId,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch
     ) {
-        TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
-        StreamingResponseBody body = out -> {
-            try (var in = download.content()) {
-                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
-            }
-        };
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
-                .contentLength(download.size())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(body);
+        String etag = "\"tf-" + fileId + "\"";
+
+        // ETag hit — verify membership only (no blob, no budget charge)
+        if (etag.equals(ifNoneMatch)) {
+            groupService.checkMembership(groupId);
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
+        }
+
+        User currentUser = userService.findCurrentUser();
+        long userId = currentUser.getId();
+
+        // reserve a slot before we even touch blob storage
+        downloadGate.acquire(userId);
+        try {
+            TaskFileDownload download = groupService.downloadTaskFile(groupId, taskId, fileId);
+            long timeoutMs = planLimits.computeDownloadTimeoutMs(download.size(), currentUser.getSubscriptionPlan());
+
+            StreamingResponseBody body = out -> {
+                try (var in = download.content()) {
+                    transferWithTimeout(in, out, timeoutMs);
+                } finally {
+                    downloadGate.release(userId);
+                }
+            };
+            return ResponseEntity.ok()
+                    .eTag(etag)
+                    .header(HttpHeaders.CACHE_CONTROL, "private, no-cache")
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
+                    .contentLength(download.size())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(body);
+        } catch (Exception e) {
+            // if anything blows up before the StreamingResponseBody runs, free the slot
+            downloadGate.release(userId);
+            throw e;
+        }
     }
 
     @GetMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}/download")
     public ResponseEntity<StreamingResponseBody> downloadAssigneeTaskFile(
             @PathVariable Long groupId,
             @PathVariable Long taskId,
-            @PathVariable Long fileId
+            @PathVariable Long fileId,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch
     ) {
-        TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
-        StreamingResponseBody body = out -> {
-            try (var in = download.content()) {
-                transferWithTimeout(in, out, DOWNLOAD_TIMEOUT_MS);
-            }
-        };
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
-                .contentLength(download.size())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(body);
+        String etag = "\"af-" + fileId + "\"";
+
+        if (etag.equals(ifNoneMatch)) {
+            groupService.checkMembership(groupId);
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
+        }
+
+        User currentUser = userService.findCurrentUser();
+        long userId = currentUser.getId();
+
+        downloadGate.acquire(userId);
+        try {
+            TaskFileDownload download = groupService.downloadAssigneeTaskFile(groupId, taskId, fileId);
+            long timeoutMs = planLimits.computeDownloadTimeoutMs(download.size(), currentUser.getSubscriptionPlan());
+
+            StreamingResponseBody body = out -> {
+                try (var in = download.content()) {
+                    transferWithTimeout(in, out, timeoutMs);
+                } finally {
+                    downloadGate.release(userId);
+                }
+            };
+            return ResponseEntity.ok()
+                    .eTag(etag)
+                    .header(HttpHeaders.CACHE_CONTROL, "private, no-cache")
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + StringSanitizer.sanitizeFilenameForHeader(download.filename()) + "\"")
+                    .contentLength(download.size())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(body);
+        } catch (Exception e) {
+            downloadGate.release(userId);
+            throw e;
+        }
     }
 
     @DeleteMapping("/{groupId}/task/{taskId}/taskParticipant/{taskParticipantId}")
@@ -533,6 +613,32 @@ public class GroupController extends BaseComponent {
     ){
         groupService.removeTaskParticipant(groupId,taskId,taskParticipantId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/notify/{userId}")
+    public ResponseEntity<Void> notifyTaskParticipant(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long userId,
+            @RequestBody(required = false) java.util.Map<String, String> body
+    ){
+        String customNote = (body != null) ? body.get("customNote") : null;
+        groupService.notifyTaskParticipant(groupId,taskId,userId, customNote);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/notify-bulk")
+    public ResponseEntity<Void> notifyTaskParticipants(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestBody java.util.Map<String, Object> body
+    ){
+        @SuppressWarnings("unchecked")
+        java.util.List<Number> rawIds = (java.util.List<Number>) body.get("userIds");
+        java.util.Set<Long> userIds = rawIds.stream().map(Number::longValue).collect(java.util.stream.Collectors.toSet());
+        String customNote = body.get("customNote") != null ? body.get("customNote").toString() : null;
+        groupService.notifyTaskParticipants(groupId, taskId, userIds, customNote);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{groupId}/task/{taskId}/files/{fileId}")

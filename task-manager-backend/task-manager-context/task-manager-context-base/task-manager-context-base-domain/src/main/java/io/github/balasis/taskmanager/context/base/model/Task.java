@@ -16,12 +16,14 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Tasks", indexes = {
+@Table(name = "Tasks",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"title", "group_id"}),
+        indexes = {
         @Index(name = "idx_task_group",             columnList = "group_id"),
         @Index(name = "idx_task_group_lastchange",   columnList = "group_id, lastChangeDate")
 })
 public class Task extends BaseModel{
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, length = 150)
     private String title;
 
     @Lob
@@ -103,6 +105,17 @@ public class Task extends BaseModel{
 
     @Column
     private Instant lastCommentDate;
+
+    // ── task-level override columns (nullable = use group / plan default) ──
+
+    @Column
+    private Integer maxCreatorFiles;
+
+    @Column
+    private Integer maxAssigneeFiles;
+
+    @Column
+    private Long maxFileSizeBytes;
 
     @PrePersist
     protected void onCreate(){
