@@ -7,6 +7,7 @@
     <groupId>io.github.balasis</groupId>
     <artifactId>task-manager-contracts</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <description>Shared DTOs and enums consumed by backend and maintenance modules</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
