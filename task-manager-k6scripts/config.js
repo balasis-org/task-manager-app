@@ -1,3 +1,5 @@
+// Override via: k6 run --env BASE_URL=https://<frontdoor>.azurefd.net script.js
+// Defaults to localhost for local development against Docker Compose stack
 export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 
 // One group leader per subscription tier
