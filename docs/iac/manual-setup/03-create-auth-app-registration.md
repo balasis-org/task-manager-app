@@ -22,6 +22,10 @@ for user authentication. This requires an App Registration that:
 1. Azure Portal → **App registrations** → **+ New registration**
 2. Name: `TaskManager-Auth` (or similar — descriptive, not used in code)
 3. Supported account types: **Single tenant**
+   (Current restrictions of the backend capping to 10k users combined with the 
+ tier based access restrictions with no NonAdmin-way to update to any non-FREE tier
+ makes the choice of multitenant+MSA also a viable choice.
+ Later one could risk to update the backend capping and enable payment.(Risk investment mode))
 4. Redirect URI: leave blank for now (added in Step 3)
 5. Click **Register**
 6. Note from the **Overview** page:
