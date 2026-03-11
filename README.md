@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB)](task-manager-frontend/task-manager-app-frontend/package.json)
 [![Azure](https://img.shields.io/badge/Azure-15%20PaaS%20resources-0078D4)](#architecture)
 
-thesis project — John Balasis · CSY22117 · AthensTech College (York St John University)
+BSc thesis project — John Balasis · CSY22117 · AthensTech College (York St John University)
 
 ---
 

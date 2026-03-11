@@ -6,12 +6,12 @@ can understand how to run, build, and deploy the project if needed.
 
 ## prerequisites
 
-| tool | version |
-|---|---|
-| Java | 21+ |
-| Maven | 3.9+ (`./mvnw` wrapper included) |
-| Node.js | 22+ (see `.nvmrc` in the frontend folder) |
-| Docker | recent — needed for local SQL Server, Redis, Azurite, MailHog |
+| Tool | Version | Notes |
+|---|---|---|
+| Java | 21+ | Required for backend and maintenance |
+| Maven | 3.9+ | `./mvnw` wrapper included |
+| Node.js | 22+ | See `.nvmrc` in the frontend folder |
+| Docker | recent | Needed for SQL Server, Redis, Azurite, MailHog |
 
 ## local setup
 
