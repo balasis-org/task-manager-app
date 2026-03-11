@@ -16,7 +16,7 @@ public abstract class BaseComponent {
         while ((read = in.read(buf)) != -1) {
             out.write(buf, 0, read);
             if (System.currentTimeMillis() > deadline) {
-                throw new IOException("Download aborted — transfer exceeded " + (timeoutMs / 1000) + "s timeout");
+                throw new IOException("Download aborted, transfer exceeded " + (timeoutMs / 1000) + "s timeout");
             }
         }
     }

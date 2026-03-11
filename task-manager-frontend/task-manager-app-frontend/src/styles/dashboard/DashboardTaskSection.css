@@ -11,7 +11,13 @@
     user-select: none;
     background: var(--bg-tertiary);
     transition: background 0.12s;
+    border-left: 0.19em solid transparent;
 }
+
+[data-state="TODO"]           > .task-section-header { border-left-color: #4f46e5; }
+[data-state="IN_PROGRESS"]    > .task-section-header { border-left-color: #f37f02; }
+[data-state="TO_BE_REVIEWED"] > .task-section-header { border-left-color: #7c3aed; }
+[data-state="DONE"]           > .task-section-header { border-left-color: #16a34a; }
 
 .task-section-header:hover {
     background: #f0f1f3;
@@ -56,15 +62,13 @@
     transform: translateY(-0.06em);
 }
 
-/* ── Responsive ── */
-
-@media (max-width: 1024px) {
+@media (max-width: 64em) {
     .task-section-header {
         padding: 0.5em 0.75em;
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48em) {
     .task-section-header {
         padding: 0.5em 0.625em;
         gap: 0.375em;
@@ -80,7 +84,7 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 28em) {
     .task-section-header {
         padding: 0.375em 0.5em;
     }

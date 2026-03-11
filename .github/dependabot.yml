@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # Maven — backend
+  - package-ecosystem: maven
+    directory: /task-manager-backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+
+  # Maven — maintenance
+  - package-ecosystem: maven
+    directory: /task-manager-maintenance
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - maintenance
+
+  # npm — frontend
+  - package-ecosystem: npm
+    directory: /task-manager-frontend/task-manager-app-frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci

@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile({"prod-h2","prod-azuresql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-stress", "prod-arena-security"})
 public class ManagedIdentityConfig {
 
     @Bean

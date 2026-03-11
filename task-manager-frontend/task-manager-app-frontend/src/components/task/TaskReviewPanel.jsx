@@ -1,6 +1,6 @@
-// Reviewer sidebar: participants, last review result, and the review form.
+﻿// Reviewer sidebar: participants, last review result, and the review form.
 // The review form only shows for members with canReview permission.
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiX, FiMail } from "react-icons/fi";
 import { LIMITS } from "@assets/js/inputValidation";
 import userImg from "@assets/js/userImg";
 import "@styles/task/TaskReviewPanel.css";
@@ -9,14 +9,25 @@ const DECISION_OPTIONS = ["APPROVE", "REJECT"];
 
 export default function TaskReviewPanel({
     reviewers, eligibleReviewers, showPicker, onTogglePicker,
-    canAddParticipants, onAddReviewer, blobUrl, task,
+    canAddParticipants, onAddReviewer, onRemoveParticipant, onNotify, onBulkNotify, blobUrl, task,
     canReview, reviewComment, onReviewCommentChange,
     reviewDecision, onReviewDecisionChange, submittingReview, onReview,
+    presenceUserIds,
 }) {
+    const onlineSet = new Set(presenceUserIds || []);
     return (
         <div className="task-sidebar-section">
             <h4>
                 Reviewer
+                {onBulkNotify && reviewers.length > 0 && (
+                    <button
+                        className="task-sidebar-add task-bulk-notify"
+                        title="Email all reviewers"
+                        onClick={() => onBulkNotify("reviewers")}
+                    >
+                        <FiMail size={13} />
+                    </button>
+                )}
                 {canAddParticipants && (
                     <button
                         className="task-sidebar-add"
@@ -41,6 +52,7 @@ export default function TaskReviewPanel({
                                 onClick={() => onAddReviewer(m.user?.id)}
                             >
                                 <img src={userImg(m.user, blobUrl)} alt="" className="task-participant-img" />
+                                <span className={`task-presence-dot picker-dot${onlineSet.has(m.user?.id) ? " online" : ""}`} />
                                 <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
                                 <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
                             </div>
@@ -54,12 +66,35 @@ export default function TaskReviewPanel({
                 {reviewers.length === 0 ? (
                     <span className="muted">No reviewer</span>
                 ) : (
-                    reviewers.map((r) => (
+                    reviewers.map((r) => {
+                        const reachable = r.user?.email && r.user?.allowEmailNotification;
+                        return (
                         <div key={r.id} className="task-participant-row">
                             <img src={userImg(r.user, blobUrl)} alt="" className="task-participant-img" />
+                            <span className={`task-presence-dot${onlineSet.has(r.user?.id) ? " online" : ""}`} />
                             <span title={r.user?.email}>{r.user?.name || r.user?.email}</span>
+                            {onNotify && (
+                                <button
+                                    className={`task-participant-email${reachable ? "" : " unreachable"}`}
+                                    title={reachable ? "Send email notification" : "User has no email or disabled notifications"}
+                                    onClick={() => reachable && onNotify(r.user?.id)}
+                                    disabled={!reachable}
+                                >
+                                    <FiMail size={15} />
+                                </button>
+                            )}
+                            {onRemoveParticipant && (
+                                <button
+                                    className="task-participant-remove"
+                                    title="Remove reviewer"
+                                    onClick={() => onRemoveParticipant(r.id)}
+                                >
+                                    <FiX size={14} />
+                                </button>
+                            )}
                         </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
@@ -67,11 +102,11 @@ export default function TaskReviewPanel({
             <div className="task-review-info">
                 <div className="task-info-row">
                     <span className="task-info-label">Latest review by:</span>
-                    <span>{task.reviewedBy?.name || task.reviewedBy?.email || "—"}</span>
+                    <span>{task.reviewedBy?.name || task.reviewedBy?.email || "-"}</span>
                 </div>
                 <div className="task-info-row">
                     <span className="task-info-label">Latest review comment:</span>
-                    <span>{task.reviewComment || "—"}</span>
+                    <span>{task.reviewComment || "-"}</span>
                 </div>
                 <div className="task-info-row">
                     <span className="task-info-label">Decision:</span>
@@ -84,7 +119,7 @@ export default function TaskReviewPanel({
                                   : ""
                         }`}
                     >
-                        {task.reviewersDecision || "—"}
+                        {task.reviewersDecision || "-"}
                     </span>
                 </div>
             </div>

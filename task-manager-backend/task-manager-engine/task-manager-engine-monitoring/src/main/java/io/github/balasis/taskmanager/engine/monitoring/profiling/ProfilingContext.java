@@ -3,23 +3,9 @@ package io.github.balasis.taskmanager.engine.monitoring.profiling;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Thread-local accumulator that collects timing entries during a single HTTP request.
- * The controller aspect (outer ring) calls begin() at the start and end() when done.
- * Inner-layer aspects call record() to add their individual timing entries.
- *
- * All data lives on the current thread — no synchronization needed.
- *
- * After end() is called, formatTree() produces a human-readable console tree like:
- *
- *   ━━━ GroupController.getGroup (total: 47ms) ━━━
- *     service .............. 45ms  (GroupServiceImpl.getGroup)
- *       db ................. 12ms  (GroupRepository.findById)
- *       db .................  8ms  (GroupMembershipRepository.findByGroupIdAndUserId)
- *       auth ...............  2ms  (AuthorizationService.requireAnyRoleIn)
- *     validator ............  1ms  (ResourceDataValidator.validateResourceData)
- *   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- */
+// Thread-local timing accumulator for request profiling.
+// The controller aspect calls begin()/end(), inner layer aspects call pushLayer()/popLayer().
+// end() returns a formatted tree of all layer timings for that request.
 public final class ProfilingContext {
 
     private static final ThreadLocal<ProfilingContext> CURRENT = new ThreadLocal<>();
@@ -39,14 +25,14 @@ public final class ProfilingContext {
         this.startTimeMs = System.currentTimeMillis();
     }
 
-    // ── Lifecycle (called by ControllerProfilingAspect) ──────────────────
+    // --- lifecycle ---
 
-    /** Start profiling for the current request. Called once per controller method. */
+    /** Starts profiling for this request thread. */
     public static void begin(String controllerName, String methodName) {
         CURRENT.set(new ProfilingContext(controllerName, methodName));
     }
 
-    /** Finish profiling and return the formatted tree. Returns null if not active. */
+    /** Finishes profiling and returns the formatted timing tree (or null). */
     public static String end() {
         ProfilingContext ctx = CURRENT.get();
         if (ctx == null) return null;
@@ -56,17 +42,14 @@ public final class ProfilingContext {
         return ctx.formatTree(totalMs);
     }
 
-    /** Check if profiling is active on this thread. */
+    /** True if profiling is active on this thread. */
     public static boolean isActive() {
         return CURRENT.get() != null;
     }
 
-    // ── Recording (called by LayerProfilingAspect) ───────────────────────
+    // --- recording ---
 
-    /**
-     * Called when entering a profiled layer (service, db, blob, etc).
-     * Pushes a new entry onto the stack so nested calls become children.
-     */
+    // enters a profiled layer, nesting under the current parent if any
     public static void pushLayer(String layerLabel, String className, String methodName) {
         ProfilingContext ctx = CURRENT.get();
         if (ctx == null) return;
@@ -83,7 +66,7 @@ public final class ProfilingContext {
         ctx.entryStack.add(entry);
     }
 
-    /** Called when leaving a profiled layer. Records the elapsed time. */
+    /** Leaves a profiled layer, recording elapsed time. */
     public static void popLayer() {
         ProfilingContext ctx = CURRENT.get();
         if (ctx == null || ctx.entryStack.isEmpty()) return;
@@ -92,14 +75,14 @@ public final class ProfilingContext {
         entry.durationMs = System.currentTimeMillis() - entry.startTimeMs;
     }
 
-    // ── Tree formatting ──────────────────────────────────────────────────
+    // --- tree formatting ---
 
     private String formatTree(long totalMs) {
         String header = controllerName + "." + methodName + " (total: " + totalMs + "ms)";
-        String separator = "━".repeat(header.length() + 6);
+        String separator = "=".repeat(header.length() + 6);
 
         StringBuilder sb = new StringBuilder();
-        sb.append("\n━━━ ").append(header).append(" ━━━\n");
+        sb.append("\n=== ").append(header).append(" ===\n");
 
         for (TimingEntry entry : rootEntries) {
             appendEntry(sb, entry, 1);
@@ -115,11 +98,11 @@ public final class ProfilingContext {
         String description = entry.className + "." + entry.methodName;
         String durationStr = entry.durationMs + "ms";
 
-        // Pad the label with dots to align timing values — makes the tree readable
+        // pad with dots so timing values line up
         int dotsNeeded = Math.max(2, 22 - (indent.length() + label.length()));
         String dots = " " + ".".repeat(dotsNeeded) + " ";
 
-        // Right-align the duration (pad to 6 chars so small numbers line up)
+        // right-align duration (pad to 6 chars)
         String paddedDuration = String.format("%6s", durationStr);
 
         sb.append(indent)
@@ -134,7 +117,7 @@ public final class ProfilingContext {
         }
     }
 
-    // ── Inner timing entry ───────────────────────────────────────────────
+    // --- inner timing entry ---
 
     private static class TimingEntry {
         final String layerLabel;    // e.g. "service", "db", "blob", "redis", "auth", "validator", "email", "safety"

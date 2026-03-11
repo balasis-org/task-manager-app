@@ -1,0 +1,52 @@
+.gs-toggle {
+    position: relative;
+    width: 2.5em;
+    height: 1.4em;
+    border-radius: 0.7em;
+    border: none;
+    background: var(--border-input);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.gs-toggle-on {
+    background: var(--link-color);
+}
+
+.gs-toggle-knob {
+    position: absolute;
+    top: 0.15em;
+    left: 0.15em;
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.gs-toggle-on .gs-toggle-knob {
+    transform: translateX(1.1em);
+}
+
+.gs-toggle-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.gs-toggle-hint {
+    font-size: 0.72em;
+    color: var(--text-faint, #999);
+    font-style: italic;
+    margin: 0.25em 0 0;
+}
+
+.gs-toggle-note {
+    font-size: 0.72em;
+    color: var(--text-muted, #888);
+    margin: 0.25em 0 0;
+    line-height: 1.4;
+}

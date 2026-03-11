@@ -1,36 +1,55 @@
 import { useContext, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
-import { FiShield, FiUsers, FiLogIn, FiTool } from "react-icons/fi";
+import { FiUsers, FiLogIn, FiTool } from "react-icons/fi";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
 
 const DEV_USERS = [
-    { label: "Alice Dev",  email: "alice.dev@example.com" ,role:"(GA leader)" },
-    { label: "Bob Dev",    email: "bob.dev@example.com" ,role:"(GA manager)"},
-    { label: "Carol Dev",  email: "carol.dev@example.com" ,role:"(GA reviewer)"},
-    { label: "Dave Dev",   email: "dave.dev@example.com" ,role:"(GA member1)"},
-    { label: "Erin Dev",   email: "erin.dev@example.com" ,role:"(GA member2)"},
-    { label: "Frank Dev",  email: "frank.dev@example.com" ,role:"(GA guest)"},
-    { label: "Grace Dev",  email: "grace.dev@example.com" ,role:"(GB leader)"},
-    { label: "Heidi Dev",  email: "heidi.dev@example.com" ,role:"(GB manager)"},
-    { label: "Ivan Dev",   email: "ivan.dev@example.com" ,role:"(GB reviewer)"},
-    { label: "Judy Dev",   email: "judy.dev@example.com" ,role:"(GB member1)"},
-    { label: "Mallory dev",   email: "mallory.dev@example.com" ,role:"(GB member2)"},
-    { label: "OSCAR Dev",   email: "oscar.dev@example.com" ,role:"(GB guest)"},
+    { label: "Lena Dev",   email: "lena.dev@example.com"  ,role:"(GA leader · GC leader)" },
+    { label: "Marco Dev",  email: "marco.dev@example.com" ,role:"(GA manager · GC manager)"},
+    { label: "Nina Dev",   email: "nina.dev@example.com"  ,role:"(GA reviewer · GC reviewer)"},
+    { label: "Tomas Dev",  email: "tomas.dev@example.com" ,role:"(GA member1 · GC member)"},
+    { label: "Sofia Dev",  email: "sofia.dev@example.com" ,role:"(GA member2 · GC member)"},
+    { label: "Peter Dev",  email: "peter.dev@example.com" ,role:"(GA guest · GC member)"},
+    { label: "Hanna Dev",  email: "hanna.dev@example.com" ,role:"(GB leader · GC member)"},
+    { label: "Erik Dev",   email: "erik.dev@example.com"  ,role:"(GB manager · GC member)"},
+    { label: "Julia Dev",  email: "julia.dev@example.com" ,role:"(GB reviewer · GC member)"},
+    { label: "Ravi Dev",   email: "ravi.dev@example.com"  ,role:"(GB member1 · GC member)"},
+    { label: "Katya Dev",  email: "katya.dev@example.com" ,role:"(GB member2 · GC member)"},
+    { label: "Leon Dev",   email: "leon.dev@example.com"  ,role:"(GB guest · GC member)"},
 ];
+
+// stress-test users (stress01-stress38), all GC members
+const STRESS_USERS = Array.from({ length: 38 }, (_, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    return {
+        label: `Stress${num} Dev`,
+        email: `stress${num}.dev@example.com`,
+        role: "(GC member)",
+    };
+});
 
 export default function Login() {
     const { user, loading, authError } = useContext(AuthContext);
+    const location = useLocation();
+    const storedReturn = sessionStorage.getItem("returnUrl");
+    const returnUrl = storedReturn || location.state?.returnUrl || "/dashboard";
 
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
 
-    if (!loading && user) return <Navigate to="/dashboard" replace />;
+    usePageTitle("Sign in");
+
+    if (!loading && user) {
+        sessionStorage.removeItem("returnUrl");
+        return <Navigate to={returnUrl} replace />;
+    }
     if (loading) return null;
 
     const handleFakeLogin = async (e) => {
@@ -40,6 +59,9 @@ export default function Login() {
         try {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
+            if (returnUrl && returnUrl !== "/dashboard") {
+                sessionStorage.setItem("returnUrl", returnUrl);
+            }
             window.location.reload();
         } catch (err) {
             setError(
@@ -56,7 +78,12 @@ export default function Login() {
         try {
             const res = await fetch("/api/auth/login-url");
             const url = await res.text();
-            if (url) window.location.href = url;
+            if (url) {
+                if (returnUrl && returnUrl !== "/dashboard") {
+                    sessionStorage.setItem("returnUrl", returnUrl);
+                }
+                window.location.href = url;
+            }
         } catch {
             setError("Could not get login URL.");
         }
@@ -64,7 +91,6 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            { }
             {IS_DEV && (
                 <button
                     type="button"
@@ -77,13 +103,23 @@ export default function Login() {
                 </button>
             )}
 
+            <div className="login-hero" aria-hidden="true">
+                <div className="login-hero-content">
+                    <p className="login-hero-title">myteamtasks</p>
+                    <p className="login-hero-tagline">
+                        Where teams turn plans into progress
+                    </p>
+                </div>
+            </div>
+
+            <div className="login-card-panel">
             <div className="login-card">
                 <div className="login-brand">
                     <div className="login-brand-icon">
-                        <FiShield size={28} />
+                        <img src="/static_frontend/ico/favicon.ico" alt="" />
                     </div>
-                    <h1>Task Manager</h1>
-                    <p className="login-subtitle">Sign in to your account</p>
+                    <h1>Sign in</h1>
+                    <p className="login-subtitle">Access your team workspace</p>
                 </div>
 
                 {(error || authError) && <div className="login-error">{error || authError}</div>}
@@ -98,7 +134,6 @@ export default function Login() {
                     Sign in with Microsoft
                 </button>
 
-                { }
                 {IS_DEV && devOpen && (
                     <>
                         <div className="login-divider"><span>dev only</span></div>
@@ -112,11 +147,20 @@ export default function Login() {
                                     value={fakeEmail}
                                     onChange={(e) => setFakeEmail(e.target.value)}
                                 >
-                                    {DEV_USERS.map((u) => (
-                                        <option key={u.email} value={u.email}>
-                                            {u.label} {u.role}
-                                        </option>
-                                    ))}
+                                    <optgroup label="Core users">
+                                        {DEV_USERS.map((u) => (
+                                            <option key={u.email} value={u.email}>
+                                                {u.label} {u.role}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Stress-test users (GC)">
+                                        {STRESS_USERS.map((u) => (
+                                            <option key={u.email} value={u.email}>
+                                                {u.label} {u.role}
+                                            </option>
+                                        ))}
+                                    </optgroup>
                                 </select>
                             </label>
 
@@ -136,6 +180,7 @@ export default function Login() {
                     <span className="login-legal-dot">·</span>
                     <Link to="/cookie-policy">Cookie Policy</Link>
                 </div>
+            </div>
             </div>
         </div>
     );

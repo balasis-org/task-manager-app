@@ -44,7 +44,7 @@ public class AssetCleanerService extends BaseComponent {
 
             if (lastModified == null) {
                 skipped++;
-                logger.warn("AssetCleaner: blob '{}' has no last-modified timestamp — skipping", name);
+                logger.warn("AssetCleaner: blob '{}' has no last-modified timestamp, skipping", name);
                 continue;
             }
 

@@ -1,0 +1,121 @@
+name: deploy-infra
+
+# Manual trigger only — infrastructure changes are intentional.
+# After Bicep deploys, outputs (ACR name, web app name, etc.) are saved
+# as GitHub environment variables so the 3 CI/CD workflows can read them.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - production
+          - arena-stress
+          - arena-security
+      mode:
+        description: 'Deployment mode'
+        required: true
+        type: choice
+        default: what-if
+        options:
+          - what-if
+          - deploy
+
+permissions:
+  contents: read
+
+jobs:
+  deploy_infra:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Select param file
+        id: params
+        run: |
+          case "${{ inputs.environment }}" in
+            arena-stress)   FILE="docs/iac/bicep/main-arena-stress.bicepparam" ;;
+            arena-security) FILE="docs/iac/bicep/main-arena-security.bicepparam" ;;
+            *)              FILE="docs/iac/bicep/main.bicepparam" ;;
+          esac
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Create resource group
+        run: |
+          az group create \
+            --name "${{ vars.RG_NAME }}" \
+            --location "${{ vars.LOCATION }}" \
+            --output none
+
+      - name: What-If preview
+        if: inputs.mode == 'what-if'
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
+          ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
+        run: |
+          az deployment group what-if \
+            --resource-group "${{ vars.RG_NAME }}" \
+            --parameters "${{ steps.params.outputs.file }}"
+
+      - name: Deploy Bicep
+        if: inputs.mode == 'deploy'
+        id: bicep
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
+          ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
+        run: |
+          RESULT=$(az deployment group create \
+            --resource-group "${{ vars.RG_NAME }}" \
+            --parameters "${{ steps.params.outputs.file }}" \
+            --query 'properties.outputs' \
+            --output json)
+
+          # Parse outputs into env vars for next step
+          echo "ACR_LOGIN_SERVER=$(echo "$RESULT" | jq -r '.acrLoginServer.value')" >> "$GITHUB_ENV"
+          echo "WEB_APP_NAME=$(echo "$RESULT" | jq -r '.webAppName.value')" >> "$GITHUB_ENV"
+          echo "STORAGE_ACCOUNT_NAME=$(echo "$RESULT" | jq -r '.storageAccountName.value')" >> "$GITHUB_ENV"
+          echo "FD_PROFILE_NAME=$(echo "$RESULT" | jq -r '.frontDoorProfileName.value')" >> "$GITHUB_ENV"
+          echo "FD_ENDPOINT_NAME=$(echo "$RESULT" | jq -r '.frontDoorEndpointName.value')" >> "$GITHUB_ENV"
+          echo "FD_ENDPOINT_HOSTNAME=$(echo "$RESULT" | jq -r '.frontDoorEndpointHostName.value')" >> "$GITHUB_ENV"
+
+      - name: Save outputs as environment variables
+        if: inputs.mode == 'deploy'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          ENV="${{ inputs.environment }}"
+          REPO="${{ github.repository }}"
+
+          gh variable set ACR_LOGIN_SERVER     --env "$ENV" --repo "$REPO" --body "$ACR_LOGIN_SERVER"
+          gh variable set WEB_APP_NAME         --env "$ENV" --repo "$REPO" --body "$WEB_APP_NAME"
+          gh variable set STORAGE_ACCOUNT_NAME --env "$ENV" --repo "$REPO" --body "$STORAGE_ACCOUNT_NAME"
+          gh variable set FD_PROFILE_NAME      --env "$ENV" --repo "$REPO" --body "$FD_PROFILE_NAME"
+          gh variable set FD_ENDPOINT_NAME     --env "$ENV" --repo "$REPO" --body "$FD_ENDPOINT_NAME"
+          gh variable set FD_ENDPOINT_HOSTNAME --env "$ENV" --repo "$REPO" --body "$FD_ENDPOINT_HOSTNAME"
+
+          echo "### Outputs saved to '$ENV' environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Variable | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ACR_LOGIN_SERVER | $ACR_LOGIN_SERVER |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WEB_APP_NAME | $WEB_APP_NAME |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| STORAGE_ACCOUNT_NAME | $STORAGE_ACCOUNT_NAME |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| FD_PROFILE_NAME | $FD_PROFILE_NAME |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| FD_ENDPOINT_NAME | $FD_ENDPOINT_NAME |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| FD_ENDPOINT_HOSTNAME | $FD_ENDPOINT_HOSTNAME |" >> "$GITHUB_STEP_SUMMARY"

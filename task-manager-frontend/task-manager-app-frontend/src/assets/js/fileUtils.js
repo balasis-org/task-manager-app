@@ -43,10 +43,24 @@ export function getFileIcon(filename) {
     return EXT_MAP[ext] || FiFile;
 }
 
-export function isFileTooLarge(file) {
-    return file.size > LIMITS.MAX_FILE_SIZE_MB * 1024 * 1024;
+/**
+ * Returns true when the file exceeds the given byte limit.
+ * Falls back to 5 MB if no limit is supplied (safest FREE default).
+ */
+export function isFileTooLarge(file, maxBytes) {
+    const limit = maxBytes ?? (5 * 1024 * 1024);
+    return file.size > limit;
 }
 
 export function isImageTooLarge(file) {
     return file.size > LIMITS.MAX_IMAGE_SIZE_MB * 1024 * 1024;
+}
+
+/** Human-readable file size: "1.2 MB", "340 KB", etc. */
+export function formatFileSize(bytes) {
+    if (bytes == null) return "";
+    if (bytes < 1024)              return bytes + " B";
+    if (bytes < 1024 * 1024)       return (bytes / 1024).toFixed(1) + " KB";
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
 }

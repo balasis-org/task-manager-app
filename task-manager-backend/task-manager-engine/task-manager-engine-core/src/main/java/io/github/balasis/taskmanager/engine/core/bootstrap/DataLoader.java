@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.bootstrap;
 import com.thedeanda.lorem.Lorem;
 import com.thedeanda.lorem.LoremIpsum;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
@@ -16,6 +17,7 @@ import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import io.github.balasis.taskmanager.engine.core.service.GroupService;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.UserContext;
+import io.github.balasis.taskmanager.engine.infrastructure.bootstrap.StartupGate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
@@ -36,7 +38,7 @@ public class DataLoader extends BaseComponent {
 
     private static final Lorem lorem = LoremIpsum.getInstance();
     private static final String SEED_TENANT_ID = "dev-fake-tenant";
-    private static final String GROUP_A_LEADER_AZURE_KEY = "dev-fake:alice.dev@example.com";
+    private static final String GROUP_A_LEADER_AZURE_KEY = "dev-fake:lena.dev@example.com";
 
     private final UserRepository userRepository;
     private final GroupInvitationRepository groupInvitationRepository;
@@ -58,8 +60,10 @@ public class DataLoader extends BaseComponent {
 
             Map<String, User> users = seedUsers();
             try {
-                seedGroupA(users);
-                seedGroupB(users);
+                seedFreeTierGroup(users);
+                seedStudentTierGroup(users);
+                seedOrganizerTierGroup(users);
+                seedTeamTierGroup(users);
             } finally {
                 userContext.clear();
             }
@@ -75,27 +79,30 @@ public class DataLoader extends BaseComponent {
 
         Map<String, SeedUser> seeds = new LinkedHashMap<>();
 
-        seeds.put("ALICE", new SeedUser(devAzureKey("alice.dev@example.com"), "alice.dev@example.com", "Alice Dev"));
-        seeds.put("BOB", new SeedUser(devAzureKey("bob.dev@example.com"), "bob.dev@example.com", "Bob Dev"));
-        seeds.put("CAROL", new SeedUser(devAzureKey("carol.dev@example.com"), "carol.dev@example.com", "Carol Dev"));
-        seeds.put("DAVE", new SeedUser(devAzureKey("dave.dev@example.com"), "dave.dev@example.com", "Dave Dev"));
-        seeds.put("ERIN", new SeedUser(devAzureKey("erin.dev@example.com"), "erin.dev@example.com", "Erin Dev"));
-        seeds.put("FRANK", new SeedUser(devAzureKey("frank.dev@example.com"), "frank.dev@example.com", "Frank Dev"));
-        seeds.put("GRACE", new SeedUser(devAzureKey("grace.dev@example.com"), "grace.dev@example.com", "Grace Dev"));
-        seeds.put("HEIDI", new SeedUser(devAzureKey("heidi.dev@example.com"), "heidi.dev@example.com", "Heidi Dev"));
-        seeds.put("IVAN", new SeedUser(devAzureKey("ivan.dev@example.com"), "ivan.dev@example.com", "Ivan Dev"));
-        seeds.put("JUDY", new SeedUser(devAzureKey("judy.dev@example.com"), "judy.dev@example.com", "Judy Dev"));
-        seeds.put("MALLORY", new SeedUser(devAzureKey("mallory.dev@example.com"), "mallory.dev@example.com", "Mallory Dev"));
-        seeds.put("OSCAR", new SeedUser(devAzureKey("oscar.dev@example.com"), "oscar.dev@example.com", "Oscar Dev"));
+        // Tier leaders — each gets a specific subscription plan
+        seeds.put("LENA",   new SeedUser(devAzureKey("lena.dev@example.com"),   "lena.dev@example.com",   "Lena Dev",   SubscriptionPlan.FREE));
+        seeds.put("MARCO",  new SeedUser(devAzureKey("marco.dev@example.com"),  "marco.dev@example.com",  "Marco Dev",  SubscriptionPlan.STUDENT));
+        seeds.put("NINA",   new SeedUser(devAzureKey("nina.dev@example.com"),   "nina.dev@example.com",   "Nina Dev",   SubscriptionPlan.ORGANIZER));
+        seeds.put("TOMAS",  new SeedUser(devAzureKey("tomas.dev@example.com"),  "tomas.dev@example.com",  "Tomas Dev",  SubscriptionPlan.TEAM));
 
-        var whitelistOtherTenant = new HashSet<>(
-                Set.of(
-                        seeds.get("ALICE").name,
-                        seeds.get("GRACE").name,
-                        seeds.get("JUDY").name,
-                        seeds.get("BOB").name
-                )
-        );
+        // Regular members (default FREE)
+        seeds.put("SOFIA",  new SeedUser(devAzureKey("sofia.dev@example.com"),  "sofia.dev@example.com",  "Sofia Dev",  null));
+        seeds.put("PETER",  new SeedUser(devAzureKey("peter.dev@example.com"),  "peter.dev@example.com",  "Peter Dev",  null));
+        seeds.put("HANNA",  new SeedUser(devAzureKey("hanna.dev@example.com"),  "hanna.dev@example.com",  "Hanna Dev",  null));
+        seeds.put("ERIK",   new SeedUser(devAzureKey("erik.dev@example.com"),   "erik.dev@example.com",   "Erik Dev",   null));
+        seeds.put("JULIA",  new SeedUser(devAzureKey("julia.dev@example.com"),  "julia.dev@example.com",  "Julia Dev",  null));
+        seeds.put("RAVI",   new SeedUser(devAzureKey("ravi.dev@example.com"),   "ravi.dev@example.com",   "Ravi Dev",   null));
+        seeds.put("KATYA",  new SeedUser(devAzureKey("katya.dev@example.com"),  "katya.dev@example.com",  "Katya Dev",  null));
+        seeds.put("LEON",   new SeedUser(devAzureKey("leon.dev@example.com"),   "leon.dev@example.com",   "Leon Dev",   null));
+
+        // stress-test users (stress01 - stress38)
+        for (int i = 1; i <= 38; i++) {
+            String num   = String.format("%02d", i);
+            String key   = "STRESS" + num;
+            String email = "stress" + num + ".dev@example.com";
+            String name  = "Stress" + num + " Dev";
+            seeds.put(key, new SeedUser(devAzureKey(email), email, name, null));
+        }
 
         Map<String, User> created = new LinkedHashMap<>();
         for (Map.Entry<String, SeedUser> entry : seeds.entrySet()) {
@@ -104,11 +111,12 @@ public class DataLoader extends BaseComponent {
                     .orElseGet(() -> userRepository.save(
                             User.builder()
                                     .azureKey(seed.azureKey)
-                                    .tenantId((whitelistOtherTenant.contains(seed.name)) ? "OtherTenant" :SEED_TENANT_ID)
+                                    .tenantId(SEED_TENANT_ID)
                                     .email(seed.email)
                                     .name(seed.name)
                                     .isOrg(false)
                                     .allowEmailNotification(false)
+                                    .subscriptionPlan(seed.plan != null ? seed.plan : SubscriptionPlan.FREE)
                                     .defaultImgUrl(defaultImageService.pickRandom(BlobContainerType.PROFILE_IMAGES))
                                     .build()
                     ));
@@ -119,73 +127,96 @@ public class DataLoader extends BaseComponent {
         return created;
     }
 
-    private void seedGroupA(Map<String, User> users) {
-        logger.trace("Seeding Group A...");
+    // ── Free Tier Group (leader: Lena, cap 8) ─────────────────────
+    private void seedFreeTierGroup(Map<String, User> users) {
+        logger.trace("Seeding Free Tier Group...");
 
-        User leader = users.get("ALICE");
-        User manager = users.get("BOB");
-        User reviewer = users.get("CAROL");
-        User member1 = users.get("DAVE");
-        User member2 = users.get("ERIN");
-        User guest = users.get("FRANK");
-
-        User reviewer2 = users.get("GRACE");
+        User leader = users.get("LENA");
 
         withUser(leader, () -> {
-            Group group = groupService.create(Group.builder()
-                    .name("Seed Group A")
-                    .description("Seeded group A (for dev testing)")
-                    .Announcement("Welcome to Seed Group A")
+            groupService.create(Group.builder()
+                    .name("Free Tier Group")
+                    .description("Free-plan group (8 member cap)")
+                    .announcement("Welcome to the Free Tier Group")
                     .build());
-
-            inviteAndAccept(group.getId(), manager, Role.TASK_MANAGER, "Seed invite: task manager");
-            inviteAndAccept(group.getId(), reviewer, Role.REVIEWER, "Seed invite: reviewer");
-            inviteAndAccept(group.getId(), member1, Role.MEMBER, "Seed invite: member");
-            inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
-            inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
-
-            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
-
-            seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
-
-            patchGroupForEvents(group.getId(), leader,
-                    "Seeded group A (patched)",
-                    "Welcome to dev Group A (patched)");
         });
     }
 
-    private void seedGroupB(Map<String, User> users) {
-        logger.trace("Seeding Group B...");
+    // ── Student Tier Group (leader: Marco, cap 20) ──────────────
+    private void seedStudentTierGroup(Map<String, User> users) {
+        logger.trace("Seeding Student Tier Group...");
 
-        User leader = users.get("GRACE");
-        User manager = users.get("HEIDI");
-        User reviewer = users.get("IVAN");
-        User member1 = users.get("JUDY");
-        User member2 = users.get("MALLORY");
-        User guest = users.get("OSCAR");
-
-        User reviewer2 = users.get("ALICE");
+        User leader = users.get("MARCO");
 
         withUser(leader, () -> {
             Group group = groupService.create(Group.builder()
-                    .name("Seed Group B")
-                    .description("Seeded group B (for dev testing)")
-                    .Announcement("Welcome to Seed Group B")
+                    .name("Student Tier Group")
+                    .description("Student-plan group (20 member cap)")
+                    .announcement("Welcome to the Student Tier Group")
                     .build());
 
-            inviteAndAccept(group.getId(), manager, Role.TASK_MANAGER, "Seed invite: task manager");
-            inviteAndAccept(group.getId(), reviewer, Role.REVIEWER, "Seed invite: reviewer");
-            inviteAndAccept(group.getId(), member1, Role.MEMBER, "Seed invite: member");
-            inviteAndAccept(group.getId(), member2, Role.MEMBER, "Seed invite: member");
-            inviteAndAccept(group.getId(), guest, Role.GUEST, "Seed invite: guest");
+            inviteAndAccept(group.getId(), users.get("ERIK"),  Role.TASK_MANAGER, "Seed invite");
+            inviteAndAccept(group.getId(), users.get("JULIA"), Role.REVIEWER,     "Seed invite");
+            inviteAndAccept(group.getId(), users.get("RAVI"),  Role.MEMBER,       "Seed invite");
+            inviteAndAccept(group.getId(), users.get("KATYA"), Role.MEMBER,       "Seed invite");
 
-            inviteAndAccept(group.getId(), reviewer2, Role.REVIEWER, "Seed invite: reviewer");
+            seedTasksForGroup(group.getId(), users.get("ERIK"), users.get("JULIA"), users.get("RAVI"), users.get("KATYA"));
+        });
+    }
 
-            seedTasksForGroup(group.getId(), manager, reviewer, member1, member2);
+    // ── Organizer Tier Group (leader: Nina, cap 30) ─────────────
+    private void seedOrganizerTierGroup(Map<String, User> users) {
+        logger.trace("Seeding Organizer Tier Group...");
 
-            patchGroupForEvents(group.getId(), leader,
-                    "Seeded group B (patched)",
-                    "Welcome to dev Group B (patched)");
+        User leader = users.get("NINA");
+
+        withUser(leader, () -> {
+            Group group = groupService.create(Group.builder()
+                    .name("Organizer Tier Group")
+                    .description("Organizer-plan group (30 member cap)")
+                    .announcement("Welcome to the Organizer Tier Group")
+                    .build());
+
+            inviteAndAccept(group.getId(), users.get("LEON"),  Role.TASK_MANAGER, "Seed invite");
+            inviteAndAccept(group.getId(), users.get("SOFIA"), Role.REVIEWER,     "Seed invite");
+            inviteAndAccept(group.getId(), users.get("PETER"), Role.MEMBER,       "Seed invite");
+            inviteAndAccept(group.getId(), users.get("HANNA"), Role.MEMBER,       "Seed invite");
+
+            seedTasksForGroup(group.getId(), users.get("LEON"), users.get("SOFIA"), users.get("PETER"), users.get("HANNA"));
+        });
+    }
+
+    // ── Team Tier Group (leader: Tomas, cap 50, stress-test target) ──
+    private void seedTeamTierGroup(Map<String, User> users) {
+        logger.trace("Seeding Team Tier Group (stress target)...");
+
+        User leader = users.get("TOMAS");
+
+        withUser(leader, () -> {
+            Group group = groupService.create(Group.builder()
+                    .name("Team Tier Group")
+                    .description("Team-plan group used for k6 stress / presence testing")
+                    .announcement("Stress testing in progress")
+                    .build());
+
+            // core members with various roles
+            inviteAndAccept(group.getId(), users.get("LENA"),  Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("MARCO"), Role.TASK_MANAGER, "Stress seed");
+            inviteAndAccept(group.getId(), users.get("NINA"),  Role.REVIEWER,     "Stress seed");
+            inviteAndAccept(group.getId(), users.get("SOFIA"), Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("PETER"), Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("HANNA"), Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("ERIK"),  Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("JULIA"), Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("RAVI"),  Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("KATYA"), Role.MEMBER,       "Stress seed");
+            inviteAndAccept(group.getId(), users.get("LEON"),  Role.MEMBER,       "Stress seed");
+
+            // all 38 stress-test users
+            for (int i = 1; i <= 38; i++) {
+                String key = String.format("STRESS%02d", i);
+                inviteAndAccept(group.getId(), users.get(key), Role.MEMBER, "Stress seed");
+            }
         });
     }
 
@@ -196,7 +227,7 @@ public class DataLoader extends BaseComponent {
             userRepository.save(inviteeWithCode);
         }
 
-        groupService.createGroupInvitation(groupId, inviteeWithCode.getInviteCode(), role, comment);
+        groupService.createGroupInvitation(groupId, inviteeWithCode.getInviteCode(), role, comment, false);
 
         groupInvitationRepository
             .findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
@@ -220,7 +251,7 @@ public class DataLoader extends BaseComponent {
             Task todo1 = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title(manager.getName() + " - Implement session refresh")
+                            .title(manager.getName() + " - Setup dark mode toggle")
                             .description(lorem.getParagraphs(1, 2))
                         .taskState(TaskState.TODO)
                         .priority(randomPriority())
@@ -235,7 +266,7 @@ public class DataLoader extends BaseComponent {
             Task todo2 = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title(manager.getName() + " - Fix avatar upload error")
+                            .title(manager.getName() + " - Profile picture not saving")
                             .description(lorem.getParagraphs(1, 2))
                         .taskState(TaskState.TODO)
                         .priority(randomPriority())
@@ -250,7 +281,7 @@ public class DataLoader extends BaseComponent {
             Task inProgress = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title(manager.getName() + " - Integrate payment gateway")
+                            .title(manager.getName() + " - Add sorting to task list")
                             .description(lorem.getParagraphs(1, 2))
                         .taskState(TaskState.IN_PROGRESS)
                         .priority(randomPriority())
@@ -265,7 +296,7 @@ public class DataLoader extends BaseComponent {
             Task toBeReviewed = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title(manager.getName() + " - Bulk CSV import feature")
+                            .title(manager.getName() + " - Export group report as PDF")
                             .description(lorem.getParagraphs(1, 2))
                         .taskState(TaskState.IN_PROGRESS)
                         .priority(randomPriority())
@@ -284,7 +315,7 @@ public class DataLoader extends BaseComponent {
             Task done = groupService.createTask(
                     groupId,
                     Task.builder()
-                            .title(manager.getName() + " - Redesign comments UI")
+                            .title(manager.getName() + " - Move deadline picker to modal")
                             .description(lorem.getParagraphs(1, 2))
                         .taskState(TaskState.IN_PROGRESS)
                         .priority(randomPriority())
@@ -308,13 +339,6 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    private void patchGroupForEvents(Long groupId, User asUser, String newDescription, String newAnnouncement) {
-        withUser(asUser, () -> groupService.patch(groupId, Group.builder()
-                .description(newDescription)
-                .Announcement(newAnnouncement)
-                .build()));
-    }
-
     private void withUser(User user, Runnable action) {
         Long previousUserId = userContext.getUserId();
         userContext.setUserId(user.getId());
@@ -333,11 +357,13 @@ public class DataLoader extends BaseComponent {
         private final String azureKey;
         private final String email;
         private final String name;
+        private final SubscriptionPlan plan;
 
-        private SeedUser(String azureKey, String email, String name) {
+        private SeedUser(String azureKey, String email, String name, SubscriptionPlan plan) {
             this.azureKey = azureKey;
             this.email = email;
             this.name = name;
+            this.plan = plan;
         }
     }
 

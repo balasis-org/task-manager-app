@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import usePageTitle from "@hooks/usePageTitle";
 
 export default function NotFound() {
+    usePageTitle("Page not found");
+
     return (
         <div style={{
             display: "flex",

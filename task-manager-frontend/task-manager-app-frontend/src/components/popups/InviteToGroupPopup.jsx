@@ -6,13 +6,16 @@ import "@styles/popups/Popup.css";
 
 const ROLES = ["MEMBER", "GUEST", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
-export default function InviteToGroupPopup({ groupId, onClose }) {
+export default function InviteToGroupPopup({ groupId, groupDetail, onClose }) {
     const showToast = useToast();
     const [inviteCode, setInviteCode] = useState("");
     const [role, setRole] = useState("MEMBER");
     const [comment, setComment] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+
+    const emailAvailable = groupDetail?.op !== "FREE" && groupDetail?.op !== "STUDENT";
+    const [sendEmail, setSendEmail] = useState(false);
 
     const handleInvite = async (e) => {
         e.preventDefault();
@@ -28,6 +31,7 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                 inviteCode: code,
                 userToBeInvitedRole: role,
                 comment: comment.trim(),
+                sendEmail: emailAvailable && sendEmail,
             });
             onClose();
             showToast("If the code is valid, the invitation has been sent.", "success");
@@ -82,6 +86,26 @@ export default function InviteToGroupPopup({ groupId, onClose }) {
                             maxLength={LIMITS.INVITE_COMMENT}
                         />
                         <span className="char-count">{comment.length}/{LIMITS.INVITE_COMMENT}</span>
+                    </label>
+
+                    <label className={`invite-email-check${emailAvailable ? "" : " disabled"}`}>
+                        <input
+                            type="checkbox"
+                            checked={emailAvailable && sendEmail}
+                            onChange={(e) => setSendEmail(e.target.checked)}
+                            disabled={!emailAvailable}
+                        />
+                        Send email notification
+                        {emailAvailable && (
+                            <span className="popup-hint" style={{ marginLeft: 4 }}>
+                                ({groupDetail?.ue ?? 0}/{groupDetail?.eq ?? 0})
+                            </span>
+                        )}
+                        {!emailAvailable && (
+                            <span className="popup-hint" style={{ marginLeft: 4 }}>
+                                (requires Organizer or Team plan)
+                            </span>
+                        )}
                     </label>
 
                     <div className="popup-actions">

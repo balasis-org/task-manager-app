@@ -1,9 +1,8 @@
-import { useState, useEffect, useContext, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import {
     FiArrowLeft,
     FiChevronRight,
-    FiPlus,
     FiRefreshCw,
 } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";
@@ -18,6 +17,7 @@ import Spinner from "@components/Spinner";
 import CommentCard from "@components/comments/CommentCard";
 import CommentComposer from "@components/comments/CommentComposer";
 import CommentDeleteModal from "@components/comments/CommentDeleteModal";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Comments.css";
 
 const MAX_LEN = LIMITS.COMMENT;
@@ -28,9 +28,11 @@ export default function Comments() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, refreshActiveGroup } = useContext(GroupContext);
+    const { activeGroup, myRole, refreshActiveGroup, presenceUserIds } = useContext(GroupContext);
     const showToast = useToast();
     const blobUrl = useBlobUrl();
+
+    usePageTitle("Comments");
 
     const urlPage = searchParams.get("page");
 
@@ -41,7 +43,6 @@ export default function Comments() {
     const [totalPages, setTotalPages] = useState(0);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    const [composerOpen, setComposerOpen] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [showEmojis, setShowEmojis] = useState(false);
@@ -78,6 +79,11 @@ export default function Comments() {
     const canComment = isLeaderOrManager || !!isParticipant;
 
     const currentPage = urlPage ? Number(urlPage) : 1;
+
+    /* -- sync group context with URL groupId (mirror of Task.jsx) -- */
+    useEffect(() => {
+        if (groupId) refreshActiveGroup();
+    }, [groupId]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -136,8 +142,7 @@ export default function Comments() {
                 { comment: newComment.trim() }
             );
             setNewComment("");
-            setComposerOpen(false);
-
+            setShowEmojis(false);
             setSearchParams({}, { replace: true });
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
@@ -192,13 +197,13 @@ export default function Comments() {
     }
 
     function insertEmoji(em) {
-        if (composerOpen) {
+        if (editingId) {
+            setEditText((prev) => (prev + em).slice(0, MAX_LEN));
+            setShowEmojis(false);
+        } else {
             setNewComment((prev) => (prev + em).slice(0, MAX_LEN));
             setShowEmojis(false);
             textareaRef.current?.focus();
-        } else if (editingId) {
-            setEditText((prev) => (prev + em).slice(0, MAX_LEN));
-            setShowEmojis(false);
         }
     }
 
@@ -216,7 +221,6 @@ export default function Comments() {
 
     return (
         <div className="comments-page">
-            { }
             <div className="comments-breadcrumb">
                 <button
                     onClick={() => navigate(-1)}
@@ -235,7 +239,6 @@ export default function Comments() {
                 </span>
             </div>
 
-            { }
             {(commentsHaveChanged || commentsStale) && (
                 <div className="comments-stale-banner">
                     <span>{commentsHaveChanged ? "New comments available." : "Data may be outdated."}</span>
@@ -245,38 +248,27 @@ export default function Comments() {
                 </div>
             )}
 
-            { }
-            {canComment && comments.length > 0 && (
-                <div className="comments-top-actions">
-                    <button
-                        className="btn-add-comment"
-                        onClick={() => setComposerOpen((v) => !v)}
-                    >
-                        <FiPlus size={14} /> Add a comment
-                    </button>
-                </div>
-            )}
-
-            { }
             {totalPages > 1 && (
                 <div className="comments-pagination">
-                    <button
-                        className="btn-secondary btn-sm"
-                        disabled={currentPage <= 1}
-                        onClick={() => goToPage(currentPage - 1)}
-                    >
-                        ← Prev
-                    </button>
+                    {currentPage > 1 && (
+                        <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => goToPage(currentPage - 1)}
+                        >
+                            ← Prev
+                        </button>
+                    )}
                     <span className="comments-page-info">
                         {currentPage} / {totalPages}
                     </span>
-                    <button
-                        className="btn-secondary btn-sm"
-                        disabled={currentPage >= totalPages}
-                        onClick={() => goToPage(currentPage + 1)}
-                    >
-                        Next →
-                    </button>
+                    {currentPage < totalPages && (
+                        <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => goToPage(currentPage + 1)}
+                        >
+                            Next →
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -284,14 +276,6 @@ export default function Comments() {
                 {comments.length === 0 ? (
                     <div className="comments-empty">
                         <p>No comments yet</p>
-                        {canComment && (
-                            <button
-                                className="btn-add-comment centered"
-                                onClick={() => setComposerOpen(true)}
-                            >
-                                <FiPlus size={14} /> Add a comment
-                            </button>
-                        )}
                     </div>
                 ) : (
                     comments.map((c) => (
@@ -311,27 +295,27 @@ export default function Comments() {
                             blobUrl={blobUrl}
                             maxLen={MAX_LEN}
                             formatDateTime={formatDateTime}
+                            presenceUserIds={presenceUserIds}
                         />
                     ))
                 )}
             </div>
 
-            { }
-            <CommentComposer
-                open={composerOpen}
-                newComment={newComment}
-                onNewCommentChange={setNewComment}
-                onSubmit={handleSubmit}
-                submitting={submitting}
-                showEmojis={showEmojis}
-                onToggleEmojis={() => setShowEmojis((v) => !v)}
-                onInsertEmoji={insertEmoji}
-                onClose={() => { setComposerOpen(false); setShowEmojis(false); }}
-                textareaRef={textareaRef}
-                maxLen={MAX_LEN}
-            />
+            {canComment && (
+                <CommentComposer
+                    newComment={newComment}
+                    onNewCommentChange={setNewComment}
+                    onSubmit={handleSubmit}
+                    submitting={submitting}
+                    showEmojis={showEmojis}
+                    onToggleEmojis={() => setShowEmojis((v) => !v)}
+                    onInsertEmoji={insertEmoji}
+                    onClear={() => { setNewComment(""); setShowEmojis(false); }}
+                    textareaRef={textareaRef}
+                    maxLen={MAX_LEN}
+                />
+            )}
 
-            { }
             {deleteId && (
                 <CommentDeleteModal
                     onConfirm={confirmDelete}

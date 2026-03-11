@@ -1,7 +1,5 @@
 package io.github.balasis.taskmanager.context.base.utils;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -12,6 +10,7 @@ public final class StringSanitizer {
 
     private static final int MAX_FILENAME_LENGTH = 50;
     private static final Pattern INVALID_FILENAME_PATTERN = Pattern.compile("[\\r\\n\\x00-\\x1F\\x7F/\\\\]+");
+    private static final Pattern BLOB_UNSAFE_PATTERN = Pattern.compile("[^a-zA-Z0-9._-]");
 
     public static String sanitizeFilename(String original) {
         if (original == null) return fallbackUuid();
@@ -30,9 +29,10 @@ public final class StringSanitizer {
 
     public static String toSafeBlobKey(Long prefixId, String originalFilename) {
         String safe = sanitizeFilename(originalFilename);
-        String encoded = URLEncoder.encode(safe, StandardCharsets.UTF_8);
-        if (prefixId == null) return encoded;
-        return prefixId + "-" + encoded;
+        String blobSafe = BLOB_UNSAFE_PATTERN.matcher(safe).replaceAll("_");
+        if (blobSafe.isEmpty()) blobSafe = fallbackUuid();
+        if (prefixId == null) return blobSafe;
+        return prefixId + "-" + blobSafe;
     }
 
     private static String fallbackUuid() {

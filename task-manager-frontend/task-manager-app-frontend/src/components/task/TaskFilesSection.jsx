@@ -1,8 +1,8 @@
-// Shared between creator files and assignee files — the parent
+﻿// Shared between creator files and assignee files - the parent
 // just passes different labels, limits, and handlers.
 import { useRef, useState } from "react";
 import { FiPlus, FiDownload, FiTrash2 } from "react-icons/fi";
-import { getFileIcon } from "@assets/js/fileUtils";
+import { getFileIcon, formatFileSize } from "@assets/js/fileUtils";
 import "@styles/task/TaskFilesSection.css";
 
 export default function TaskFilesSection({
@@ -59,7 +59,7 @@ export default function TaskFilesSection({
 
             {count > 0 ? (
                 <ul className="task-file-list">
-                    {/* spread into a new array — files is a prop, we don't want to
+                    {/* spread into a new array - files is a prop, we don't want to
                    accidentally mutate the parent's list during drag-and-drop */}
                 {[...files].map((f) => {
                         const Icon = getFileIcon(f.name);
@@ -88,6 +88,12 @@ export default function TaskFilesSection({
                                 >
                                     {f.name}
                                 </span>
+
+                                {f.fileSize != null && (
+                                    <span className="task-file-size" title={`${f.fileSize} bytes`}>
+                                        {formatFileSize(f.fileSize)}
+                                    </span>
+                                )}
 
                                 {downloadingId === f.id && (
                                     <span className="task-file-downloading">↓</span>

@@ -14,6 +14,10 @@ public interface AdminOutboundMapper {
     @Mapping(source = "org", target = "isOrg")
     @Mapping(source = "imgUrl", target = "imgUrl", qualifiedByName = "convertUserImgUrl")
     @Mapping(source = "defaultImgUrl", target = "defaultImgUrl", qualifiedByName = "convertUserDefaultImgUrl")
+    @Mapping(target = "storageBudgetBytes", ignore = true)
+    @Mapping(target = "downloadBudgetBytes", ignore = true)
+    @Mapping(target = "emailsPerMonth", ignore = true)
+    @Mapping(target = "imageScansPerMonth", ignore = true)
     AdminUserResource toUserResource(User user);
 
     @Named("groupList")

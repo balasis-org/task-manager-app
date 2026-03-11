@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { apiMultipart } from "@assets/js/apiClient";
 import { LIMITS } from "@assets/js/inputValidation";
 import { useBlobUrl } from "@context/BlobSasContext";
@@ -17,7 +17,7 @@ const STATE_OPTIONS = [
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
-export default function NewTaskPopup({ groupId, initialState, members, onClose, onCreated, onRefresh }) {
+export default function NewTaskPopup({ groupId, initialState, members, groupDetail, onClose, onCreated, onRefresh, maxCreatorFiles, maxFileSizeBytes }) {
     const blobUrl = useBlobUrl();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -98,6 +98,14 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
 
                 {error && <div className="popup-error">{error}</div>}
 
+                {groupDetail?.op && groupDetail.op !== "FREE" && groupDetail.op !== "STUDENT" && (
+                    <div className="nt-email-info">
+                        <span>Email task notifications: <strong>{groupDetail.aen ? "On" : "Off"}</strong></span>
+                        <span>Assignee → reviewer: <strong>{groupDetail.aaen ? "On" : "Off"}</strong></span>
+                        <p className="nt-email-info-hint">The group leader may change these in group settings.</p>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="popup-form">
                     <label>
                         Title
@@ -134,14 +142,14 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         </label>
 
                         <label className="popup-form-half">
-                            Priority (0–10)
+                            Priority (0-10)
                             <input
                                 type="number"
                                 min={0}
                                 max={10}
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value)}
-                                placeholder="—"
+                                placeholder="-"
                             />
                         </label>
                     </div>
@@ -184,6 +192,8 @@ export default function NewTaskPopup({ groupId, initialState, members, onClose, 
                         files={files}
                         onFilesChange={setFiles}
                         onError={setError}
+                        maxFiles={maxCreatorFiles}
+                        maxFileSizeBytes={maxFileSizeBytes}
                     />
 
                     <div className="popup-actions">

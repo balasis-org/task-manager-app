@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import { apiGet, apiPost, registerAuthHandlers } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
@@ -42,13 +42,18 @@ export default function AuthProvider({ children }) {
                     return false;
                 }
 
+                // The JwtInterceptor on the backend handles refresh transparently:
+                // when the JWT cookie expires but the RefreshKey cookie is still valid,
+                // the interceptor rotates both cookies in the response headers of
+                // ANY authenticated request. So we just need to retry the original
+                // request - if the refresh cookie is still valid, the backend will
+                // refresh the JWT automatically and the retry will succeed.
                 if (isRefreshing) return false;
                 isRefreshing = true;
 
                 try {
-                    await apiPost("/api/auth/refresh");
-                    const me = await apiGet("/api/auth/me");
-                    setUser(me?.user ?? null);
+                    const me = await apiGet("/api/users/me");
+                    setUser(me);
                     return true;
                 } catch {
                     setUser(null);
@@ -74,6 +79,7 @@ export default function AuthProvider({ children }) {
         try {
             await apiPost("/api/auth/logout");
         } catch {}
+        sessionStorage.removeItem("returnUrl");
         setUser(null);
     };
 

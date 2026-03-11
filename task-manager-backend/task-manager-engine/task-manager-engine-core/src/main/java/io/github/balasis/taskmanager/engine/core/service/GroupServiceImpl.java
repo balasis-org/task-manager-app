@@ -9,6 +9,7 @@ import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
+import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
@@ -16,6 +17,7 @@ import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGr
 import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.business.LimitExceededException;
+import io.github.balasis.taskmanager.context.base.exception.ratelimit.DownloadBudgetExceededException;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.exception.notfound.*;
 import io.github.balasis.taskmanager.context.base.exception.validation.InvalidFieldValueException;
@@ -28,6 +30,9 @@ import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
+import io.github.balasis.taskmanager.engine.infrastructure.email.TaskEmailTemplates;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -40,6 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -66,6 +74,80 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final DefaultImageService defaultImageService;
     private final GroupInvitationRepository groupInvitationRepository;
     private final DeletedTaskRepository deletedTaskRepository;
+    private final MaintenanceStatusRepository maintenanceStatusRepository;
+    private final PlanLimits planLimits;
+    private final DownloadGuardService downloadGuardService;
+    private final ImageChangeLimiterService imageChangeLimiterService;
+    private final org.springframework.core.env.Environment environment;
+
+    // ── limit-resolution helpers ────────────────────────────────────────
+    // 3-level fallback: task override → group override → plan default.
+    // Overrides can only tighten (lower) the plan limit, never widen it.
+
+    private User findGroupLeader(Long groupId) {
+        return groupMembershipRepository
+                .findByGroup_IdAndRole(groupId, Role.GROUP_LEADER)
+                .orElseThrow(() -> new BusinessRuleException("Group has no leader"))
+                .getUser();
+    }
+
+    private int resolveMaxCreatorFiles(Task task, Group group, SubscriptionPlan plan) {
+        int planDefault = planLimits.maxCreatorFilesPerTask(plan);
+        if (task.getMaxCreatorFiles() != null) return Math.min(task.getMaxCreatorFiles(), planDefault);
+        if (group.getMaxCreatorFilesPerTask() != null) return Math.min(group.getMaxCreatorFilesPerTask(), planDefault);
+        return planDefault;
+    }
+
+    private int resolveMaxAssigneeFiles(Task task, Group group, SubscriptionPlan plan) {
+        int planDefault = planLimits.maxAssigneeFilesPerTask(plan);
+        if (task.getMaxAssigneeFiles() != null) return Math.min(task.getMaxAssigneeFiles(), planDefault);
+        if (group.getMaxAssigneeFilesPerTask() != null) return Math.min(group.getMaxAssigneeFilesPerTask(), planDefault);
+        return planDefault;
+    }
+
+    private long resolveMaxFileSizeBytes(Task task, Group group, SubscriptionPlan plan) {
+        long planDefault = planLimits.maxFileSizeBytes(plan);
+        if (task.getMaxFileSizeBytes() != null) return Math.min(task.getMaxFileSizeBytes(), planDefault);
+        if (group.getMaxFileSizeBytes() != null) return Math.min(group.getMaxFileSizeBytes(), planDefault);
+        return planDefault;
+    }
+
+    // atomic budget charge — FREE tier skips, paid tier throws if over
+    private void chargeStorageBudget(User leader, long sizeBytes) {
+        if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
+        long budget = planLimits.storageBudgetBytes(leader.getSubscriptionPlan());
+        int updated = userRepository.addStorageUsage(leader.getId(), sizeBytes, budget);
+        if (updated == 0) {
+            throw new LimitExceededException("Storage budget exceeded. Delete some files or upgrade your plan.");
+        }
+    }
+
+    private void refundStorageBudget(User leader, Long fileSizeBytes) {
+        if (fileSizeBytes == null || fileSizeBytes <= 0) return;
+        if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
+        userRepository.subtractStorageUsage(leader.getId(), fileSizeBytes);
+    }
+
+    // Charges the group owner's monthly download budget. Legacy files with
+    // size 0 pass through for free (uploaded before budget tracking).
+    private void chargeDownloadBudget(Long groupId, long sizeBytes) {
+        if (sizeBytes <= 0) return;
+        User owner = findGroupLeader(groupId);
+        SubscriptionPlan ownerPlan = owner.getSubscriptionPlan();
+        long budget = planLimits.downloadBudgetBytes(ownerPlan);
+        int updated = userRepository.addDownloadUsage(owner.getId(), sizeBytes, budget);
+        if (updated == 0) {
+            throw new DownloadBudgetExceededException(
+                    "Your group's download budget for this month has been reached.");
+        }
+    }
+
+    // per-file daily cap via Redis (best-effort, failures swallowed)
+    private void checkRepeatGuard(Group group, Long fileId) {
+        if (!Boolean.TRUE.equals(group.getDailyDownloadCapEnabled())) return;
+        long userId = effectiveCurrentUser.getUserId();
+        downloadGuardService.checkRepeatDownload(userId, fileId);
+    }
 
     @Override
     public Group create(Group group){
@@ -73,9 +155,23 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(()->new UserNotFoundException("User not found"));
 
         long groupCount = groupMembershipRepository.countByUser_Id(user.getId());
-        int maxGroups = PlanLimits.maxGroups(user.getSubscriptionPlan());
+        int maxGroups = planLimits.maxGroups(user.getSubscriptionPlan());
         if (groupCount >= maxGroups) {
             throw new LimitExceededException("Cannot create group. You have reached the max membership number (" + maxGroups + ")");
+        }
+
+        int maxCreations = planLimits.maxGroupCreationsPerWindow(user.getSubscriptionPlan());
+        if (user.getTotalGroupsCreated() >= maxCreations) {
+            String resetHint = maintenanceStatusRepository.findById(1L)
+                    .map(MaintenanceStatus::getNextResetAt)
+                    .filter(Objects::nonNull)
+                    .map(next -> "You can create more groups after "
+                            + DateTimeFormatter.ofPattern("MMM d 'at' HH:mm 'UTC'")
+                                    .withZone(ZoneOffset.UTC).format(next) + ".")
+                    .orElse("Please try again later.");
+            throw new LimitExceededException(
+                    "You've reached the limit of " + maxCreations
+                            + " group creations. " + resetHint);
         }
 
         groupValidator.validate(group);
@@ -90,6 +186,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .role(Role.GROUP_LEADER)
                         .build()
         );
+
+        user.setTotalGroupsCreated(user.getTotalGroupsCreated() + 1);
+        userRepository.save(user);
+
         return savedGroup;
     }
 
@@ -137,14 +237,46 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         if (group.getAllowEmailNotification() != null) {
-            existingGroup.setAllowEmailNotification(group.getAllowEmailNotification());
+            boolean requested = group.getAllowEmailNotification();
+            if (requested && planLimits.emailQuotaPerMonth(
+                    existingGroup.getOwner().getSubscriptionPlan()) <= 0) {
+                requested = false;
+            }
+            existingGroup.setAllowEmailNotification(requested);
             touchLastGroupEventDate(existingGroup);
             var gEvAllowEmail =  GroupEvent.builder().group(existingGroup)
-                    .description(  (group.getAllowEmailNotification()
+                    .description(  (requested
                     ? "Group email notifications are enabled"
                     : "Group email notifications are disabled"))
                     .build();
             groupEventRepository.save(gEvAllowEmail);
+        }
+
+        if (group.getDailyDownloadCapEnabled() != null) {
+            existingGroup.setDailyDownloadCapEnabled(group.getDailyDownloadCapEnabled());
+            touchLastGroupEventDate(existingGroup);
+            var gEvCap = GroupEvent.builder().group(existingGroup)
+                    .description(group.getDailyDownloadCapEnabled()
+                            ? "Repeat download guard enabled"
+                            : "Repeat download guard disabled")
+                    .build();
+            groupEventRepository.save(gEvCap);
+        }
+
+        if (group.getAllowAssigneeEmailNotification() != null) {
+            boolean requested = group.getAllowAssigneeEmailNotification();
+            if (requested && planLimits.emailQuotaPerMonth(
+                    existingGroup.getOwner().getSubscriptionPlan()) <= 0) {
+                requested = false;
+            }
+            existingGroup.setAllowAssigneeEmailNotification(requested);
+            touchLastGroupEventDate(existingGroup);
+            var gEvAssigneeEmail = GroupEvent.builder().group(existingGroup)
+                    .description(requested
+                            ? "Assignee-to-reviewer email notifications enabled"
+                            : "Assignee-to-reviewer email notifications disabled")
+                    .build();
+            groupEventRepository.save(gEvAssigneeEmail);
         }
 
         touchGroupChange(existingGroup, true);
@@ -155,6 +287,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     public void delete(Long groupId) {
         authorizationService.requireRoleIn(groupId,Set.of(Role.GROUP_LEADER));
+
+        Group group = groupRepository.findById(groupId).orElse(null);
+        if (group != null && group.getImgUrl() != null) {
+            blobStorageService.deleteGroupImage(group.getImgUrl());
+        }
+
+        groupInvitationRepository.deleteAllByGroup_Id(groupId);
+        deletedTaskRepository.deleteAllByGroup_Id(groupId);
         taskRepository.deleteAllByGroup_Id(groupId);
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
         groupRepository.deleteById(groupId);
@@ -167,9 +307,32 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         Group group = groupRepository.findByIdWithOwner(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
 
+        User owner = group.getOwner();
+        SubscriptionPlan ownerPlan = owner.getSubscriptionPlan();
+
+        if (!planLimits.isPaid(ownerPlan)) {
+            throw new BusinessRuleException(
+                    "Custom group images require a paid plan. Choose a default image instead.");
+        }
+
+        imageChangeLimiterService.checkBurstLimit(effectiveCurrentUser.getUserId());
+
+        int maxScans = planLimits.imageScansPerMonth(ownerPlan);
+        int updated = userRepository.incrementImageScanUsage(owner.getId(), maxScans);
+        if (updated == 0) {
+            throw new LimitExceededException(
+                    "Monthly image upload limit for this group has been reached.");
+        }
+
+        String oldBlobName = group.getImgUrl();
+
         String blobName = blobStorageService.uploadGroupImage(file, groupId);
         group.setImgUrl(blobName);
         touchGroupChange(group, true);
+
+        if (oldBlobName != null) {
+            blobStorageService.deleteGroupImage(oldBlobName);
+        }
 
         return groupRepository.save(group);
     }
@@ -181,9 +344,15 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         Group group = groupRepository.findByIdWithOwner(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
 
+        String oldBlobName = group.getImgUrl();
+
         group.setDefaultImgUrl(fileName);
         group.setImgUrl(null);
         touchGroupChange(group, true);
+
+        if (oldBlobName != null) {
+            blobStorageService.deleteGroupImage(oldBlobName);
+        }
 
         return groupRepository.save(group);
     }
@@ -210,6 +379,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         requestersMembership.setLastSeenGroupEvents(Instant.now());
         groupMembershipRepository.save(requestersMembership);
         return groupEventRepository.findAllByGroup_Id(groupId, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllGroupEvents(Long groupId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER));
+        groupEventRepository.deleteAllByGroup_Id(groupId);
     }
 
     @Override
@@ -260,6 +436,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 ? null
                 : BlobDefaultImageContainer.GROUP_IMAGES.getContainerName()+"/"+group.getDefaultImgUrl();
 
+        var ownerPlan = group.getOwner().getSubscriptionPlan();
+
         return GroupWithPreviewDto.builder()
             .id(group.getId())
             .name(group.getName())
@@ -269,7 +447,22 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .ownerId(group.getOwner().getId())
             .ownerName(group.getOwner().getName())
             .announcement(group.getAnnouncement())
+            .allowEmailNotification(group.getAllowEmailNotification())
             .createdAt(group.getCreatedAt())
+            .ownerPlan(ownerPlan.name())
+            .downloadBudgetBytes(planLimits.downloadBudgetBytes(ownerPlan))
+            .usedDownloadBytesMonth(group.getOwner().getUsedDownloadBytesMonth())
+            .storageBudgetBytes(planLimits.storageBudgetBytes(ownerPlan))
+            .usedStorageBytes(group.getOwner().getUsedStorageBytes())
+            .maxCreatorFiles(planLimits.maxCreatorFilesPerTask(ownerPlan))
+            .maxAssigneeFiles(planLimits.maxAssigneeFilesPerTask(ownerPlan))
+            .maxFileSizeBytes(planLimits.maxFileSizeBytes(ownerPlan))
+            .maxTasks(planLimits.maxTasksPerGroup(ownerPlan))
+            .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
+            .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
+            .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
+            .usedEmailsMonth(group.getOwner().getUsedEmailsMonth())
+            .emailQuotaPerMonth(planLimits.emailQuotaPerMonth(ownerPlan))
             .taskPreviews(previews)
             .build();
         }
@@ -381,6 +574,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Page<TaskComment> findAllTaskComments(Long groupId, Long taskId ,Pageable pageable){
+        authorizationService.requireAnyRoleIn(groupId);
+
+        var task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        if (!task.getGroup().getId().equals(groupId))
+            throw new TaskNotFoundException("Task does not belong to this group");
+
         var taskParticipants = taskParticipantRepository.findAllByTask_idAndUser_id(taskId, effectiveCurrentUser.getUserId());
         if (!taskParticipants.isEmpty()) {
             Instant now = Instant.now();
@@ -441,17 +641,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         GroupMembership target = targetOpt.get();
         groupValidator.validateChangeGroupMembershipRole(groupId, target.getUser().getId(), newRole);
 
-        if (newRole == Role.GROUP_LEADER) {
-            groupMembershipRepository.findByGroup_IdAndRole(groupId, Role.GROUP_LEADER)
-                    .ifPresent(existingLeader -> {
-                        if (!Objects.equals(existingLeader.getId(), target.getId())) {
-                            existingLeader.setRole(Role.TASK_MANAGER);
-                            groupMembershipRepository.save(existingLeader);
-                        }
-                    });
-        }
-
-        if (newRole != Role.GROUP_LEADER && newRole != Role.TASK_MANAGER && newRole != Role.REVIEWER) {
+        if (newRole != Role.TASK_MANAGER && newRole != Role.REVIEWER) {
             taskParticipantRepository.deleteReviewersByUserIdAndGroupId(target.getUser().getId(), groupId);
         }
         target.setRole(newRole);
@@ -462,7 +652,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
     @Override
-    public void createGroupInvitation(Long groupId, String inviteCode, Role userToBeInvitedRole, String comment){
+    public void createGroupInvitation(Long groupId, String inviteCode, Role userToBeInvitedRole, String comment, boolean sendEmail){
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
 
         var group = groupRepository.findById(groupId).orElseThrow();
@@ -487,6 +677,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             return;
         }
 
+        // member cap — reject invitation early if group is full
+        long memberCount = groupMembershipRepository.countByGroup_Id(groupId);
+        int maxMembers = planLimits.maxMembersPerGroup(group.getOwner().getSubscriptionPlan());
+        if (memberCount >= maxMembers) {
+            throw new LimitExceededException(
+                    "This group has reached its member limit (" + maxMembers + ")");
+        }
+
         var inviter = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Inviter not found"));
 
@@ -508,22 +706,25 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         targetUser.setLastInviteReceivedAt(Instant.now());
         userRepository.save(targetUser);
 
-        boolean groupAllows = Boolean.TRUE.equals(group.getAllowEmailNotification());
+        boolean groupAllows = sendEmail;
         boolean userAllows = Boolean.TRUE.equals(targetUser.getAllowEmailNotification());
 
         if (groupAllows && userAllows && targetUser.getEmail() != null && !targetUser.getEmail().isBlank()) {
+            // email notifications are an Organizer+ feature — check owner quota
+            User owner = group.getOwner();
+            int quota = planLimits.emailQuotaPerMonth(owner.getSubscriptionPlan());
+            if (quota <= 0) return; // tier has no email quota — skip silently
+            int updated = userRepository.incrementEmailUsage(owner.getId(), quota);
+            if (updated == 0) return; // monthly quota exhausted — skip silently
+
             EmailClient emailClient = emailClientProvider.getIfAvailable();
             if (emailClient != null) {
-
-                String subject = "Group invitation: " + group.getName();
-                String body = "You have been invited to join the group '" + group.getName() + "' by " + inviter.getName() + ".";
-                if (saved.getComment() != null && !saved.getComment().isBlank()) {
-                    body += "\n\nInviters comment: " + saved.getComment();
-                }
+                String subject = TaskEmailTemplates.inviteSubject(group.getName());
+                String body = TaskEmailTemplates.inviteBody(
+                        group.getName(), inviter.getName(),
+                        (saved.getComment() != null && !saved.getComment().isBlank()) ? saved.getComment() : null);
                 final String emailTo = targetUser.getEmail();
-                final String emailSubject = subject;
-                final String emailBody = body;
-                CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, emailSubject, emailBody));
+                CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
             }
         }
     }
@@ -537,10 +738,20 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (status == InvitationStatus.ACCEPTED) {
             var invitedUser = groupInvitation.getUser();
             long groupCount = groupMembershipRepository.countByUser_Id(invitedUser.getId());
-            int maxGroups = PlanLimits.maxGroups(invitedUser.getSubscriptionPlan());
+            int maxGroups = planLimits.maxGroups(invitedUser.getSubscriptionPlan());
             if (groupCount >= maxGroups) {
                 throw new LimitExceededException("You can be a member of at most " + maxGroups + " groups");
             }
+
+            // member cap — double-check at accept time in case group filled since invite was sent
+            var group = groupInvitation.getGroup();
+            long memberCount = groupMembershipRepository.countByGroup_Id(group.getId());
+            int maxMembers = planLimits.maxMembersPerGroup(group.getOwner().getSubscriptionPlan());
+            if (memberCount >= maxMembers) {
+                throw new LimitExceededException(
+                        "This group has reached its member limit (" + maxMembers + ")");
+            }
+
             groupMembershipRepository.save(
                     GroupMembership.builder()
                             .user(groupInvitation.getUser())
@@ -597,7 +808,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         long taskCount = taskRepository.countByGroup_Id(groupId);
         var currentUser = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
-        int maxTasks = PlanLimits.maxTasksPerGroup(currentUser.getSubscriptionPlan());
+        int maxTasks = planLimits.maxTasksPerGroup(currentUser.getSubscriptionPlan());
         if (taskCount >= maxTasks) {
             throw new LimitExceededException("A group can have at most " + maxTasks + " tasks");
         }
@@ -643,16 +854,28 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         if (files != null && !files.isEmpty()) {
-            if (files.size() > 3) {
-                throw new InvalidFieldValueException("Maximum 3 files allowed");
+            User leader = findGroupLeader(groupId);
+            SubscriptionPlan leaderPlan = leader.getSubscriptionPlan();
+            Group group = groupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException("Group not found"));
+
+            int maxCreator = resolveMaxCreatorFiles(savedTask, group, leaderPlan);
+            long maxFileSize = resolveMaxFileSizeBytes(savedTask, group, leaderPlan);
+
+            if (files.size() > maxCreator) {
+                throw new InvalidFieldValueException("Maximum " + maxCreator + " files allowed");
             }
 
+            long totalSize = files.stream().mapToLong(MultipartFile::getSize).sum();
+            chargeStorageBudget(leader, totalSize);
+
             for (MultipartFile file : files){
-                String url = blobStorageService.uploadTaskFile(file, savedTask.getId());
+                String url = blobStorageService.uploadTaskFile(file, savedTask.getId(), maxFileSize);
                 var taskFile = TaskFile.builder()
                         .fileUrl(url)
                         .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                         .task(savedTask)
+                        .fileSize(file.getSize())
                         .build();
                 savedTask.getCreatorFiles().add(taskFile);
             }
@@ -794,23 +1017,126 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     }
 
     @Override
+    public void notifyTaskParticipant(Long groupId, Long taskId, Long userId, String customNote) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        if (!task.getGroup().getId().equals(groupId))
+            throw new TaskNotFoundException("Task does not belong to this group");
+
+        var targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (targetUser.getEmail() == null || targetUser.getEmail().isBlank()) {
+            throw new LimitExceededException("User has no email address");
+        }
+        if (!Boolean.TRUE.equals(targetUser.getAllowEmailNotification())) {
+            throw new LimitExceededException("User has disabled email notifications");
+        }
+
+        var group = groupRepository.findById(groupId).orElseThrow();
+        User owner = group.getOwner();
+        int quota = planLimits.emailQuotaPerMonth(owner.getSubscriptionPlan());
+        if (quota <= 0) throw new LimitExceededException("Your plan does not include email notifications");
+        int updated = userRepository.incrementEmailUsage(owner.getId(), quota);
+        if (updated == 0) throw new LimitExceededException("Monthly email quota exhausted");
+
+        var caller = userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow();
+
+        String safeNote = (customNote != null) ? customNote.strip() : "";
+        if (safeNote.length() > 300) safeNote = safeNote.substring(0, 300);
+
+        String appUrl = environment.getProperty("app.public-url", "http://localhost:5173");
+
+        EmailClient emailClient = emailClientProvider.getIfAvailable();
+        if (emailClient != null) {
+            String subject = TaskEmailTemplates.notifySubject(task.getTitle());
+            String body = TaskEmailTemplates.notifyBody(
+                    caller.getName(), task.getTitle(), group.getName(),
+                    groupId, taskId, safeNote, appUrl);
+            final String emailTo = targetUser.getEmail();
+            CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
+        }
+    }
+
+    @Override
+    public void notifyTaskParticipants(Long groupId, Long taskId, Set<Long> userIds, String customNote) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        if (!task.getGroup().getId().equals(groupId))
+            throw new TaskNotFoundException("Task does not belong to this group");
+
+        var group = groupRepository.findById(groupId).orElseThrow();
+        User owner = group.getOwner();
+        int quota = planLimits.emailQuotaPerMonth(owner.getSubscriptionPlan());
+        if (quota <= 0) throw new LimitExceededException("Your plan does not include email notifications");
+
+        var caller = userRepository.findById(effectiveCurrentUser.getUserId()).orElseThrow();
+
+        String safeNote = (customNote != null) ? customNote.strip() : "";
+        if (safeNote.length() > 300) safeNote = safeNote.substring(0, 300);
+
+        String appUrl = environment.getProperty("app.public-url", "http://localhost:5173");
+
+        List<User> targets = userRepository.findAllById(userIds).stream()
+                .filter(u -> u.getEmail() != null && !u.getEmail().isBlank())
+                .filter(u -> Boolean.TRUE.equals(u.getAllowEmailNotification()))
+                .toList();
+
+        if (targets.isEmpty()) throw new LimitExceededException("No reachable recipients");
+
+        // charge one email unit per recipient
+        for (int i = 0; i < targets.size(); i++) {
+            int charged = userRepository.incrementEmailUsage(owner.getId(), quota);
+            if (charged == 0) throw new LimitExceededException(
+                    "Monthly email quota exhausted after " + i + " of " + targets.size() + " emails");
+        }
+
+        EmailClient emailClient = emailClientProvider.getIfAvailable();
+        if (emailClient != null) {
+            String subject = TaskEmailTemplates.notifySubject(task.getTitle());
+            String body = TaskEmailTemplates.notifyBody(
+                    caller.getName(), task.getTitle(), group.getName(),
+                    groupId, taskId, safeNote, appUrl);
+            for (User target : targets) {
+                final String emailTo = target.getEmail();
+                CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
+            }
+        }
+    }
+
+    @Override
     public Task addTaskFile(Long groupId, Long taskId, MultipartFile file) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
         var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
-        groupValidator.validateAddTaskFile(task, groupId, file);
-        String url = blobStorageService.uploadTaskFile(file,taskId);
+
+        User leader = findGroupLeader(groupId);
+        SubscriptionPlan leaderPlan = leader.getSubscriptionPlan();
+        Group group = task.getGroup();
+        int maxCreator = resolveMaxCreatorFiles(task, group, leaderPlan);
+        long maxFileSize = resolveMaxFileSizeBytes(task, group, leaderPlan);
+
+        groupValidator.validateAddTaskFile(task, groupId, file, maxCreator);
+
+        chargeStorageBudget(leader, file.getSize());
+
+        String url = blobStorageService.uploadTaskFile(file, taskId, maxFileSize);
         task.getCreatorFiles().add(TaskFile.builder()
                 .task(task)
                 .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                 .fileUrl(url)
+                .fileSize(file.getSize())
                 .build());
         touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
 
     }
 
-    @Transactional(readOnly = true)
+    @Transactional // read-write: charges the owner's monthly download budget
     public TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId) {
         authorizationService.requireAnyRoleIn(groupId);
 
@@ -823,6 +1149,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .filter(f -> f.getId().equals(fileId))
                 .findFirst()
                 .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+
+        checkRepeatGuard(task.getGroup(), fileId);
+        chargeDownloadBudget(groupId, file.getFileSize());
+
         var download = blobStorageService.downloadTaskFile(file.getFileUrl());
         return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
 
@@ -840,6 +1170,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .findFirst()
                 .orElseThrow();
 
+        User leader = findGroupLeader(groupId);
+        refundStorageBudget(leader, file.getFileSize());
+
+        blobStorageService.deleteTaskFile(file.getFileUrl());
         task.getCreatorFiles().remove(file);
         taskFileRepository.delete(file);
         touchTaskChange(task, false, false, false);
@@ -852,13 +1186,22 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
             .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
 
-        groupValidator.validateAddAssigneeTaskFile(task, groupId, file);
+        User leader = findGroupLeader(groupId);
+        SubscriptionPlan leaderPlan = leader.getSubscriptionPlan();
+        Group group = task.getGroup();
+        int maxAssignee = resolveMaxAssigneeFiles(task, group, leaderPlan);
+        long maxFileSize = resolveMaxFileSizeBytes(task, group, leaderPlan);
 
-        String url = blobStorageService.uploadTaskAssigneeFile(file, taskId);
+        groupValidator.validateAddAssigneeTaskFile(task, groupId, file, maxAssignee);
+
+        chargeStorageBudget(leader, file.getSize());
+
+        String url = blobStorageService.uploadTaskAssigneeFile(file, taskId, maxFileSize);
         task.getAssigneeFiles().add(TaskAssigneeFile.builder()
             .task(task)
             .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
             .fileUrl(url)
+            .fileSize(file.getSize())
             .build());
         touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
@@ -878,13 +1221,17 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .findFirst()
             .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
 
+        User leader = findGroupLeader(groupId);
+        refundStorageBudget(leader, file.getFileSize());
+
+        blobStorageService.deleteTaskAssigneeFile(file.getFileUrl());
         task.getAssigneeFiles().remove(file);
         taskAssigneeFileRepository.delete(file);
         touchTaskChange(task, false, false, false);
         }
 
         @Override
-        @Transactional(readOnly = true)
+        @Transactional // read-write: charges the owner's monthly download budget
         public TaskFileDownload downloadAssigneeTaskFile(Long groupId, Long taskId, Long fileId) {
         authorizationService.requireAnyRoleIn(groupId);
 
@@ -897,6 +1244,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .filter(f -> f.getId().equals(fileId))
             .findFirst()
             .orElseThrow(() -> new TaskFileNotFoundException("File not found"));
+
+        checkRepeatGuard(task.getGroup(), fileId);
+        chargeDownloadBudget(groupId, file.getFileSize());
+
         var download = blobStorageService.downloadTaskAssigneeFile(file.getFileUrl());
         return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
         }
@@ -984,18 +1335,45 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         boolean tasksDeleted = group.getLastDeleteTaskDate() != null && group.getLastDeleteTaskDate().isAfter(lastSeen);
         boolean membersChanged = group.getLastMemberChangeDate() != null && group.getLastMemberChangeDate().isAfter(lastSeen);
 
+        // always include plan-derived limits so the frontend stays up-to-date
+        var ownerPlan = group.getOwner().getSubscriptionPlan();
+
         if (!groupChanged && !tasksDeleted) {
             return GroupRefreshDto.builder()
                     .serverNow(serverNow)
                     .changed(false)
                     .membersChanged(membersChanged)
+                    .ownerPlan(ownerPlan.name())
+                    .downloadBudgetBytes(planLimits.downloadBudgetBytes(ownerPlan))
+                    .usedDownloadBytesMonth(group.getOwner().getUsedDownloadBytesMonth())
+                    .storageBudgetBytes(planLimits.storageBudgetBytes(ownerPlan))
+                    .usedStorageBytes(group.getOwner().getUsedStorageBytes())
+                    .maxCreatorFiles(planLimits.maxCreatorFilesPerTask(ownerPlan))
+                    .maxAssigneeFiles(planLimits.maxAssigneeFilesPerTask(ownerPlan))
+                    .maxFileSizeBytes(planLimits.maxFileSizeBytes(ownerPlan))
+                    .maxTasks(planLimits.maxTasksPerGroup(ownerPlan))
+                    .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
+                    .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
+                    .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
                     .build();
         }
 
         GroupRefreshDto.GroupRefreshDtoBuilder builder = GroupRefreshDto.builder()
                 .serverNow(serverNow)
                 .changed(true)
-                .membersChanged(membersChanged);
+                .membersChanged(membersChanged)
+                .ownerPlan(ownerPlan.name())
+                .downloadBudgetBytes(planLimits.downloadBudgetBytes(ownerPlan))
+                .usedDownloadBytesMonth(group.getOwner().getUsedDownloadBytesMonth())
+                .storageBudgetBytes(planLimits.storageBudgetBytes(ownerPlan))
+                .usedStorageBytes(group.getOwner().getUsedStorageBytes())
+                .maxCreatorFiles(planLimits.maxCreatorFilesPerTask(ownerPlan))
+                .maxAssigneeFiles(planLimits.maxAssigneeFilesPerTask(ownerPlan))
+                .maxFileSizeBytes(planLimits.maxFileSizeBytes(ownerPlan))
+                .maxTasks(planLimits.maxTasksPerGroup(ownerPlan))
+                .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
+                .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
+                .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification());
 
         if (groupNoJoinsChanged) {
             var groupImgUrlConverted = (group.getImgUrl() == null || group.getImgUrl().isBlank())
@@ -1011,6 +1389,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .defaultImgUrl(defaultImgUrlConverted)
                     .imgUrl(groupImgUrlConverted)
                     .allowEmailNotification(group.getAllowEmailNotification())
+                    .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
                     .lastGroupEventDate(group.getLastGroupEventDate());
         }
 
@@ -1219,7 +1598,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
         boolean groupChanged = group.getLastChangeInGroup() != null && group.getLastChangeInGroup().isAfter(lastSeen);
         boolean tasksDeleted = group.getLastDeleteTaskDate() != null && group.getLastDeleteTaskDate().isAfter(lastSeen);
-        return groupChanged || tasksDeleted;
+    return groupChanged || tasksDeleted;
     }
 
     @Override
@@ -1231,7 +1610,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (!task.getGroup().getId().equals(groupId)) {
             throw new TaskNotFoundException("Task not found in this group");
         }
-        return task.getLastChangeDate() != null && task.getLastChangeDate().isAfter(since);
+        return task.getLastChangeDate() != null && task.getLastChangeDate().isAfter(since.plusSeconds(5));
     }
 
     @Override
@@ -1244,6 +1623,12 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             throw new TaskNotFoundException("Task not found in this group");
         }
         return task.getLastChangeDateInComments() != null && task.getLastChangeDateInComments().isAfter(since);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void checkMembership(Long groupId) {
+        authorizationService.requireAnyRoleIn(groupId);
     }
 
     private boolean computeIsDeletable(Task task, Role currentUserRole, Long groupId, Long currentUserId) {

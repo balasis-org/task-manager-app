@@ -6,6 +6,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRol
 import io.github.balasis.taskmanager.context.base.exception.authorization.InvalidRoleException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.NotAGroupMemberException;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
+import io.github.balasis.taskmanager.context.base.exception.business.BusinessRuleException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidMembershipRemovalException;
 import io.github.balasis.taskmanager.context.base.exception.business.InvalidRoleAssignmentException;
 import io.github.balasis.taskmanager.context.base.exception.duplicate.GroupDuplicateException;
@@ -81,7 +82,7 @@ public class GroupValidatorImpl implements GroupValidator{
     }
 
     @Override
-    public void validateAddTaskFile(Task task, Long groupId, MultipartFile file) {
+    public void validateAddTaskFile(Task task, Long groupId, MultipartFile file, int maxFiles) {
         doesTaskBelongToGroup(task,groupId);
         var membership = groupMembershipRepository
                 .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
@@ -91,11 +92,11 @@ public class GroupValidatorImpl implements GroupValidator{
             throw new UnauthorizedException("You do not have the rights to upload in this task");
         }
         isFileEmpty(file);
-        ensureMaxFiles(task.getCreatorFiles().size(), 3);
+        ensureMaxFiles(task.getCreatorFiles().size(), maxFiles);
     }
 
     @Override
-    public void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file) {
+    public void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file, int maxFiles) {
         doesTaskBelongToGroup(task, groupId);
         var membership = groupMembershipRepository
                 .findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId())
@@ -112,7 +113,7 @@ public class GroupValidatorImpl implements GroupValidator{
         }
 
         isFileEmpty(file);
-        ensureMaxFiles(task.getAssigneeFiles().size(), 3);
+        ensureMaxFiles(task.getAssigneeFiles().size(), maxFiles);
     }
 
     @Override
@@ -243,6 +244,10 @@ public class GroupValidatorImpl implements GroupValidator{
 
     @Override
     public void validateChangeGroupMembershipRole(Long groupId, Long targetUserId, Role newRole) {
+
+        if (newRole == Role.GROUP_LEADER) {
+            throw new BusinessRuleException("Leadership transfer is not supported");
+        }
 
         var currentMembershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
 

@@ -57,11 +57,7 @@ public class MaintenanceRepository {
         }
     }
 
-    /**
-     * Purge refresh tokens that expired more than 1 day ago.
-     * Every login creates a new row; logout only deletes the current one,
-     * so expired rows pile up for active users over time.
-     */
+    // expired > 1 day ago — rows pile up because logout only deletes the current token
     public int purgeExpiredRefreshTokens() {
         return jdbcTemplate.update("""
             DELETE FROM RefreshTokens
@@ -69,11 +65,7 @@ public class MaintenanceRepository {
         """);
     }
 
-    /**
-     * Purge soft-delete tombstones older than 30 days.
-     * The frontend only needs these for short-term sync;
-     * keeping them forever wastes storage and slows queries.
-     */
+    // tombstones older than retentionDays — frontend never queries them after sync window
     public int purgeOldDeletedTasks(int retentionDays) {
         return jdbcTemplate.update("""
             DELETE FROM DeletedTasks
@@ -81,16 +73,99 @@ public class MaintenanceRepository {
         """, -retentionDays);
     }
 
-    /**
-     * Purge accepted/declined invitations older than 30 days.
-     * Only PENDING invitations need to stay — resolved ones are
-     * never queried again but accumulate indefinitely.
-     */
     public int purgeResolvedInvitations(int retentionDays) {
         return jdbcTemplate.update("""
             DELETE FROM GroupInvitations
             WHERE invitationStatus <> 'PENDING'
               AND createdAt < DATEADD(DAY, ?, GETUTCDATE())
         """, -retentionDays);
+    }
+
+    // upserts row id=1 — blob-only or full-run timestamp depending on mode
+    public void upsertMaintenanceStatus(boolean isFull, int orphanCount, int blobsScanned,
+                                        long intervalHours) {
+        if (isFull) {
+            jdbcTemplate.update("""
+                MERGE MaintenanceStatus AS tgt
+                USING (SELECT 1 AS id) AS src ON tgt.id = src.id
+                WHEN MATCHED THEN
+                    UPDATE SET lastFullCleanupAt  = SYSUTCDATETIME(),
+                               lastOrphanCount    = ?,
+                               lastBlobsScanned   = ?,
+                               nextResetAt        = DATEADD(HOUR, ?, SYSUTCDATETIME())
+                WHEN NOT MATCHED THEN
+                    INSERT (id, lastFullCleanupAt, lastOrphanCount, lastBlobsScanned, nextResetAt)
+                    VALUES (1,  SYSUTCDATETIME(), ?, ?, DATEADD(HOUR, ?, SYSUTCDATETIME()));
+            """, orphanCount, blobsScanned, (int) intervalHours,
+                 orphanCount, blobsScanned, (int) intervalHours);
+        } else {
+            jdbcTemplate.update("""
+                MERGE MaintenanceStatus AS tgt
+                USING (SELECT 1 AS id) AS src ON tgt.id = src.id
+                WHEN MATCHED THEN
+                    UPDATE SET lastBlobCleanupAt  = SYSUTCDATETIME(),
+                               lastOrphanCount    = ?,
+                               lastBlobsScanned   = ?
+                WHEN NOT MATCHED THEN
+                    INSERT (id, lastBlobCleanupAt, lastOrphanCount, lastBlobsScanned)
+                    VALUES (1,  SYSUTCDATETIME(), ?, ?);
+            """, orphanCount, blobsScanned, orphanCount, blobsScanned);
+        }
+    }
+
+    public int resetGroupCreationCounters() {
+        return jdbcTemplate.update("""
+            UPDATE Users
+            SET totalGroupsCreated       = 0,
+                groupCreationBudgetResetAt = SYSUTCDATETIME()
+            WHERE totalGroupsCreated > 0
+        """);
+    }
+
+    // re-derive usedStorageBytes from actual file rows — the atomic
+    // inc/dec on upload/delete can drift after crashes or manual DB fixes
+    public int reconcileStorageBudgets() {
+        return jdbcTemplate.update("""
+            WITH actual AS (
+                SELECT g.owner_id AS userId,
+                       COALESCE(SUM(f.fileSize), 0) AS realBytes
+                FROM Groups g
+                LEFT JOIN Tasks t      ON t.group_id = g.id
+                LEFT JOIN TaskFiles f  ON f.task_id  = t.id
+                GROUP BY g.owner_id
+
+                UNION ALL
+
+                SELECT g.owner_id AS userId,
+                       COALESCE(SUM(af.fileSize), 0) AS realBytes
+                FROM Groups g
+                LEFT JOIN Tasks t             ON t.group_id = g.id
+                LEFT JOIN TaskAssigneeFiles af ON af.task_id  = t.id
+                GROUP BY g.owner_id
+            ),
+            totals AS (
+                SELECT userId, SUM(realBytes) AS totalBytes
+                FROM actual
+                GROUP BY userId
+            )
+            UPDATE u
+            SET u.usedStorageBytes = t.totalBytes
+            FROM Users u
+            JOIN totals t ON t.userId = u.id
+            WHERE u.usedStorageBytes <> t.totalBytes
+        """);
+    }
+
+    // only touches rows with non-zero counters
+    public int resetMonthlyBudgets() {
+        return jdbcTemplate.update("""
+            UPDATE Users
+            SET usedDownloadBytesMonth = 0,
+                usedEmailsMonth        = 0,
+                usedImageScansMonth    = 0
+            WHERE usedDownloadBytesMonth > 0
+               OR usedEmailsMonth > 0
+               OR usedImageScansMonth > 0
+        """);
     }
 }

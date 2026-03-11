@@ -1,6 +1,6 @@
-// Generic field editor — pass selectOptions for a dropdown, otherwise textarea.
+﻿// Generic field editor - pass selectOptions for a dropdown, otherwise textarea.
 // transformValue lets the parent massage the value before the PATCH.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiEdit2, FiCheck, FiX } from "react-icons/fi";
 import { apiPatch } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
@@ -22,6 +22,12 @@ export default function GsEditableField({
     const [editing, setEditing] = useState(false);
     const [value, setValue] = useState(initialValue);
     const [saving, setSaving] = useState(false);
+
+    // Keep display value in sync when the parent provides updated data
+    // (e.g. after a delta refresh updates groupDetail).
+    useEffect(() => {
+        if (!editing) setValue(initialValue);
+    }, [initialValue]);
 
     const isSelect = !!selectOptions;
 

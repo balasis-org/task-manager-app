@@ -32,7 +32,7 @@ public interface GroupService{
 
     GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole);
 
-    void createGroupInvitation(Long groupId, String inviteCode, Role roleOfUserToBeInvited, String comment);
+    void createGroupInvitation(Long groupId, String inviteCode, Role roleOfUserToBeInvited, String comment, boolean sendEmail);
     GroupInvitation respondToInvitation(Long invitationId, InvitationStatus status);
     Set<GroupInvitation> findMyGroupInvitations();
     Set<GroupInvitation> findInvitationsSentByMe();
@@ -63,6 +63,8 @@ public interface GroupService{
 
     Task addTaskParticipant(Long groupId, Long taskId , Long userId, TaskParticipantRole taskParticipantRole);
     void removeTaskParticipant(Long groupId, Long taskId, Long taskParticipantId);
+    void notifyTaskParticipant(Long groupId, Long taskId, Long userId, String customNote);
+    void notifyTaskParticipants(Long groupId, Long taskId, Set<Long> userIds, String customNote);
     Task addTaskFile(Long groupId, Long taskId, MultipartFile file);
     void removeTaskFile(Long groupId, Long taskId, Long fileId);
     TaskFileDownload downloadTaskFile(Long groupId, Long taskId, Long fileId);
@@ -73,6 +75,7 @@ public interface GroupService{
 
     Task markTaskToBeReviewed(Long groupId, Long taskId);
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
+    void deleteAllGroupEvents(Long groupId);
 
     GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
 
@@ -100,4 +103,7 @@ public interface GroupService{
     boolean hasGroupChanged(Long groupId, Instant lastSeen);
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
+
+    /** Lightweight membership gate - throws if the caller is not a member. */
+    void checkMembership(Long groupId);
 }

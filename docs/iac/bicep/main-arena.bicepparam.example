@@ -1,0 +1,83 @@
+using './main.bicep'
+
+// ═══════════════════════════════════════════════════════════════
+//  ARENA DEPLOYMENT TEMPLATE
+// ═══════════════════════════════════════════════════════════════
+//
+//  Copy this file → rename to main-arena-stress.bicepparam
+//  or main-arena-security.bicepparam → uncomment ONE mode at
+//  the bottom → deploy.
+//
+//  Prerequisites (set as environment variables before deploying):
+//    SQL_ADMIN_PASSWORD      — SQL Server admin password
+//    ARENA_AUTH_CLIENT_ID    — Entra ID App Registration client ID
+//    ARENA_AUTH_TENANT_ID    — Entra ID App Registration tenant ID
+//
+//  Deploy command:
+//    az deployment group create \
+//      --resource-group  taskmanager-arena-rg \
+//      --template-file   main.bicep \
+//      --parameters      main-arena-stress.bicepparam
+//
+//  After deployment:
+//    1. In the Azure portal, add a WAF custom rule "AllowMyIP"
+//       with priority 1 that allows your tester IP (required
+//       because enableWafBlockAll = true).
+//    2. Push the container image to the arena ACR.
+//    3. Run the appropriate k6 scripts from task-manager-k6scripts/.
+//
+//  To switch modes: redeploy with the other .bicepparam file.
+//  Both modes share the same infrastructure (same projectName),
+//  so only the app settings and WAF rules change.
+// ═══════════════════════════════════════════════════════════════
+
+// Core
+param location = 'italynorth'
+param contentSafetyLocation = 'westeurope'
+param projectName = 'taskmanager-arena'
+param tags = {
+  project: 'MyTeamTasks-Arena'
+  managedBy: 'bicep'
+}
+
+// SQL
+param sqlAdminLogin = 'taskmanageradmin'
+param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', '')
+param sqlDatabaseName = 'taskmanagerdb'
+
+// App Service
+param appServicePlanName = 'taskmanager-arena-plan'
+param appServiceInstanceCount = 2
+
+// Easy Auth
+param authAppClientId = readEnvironmentVariable('ARENA_AUTH_CLIENT_ID', '')
+param authAppTenantId = readEnvironmentVariable('ARENA_AUTH_TENANT_ID', '')
+
+// Block all traffic by default; tester adds own IP whitelist in portal
+param enableWafBlockAll = true
+
+// ═══════════════════════════════════════════════════════════════
+//  MODE SELECTION — uncomment exactly ONE section below
+// ═══════════════════════════════════════════════════════════════
+
+// ── STRESS MODE ──────────────────────────────────────────────
+// Throughput / regression baseline testing with 30-50 VUs.
+// WAF rate limits disabled (k6 shares a single source IP).
+// Response stripping active (octet-stream bodies discarded).
+// Plan limits overridden (unlimited download/storage budgets).
+// Content Safety disabled (not relevant for throughput).
+//
+// param springProfilesActive = 'prod-arena-stress,DataLoader'
+// param wafGlobalRateLimit = 0
+// param wafAuthRateLimit = 0
+
+// ── SECURITY MODE ────────────────────────────────────────────
+// OWASP-style vulnerability probing with 1 VU per script.
+// WAF at production values (rate limiting is tested surface).
+// All application limits at production values.
+// Content Safety enabled (upload abuse is tested surface).
+// Cost guard active (max 3 concurrent, 500 req/hour budget).
+//
+// param springProfilesActive = 'prod-arena-security,DataLoader'
+// param wafGlobalRateLimit = 2000
+// param wafAuthRateLimit = 200

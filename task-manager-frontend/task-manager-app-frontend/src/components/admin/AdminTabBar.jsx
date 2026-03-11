@@ -1,4 +1,4 @@
-// Tab strip — owns the TABS array so the parent doesn't have to
+﻿// Tab strip - owns the TABS array so the parent doesn't have to
 import { FiUsers, FiLayers, FiCheckSquare, FiMessageSquare } from "react-icons/fi";
 import "@styles/admin/AdminTabBar.css";
 

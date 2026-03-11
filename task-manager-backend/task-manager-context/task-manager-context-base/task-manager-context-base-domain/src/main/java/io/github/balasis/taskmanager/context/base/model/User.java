@@ -86,6 +86,32 @@ public class User extends BaseModel{
     @Column
     private Instant inviteCodeCreatedAt;
 
+    @Column
+    @Builder.Default
+    private int totalGroupsCreated = 0;
+
+    @Column
+    private Instant groupCreationBudgetResetAt;
+
+    @Column
+    @Builder.Default
+    private long usedStorageBytes = 0;
+
+    @Column
+    @Builder.Default
+    private long usedDownloadBytesMonth = 0;
+
+    @Column
+    @Builder.Default
+    private int usedEmailsMonth = 0;
+
+    @Column
+    @Builder.Default
+    private int usedImageScansMonth = 0;
+
+    @Column(length = 500)
+    private String msProfilePhotoUrl;
+
     @PrePersist
     protected void onCreate(){
         lastSeenInvites = Instant.now();

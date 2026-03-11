@@ -68,6 +68,20 @@
     font-size: 0.75em;
     color: var(--text-muted);
 }
+.settings-avatar-hint-upgrade {
+    font-style: italic;
+}
+.settings-avatar-zone-static {
+    cursor: default;
+}
+.settings-avatar-zone-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.settings-avatar-hint-limit {
+    color: var(--danger, #e74c3c);
+    font-weight: 600;
+}
 
 .settings-defaults-btn {
     margin-top: 0.5em;

@@ -43,18 +43,46 @@
     color: var(--sidebar-text);
     opacity: 0.75;
     text-align: center;
-    cursor: pointer;
     user-select: all;
-    padding: 0.15em 0.4em;
-    border-radius: 4px;
-    transition: opacity 0.15s, background 0.15s;
-}
-.sidebar-profile-code:hover {
-    opacity: 1;
-    background: rgba(255,255,255,0.08);
+    padding: 0.15em 0.2em;
 }
 
-@media (max-width: 768px) {
+.sidebar-profile-code-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    justify-content: center;
+}
+
+.sidebar-code-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--sidebar-text);
+    opacity: 0.5;
+    padding: 0.15em;
+    border-radius: 0.2em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.sidebar-code-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.1);
+}
+
+.sidebar-code-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.sidebar-code-btn .spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 900px) {
     .sidebar-profile {
         display: none;
     }

@@ -1,23 +1,37 @@
-// Group cover image — drag-drop upload or pick from defaults
-import { useState, useRef } from "react";
-import { FiCheck } from "react-icons/fi";
+﻿// Group cover image - drag-drop upload or pick from defaults
+import { useState, useRef, useContext, useMemo } from "react";
+import { FiCheck, FiX } from "react-icons/fi";
 import { apiPatch, apiMultipart } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
 import { isImageTooLarge } from "@assets/js/fileUtils";
 import { useBlobUrl } from "@context/BlobSasContext";
+import { AuthContext } from "@context/AuthContext";
 import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/groupsettings/GsImageSection.css";
 
-export default function GsImageSection({ group, onUpdated }) {
+export default function GsImageSection({ group, ownerPlan, onUpdated }) {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
+    const { user, updateUser } = useContext(AuthContext);
 
     const [coverImage, setCoverImage] = useState(null);
     const [uploadingImg, setUploadingImg] = useState(false);
     const [imgDragOver, setImgDragOver] = useState(false);
     const [showDefaultPicker, setShowDefaultPicker] = useState(false);
+    const [imgVersion, setImgVersion] = useState(0);
     const fileRef = useRef(null);
+
+    // local preview URL for the file the user picked (before uploading)
+    const localPreview = useMemo(() => {
+        if (!coverImage) return null;
+        return URL.createObjectURL(coverImage);
+    }, [coverImage]);
+
+    function cancelPick() {
+        setCoverImage(null);
+        if (fileRef.current) fileRef.current.value = "";
+    }
 
     async function uploadImage() {
         if (!coverImage) return;
@@ -27,6 +41,8 @@ export default function GsImageSection({ group, onUpdated }) {
             fd.append("file", coverImage);
             const updated = await apiMultipart(`/api/groups/${group.id}/image`, fd);
             onUpdated(updated);
+            setImgVersion(v => v + 1);
+            updateUser({ usedImageScansMonth: (user?.usedImageScansMonth ?? 0) + 1 });
             showToast("Group image updated", "success");
             setCoverImage(null);
         } catch (err) {
@@ -43,6 +59,7 @@ export default function GsImageSection({ group, onUpdated }) {
                 `/api/groups/${group.id}/image/pick-default?fileName=${encodeURIComponent(fileName)}`
             );
             onUpdated(updated);
+            setImgVersion(v => v + 1);
             showToast("Group image updated", "success");
         } catch (err) {
             showToast(err?.message || "Failed to apply default image");
@@ -51,12 +68,10 @@ export default function GsImageSection({ group, onUpdated }) {
         }
     }
 
-    // GIF check is duplicated between drop and input handlers on purpose —
-    // drop gives us the file directly, input goes through e.target.files,
-    // and the early-return + toast paths are slightly different.
     function handleFileDrop(e) {
         e.preventDefault();
         setImgDragOver(false);
+        if (atScanLimit) return;
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
         if (!file.type.startsWith("image/")) { showToast("Only image files are allowed"); return; }
@@ -73,47 +88,94 @@ export default function GsImageSection({ group, onUpdated }) {
         e.target.value = "";
     }
 
+    const isFreeOwner = ownerPlan === "FREE";
+    const isOwner = user?.id === group.ownerId;
+    const atScanLimit = isOwner
+        && user?.imageScansPerMonth > 0
+        && (user?.usedImageScansMonth ?? 0) >= user.imageScansPerMonth;
+
+    function imgSrc() {
+        const base = group.imgUrl ? blobUrl(group.imgUrl) : blobUrl(group.defaultImgUrl);
+        return imgVersion ? `${base}&_v=${imgVersion}` : base;
+    }
+
+    // What to show on the left thumbnail: local preview if file picked, else current image
+    const thumbSrc = localPreview || ((group.imgUrl || group.defaultImgUrl) ? imgSrc() : null);
+
     return (
         <section className="gs-section">
             <div className="gs-section-header">
                 <span className="gs-section-label">Group image</span>
+                {atScanLimit && (
+                    <span className="gs-limit-note">Reached the limit</span>
+                )}
             </div>
-            <div
-                className={`gs-image-row${imgDragOver ? " drag-over" : ""}`}
-                onDragOver={(e) => { e.preventDefault(); setImgDragOver(true); }}
-                onDragLeave={() => setImgDragOver(false)}
-                onDrop={handleFileDrop}
-            >
-                {(group.imgUrl || group.defaultImgUrl) && (
-                    <img
-                        src={group.imgUrl ? blobUrl(group.imgUrl) : blobUrl(group.defaultImgUrl)}
-                        alt="Group"
-                        className="gs-group-thumb"
+            {!isFreeOwner && (
+                <div
+                    className={`gs-image-row${imgDragOver ? " drag-over" : ""}${atScanLimit && !coverImage ? " gs-image-row-disabled" : ""}`}
+                    onDragOver={(e) => { e.preventDefault(); if (!atScanLimit) setImgDragOver(true); }}
+                    onDragLeave={() => setImgDragOver(false)}
+                    onDrop={handleFileDrop}
+                >
+                    {thumbSrc && (
+                        <img
+                            src={thumbSrc}
+                            alt="Group"
+                            className="gs-group-thumb"
+                        />
+                    )}
+                    <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        hidden
+                        onChange={handleFileInput}
                     />
-                )}
-                <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    hidden
-                    onChange={handleFileInput}
-                />
-                <button className="gs-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploadingImg}>
-                    {coverImage ? coverImage.name : "Choose file"}
+                    {coverImage ? (
+                        /* File picked → show filename, cancel, upload */
+                        <div className="gs-pick-actions">
+                            <span className="gs-pick-filename" title={coverImage.name}>{coverImage.name}</span>
+                            <button className="gs-cancel-btn" onClick={cancelPick} disabled={uploadingImg}>
+                                <FiX size={13} /> Cancel
+                            </button>
+                            <button className="gs-save-btn" onClick={uploadImage} disabled={uploadingImg}>
+                                <FiCheck size={13} /> {uploadingImg ? "Uploading…" : "Upload"}
+                            </button>
+                        </div>
+                    ) : (
+                        /* No file picked → choose file button */
+                        <button
+                            className="gs-upload-btn"
+                            onClick={() => fileRef.current?.click()}
+                            disabled={uploadingImg || atScanLimit}
+                        >
+                            Choose file
+                        </button>
+                    )}
+                </div>
+            )}
+            {isFreeOwner && (
+                <div className="gs-image-row">
+                    {thumbSrc && (
+                        <img
+                            src={thumbSrc}
+                            alt="Group"
+                            className="gs-group-thumb"
+                        />
+                    )}
+                    <span className="gs-free-hint">Upgrade to upload custom images</span>
+                </div>
+            )}
+            {/* Hide "Pick from defaults" when a file is already staged for upload */}
+            {!coverImage && (
+                <button
+                    className="gs-defaults-btn"
+                    onClick={() => setShowDefaultPicker(true)}
+                    disabled={uploadingImg}
+                >
+                    Pick from defaults
                 </button>
-                {coverImage && (
-                    <button className="gs-save-btn" onClick={uploadImage} disabled={uploadingImg}>
-                        <FiCheck size={13} /> {uploadingImg ? "Uploading…" : "Upload"}
-                    </button>
-                )}
-            </div>
-            <button
-                className="gs-defaults-btn"
-                onClick={() => setShowDefaultPicker(true)}
-                disabled={uploadingImg}
-            >
-                Pick from defaults
-            </button>
+            )}
             {showDefaultPicker && (
                 <DefaultImagePicker
                     type="GROUP_IMAGES"

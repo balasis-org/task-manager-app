@@ -12,6 +12,7 @@ import AdminSearchBar from "@components/admin/AdminSearchBar";
 import AdminDataTable from "@components/admin/AdminDataTable";
 import AdminDetailModal from "@components/admin/AdminDetailModal";
 import AdminDeleteModal from "@components/admin/AdminDeleteModal";
+import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/AdminPanel.css";
 
 const PAGE_SIZE = 15;
@@ -22,6 +23,8 @@ export default function AdminPanel() {
     const navigate = useNavigate();
     const showToast = useToast();
     const blobUrl = useBlobUrl();
+
+    usePageTitle("Admin panel");
 
     const [tab, setTab] = useState("users");
     const [data, setData] = useState(null);
