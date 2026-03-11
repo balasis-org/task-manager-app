@@ -97,6 +97,66 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - Maintenance module refactored into a Spring Boot app (`MaintenanceCore`, `MaintenanceRunner`), new Dockerfile.
     - Old vanilla HTML/JS frontend-demo removed entirely.
 
+### v0.7.0 — IaC, arena environments, security testing, cost engineering and repository standards
+- Date: 2026-03-11
+- Tag object: `<to be filled after tagging>`
+- Tag target (commit): `<to be filled after tagging>`
+- Highlights:
+
+    **Infrastructure-as-Code:**
+    - `main.bicep` (1,374 lines) provisioning all 15 Azure PaaS resources from a single template.
+    - `deploy-infra.yml` — manual-trigger GitHub Actions workflow with what-if/deploy modes. Writes generated resource names (ACR, App Service, Storage, Front Door) back to GitHub Environment variables via GH CLI.
+    - `.bicepparam` files for production, arena-stress, and arena-security environments.
+    - PowerShell fallback scripts (`ps1-az-scripts/`) with `.env`-based SP authentication.
+    - Three manual-setup guides: CI/CD service principal, subscription RBAC roles, OAuth Auth App Registration (with Easy Auth + FD origin auth documentation).
+    - IaC deployment guide (`docs/iac/README.MD`) covering GitHub Environments setup, Bicep parameter files, and manual fallback.
+
+    **Arena environments & stress infrastructure:**
+    - `prod-arena-stress` profile: disables WAF rate limits, overrides plan budgets to unlimited, strips file-download bodies (zero egress cost), tunes HikariCP for throughput.
+    - `prod-arena-security` profile: mirrors production defences exactly. `SecurityCostGuardFilter` rejects concurrent load above 3 requests, preventing accidental stress misuse.
+    - `StressPlanLimitsOverride` and `StressResponseFilter` for arena-specific behaviour.
+    - Both profiles deploy the identical Docker image with `DataLoader` and `DevAuthController` — testers operate k6 scripts without Azure AD or code access.
+
+    **Security testing & k6 suite:**
+    - Nine OWASP attack simulation scripts (41 assertions, 100% pass rate): auth bypass, rate-limit hammer, input abuse, unauthorized access, upload header pollution, IDOR resource tampering, XSS/HTML injection, session manipulation, privilege escalation.
+    - Three stress test scripts: polling load (30 VUs), presence storm (50 VUs), download storm.
+    - Shared test infrastructure: `config.js`, `http-helpers.js`, `test-logger.js`.
+
+    **Cost engineering & subscription tiers:**
+    - `PlanLimits` four-tier system (FREE / STUDENT / ORGANIZER / TEAM) with atomic SQL budget enforcement for storage, downloads, email, and Content Safety.
+    - Five Flyway migrations (V3–V7): constraints, subscription columns, download budget, image scan budget, notification flag.
+    - `DownloadGate` concurrency limiter (3 concurrent streams per user), `DownloadGuardService` (re-download throttle), `ImageChangeLimiterService` (burst limiter).
+    - Owner-bears-cost model: all budget operations charge the group leader's account.
+    - `TierUpgradePopup` frontend component for plan upgrade prompts.
+
+    **Backend refinements:**
+    - `GroupServiceImpl` expanded (~1,600 lines): presence tracking, differential refresh, file lifecycle management, review workflow, event audit logging.
+    - `AdminController` + `AdminService`: full admin CRUD with paginated search and `AdminOutboundMapper`.
+    - Redis services: `RedisPresenceService`, `RedisDownloadGuardService`, `RedisImageChangeLimiterService` with fail-open/fail-closed asymmetry.
+    - `CriticalExceptionAlerter` expanded with `MaintenanceStalenessChecker` (12-hour alert threshold).
+    - `ImageResizeService` interface extracted; `NoOpContentSafetyConfig` and `NoOpEmailConfig` for arena/dev fallback.
+    - `AcrCleanerService` — retains 2 most recent ACR tags per repository.
+    - CI/CD workflows updated to read resource names from GitHub Environment variables (zero hardcoded values).
+
+    **Frontend overhaul:**
+    - Presence tracking (`PresenceBar`), tiered invitation polling, smart polling with 4-phase idle degradation.
+    - `GroupProvider` reworked (~730 lines): encrypted cache with stale-while-revalidate, differential sync, piggybacked presence.
+    - New components: `GsToggleField`, `GsImageSection`, `TierUpgradePopup`, `PresenceBar`, `SettingsAvatar` rework.
+    - Pages rebuilt: Login (brand overhaul), AuthCallback, Dashboard (filter panel, column headers, task sections), Task, Comments, Settings, TermsOfService, CookiePolicy.
+    - ~40 CSS files cleaned up (dead rules removed, new styles for presence, tiers, auth).
+
+    **Documentation & repository standards:**
+    - Root `README.md` rewritten: badges, architecture, stack table, security section, OWASP table, cost breakdown, CI/CD details.
+    - `docs/local-development.md` — full local setup guide with Docker Compose, profiles, troubleshooting.
+    - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `.editorconfig`, `.github/CODEOWNERS`, `.github/dependabot.yml`.
+    - Issue templates (bug report, feature request), PR template, `.nvmrc`, frontend `.env.example`.
+    - `task-manager-k6scripts/README.md` — test suite documentation.
+
+    **Maintenance:**
+    - `MaintenanceRunner` expanded to 7 cleanup steps: blob orphan removal, asset purging, user anonymisation, DB vacuuming, budget reconciliation, counter resets, ACR image pruning.
+    - `MaintenanceRepository` refined with bulk queries for orphan detection and budget reconciliation.
+    - Removed unused `application-dev-h2.yml` and `application-prod-h2.yml` from maintenance module.
+
 ### v0.6.0 — Production hardening, observability and architecture stabilization
 - Date: 2026-02-28
 - Tag object: `121f6ec402e24247ee0ce733fe20e3e0fa5661d8` (annotated)
