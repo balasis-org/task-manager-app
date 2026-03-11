@@ -28,7 +28,7 @@ export default function Comments() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, groups, selectGroup, refreshActiveGroup, presenceUserIds } = useContext(GroupContext);
+    const { activeGroup, myRole, refreshActiveGroup, presenceUserIds } = useContext(GroupContext);
     const showToast = useToast();
     const blobUrl = useBlobUrl();
 
