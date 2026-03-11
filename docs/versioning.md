@@ -99,8 +99,8 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
 
 ### v0.7.0 — IaC, arena environments, security testing, cost engineering and repository standards
 - Date: 2026-03-11
-- Tag object: `<to be filled after tagging>`
-- Tag target (commit): `<to be filled after tagging>`
+- Tag object: `6d6bc09e4a8864c26e7f30af55331f2acbab9dec`
+- Tag target (commit): `a9aa760e79c767de10401753110ad0ff5968bbad`
 - Highlights:
 
     **Infrastructure-as-Code:**
