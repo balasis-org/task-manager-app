@@ -5,6 +5,10 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 550MB
+  data:
+    web:
+      pageable:
+        max-page-size: 50
   jpa:
     properties:
       hibernate:

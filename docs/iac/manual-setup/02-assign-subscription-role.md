@@ -42,10 +42,3 @@ az role assignment create \
   --role "User Access Administrator" \
   --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
-
-## Why not Owner?
-
-Owner = Contributor + User Access Administrator + more. Assigning the
-two roles separately follows least-privilege: the SP can manage resources
-and assign specific roles but cannot, for example, manage policy or
-blueprints.

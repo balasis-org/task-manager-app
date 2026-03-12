@@ -58,7 +58,7 @@ public class AdminService {
         if (q != null && !q.isBlank()) {
             return groupRepository.adminSearchGroups(q.trim(), pageable);
         }
-        return groupRepository.findAll(pageable);
+        return groupRepository.adminFindAllGroups(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -67,7 +67,7 @@ public class AdminService {
         if (q != null && !q.isBlank()) {
             return taskRepository.adminSearchTasks(q.trim(), pageable);
         }
-        return taskRepository.findAll(pageable);
+        return taskRepository.adminFindAllTasks(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -86,7 +86,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public Group getGroup(Long groupId) {
         requireAdmin();
-        return groupRepository.findByIdWithTasksAndParticipants(groupId)
+        return groupRepository.adminFindByIdWithDetails(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found"));
     }
 
@@ -100,7 +100,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public TaskComment getComment(Long commentId) {
         requireAdmin();
-        return taskCommentRepository.findById(commentId)
+        return taskCommentRepository.findByIdWithTaskAndCreator(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
     }
 
@@ -228,14 +228,10 @@ public class AdminService {
         }
 
         taskCommentRepository.detachCreatorFromAllComments(userId, user.getName());
-
         taskRepository.nullifyReviewedByForUser(userId);
         taskRepository.nullifyLastEditByForUser(userId);
-
         groupInvitationRepository.deleteAllByUser_IdOrInvitedBy_Id(userId, userId);
-
         refreshTokenRepository.deleteAllByUser_Id(userId);
-
         userRepository.delete(user);
     }
 

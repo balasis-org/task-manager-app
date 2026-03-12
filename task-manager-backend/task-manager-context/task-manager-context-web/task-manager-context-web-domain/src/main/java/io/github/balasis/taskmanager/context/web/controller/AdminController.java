@@ -11,17 +11,19 @@ import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin")
-@Transactional(readOnly = true)
 public class AdminController extends BaseComponent {
 
     private final AdminService adminService;
@@ -30,7 +32,8 @@ public class AdminController extends BaseComponent {
 
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserResource>> listUsers(
-            @RequestParam(required = false) String q, Pageable pageable) {
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 15, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listUsers(q, pageable)
                 .map(this::toUserResourceWithLimits));
     }
@@ -46,9 +49,11 @@ public class AdminController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
+
     @GetMapping("/groups")
     public ResponseEntity<Page<AdminGroupResource>> listGroups(
-            @RequestParam(required = false) String q, Pageable pageable) {
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 15, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listGroups(q, pageable)
                 .map(adminOutboundMapper::toGroupListResource));
     }
@@ -66,7 +71,8 @@ public class AdminController extends BaseComponent {
 
     @GetMapping("/tasks")
     public ResponseEntity<Page<AdminTaskResource>> listTasks(
-            @RequestParam(required = false) String q, Pageable pageable) {
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 15, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listTasks(q, pageable)
                 .map(adminOutboundMapper::toTaskListResource));
     }
@@ -125,7 +131,7 @@ public class AdminController extends BaseComponent {
             @RequestParam(required = false) Long taskId,
             @RequestParam(required = false) Long groupId,
             @RequestParam(required = false) Long creatorId,
-            Pageable pageable) {
+            @PageableDefault(size = 15, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminService.listComments(taskId, groupId, creatorId, pageable)
                 .map(adminOutboundMapper::toCommentResource));
     }
@@ -141,24 +147,21 @@ public class AdminController extends BaseComponent {
         return ResponseEntity.noContent().build();
     }
 
-    @Transactional
     @PatchMapping("/users/{userId}/plan")
     public ResponseEntity<AdminUserResource> updateUserPlan(
             @PathVariable Long userId,
-            @RequestBody java.util.Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
         SubscriptionPlan plan = SubscriptionPlan.valueOf(body.get("subscriptionPlan"));
         var updated = adminService.updateUser(userId, null, null, null, plan, null);
         return ResponseEntity.ok(toUserResourceWithLimits(updated));
     }
 
-    @Transactional
     @PostMapping("/users/{userId}/reset-email-usage")
     public ResponseEntity<AdminUserResource> resetEmailUsage(@PathVariable Long userId) {
         var updated = adminService.resetUserEmailUsage(userId);
         return ResponseEntity.ok(toUserResourceWithLimits(updated));
     }
 
-    @Transactional
     @PostMapping("/users/{userId}/reset-download-usage")
     public ResponseEntity<AdminUserResource> resetDownloadUsage(@PathVariable Long userId) {
         var updated = adminService.resetUserDownloadUsage(userId);

@@ -17,7 +17,9 @@ for user authentication. This requires an App Registration that:
 
 ---
 
-## Step 1 — Register the Application
+## Option A: Azure Portal
+
+### Step 1 — Register the Application
 
 1. Azure Portal → **App registrations** → **+ New registration**
 2. Name: `TaskManager-Auth` (or similar — descriptive, not used in code)
@@ -32,14 +34,14 @@ for user authentication. This requires an App Registration that:
    - **Application (client) ID** → stored as `TASKMANAGER-AUTH-CLIENT-ID`
    - **Directory (tenant) ID** → stored as `TASKMANAGER-AUTH-TENANT-ID`
 
-## Step 2 — Create Client Secret
+### Step 2 — Create Client Secret
 
 1. Left nav → **Certificates & secrets** → **+ New client secret**
 2. Description: e.g. `backend-auth`
 3. Expiry: 12 or 24 months (must rotate before expiry)
 4. Copy the **Value** immediately → stored as `TASKMANAGER-AUTH-CLIENT-SECRET`
 
-## Step 3 — Add Redirect URIs
+### Step 3 — Add Redirect URIs
 
 1. Left nav → **Authentication** → **+ Add a platform** → **Web**
 2. Add these redirect URIs:
@@ -50,7 +52,7 @@ for user authentication. This requires an App Registration that:
 
 the FD endpoint hostname is output by the Bicep deployment as `frontDoorEndpointHostName`. you can add it after the first deploy.
 
-## Step 3b — Configure Authentication Settings
+### Step 3b — Configure Authentication Settings
 
 still in **Authentication**, switch to the **Settings** tab:
 
@@ -59,7 +61,7 @@ still in **Authentication**, switch to the **Settings** tab:
 3. Leave **Front-channel logout URL** empty
 4. Click **Save**
 
-## Step 4 — Set Application ID URI
+### Step 4 — Set Application ID URI
 
 1. Left nav → **Expose an API** → **Set** (next to Application ID URI)
 2. Accept the default: `api://<client-id>` — e.g. `api://7b429825-f7cf-4971-b9b7-36c491c8ed3e`
@@ -70,7 +72,7 @@ still in **Authentication**, switch to the **Settings** tab:
 > `clientId`. No scopes or authorized client applications need to be defined —
 > the app uses the standard `openid profile email User.Read` delegated scopes.
 
-## Step 5 — Store Secrets in Key Vault
+### Step 5 — Store Secrets in Key Vault
 
 After the Bicep deployment creates the Key Vault, manually add these seven secrets:
 
@@ -83,6 +85,77 @@ After the Bicep deployment creates the Key Vault, manually add these seven secre
 7. `TASKMANAGER-EMAIL-SENDER-ADDRESS` — your verified ACS sender email (ACS → Email → Provisioned domain)
 
 the Key Vault ends up with 17 secrets total: 10 auto-populated by Bicep (DB connection, blob keys, Redis, Content Safety, ACS, App Insights) and 7 manual (the ones above). the maintenance Container Apps jobs read from the same Key Vault at runtime using the same Managed Identity.
+
+## Option B: Azure CLI
+
+> **Important:** The Azure Portal auto-creates a Service Principal when you
+> register an app. The CLI only creates the App Registration (the definition),
+> so you must manually create the Service Principal with `az ad sp create`.
+
+```bash
+# login with your Owner account
+az login
+
+# Step 1: Create the app registration (single-tenant is the default) 
+az ad app create --display-name "TaskManager-Auth" --sign-in-audience AzureADMyOrg
+
+# note the appId from output -> this is the Client ID
+# note the id (object ID) -> needed by some commands
+# the tenant ID is in the az login output
+
+# create the service principal (Portal does this automatically — CLI does NOT)
+az ad sp create --id <APP_ID>
+
+# Step 2: Create a client secret 
+# copy the password from the output immediately (you won't see it again)
+az ad app credential reset \
+  --id <APP_ID> \
+  --display-name "backend-auth"
+
+#  Step 3: Add redirect URIs 
+# add the FD endpoint URI after the first Bicep deploy (output: frontDoorEndpointHostName)
+az ad app update --id <APP_ID> \
+  --web-redirect-uris \
+    "https://www.myteamtasks.net/auth/callback" \
+    "http://localhost:5173/auth/callback" \
+    "http://localhost:8081/auth/callback"
+
+# Step 3b: Enable ID token (implicit grant) 
+# access tokens left disabled  only ID tokens are needed for the OAuth code flow
+az ad app update --id <APP_ID> \
+  --enable-id-token-issuance true
+
+# Step 4: Set Application ID URI (audience for token validation) 
+az ad app update --id <APP_ID> --identifier-uris "api://<APP_ID>"
+#-------------------------Proceed to step 5 only after bicep deployment) --------------------------------
+
+
+# Step 5: Store secrets in Key Vault
+KV_NAME="<your-keyvault-name>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-AUTH-CLIENT-ID" --value "<client-id>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-AUTH-TENANT-ID" --value "<tenant-id>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-AUTH-CLIENT-SECRET" --value "<client-secret>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-AUTH-REDIRECT-URI" \
+  --value "https://www.myteamtasks.net/auth/callback"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "ADMIN-EMAIL" --value "<admin-email>"
+
+# generate a 256-bit base64 key: openssl rand -base64 32
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-JWT-SECRET" --value "<base64-256-bit-key>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-EMAIL-SENDER-ADDRESS" --value "<acs-sender-email>"
+```
 
 ---
 
@@ -181,20 +254,3 @@ four protection layers, each handled by a different Bicep resource:
 the origin authentication feature is currently in preview. the Bicep template uses the `@2025-09-01-preview` API version for the API origin group. Front Door Premium SKU supports Private Link to App Service (eliminating the public endpoint entirely) but costs ~$330/month vs ~$35/month for Standard.
 
 ---
-
-## Thesis Note
-
-The security architecture analysis (04) covers the OAuth 2.0 flow in detail
-(state parameter CSRF protection, JWKS verification, audience check, etc.) but
-does not discuss:
-
-- The App Registration as an infrastructure dependency (manual Azure setup)
-- The FD-to-origin security distinction (blob MI auth vs web app three-layer defence)
-- FD origin authentication as a cryptographic anti-spoofing mechanism (preview feature)
-
-Consider adding a short subsection to the security or infrastructure chapter
-explaining:
-1. The three-layer defence-in-depth for the FD→Web App path (network + instance + cryptographic)
-2. How FD origin authentication works (MI acquires token → Bearer header → Easy Auth validates)
-3. Why this defeats IP spoofing (service tag checks IP range, FDID checks instance, Bearer token provides cryptographic proof)
-4. The Key Vault split: 10 auto-populated secrets vs 7 manual post-deploy secrets

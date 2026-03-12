@@ -3,6 +3,7 @@ package io.github.balasis.taskmanager.engine.core.repository;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.model.GroupInvitation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -71,8 +72,10 @@ public interface GroupInvitationRepository extends JpaRepository<GroupInvitation
 
     boolean existsByUser_IdAndInvitationStatus(Long userId, InvitationStatus status);
 
+    @Modifying
     void deleteAllByGroup_Id(Long groupId);
 
+    @Modifying
     void deleteAllByUser_IdOrInvitedBy_Id(Long userId, Long invitedById);
 
     Optional<GroupInvitation> findTopByGroup_IdAndUser_IdAndInvitationStatusOrderByIdDesc(
