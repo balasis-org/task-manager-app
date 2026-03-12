@@ -1,6 +1,8 @@
 # 01 — Create App Registration (One-Time)
 
 > Run once with an Owner/Global Admin account.
+> You may want to repeat this md guide twice in case you want different app registrations for your manual
+> use and GitHub ci-cd ; however I would recommend to use the same credentials for simplicity(not much of a benefit to split)
 
 ## Option A: Azure Portal
 
@@ -21,7 +23,7 @@
 > authenticates and receives role assignments) with `az ad sp create`.
 
 ```bash
-# login with your Owner account
+# login with your Owner account (choose your subscription)
 az login
 
 # create the app registration(default is single-tenant)
@@ -36,6 +38,8 @@ az ad sp create --id <APP_ID>
 # create a secret
 # (copy-paste the APP_ID from the console)
 # (you may also name it using --display-name <name>)
+# Note: we could also use a certificate;(personal preference of avoiding self-signed ones
+#       and we want to avoid extra charges for CA...so we stick with secrets for now).
 az ad app credential reset --id <APP_ID>
 ```
 
@@ -43,14 +47,14 @@ az ad app credential reset --id <APP_ID>
 
 After copying the secret value, save it somewhere secure. For now you can paste it into
 the `.env` file at `docs/iac/ps1-az-scripts/.env` (create one from the `.env.example` —
-everything else can be found on the app registration's overview page).
+everything else can be found on the app registration's overview page). Moreover, if you
+want to also use the same got github cicd actions perhaps now its a good time also to update your github
+secrets.
+Git CI-CDs expect :
+-AZURE_CLIENT_ID (refers to app id)
+-AZURE_CLIENT_SECRET (refers to password if you used console / it's the secret value if used azure portal)
+-AZURE_SUBSCRIPTION_ID
+-AZURE_TENANT_ID
 
 If you used option B, the console outputs everything you need after creating the secret key
 (scroll up for the subscription ID).
-
-## Note
-
-You can reuse the same app registration (and its credentials) for the GitHub Actions CI/CD
-setup. If you want stricter isolation, create a separate one and scope its privileges to
-the resource group level, but this adds setup effort for minimal benefit unless you're
-concerned about credential leakage from the GitHub side.

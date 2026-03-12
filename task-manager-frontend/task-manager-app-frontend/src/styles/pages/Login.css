@@ -292,6 +292,12 @@
     }
 }
 
+@media (min-width: 100em) {
+    .login-card-panel {
+        flex: 0 0 clamp(30em, 35%, 40em);
+    }
+}
+
 @media (max-width: 48em) {
     .login-page {
         flex-direction: column;

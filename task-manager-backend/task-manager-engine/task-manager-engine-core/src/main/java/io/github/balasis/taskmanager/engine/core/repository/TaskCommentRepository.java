@@ -20,6 +20,16 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     @EntityGraph(attributePaths = {"creator"})
     Optional<TaskComment> findWithCreatorById(Long id);
 
+    @Query("""
+        SELECT tc
+        FROM TaskComment tc
+        LEFT JOIN FETCH tc.task t
+        LEFT JOIN FETCH t.group
+        LEFT JOIN FETCH tc.creator
+        WHERE tc.id = :id
+    """)
+    Optional<TaskComment> findByIdWithTaskAndCreator(@Param("id") Long id);
+
     @Modifying
     @Query("""
         UPDATE TaskComment tc
@@ -43,9 +53,9 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     @Query("""
         SELECT tc
         FROM TaskComment tc
-        LEFT JOIN tc.task t
-        LEFT JOIN t.group g
-        LEFT JOIN tc.creator c
+        LEFT JOIN FETCH tc.task t
+        LEFT JOIN FETCH t.group g
+        LEFT JOIN FETCH tc.creator c
         WHERE (:taskId IS NULL OR t.id = :taskId)
           AND (:groupId IS NULL OR g.id = :groupId)
           AND (:creatorId IS NULL OR c.id = :creatorId)

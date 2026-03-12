@@ -35,6 +35,7 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     LEFT JOIN FETCH tp.user
     LEFT JOIN FETCH t.creatorFiles
     LEFT JOIN FETCH t.assigneeFiles
+    LEFT JOIN FETCH t.reviewedBy
     WHERE t.id = :taskId
     """)
     Optional<Task> findByIdWithFullFetchParticipantsAndFiles(@Param("taskId") Long taskId);
@@ -217,10 +218,17 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     @Query("""
         SELECT t
         FROM Task t
-        LEFT JOIN t.group g
+        LEFT JOIN FETCH t.group g
         WHERE t.title LIKE concat('%', :q, '%')
            OR g.name LIKE concat('%', :q, '%')
     """)
     Page<Task> adminSearchTasks(@Param("q") String q, Pageable pageable);
+
+    @Query("""
+        SELECT t
+        FROM Task t
+        LEFT JOIN FETCH t.group
+    """)
+    Page<Task> adminFindAllTasks(Pageable pageable);
 
 }
