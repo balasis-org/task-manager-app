@@ -9,7 +9,7 @@ RUN addgroup -S appgrp && adduser -S appuser -G appgrp
 
 WORKDIR /app
 
-COPY /task-manager-context/task-manager-context-web/task-manager-context-web-domain/target/TaskManager.jar app.jar
+COPY /context/web/domain/target/TaskManager.jar app.jar
 
 RUN chown appuser:appgrp app.jar
 
