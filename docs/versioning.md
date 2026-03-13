@@ -2,48 +2,18 @@
 
 Tracks project milestones anchored to git tags.
 Earlier versions focused mostly on backend work, but from v0.5 onwards the scope covers the full stack.
+No consequences to consistency since any other module existing before v0.5 was just demos
 
 ## Versioning Scheme
 - **0.x.y** — pre-release / development
     - x = milestone increment
     - y = patch or small fix
+    (y isn't occured due to the achieved goal to merge at main only complete context-based milestones)
 - **1.0.0** — first production-ready release
 
 ---
 
 ## Versions
-
-### v0.8.0 — Repository restructure and developer-experience refinements
-- Date: 2026-03-13
-- Tag object: `306c6e717d9d28062252210b1df687d61bedf50e` (annotated)
-- Tag target (commit): `e3a7b9ef4f8c754d73ca77bf5707e3b14bd06547`
-- Highlights:
-
-    **Repository restructure (504 files affected):**
-    - Root-level folder renames — removed redundant `task-manager-` prefix from all top-level directories:
-        - `task-manager-backend/` → `backend/`
-        - `task-manager-contracts/` → `contracts/`
-        - `task-manager-maintenance/` → `maintenance/`
-        - `task-manager-k6scripts/` → `k6/`
-    - Frontend flattened from double-nested `task-manager-frontend/task-manager-app-frontend/` → `frontend/`.
-    - IaC promoted from `docs/iac/` → `infrastructure/` (top-level visibility).
-    - Maintenance sub-module simplified: `task-manager-maintenance-blobcleaner/` → `blobcleaner/`.
-    - Backend internal modules (11 folders) renamed — removed `task-manager-` prefix stutter:
-        - e.g. `task-manager-engine-core/` → `engine/core/`, `task-manager-context-web/` → `context/web/`.
-    - Maven `artifactId`s intentionally unchanged (compile-time identifiers, no runtime impact).
-    - All path references updated: 5 `pom.xml` module tags, Dockerfile, 4 CI/CD workflows, `dependabot.yml`, `CODEOWNERS`, `README.md`, `CONTRIBUTING.md`, `local-development.md`, infrastructure and frontend READMEs. Build verified for all modules.
-
-    **Backend fixes:**
-    - Eliminated `@Transactional` on admin controllers that masked N+1 / `LazyInitializationException` issues — pagination queries now use explicit fetch joins.
-
-    **Documentation & repository standards:**
-    - OCI labels added to backend Dockerfile (`org.opencontainers.image.*`).
-    - k6 environment configuration documented; `.gitignore` patterns updated.
-    - CODEOWNERS format clarified; maintenance module description added.
-    - Repository README prerequisites table refined.
-    - Auth app registration guide: single-tenant vs multi-tenant rationale clarified.
-    - Markdown guides restructured for IaC setup documentation.
-    - Contracts POM module description added.
 
 ### v0.1.0 — Initial backend baseline
 - Date: 2025-10-27
@@ -129,6 +99,53 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - Maintenance module refactored into a Spring Boot app (`MaintenanceCore`, `MaintenanceRunner`), new Dockerfile.
     - Old vanilla HTML/JS frontend-demo removed entirely.
 
+
+
+### v0.6.0 — Production hardening, observability and architecture stabilization
+- Date: 2026-02-28
+- Tag object: `121f6ec402e24247ee0ce733fe20e3e0fa5661d8` (annotated)
+- Tag target (commit): `2473588616b552f92bccd51d64e238d60750c592`
+- Highlights :
+
+    **Architecture pivots:**
+    - Blob access migrated from SAS tokens to Origin Auth. Frontend got a new `BlobSasContext`, backend `BlobStorageService` rewritten. Old `blob-base.jsx` / `api-base.jsx` removed.
+    - Frontend de-containerized — Dockerfile, nginx configs and compose removed. SPA now deployed as static assets to Azure Blob Storage behind Front Door.
+    - Rate limiting switched from IP-based to userId-based keying (Redis). Dev/prod configs split out properly. New `ServiceOverloadedException` for 429s.
+
+    **Monitoring overhaul:**
+    - `CriticalExceptionAlerter` — categorized alerting for auth, blob and infrastructure failures.
+    - `LayerProfilingAspect` + `ProfilingContext` — per-layer performance profiling.
+    - `ApplicationMetrics` — custom Micrometer gauges/counters for business-level observability.
+    - `PollingEndpointSampler` — OTel sampler that suppresses noise from polling endpoints.
+    - Health indicators for Blob Storage and Redis. `logback-spring.xml` structured logging.
+    - `kql-queries.md` — KQL reference for Application Insights queries.
+    - Old `HibernateStatisticsService` removed (superseded by the new profiling stack).
+
+    **Backend hardening:**
+    - Auth flow reworked — `AuthService` + `JwtService` tightened (refresh token rotation, controller flow simplified).
+    - `GroupServiceImpl` differential refresh optimised, repository queries refined across the board.
+    - `V2__add_unique_constraints.sql` Flyway migration + `V1__baseline.sql` schema corrections.
+    - Critical exception hierarchy added: `CriticalException` base with auth, blob and infra subtypes.
+    - `StringSanitizer` utility, `RequestLoggingFilter` for request tracing, `StartupBlockingFilter` refinements.
+
+    **Frontend decomposition:**
+    - Monolithic page components broken down into focused sub-components across task, admin, comments, dashboard, group settings, invitations, settings and topbar/layout domains.
+    - Each sub-component got its own CSS module.
+    - New shared components: `AppShield`, `DefaultImagePicker`, `MemberDetailPopup`, `NotFound`.
+    - New utilities — `formatDate.js`, `userImg.js`, `useDebounce` hook.
+    - `GroupProvider` reworked for the blob pivot (encrypted cache + differential sync adjustments).
+
+    **CI/CD restructure:**
+    - GitHub Actions bumped from v3 to v4 (checkout, setup-java, upload/download-artifact).
+    - Workflows split — `pull_request` triggers CI checks (required status checks on PRs), `push` to main triggers CD deploy.
+    - Frontend pipeline got a CDN purge step to match the local bat.
+    - Branch protection enabled: `test_backend`, `test_frontend`, `test_maintenance` as required checks.
+
+    **Maintenance:**
+    - New `AssetCleanerService` for orphan blob cleanup.
+    - `BlobCleanerService` and `MaintenanceRepository` reworked. User cleanup days logic fixed.
+
+
 ### v0.7.0 — IaC, arena environments, security testing, cost engineering and repository standards
 - Date: 2026-03-11
 - Tag object: `6d6bc09e4a8864c26e7f30af55331f2acbab9dec`
@@ -189,50 +206,37 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - `MaintenanceRepository` refined with bulk queries for orphan detection and budget reconciliation.
     - Removed unused `application-dev-h2.yml` and `application-prod-h2.yml` from maintenance module.
 
-### v0.6.0 — Production hardening, observability and architecture stabilization
-- Date: 2026-02-28
-- Tag object: `121f6ec402e24247ee0ce733fe20e3e0fa5661d8` (annotated)
-- Tag target (commit): `2473588616b552f92bccd51d64e238d60750c592`
-- Highlights :
+### v0.8.0 — Repository restructure and developer-experience refinements
+- Date: 2026-03-13
+- Tag object: `306c6e717d9d28062252210b1df687d61bedf50e` (annotated)
+- Tag target (commit): `e3a7b9ef4f8c754d73ca77bf5707e3b14bd06547`
+- Highlights:
 
-    **Architecture pivots:**
-    - Blob access migrated from SAS tokens to Origin Auth. Frontend got a new `BlobSasContext`, backend `BlobStorageService` rewritten. Old `blob-base.jsx` / `api-base.jsx` removed.
-    - Frontend de-containerized — Dockerfile, nginx configs and compose removed. SPA now deployed as static assets to Azure Blob Storage behind Front Door.
-    - Rate limiting switched from IP-based to userId-based keying (Redis). Dev/prod configs split out properly. New `ServiceOverloadedException` for 429s.
+    **Repository restructure (504 files affected):**
+    - Root-level folder renames — removed redundant `task-manager-` prefix from all top-level directories:
+        - `task-manager-backend/` → `backend/`
+        - `task-manager-contracts/` → `contracts/`
+        - `task-manager-maintenance/` → `maintenance/`
+        - `task-manager-k6scripts/` → `k6/`
+    - Frontend flattened from double-nested `task-manager-frontend/task-manager-app-frontend/` → `frontend/`.
+    - IaC promoted from `docs/iac/` → `infrastructure/` (top-level visibility).
+    - Maintenance sub-module simplified: `task-manager-maintenance-blobcleaner/` → `blobcleaner/`.
+    - Backend internal modules (11 folders) renamed — removed `task-manager-` prefix stutter:
+        - e.g. `task-manager-engine-core/` → `engine/core/`, `task-manager-context-web/` → `context/web/`.
+    - Maven `artifactId`s intentionally unchanged (compile-time identifiers, no runtime impact).
+    - All path references updated: 5 `pom.xml` module tags, Dockerfile, 4 CI/CD workflows, `dependabot.yml`, `CODEOWNERS`, `README.md`, `CONTRIBUTING.md`, `local-development.md`, infrastructure and frontend READMEs. Build verified for all modules.
 
-    **Monitoring overhaul:**
-    - `CriticalExceptionAlerter` — categorized alerting for auth, blob and infrastructure failures.
-    - `LayerProfilingAspect` + `ProfilingContext` — per-layer performance profiling.
-    - `ApplicationMetrics` — custom Micrometer gauges/counters for business-level observability.
-    - `PollingEndpointSampler` — OTel sampler that suppresses noise from polling endpoints.
-    - Health indicators for Blob Storage and Redis. `logback-spring.xml` structured logging.
-    - `kql-queries.md` — KQL reference for Application Insights queries.
-    - Old `HibernateStatisticsService` removed (superseded by the new profiling stack).
+    **Backend fixes:**
+    - Eliminated `@Transactional` on admin controllers that masked N+1 / `LazyInitializationException` issues — pagination queries now use explicit fetch joins.
 
-    **Backend hardening:**
-    - Auth flow reworked — `AuthService` + `JwtService` tightened (refresh token rotation, controller flow simplified).
-    - `GroupServiceImpl` differential refresh optimised, repository queries refined across the board.
-    - `V2__add_unique_constraints.sql` Flyway migration + `V1__baseline.sql` schema corrections.
-    - Critical exception hierarchy added: `CriticalException` base with auth, blob and infra subtypes.
-    - `StringSanitizer` utility, `RequestLoggingFilter` for request tracing, `StartupBlockingFilter` refinements.
-
-    **Frontend decomposition:**
-    - Monolithic page components broken down into focused sub-components across task, admin, comments, dashboard, group settings, invitations, settings and topbar/layout domains.
-    - Each sub-component got its own CSS module.
-    - New shared components: `AppShield`, `DefaultImagePicker`, `MemberDetailPopup`, `NotFound`.
-    - New utilities — `formatDate.js`, `userImg.js`, `useDebounce` hook.
-    - `GroupProvider` reworked for the blob pivot (encrypted cache + differential sync adjustments).
-
-    **CI/CD restructure:**
-    - GitHub Actions bumped from v3 to v4 (checkout, setup-java, upload/download-artifact).
-    - Workflows split — `pull_request` triggers CI checks (required status checks on PRs), `push` to main triggers CD deploy.
-    - Frontend pipeline got a CDN purge step to match the local bat.
-    - Branch protection enabled: `test_backend`, `test_frontend`, `test_maintenance` as required checks.
-
-    **Maintenance:**
-    - New `AssetCleanerService` for orphan blob cleanup.
-    - `BlobCleanerService` and `MaintenanceRepository` reworked. User cleanup days logic fixed.
-
+    **Documentation & repository standards:**
+    - OCI labels added to backend Dockerfile (`org.opencontainers.image.*`).
+    - k6 environment configuration documented; `.gitignore` patterns updated.
+    - CODEOWNERS format clarified; maintenance module description added.
+    - Repository README prerequisites table refined.
+    - Auth app registration guide: single-tenant vs multi-tenant rationale clarified.
+    - Markdown guides restructured for IaC setup documentation.
+    - Contracts POM module description added.
 ---
 
 ## Notes
