@@ -109,7 +109,7 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - `.bicepparam` files for production, arena-stress, and arena-security environments.
     - PowerShell fallback scripts (`ps1-az-scripts/`) with `.env`-based SP authentication.
     - Three manual-setup guides: CI/CD service principal, subscription RBAC roles, OAuth Auth App Registration (with Easy Auth + FD origin auth documentation).
-    - IaC deployment guide (`docs/iac/README.MD`) covering GitHub Environments setup, Bicep parameter files, and manual fallback.
+    - IaC deployment guide (`infrastructure/README.MD`) covering GitHub Environments setup, Bicep parameter files, and manual fallback.
 
     **Arena environments & stress infrastructure:**
     - `prod-arena-stress` profile: disables WAF rate limits, overrides plan budgets to unlimited, strips file-download bodies (zero egress cost), tunes HikariCP for throughput.
@@ -150,7 +150,7 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - `docs/local-development.md` — full local setup guide with Docker Compose, profiles, troubleshooting.
     - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `.editorconfig`, `.github/CODEOWNERS`, `.github/dependabot.yml`.
     - Issue templates (bug report, feature request), PR template, `.nvmrc`, frontend `.env.example`.
-    - `task-manager-k6scripts/README.md` — test suite documentation.
+    - `k6/README.md` — test suite documentation.
 
     **Maintenance:**
     - `MaintenanceRunner` expanded to 7 cleanup steps: blob orphan removal, asset purging, user anonymisation, DB vacuuming, budget reconciliation, counter resets, ACR image pruning.

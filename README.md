@@ -4,12 +4,12 @@
 [![Frontend CI/CD](https://github.com/balasis-org/task-manager-app/actions/workflows/frontend-ci-cd.yml/badge.svg)](https://github.com/balasis-org/task-manager-app/actions/workflows/frontend-ci-cd.yml)
 [![Maintenance CI/CD](https://github.com/balasis-org/task-manager-app/actions/workflows/maintenance-ci-cd.yml/badge.svg)](https://github.com/balasis-org/task-manager-app/actions/workflows/maintenance-ci-cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Java](https://img.shields.io/badge/Java-21-orange)](task-manager-backend/pom.xml)
-[![React](https://img.shields.io/badge/React-19-61DAFB)](task-manager-frontend/task-manager-app-frontend/package.json)
+[![Java](https://img.shields.io/badge/Java-21-orange)](backend/pom.xml)
+[![React](https://img.shields.io/badge/React-19-61DAFB)](frontend/package.json)
 [![Azure](https://img.shields.io/badge/Azure-15%20PaaS%20resources-0078D4)](#architecture)
 
-BSc thesis project — John Balasis · CSY22117 · AthensTech College (York St John University)
-
+BSc thesis project — John Balasis · CSY22117  
+AthensTech College · Academic collaboration with CITY College, University of York Europe Campus
 ---
 
 [[[Image here: hero screenshot — group dashboard or task board view, dark mode, showing real UI with tasks and members]]]
@@ -71,16 +71,16 @@ the system follows a three-tier architecture with Azure Front Door as the single
 ## project layout
 
 ```
-task-manager-backend/           spring boot 10-module reactor
-  task-manager-engine/            domain: entities, services, azure adapters, monitoring
-  task-manager-context/           HTTP: controllers, interceptors, DTOs, security filters
-task-manager-frontend/          react 19 SPA (vite)
-task-manager-contracts/         shared DTOs and enums (backend + maintenance)
-task-manager-maintenance/       scheduled cleanup jobs (container app jobs)
-task-manager-k6scripts/         k6 attack simulations + stress tests
+backend/                        spring boot 10-module reactor
+  engine/                         domain: entities, services, azure adapters, monitoring
+  context/                        HTTP: controllers, interceptors, DTOs, security filters
+frontend/                       react 19 SPA (vite)
+contracts/                      shared DTOs and enums (backend + maintenance)
+maintenance/                    scheduled cleanup jobs (container app jobs)
+k6/                             k6 attack simulations + stress tests
 .github/workflows/              4 workflows: infra, backend, frontend, maintenance
-docs/iac/                       Bicep templates, param files, fallback PS scripts
-docs/iac/manual-setup/          one-time Azure setup + post-deployment
+infrastructure/                 Bicep templates, param files, fallback PS scripts
+infrastructure/manual-setup/    one-time Azure setup + post-deployment
 ```
 
 
@@ -152,9 +152,9 @@ the FREE tier generates exactly $0 in variable Azure cost (email and scan limits
 four GitHub Actions workflows:
 
 - **deploy-infra** — manually triggered. provisions all 15 Azure resources via Bicep and writes generated names (ACR, web app, storage account, Front Door endpoint) back to GitHub Environment variables using the GH CLI. the three deployment workflows reference these dynamically — zero hardcoded resource names. cross-platform PowerShell scripts serve as a manual fallback.
-- **backend-ci-cd** — triggers on pushes to main touching `task-manager-backend/**` or `task-manager-contracts/**`. builds + tests the Spring Boot app, pushes a Docker image to ACR with a timestamp tag (`yyyyMMddHHmmss`), updates the App Service container.
-- **frontend-ci-cd** — triggers on pushes to main touching `task-manager-frontend/**`. builds the React app, uploads static files to Blob Storage (`$web`), purges the Front Door cache.
-- **maintenance-ci-cd** — triggers on pushes to main touching `task-manager-maintenance/**`. builds the maintenance jar, pushes to ACR, updates both ACA cron jobs.
+- **backend-ci-cd** — triggers on pushes to main touching `backend/**` or `contracts/**`. builds + tests the Spring Boot app, pushes a Docker image to ACR with a timestamp tag (`yyyyMMddHHmmss`), updates the App Service container.
+- **frontend-ci-cd** — triggers on pushes to main touching `frontend/**`. builds the React app, uploads static files to Blob Storage (`$web`), purges the Front Door cache.
+- **maintenance-ci-cd** — triggers on pushes to main touching `maintenance/**`. builds the maintenance jar, pushes to ACR, updates both ACA cron jobs.
 
 path-based filtering ensures unrelated changes never trigger unnecessary builds. timestamp tags enable precise rollback without rebuild. all credentials live in GitHub encrypted Secrets, scoped to minimum permissions.
 
@@ -189,8 +189,8 @@ see **[local development guide](docs/local-development.md)** for full setup inst
 ## guides
 
 - **[Local development](docs/local-development.md)** — run the full stack locally with Docker
-- **[Production deployment](docs/iac/README.MD)** — Bicep provisioning, GitHub Environments setup, CI/CD configuration
-- **[Azure manual setup](docs/iac/manual-setup/)** — service principal, OAuth 2.0 app registration, post-deployment Key Vault setup
+- **[Production deployment](infrastructure/README.MD)** — Bicep provisioning, GitHub Environments setup, CI/CD configuration
+- **[Azure manual setup](infrastructure/manual-setup/)** — service principal, OAuth 2.0 app registration, post-deployment Key Vault setup
 - **[Versioning](docs/versioning.md)** — milestone changelog from v0.1.0 through current release
 
 

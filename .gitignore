@@ -43,4 +43,4 @@ default-images/
 # =========================
 # IAC env files (secrets)
 # =========================
-docs/iac/ps1-az-scripts/.env
+infrastructure/ps1-az-scripts/.env

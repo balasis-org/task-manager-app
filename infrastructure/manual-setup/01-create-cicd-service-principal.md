@@ -92,6 +92,6 @@ After completing this guide, you should have four values:
 | Directory (tenant) ID | GitHub secret `AZURE_TENANT_ID` · `.env` file |
 | Subscription ID | GitHub secret `AZURE_SUBSCRIPTION_ID` · `.env` file |
 
-Save these somewhere secure. You'll add them as GitHub secrets in the next phase (see the [IaC README](../README.MD)), and optionally paste them into `docs/iac/ps1-az-scripts/.env` (create from `.env.example`) for manual deployment.
+Save these somewhere secure. You'll add them as GitHub secrets in the next phase (see the [IaC README](../README.MD)), and optionally paste them into `infrastructure/ps1-az-scripts/.env` (create from `.env.example`) for manual deployment.
 
 If you used Option B, the console outputs everything you need after creating the secret key (scroll up for the subscription ID).
