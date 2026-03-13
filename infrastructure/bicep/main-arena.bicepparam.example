@@ -10,8 +10,8 @@ using './main.bicep'
 //
 //  Prerequisites (set as environment variables before deploying):
 //    SQL_ADMIN_PASSWORD      — SQL Server admin password
-//    ARENA_AUTH_CLIENT_ID    — Entra ID App Registration client ID
-//    ARENA_AUTH_TENANT_ID    — Entra ID App Registration tenant ID
+//    ARENA_AUTH_CLIENT_ID    — Auth App Registration client ID (guide 02, not the CI/CD SP)
+//    ARENA_AUTH_TENANT_ID    — Auth App Registration tenant ID (guide 02)
 //
 //  Deploy command:
 //    az deployment group create \
