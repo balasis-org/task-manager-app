@@ -26,6 +26,13 @@ using './main.bicep'
 //    2. Push the container image to the arena ACR.
 //    3. Run the appropriate k6 scripts from task-manager-k6scripts/.
 //
+//  FIRST DEPLOY (empty ACR):
+//    Container App Jobs validate images at creation time, so the
+//    first deploy will fail if the ACR is empty. Pass the override:
+//      --parameters main-arena-stress.bicepparam containerImageOverride='mcr.microsoft.com/k8se/quickstart:latest'
+//    After CI/CD pushes real images, redeploy WITHOUT the override
+//    (or with containerImageOverride='') to switch to your ACR images.
+//
 //  To switch modes: redeploy with the other .bicepparam file.
 //  Both modes share the same infrastructure (same projectName),
 //  so only the app settings and WAF rules change.

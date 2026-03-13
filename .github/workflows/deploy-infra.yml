@@ -22,6 +22,11 @@ on:
         options:
           - what-if
           - deploy
+      first_deploy:
+        description: 'First deploy? (ACR is empty — uses placeholder image for Container App Jobs)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -72,9 +77,13 @@ jobs:
           ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
           ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
         run: |
+          EXTRA_PARAMS=""
+          if [ "${{ inputs.first_deploy }}" = "true" ]; then
+            EXTRA_PARAMS="containerImageOverride=mcr.microsoft.com/k8se/quickstart:latest"
+          fi
           az deployment group what-if \
             --resource-group "${{ vars.RG_NAME }}" \
-            --parameters "${{ steps.params.outputs.file }}"
+            --parameters "${{ steps.params.outputs.file }}" $EXTRA_PARAMS
 
       - name: Deploy Bicep
         if: inputs.mode == 'deploy'
@@ -84,9 +93,13 @@ jobs:
           ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
           ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
         run: |
+          EXTRA_PARAMS=""
+          if [ "${{ inputs.first_deploy }}" = "true" ]; then
+            EXTRA_PARAMS="containerImageOverride=mcr.microsoft.com/k8se/quickstart:latest"
+          fi
           RESULT=$(az deployment group create \
             --resource-group "${{ vars.RG_NAME }}" \
-            --parameters "${{ steps.params.outputs.file }}" \
+            --parameters "${{ steps.params.outputs.file }}" $EXTRA_PARAMS \
             --query 'properties.outputs' \
             --output json)
 

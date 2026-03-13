@@ -58,6 +58,9 @@ param customDomainHost string = ''
 @description('Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually.')
 param enableWafBlockAll bool = false
 
+@description('Override image for Container App Jobs on first deploy (ACR is empty). Leave blank after CI/CD has pushed images.')
+param containerImageOverride string = ''
+
 @description('Comma-separated Spring Boot profiles (e.g., prod-azuresql or prod-arena-stress,DataLoader)')
 param springProfilesActive string = 'prod-azuresql'
 
@@ -89,8 +92,9 @@ var imagePrefix          = toLower('${acr.properties.loginServer}/${projectName}
 
 // Placeholder image used on first deploy before CI/CD has pushed actual images.
 // ACA validates the image ref at resource-creation time, so we need a real pullable image.
+// App Service pulls lazily and tolerates missing images, so backendImage can always point at ACR.
 var backendImage         = '${imagePrefix}-backend:latest'
-var maintenanceImage     = '${imagePrefix}-maintenance:latest'
+var maintenanceImage     = containerImageOverride != '' ? containerImageOverride : '${imagePrefix}-maintenance:latest'
 
 var blobContainers = [
   'task-files'
