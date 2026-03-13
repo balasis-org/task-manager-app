@@ -1,19 +1,22 @@
+# CODEOWNERS — auto-assigns reviewers on pull requests
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
 # Default owner for the entire repository
 * @Balasis
 
 # Backend
-/task-manager-backend/ @Balasis
-/task-manager-contracts/ @Balasis
+/backend/ @Balasis
+/contracts/ @Balasis
 
 # Frontend
-/task-manager-frontend/ @Balasis
+/frontend/ @Balasis
 
 # Maintenance
-/task-manager-maintenance/ @Balasis
+/maintenance/ @Balasis
 
 # Infrastructure and CI/CD
 /.github/ @Balasis
-/docs/iac/ @Balasis
+/infrastructure/ @Balasis
 
 # Security tests
 /task-manager-k6scripts/ @Balasis

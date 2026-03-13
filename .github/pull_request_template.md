@@ -13,13 +13,13 @@
 
 ## Affected modules
 
-- [ ] task-manager-backend (engine / context)
-- [ ] task-manager-frontend
-- [ ] task-manager-contracts
-- [ ] task-manager-maintenance
-- [ ] task-manager-k6scripts
+- [ ] backend (engine / context)
+- [ ] frontend
+- [ ] contracts
+- [ ] maintenance
+- [ ] k6
 - [ ] .github/workflows
-- [ ] docs / IaC (Bicep)
+- [ ] infrastructure (Bicep)
 
 ## Checklist
 
