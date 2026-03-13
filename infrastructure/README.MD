@@ -130,9 +130,9 @@ the PAT is a repository secret (not environment secret) because it needs to writ
 
 ```bash
 # Copy the example files and fill in real values
-cp docs/iac/bicep/main.bicepparam.example         docs/iac/bicep/main.bicepparam
-cp docs/iac/bicep/main-arena.bicepparam.example    docs/iac/bicep/main-arena-stress.bicepparam
-cp docs/iac/bicep/main-arena.bicepparam.example    docs/iac/bicep/main-arena-security.bicepparam
+cp infrastructure/bicep/main.bicepparam.example         infrastructure/bicep/main.bicepparam
+cp infrastructure/bicep/main-arena.bicepparam.example    infrastructure/bicep/main-arena-stress.bicepparam
+cp infrastructure/bicep/main-arena.bicepparam.example    infrastructure/bicep/main-arena-security.bicepparam
 ```
 
 Edit each `.bicepparam` file with your values. These files contain no secrets — secrets
@@ -169,16 +169,16 @@ whenever you change `main.bicep` or the `.bicepparam` files, run `deploy-infra` 
 if GitHub Actions is unavailable or you prefer deploying from your machine:
 
 ```bash
-cp docs/iac/ps1-az-scripts/.env.example docs/iac/ps1-az-scripts/.env
+cp infrastructure/ps1-az-scripts/.env.example infrastructure/ps1-az-scripts/.env
 # Edit .env with your SP credentials, RG name, location, SQL password
 ```
 
 ```powershell
 # preview what Azure would create/modify/delete
-pwsh -File docs/iac/ps1-az-scripts/main.ps1 -WhatIf
+pwsh -File infrastructure/ps1-az-scripts/main.ps1 -WhatIf
 
 # deploy for real
-pwsh -File docs/iac/ps1-az-scripts/main.ps1
+pwsh -File infrastructure/ps1-az-scripts/main.ps1
 ```
 
 both commands load `.env`, log in with the SP, create the RG (if needed), and deploy Bicep.

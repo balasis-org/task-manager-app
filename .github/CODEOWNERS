@@ -5,18 +5,18 @@
 * @Balasis
 
 # Backend
-/task-manager-backend/ @Balasis
-/task-manager-contracts/ @Balasis
+/backend/ @Balasis
+/contracts/ @Balasis
 
 # Frontend
-/task-manager-frontend/ @Balasis
+/frontend/ @Balasis
 
 # Maintenance
-/task-manager-maintenance/ @Balasis
+/maintenance/ @Balasis
 
 # Infrastructure and CI/CD
 /.github/ @Balasis
-/docs/iac/ @Balasis
+/infrastructure/ @Balasis
 
 # Security tests
 /task-manager-k6scripts/ @Balasis

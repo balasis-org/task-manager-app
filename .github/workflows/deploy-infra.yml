@@ -49,9 +49,9 @@ jobs:
         id: params
         run: |
           case "${{ inputs.environment }}" in
-            arena-stress)   FILE="docs/iac/bicep/main-arena-stress.bicepparam" ;;
-            arena-security) FILE="docs/iac/bicep/main-arena-security.bicepparam" ;;
-            *)              FILE="docs/iac/bicep/main.bicepparam" ;;
+            arena-stress)   FILE="infrastructure/bicep/main-arena-stress.bicepparam" ;;
+            arena-security) FILE="infrastructure/bicep/main-arena-security.bicepparam" ;;
+            *)              FILE="infrastructure/bicep/main.bicepparam" ;;
           esac
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
 

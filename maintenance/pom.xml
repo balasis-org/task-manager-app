@@ -10,7 +10,7 @@
     <description>Scheduled maintenance jobs — blob cleanup, inactive-user anonymisation, budget reconciliation</description>
     <packaging>pom</packaging>
     <modules>
-        <module>task-manager-maintenance-blobcleaner</module>
+        <module>blobcleaner</module>
     </modules>
 
     <properties>

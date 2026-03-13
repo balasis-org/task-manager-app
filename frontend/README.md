@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Starts the Vite dev server at `http://localhost:5173`. See [docs/local-development.md](../../docs/local-development.md) for the full setup (backend, database, etc.).
+Starts the Vite dev server at `http://localhost:5173`. See [docs/local-development.md](../docs/local-development.md) for the full setup (backend, database, etc.).
 
 ## build
 

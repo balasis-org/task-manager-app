@@ -10,12 +10,12 @@ how to run the full application stack locally. the backend runs as a Spring Boot
 - **Node.js 22** — for the frontend dev server
 - **Docker** — for MSSQL, Redis, Azurite (blob emulator), and MailHog (email)
 - **Azure CLI** — needed to upload default images to local Azurite
-- **Azure AD App Registration** — even locally, authentication goes through Azure AD. follow [iac/manual-setup/03-create-auth-app-registration.md](iac/manual-setup/03-create-auth-app-registration.md) to set up the auth app registration with `localhost` redirect URIs if this hasn't been done already
+- **Azure AD App Registration** — even locally, authentication goes through Azure AD. follow [infrastructure/manual-setup/02-create-auth-app-registration.md](../infrastructure/manual-setup/02-create-auth-app-registration.md) to set up the auth app registration with `localhost` redirect URIs if this hasn't been done already
 
 
 ## 1. start infrastructure containers
 
-all compose files live in `task-manager-backend/`. run these from that directory:
+all compose files live in `backend/`. run these from that directory:
 
 ```bash
 # SQL Server (port 1433)
@@ -60,7 +60,7 @@ docker exec -it taskmanager_mssql_flyway /opt/mssql-tools18/bin/sqlcmd \
 ## 3. configure backend environment
 
 ```bash
-cd task-manager-backend
+cd backend
 cp .env-example .env
 ```
 
@@ -84,7 +84,7 @@ the backend depends on the contracts module, so build that first:
 
 ```bash
 # from the repo root
-mvn -f task-manager-contracts/pom.xml clean install
+mvn -f contracts/pom.xml clean install
 ```
 
 then run the backend.
@@ -96,13 +96,13 @@ from the command line:
 
 ```bash
 # build all backend modules
-mvn -f task-manager-backend/pom.xml clean package -DskipTests
+mvn -f backend/pom.xml clean package -DskipTests
 
 # run the jar
-java -jar task-manager-backend/task-manager-context/task-manager-context-web/task-manager-context-web-domain/target/TaskManager.jar
+java -jar backend/context/web/domain/target/TaskManager.jar
 ```
 
-when running from CLI, the `.env` variables need to be exported in your shell first. on Linux/macOS: `export $(cat task-manager-backend/.env | grep -v '^#' | xargs)`. on Windows, using an IDE that loads `.env` files automatically is simpler.
+when running from CLI, the `.env` variables need to be exported in your shell first. on Linux/macOS: `export $(cat backend/.env | grep -v '^#' | xargs)`. on Windows, using an IDE that loads `.env` files automatically is simpler.
 
 the backend starts on **port 8080**.
 
@@ -110,7 +110,7 @@ the backend starts on **port 8080**.
 ## 5. run the frontend
 
 ```bash
-cd task-manager-frontend/task-manager-app-frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -135,7 +135,7 @@ run this from the repo root. the `default-images/` folder is gitignored so you n
 
 ## compose files reference
 
-all compose files live in `task-manager-backend/` and share the project name `task-manager-app`:
+all compose files live in `backend/` and share the project name `task-manager-app`:
 
 - **backend-db-compose.yml** — MSSQL 2022 on port 1433 (dev-mssql profile)
 - **backend-flyway-db-compose.yml** — MSSQL 2022 on port 1434 (dev-flyway-mssql profile)
@@ -152,7 +152,7 @@ all compose files live in `task-manager-backend/` and share the project name `ta
 - `dev-flyway-mssql` — Flyway-managed schema on a separate MSSQL instance (port 1434)
 - `DataLoader` — seeds sample users, groups, and tasks on startup
 Note: any other profile are for prod or require additional azure set up.
-the maintenance module has its own `.env-example` in `task-manager-maintenance/task-manager-maintenance-blobcleaner/`.
+the maintenance module has its own `.env-example` in `maintenance/blobcleaner/`.
 
 
 ## troubleshooting

@@ -6,8 +6,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'task-manager-backend/**'
-      - 'task-manager-contracts/**'
+      - 'backend/**'
+      - 'contracts/**'
   workflow_dispatch:
 
 jobs:
@@ -26,11 +26,11 @@ jobs:
 
       - name: Build contract dependency first
         run: |
-          mvn -f task-manager-contracts/pom.xml clean install
+          mvn -f contracts/pom.xml clean install
 
       - name: Build and run tests with H2
         run: |
-          mvn -f task-manager-backend/pom.xml clean test \
+          mvn -f backend/pom.xml clean test \
             -Dspring.profiles.active="dev-h2"
 
   deploy_backend:
@@ -62,11 +62,11 @@ jobs:
 
       - name: Build contract dependency first
         run: |
-          mvn -f task-manager-contracts/pom.xml clean install
+          mvn -f contracts/pom.xml clean install
 
       - name: Create package
         run: |
-          mvn -f task-manager-backend/pom.xml clean package -DskipTests
+          mvn -f backend/pom.xml clean package -DskipTests
 
       - name: Set image tag
         run: echo "IMAGE_TAG=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
@@ -80,7 +80,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/taskmanager-backend:$IMAGE_TAG task-manager-backend
+          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/taskmanager-backend:$IMAGE_TAG backend
 
       - name: Push Docker image
         run: |
