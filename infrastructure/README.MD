@@ -70,9 +70,9 @@ follow the first two guides in `manual-setup/`, in order:
 
 each guide offers both **Azure Portal** and **Azure CLI** options — pick whichever you prefer and follow it end to end.
 
-after completing these you'll have:
-- a CI/CD service principal with `clientId`, `clientSecret`, `tenantId` (for deploying infrastructure)
-- a separate Auth App with its own `clientId`, `clientSecret`, `tenantId` (for user authentication)
+after completing these you'll have two separate Entra ID App Registrations:
+- **CI/CD Service Principal** (guide 01) — with `clientId`, `clientSecret`, `tenantId`. used by GitHub Actions to authenticate with Azure and deploy resources. its credentials go into GitHub environment secrets as `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`
+- **Auth App Registration** (guide 02) — with its own `clientId`, `clientSecret`, `tenantId`. used by the application for end-user sign-in via Easy Auth. its `clientId` and `tenantId` go into the `.bicepparam` files (hardcoded for production, environment secrets for arena). its `clientSecret` is stored in Key Vault in phase 4
 
 > **Note:** The Key Vault doesn't exist yet — auth secrets are stored in Key Vault in phase 4,
 > after Bicep creates the resources.
@@ -91,14 +91,36 @@ create three environments: `production` (live deployment), `arena-stress` (load 
 
 go to **Settings** → **Secrets and variables** → **Actions** → **Environment secrets**.
 
-for each environment, add these four secrets:
+there are two categories of secrets. the first four authenticate the **CI/CD Service Principal** (from [guide 01](manual-setup/01-create-cicd-service-principal.md)) — Azure CLI uses these to log in and run deployments. the remaining secrets are **deployment parameters** consumed by the Bicep template at deploy time.
 
-- `AZURE_CLIENT_ID` — the CI/CD service principal's Application (client) ID, from [guide 01](manual-setup/01-create-cicd-service-principal.md)
-- `AZURE_CLIENT_SECRET` — the client secret value, from [guide 01](manual-setup/01-create-cicd-service-principal.md)
-- `AZURE_TENANT_ID` — your Azure AD tenant ID (Azure Portal → Entra ID → Overview)
-- `AZURE_SUBSCRIPTION_ID` — your subscription ID (Azure Portal → Subscriptions)
+**CI/CD authentication (all three environments):**
+
+| Secret | Source | Description |
+|--------|--------|-------------|
+| `AZURE_CLIENT_ID` | guide 01 | CI/CD SP Application (client) ID |
+| `AZURE_CLIENT_SECRET` | guide 01 | CI/CD SP client secret value |
+| `AZURE_TENANT_ID` | Azure Portal → Entra ID → Overview | Azure AD tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure Portal → Subscriptions | Azure subscription ID |
 
 all three environments can share the same SP credentials if the SP has subscription-level access. you only need separate SPs if you want environment isolation.
+
+**Deployment parameters (all three environments):**
+
+| Secret | Source | Description |
+|--------|--------|-------------|
+| `SQL_ADMIN_PASSWORD` | you choose | SQL Server admin password (consumed by every `.bicepparam` file via `readEnvironmentVariable()`) |
+
+**Deployment parameters (arena environments only):**
+
+| Secret | Source | Description |
+|--------|--------|-------------|
+| `ARENA_AUTH_CLIENT_ID` | guide 02 | **Auth App** Registration client ID — the app from [guide 02](manual-setup/02-create-auth-app-registration.md), **not** the CI/CD SP from guide 01 |
+| `ARENA_AUTH_TENANT_ID` | guide 02 | **Auth App** Registration tenant ID |
+
+> **Why arena externalises Auth App IDs but production hardcodes them:**
+> Client IDs and tenant IDs are public identifiers (they appear in redirect URIs and OpenID discovery documents) — they are not secrets.
+> Production hardcodes them directly in `main.bicepparam` because there is only one production Auth App and the values never change.
+> Arena uses `readEnvironmentVariable()` because arena deployments may use a **different** Auth App Registration than production (e.g. with different redirect URIs or a separate tenant), so the values are parameterised.
 
 #### step 3 — add GitHub variables (manual, per environment)
 
@@ -135,14 +157,25 @@ cp infrastructure/bicep/main-arena.bicepparam.example    infrastructure/bicep/ma
 cp infrastructure/bicep/main-arena.bicepparam.example    infrastructure/bicep/main-arena-security.bicepparam
 ```
 
-Edit each `.bicepparam` file with your values. These files contain no secrets — secrets
-are read from environment variables at deploy time via `readEnvironmentVariable()`.
+edit each `.bicepparam` file. the files are safe to commit — all actual secrets are read at deploy time via `readEnvironmentVariable()`, never written into the file.
 
-> **Important:** For arena environments, the `.bicepparam` files reference environment
-> variables like `SQL_ADMIN_PASSWORD`, `ARENA_AUTH_CLIENT_ID`, and `ARENA_AUTH_TENANT_ID`.
-> When deploying locally (manual fallback), set these as OS environment variables first.
-> When deploying via GitHub Actions, add them as **environment secrets** in the
-> corresponding GitHub environment.
+understanding what is in each file:
+
+| Value | Production | Arena (stress / security) | Sensitivity |
+|-------|-----------|--------------------------|-------------|
+| `location`, `projectName`, `tags` | hardcoded | hardcoded | not sensitive |
+| `sqlAdminLogin`, `sqlDatabaseName` | hardcoded | hardcoded | not sensitive (login name, not password) |
+| `sqlAdminPassword` | `readEnvironmentVariable('SQL_ADMIN_PASSWORD')` | `readEnvironmentVariable('SQL_ADMIN_PASSWORD')` | **secret** — set as GitHub environment secret (step 2) |
+| `authAppClientId` | hardcoded (from [guide 02](manual-setup/02-create-auth-app-registration.md)) | `readEnvironmentVariable('ARENA_AUTH_CLIENT_ID')` | not sensitive — public identifier |
+| `authAppTenantId` | hardcoded (from [guide 02](manual-setup/02-create-auth-app-registration.md)) | `readEnvironmentVariable('ARENA_AUTH_TENANT_ID')` | not sensitive — public identifier |
+| Spring profile overrides, WAF params | — | hardcoded | not sensitive |
+
+> **Two different App Registrations — do not mix them up.**
+> The `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` secrets (step 2) belong to the **CI/CD Service Principal** from [guide 01](manual-setup/01-create-cicd-service-principal.md) — they authenticate the deployment pipeline.
+> The `authAppClientId` / `authAppTenantId` values in the `.bicepparam` files belong to the **Auth App Registration** from [guide 02](manual-setup/02-create-auth-app-registration.md) — they configure Easy Auth so end users can sign in.
+> These are two separate Entra ID App Registrations with different purposes and different credentials.
+
+> **Manual fallback note:** when deploying from your machine instead of GitHub Actions, the `readEnvironmentVariable()` calls read from OS environment variables. set `SQL_ADMIN_PASSWORD` (all environments) and `ARENA_AUTH_CLIENT_ID` + `ARENA_AUTH_TENANT_ID` (arena only) before running the PowerShell script.
 
 ---
 
@@ -193,7 +226,7 @@ after Bicep creates the Azure resources, complete the remaining configuration:
 
 **[03-post-deployment-setup.md](manual-setup/03-post-deployment-setup.md)** covers three steps:
 
-1. **Seed Key Vault secrets** — add the 7 manual secrets (auth client ID/secret/tenant, redirect URI, admin email, JWT secret, ACS sender address). Bicep auto-populates the other 10
+1. **Seed Key Vault secrets** — add the 7 manual secrets (Auth App client ID / client secret / tenant ID from [guide 02](manual-setup/02-create-auth-app-registration.md), redirect URI, admin email, JWT secret, ACS sender address). Bicep auto-populates the other 10
 2. **Add Front Door redirect URI** — add the FD endpoint hostname (`https://<fd-endpoint>.azurefd.net/auth/callback`) to the Auth App Registration's redirect URIs
 3. **Upload default images** — upload the `default-images/` folder to Blob Storage
 
