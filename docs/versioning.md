@@ -13,6 +13,38 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
 
 ## Versions
 
+### v0.8.0 — Repository restructure and developer-experience refinements
+- Date: 2026-03-13
+- Tag object: *(to be filled after tagging)*
+- Tag target (commit): *(to be filled after tagging)*
+- Highlights:
+
+    **Repository restructure (504 files affected):**
+    - Root-level folder renames — removed redundant `task-manager-` prefix from all top-level directories:
+        - `task-manager-backend/` → `backend/`
+        - `task-manager-contracts/` → `contracts/`
+        - `task-manager-maintenance/` → `maintenance/`
+        - `task-manager-k6scripts/` → `k6/`
+    - Frontend flattened from double-nested `task-manager-frontend/task-manager-app-frontend/` → `frontend/`.
+    - IaC promoted from `docs/iac/` → `infrastructure/` (top-level visibility).
+    - Maintenance sub-module simplified: `task-manager-maintenance-blobcleaner/` → `blobcleaner/`.
+    - Backend internal modules (11 folders) renamed — removed `task-manager-` prefix stutter:
+        - e.g. `task-manager-engine-core/` → `engine/core/`, `task-manager-context-web/` → `context/web/`.
+    - Maven `artifactId`s intentionally unchanged (compile-time identifiers, no runtime impact).
+    - All path references updated: 5 `pom.xml` module tags, Dockerfile, 4 CI/CD workflows, `dependabot.yml`, `CODEOWNERS`, `README.md`, `CONTRIBUTING.md`, `local-development.md`, infrastructure and frontend READMEs. Build verified for all modules.
+
+    **Backend fixes:**
+    - Eliminated `@Transactional` on admin controllers that masked N+1 / `LazyInitializationException` issues — pagination queries now use explicit fetch joins.
+
+    **Documentation & repository standards:**
+    - OCI labels added to backend Dockerfile (`org.opencontainers.image.*`).
+    - k6 environment configuration documented; `.gitignore` patterns updated.
+    - CODEOWNERS format clarified; maintenance module description added.
+    - Repository README prerequisites table refined.
+    - Auth app registration guide: single-tenant vs multi-tenant rationale clarified.
+    - Markdown guides restructured for IaC setup documentation.
+    - Contracts POM module description added.
+
 ### v0.1.0 — Initial backend baseline
 - Date: 2025-10-27
 - Tag target (commit): `151288ed375cc4c71f6e2239ddec92ede1b16dac`
@@ -99,8 +131,8 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
 
 ### v0.7.0 — IaC, arena environments, security testing, cost engineering and repository standards
 - Date: 2026-03-11
-- Tag object: `<to be filled after tagging>`
-- Tag target (commit): `<to be filled after tagging>`
+- Tag object: `6d6bc09e4a8864c26e7f30af55331f2acbab9dec`
+- Tag target (commit): `a9aa760e79c767de10401753110ad0ff5968bbad`
 - Highlights:
 
     **Infrastructure-as-Code:**
@@ -109,7 +141,7 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - `.bicepparam` files for production, arena-stress, and arena-security environments.
     - PowerShell fallback scripts (`ps1-az-scripts/`) with `.env`-based SP authentication.
     - Three manual-setup guides: CI/CD service principal, subscription RBAC roles, OAuth Auth App Registration (with Easy Auth + FD origin auth documentation).
-    - IaC deployment guide (`docs/iac/README.MD`) covering GitHub Environments setup, Bicep parameter files, and manual fallback.
+    - IaC deployment guide (`infrastructure/README.MD`) covering GitHub Environments setup, Bicep parameter files, and manual fallback.
 
     **Arena environments & stress infrastructure:**
     - `prod-arena-stress` profile: disables WAF rate limits, overrides plan budgets to unlimited, strips file-download bodies (zero egress cost), tunes HikariCP for throughput.
@@ -150,7 +182,7 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
     - `docs/local-development.md` — full local setup guide with Docker Compose, profiles, troubleshooting.
     - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `.editorconfig`, `.github/CODEOWNERS`, `.github/dependabot.yml`.
     - Issue templates (bug report, feature request), PR template, `.nvmrc`, frontend `.env.example`.
-    - `task-manager-k6scripts/README.md` — test suite documentation.
+    - `k6/README.md` — test suite documentation.
 
     **Maintenance:**
     - `MaintenanceRunner` expanded to 7 cleanup steps: blob orphan removal, asset purging, user anonymisation, DB vacuuming, budget reconciliation, counter resets, ACR image pruning.

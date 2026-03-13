@@ -6,33 +6,33 @@ can understand how to run, build, and deploy the project if needed.
 
 ## prerequisites
 
-| tool | version |
-|---|---|
-| Java | 21+ |
-| Maven | 3.9+ (`./mvnw` wrapper included) |
-| Node.js | 22+ (see `.nvmrc` in the frontend folder) |
-| Docker | recent — needed for local SQL Server, Redis, Azurite, MailHog |
+| Tool | Version | Notes |
+|---|---|---|
+| Java | 21+ | Required for backend and maintenance |
+| Maven | 3.9+ | `./mvnw` wrapper included |
+| Node.js | 22+ | See `.nvmrc` in the frontend folder |
+| Docker | recent | Needed for SQL Server, Redis, Azurite, MailHog |
 
 ## local setup
 
 1. clone the repo
 2. start infrastructure containers:
    ```
-   docker compose -f task-manager-backend/backend-db-compose.yml up -d
-   docker compose -f task-manager-backend/backend-redis-compose.yml up -d
-   docker compose -f task-manager-backend/backend-blob-compose.yml up -d
-   docker compose -f task-manager-backend/backend-email-compose.yml up -d
+   docker compose -f backend/backend-db-compose.yml up -d
+   docker compose -f backend/backend-redis-compose.yml up -d
+   docker compose -f backend/backend-blob-compose.yml up -d
+   docker compose -f backend/backend-email-compose.yml up -d
    ```
-3. run the backend: `./mvnw -pl task-manager-backend spring-boot:run -Dspring-boot.run.profiles=local`
+3. run the backend: `./mvnw -pl backend spring-boot:run -Dspring-boot.run.profiles=local`
 4. run the frontend:
    ```
-   cd task-manager-frontend/task-manager-app-frontend
+   cd frontend
    cp .env.example .env
    npm install
    npm run dev
    ```
 
-see **[docs/iac/README.MD](docs/iac/README.MD)** for full production deployment instructions.
+see **[infrastructure/README.MD](infrastructure/README.MD)** for full production deployment instructions.
 
 ## commit convention
 
@@ -67,7 +67,7 @@ wrapping `feat` or `fix`. DO NOT use those brackets.
 
 1. fill out the **[PR template](.github/pull_request_template.md)**
 2. ensure the build passes (`./mvnw clean verify` for backend, `npm run build` for frontend)
-3. if your change touches security-sensitive code, run the relevant k6 attack scripts from `task-manager-k6scripts/`
+3. if your change touches security-sensitive code, run the relevant k6 attack scripts from `k6/`
 4. keep PRs focused — one concern per PR
 
 ## project structure
