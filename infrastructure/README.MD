@@ -72,7 +72,7 @@ each guide offers both **Azure Portal** and **Azure CLI** options — pick which
 
 after completing these you'll have two separate Entra ID App Registrations:
 - **CI/CD Service Principal** (guide 01) — with `clientId`, `clientSecret`, `tenantId`. used by GitHub Actions to authenticate with Azure and deploy resources. its credentials go into GitHub environment secrets as `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`
-- **Auth App Registration** (guide 02) — with its own `clientId`, `clientSecret`, `tenantId`. used by the application for end-user sign-in via Easy Auth. its `clientId` and `tenantId` go into the `.bicepparam` files (hardcoded for production, environment secrets for arena). its `clientSecret` is stored in Key Vault in phase 4
+- **Auth App Registration** (guide 02) — with its own `clientId`, `clientSecret`, `tenantId`. serves two purposes on the **same** registration: (1) Easy Auth on the App Service validates Front Door's MI token against the `api://<clientId>` audience (origin auth — not user login), and (2) the Spring Boot backend reads the same registration's client ID/secret from Key Vault to run the OAuth 2.0 Authorization Code flow that logs users in. its `clientId` and `tenantId` go into the `.bicepparam` files (hardcoded for production, environment secrets for arena). its `clientSecret` is stored in Key Vault in phase 4
 
 > **Note:** The Key Vault doesn't exist yet — auth secrets are stored in Key Vault in phase 4,
 > after Bicep creates the resources.
@@ -172,7 +172,7 @@ understanding what is in each file:
 
 > **Two different App Registrations — do not mix them up.**
 > The `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` secrets (step 2) belong to the **CI/CD Service Principal** from [guide 01](manual-setup/01-create-cicd-service-principal.md) — they authenticate the deployment pipeline.
-> The `authAppClientId` / `authAppTenantId` values in the `.bicepparam` files belong to the **Auth App Registration** from [guide 02](manual-setup/02-create-auth-app-registration.md) — they configure Easy Auth & OAuth2 so end users can sign in.
+> The `authAppClientId` / `authAppTenantId` values in the `.bicepparam` files belong to the **Auth App Registration** from [guide 02](manual-setup/02-create-auth-app-registration.md) — Bicep uses them to configure Easy Auth (validating Front Door's MI token). User sign-in uses the same registration but is handled by Spring Boot's OAuth 2.0 code (not Easy Auth) — those credentials come from Key Vault at runtime.
 > These are two separate Entra ID App Registrations with different purposes and different credentials.
 
 > **Manual fallback note:** when deploying from your machine instead of GitHub Actions, the `readEnvironmentVariable()` calls read from OS environment variables. set `SQL_ADMIN_PASSWORD` (all environments) and `ARENA_AUTH_CLIENT_ID` + `ARENA_AUTH_TENANT_ID` (arena only) before running the PowerShell script.
