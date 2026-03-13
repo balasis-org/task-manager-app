@@ -15,8 +15,8 @@ Earlier versions focused mostly on backend work, but from v0.5 onwards the scope
 
 ### v0.8.0 — Repository restructure and developer-experience refinements
 - Date: 2026-03-13
-- Tag object: *(to be filled after tagging)*
-- Tag target (commit): *(to be filled after tagging)*
+- Tag object: `306c6e717d9d28062252210b1df687d61bedf50e` (annotated)
+- Tag target (commit): `e3a7b9ef4f8c754d73ca77bf5707e3b14bd06547`
 - Highlights:
 
     **Repository restructure (504 files affected):**
