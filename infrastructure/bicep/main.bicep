@@ -115,10 +115,22 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
   tags: tags
 }
 
-// 2. Log Analytics Workspace
+// 2. Log Analytics Workspaces (one per environment — keeps telemetry isolated)
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: '${projectName}-logs'
+resource logAnalyticsProd 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${projectName}-logs-prod'
+  location: location
+  tags: tags
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
+resource logAnalyticsDev 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${projectName}-logs-dev'
   location: location
   tags: tags
   properties: {
@@ -138,7 +150,7 @@ resource appInsightsProd 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
+    WorkspaceResourceId: logAnalyticsProd.id
   }
 }
 
@@ -149,7 +161,7 @@ resource appInsightsDev 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
+    WorkspaceResourceId: logAnalyticsDev.id
   }
 }
 
@@ -387,12 +399,35 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
 
 // 10. Azure Communication Services (email) — Global
 
+resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
+  name: '${projectName}-email'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+  }
+}
+
+resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+  parent: emailService
+  name: 'AzureManagedDomain'
+  location: 'global'
+  tags: tags
+  properties: {
+    domainManagement: 'AzureManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
+
 resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
   name: '${projectName}-acs'
   location: 'global'
   tags: tags
   properties: {
     dataLocation: 'Europe'
+    linkedDomains: [
+      emailDomain.id
+    ]
   }
 }
 
@@ -571,8 +606,8 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
+        customerId: logAnalyticsProd.properties.customerId
+        sharedKey: logAnalyticsProd.listKeys().primarySharedKey
       }
     }
   }

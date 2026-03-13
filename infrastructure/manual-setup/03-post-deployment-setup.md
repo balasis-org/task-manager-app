@@ -53,10 +53,10 @@ az keyvault secret set --vault-name $KV_NAME \
   --name "TASKMANAGER-EMAIL-SENDER-ADDRESS" --value "<acs-sender-email>"
 ```
 
-> **ACS sender address:** After Bicep creates the ACS instance, go to **Azure Communication
-> Services** → your resource → **Email** → **Provisioned domains**. The sender address is
-> listed there (e.g. `DoNotReply@<domain>`). If you haven't provisioned an email domain yet,
-> do so first under **Provision domains**, then use the sender address shown.
+> **ACS sender address:** Bicep provisions an Azure-managed email domain automatically.
+> Go to **Azure Communication Services** → your resource → **Email** → **Provisioned domains**
+> → **AzureManagedDomain**. The sender address is listed under **MailFrom addresses**
+> (e.g. `DoNotReply@<guid>.azurecomm.net`). Copy that value.
 
 > **`MICROSOFT_PROVIDER_AUTHENTICATION_SECRET`:** The App Service has an app setting that
 > references `TASKMANAGER-AUTH-CLIENT-SECRET` via a Key Vault reference
