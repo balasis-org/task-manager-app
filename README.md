@@ -80,7 +80,7 @@ task-manager-maintenance/       scheduled cleanup jobs (container app jobs)
 task-manager-k6scripts/         k6 attack simulations + stress tests
 .github/workflows/              4 workflows: infra, backend, frontend, maintenance
 docs/iac/                       Bicep templates, param files, fallback PS scripts
-docs/iac/manual-setup/          one-time Azure portal steps
+docs/iac/manual-setup/          one-time Azure setup + post-deployment
 ```
 
 
@@ -190,7 +190,7 @@ see **[local development guide](docs/local-development.md)** for full setup inst
 
 - **[Local development](docs/local-development.md)** — run the full stack locally with Docker
 - **[Production deployment](docs/iac/README.MD)** — Bicep provisioning, GitHub Environments setup, CI/CD configuration
-- **[Azure manual setup](docs/iac/manual-setup/)** — service principal, RBAC roles, OAuth 2.0 app registration
+- **[Azure manual setup](docs/iac/manual-setup/)** — service principal, OAuth 2.0 app registration, post-deployment Key Vault setup
 - **[Versioning](docs/versioning.md)** — milestone changelog from v0.1.0 through current release
 
 
