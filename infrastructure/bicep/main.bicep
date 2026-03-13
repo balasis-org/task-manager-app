@@ -438,17 +438,6 @@ resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
   }
 }
 
-// Blob Data Reader — Front Door reads blobs
-resource fdBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storageAccount
-  name: guid(storageAccount.id, frontDoor.id, 'StorageBlobDataReader')
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
-    principalId: frontDoor.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // 12. App Service Plan (B1 Linux, 2 instances)
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -806,7 +795,10 @@ resource frontDoor 'Microsoft.Cdn/profiles@2024-02-01' = {
     name: 'Standard_AzureFrontDoor'
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
   }
   properties: {
     originResponseTimeoutSeconds: 60
@@ -854,7 +846,10 @@ resource fdOriginGroupApi 'Microsoft.Cdn/profiles/originGroups@2025-09-01-previe
       probeRequestType: 'HEAD'
     }
     authentication: {
-      type: 'SystemAssignedIdentity'
+      type: 'UserAssignedIdentity'
+      userAssignedIdentity: {
+        id: managedIdentity.id
+      }
       scope: 'api://${authAppClientId}/.default'
     }
   }
@@ -884,7 +879,10 @@ resource fdOriginGroupBlob 'Microsoft.Cdn/profiles/originGroups@2025-09-01-previ
       successfulSamplesRequired: 3
     }
     authentication: {
-      type: 'SystemAssignedIdentity'
+      type: 'UserAssignedIdentity'
+      userAssignedIdentity: {
+        id: managedIdentity.id
+      }
       scope: 'https://storage.azure.com/.default'
     }
   }
