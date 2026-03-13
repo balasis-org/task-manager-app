@@ -101,7 +101,7 @@
 			<dependency>
 				<groupId>com.azure</groupId>
 				<artifactId>azure-ai-contentsafety</artifactId>
-				<version>1.0.16</version>
+				<version>1.0.17</version>
 			</dependency>
 
 			<dependency>
