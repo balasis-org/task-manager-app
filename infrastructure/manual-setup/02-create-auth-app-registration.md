@@ -50,6 +50,8 @@ for user authentication. This App Registration:
    - `http://localhost:5173/auth/callback` (local frontend dev server)
    - `http://localhost:8081/auth/callback` (local backend)
 3. The Front Door endpoint URI (`https://<fd-endpoint>.azurefd.net/auth/callback`) is added after the first Bicep deployment — see [guide 03](03-post-deployment-setup.md)
+# Note — in case of arena set up you will need to come back to this app registration in order to add the FD url+callback URI
+
 
 ### Step 4 — Configure Authentication Settings
 

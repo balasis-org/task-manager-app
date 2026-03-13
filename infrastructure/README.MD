@@ -172,7 +172,7 @@ understanding what is in each file:
 
 > **Two different App Registrations — do not mix them up.**
 > The `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` secrets (step 2) belong to the **CI/CD Service Principal** from [guide 01](manual-setup/01-create-cicd-service-principal.md) — they authenticate the deployment pipeline.
-> The `authAppClientId` / `authAppTenantId` values in the `.bicepparam` files belong to the **Auth App Registration** from [guide 02](manual-setup/02-create-auth-app-registration.md) — they configure Easy Auth so end users can sign in.
+> The `authAppClientId` / `authAppTenantId` values in the `.bicepparam` files belong to the **Auth App Registration** from [guide 02](manual-setup/02-create-auth-app-registration.md) — they configure Easy Auth & OAuth2 so end users can sign in.
 > These are two separate Entra ID App Registrations with different purposes and different credentials.
 
 > **Manual fallback note:** when deploying from your machine instead of GitHub Actions, the `readEnvironmentVariable()` calls read from OS environment variables. set `SQL_ADMIN_PASSWORD` (all environments) and `ARENA_AUTH_CLIENT_ID` + `ARENA_AUTH_TENANT_ID` (arena only) before running the PowerShell script.
