@@ -49,7 +49,7 @@ jobs:
   deploy_maintenance:
     runs-on: ubuntu-latest
     needs: test_maintenance
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     environment: ${{ inputs.environment || 'production' }}
 
     steps:

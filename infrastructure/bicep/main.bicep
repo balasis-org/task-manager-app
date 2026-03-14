@@ -352,6 +352,14 @@ resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'TASKMANAGER-ACS-ADMIN-ENDPOINT'
+  properties: {
+    value: 'https://${acsAdmin.properties.hostName}'
+  }
+}
+
 resource kvSecretAppInsightsProd 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'TASKMANAGER-APP-INSIGHT-CONN-STR-PROD'
@@ -431,6 +439,42 @@ resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
   }
 }
 
+// 10b. Azure Communication Services — Admin Alerts (separate quota pool)
+// Isolates critical admin emails (CriticalExceptionAlerter, MaintenanceStalenessChecker)
+// from user-facing email traffic so platform rate limits (100/hour) never block alerts.
+
+resource emailServiceAdmin 'Microsoft.Communication/emailServices@2023-04-01' = {
+  name: '${projectName}-email-admin'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+  }
+}
+
+resource emailDomainAdmin 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+  parent: emailServiceAdmin
+  name: 'AzureManagedDomain'
+  location: 'global'
+  tags: tags
+  properties: {
+    domainManagement: 'AzureManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
+
+resource acsAdmin 'Microsoft.Communication/communicationServices@2023-04-01' = {
+  name: '${projectName}-acs-admin'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+    linkedDomains: [
+      emailDomainAdmin.id
+    ]
+  }
+}
+
 // 11. RBAC Role Assignments
 
 // KV Secrets User — lets the app read secrets
@@ -470,6 +514,17 @@ resource csRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: acs
   name: guid(acs.id, managedIdentity.id, 'Contributor')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ACS Admin Contributor — send admin alert emails via managed identity
+resource acsAdminRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acsAdmin
+  name: guid(acsAdmin.id, managedIdentity.id, 'Contributor')
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
     principalId: managedIdentity.properties.principalId
