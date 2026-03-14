@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -42,7 +43,7 @@ public class MaintenanceStalenessChecker {
 
     public MaintenanceStalenessChecker(
             DataSource dataSource,
-            @Autowired(required = false) EmailClient emailClient,
+            @Autowired(required = false) @Qualifier("adminEmailClient") EmailClient emailClient,
             @Value("${admin.email:}") String adminEmail) {
         this.dataSource = dataSource;
         this.emailClient = emailClient;

@@ -27,6 +27,12 @@ build/
 summary.json
 
 # =========================
+# Ownership proof (personal backup, not for repo)
+# =========================
+proof-of-ownership/
+generate-ownership-proof.ps1
+
+# =========================
 # Misc
 # =========================
 *.old

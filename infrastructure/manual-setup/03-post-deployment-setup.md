@@ -8,7 +8,7 @@
 
 ## Step 1 — Seed Key Vault Secrets
 
-The Key Vault has 17 secrets total: **10 auto-populated by Bicep** (DB connection string, blob keys, Redis, Content Safety, ACS connection string, App Insights) and **7 that you add manually**:
+The Key Vault has 19 secrets total: **11 auto-populated by Bicep** (DB connection string, blob keys, Redis, Content Safety, ACS endpoints x2, App Insights) and **8 that you add manually**:
 
 ### Option A: Azure Portal
 
@@ -22,7 +22,8 @@ Go to your Key Vault → **Secrets** → **+ Generate/Import** for each:
 | `TASKMANAGER-AUTH-REDIRECT-URI` | `https://www.myteamtasks.net/auth/callback` | Your production redirect URI |
 | `ADMIN-EMAIL` | Admin user's email address | This user gets auto-promoted to admin on first sign-in |
 | `TASKMANAGER-JWT-SECRET` | Random 256-bit base64 key | Generate: `openssl rand -base64 32` |
-| `TASKMANAGER-EMAIL-SENDER-ADDRESS` | Verified ACS sender email | See note below |
+| `TASKMANAGER-EMAIL-SENDER-ADDRESS` | Verified ACS sender email (user-facing) | See note below |
+| `TASKMANAGER-EMAIL-ADMIN-SENDER-ADDRESS` | Verified ACS sender email (admin alerts) | See note below |
 
 ### Option B: Azure CLI
 
@@ -51,12 +52,15 @@ az keyvault secret set --vault-name $KV_NAME \
 
 az keyvault secret set --vault-name $KV_NAME \
   --name "TASKMANAGER-EMAIL-SENDER-ADDRESS" --value "<acs-sender-email>"
+
+az keyvault secret set --vault-name $KV_NAME \
+  --name "TASKMANAGER-EMAIL-ADMIN-SENDER-ADDRESS" --value "<admin-acs-sender-email>"
 ```
 
-> **ACS sender address:** Bicep provisions an Azure-managed email domain automatically.
-> Go to **Azure Communication Services** → your resource → **Email** → **Provisioned domains**
-> → **AzureManagedDomain**. The sender address is listed under **MailFrom addresses**
-> (e.g. `DoNotReply@<guid>.azurecomm.net`). Copy that value.
+> **ACS sender addresses:** Bicep provisions **two** ACS instances — one for user-facing emails and one for admin alerts — each with its own Azure-managed email domain.
+> For each ACS resource, go to **Azure Communication Services** → the resource → **Email** → **Provisioned domains** → **AzureManagedDomain**. The sender address is listed under **MailFrom addresses** (e.g. `DoNotReply@<guid>.azurecomm.net`). Copy each value into the corresponding Key Vault secret:
+> - User ACS (`<projectName>-acs`) → `TASKMANAGER-EMAIL-SENDER-ADDRESS`
+> - Admin ACS (`<projectName>-acs-admin`) → `TASKMANAGER-EMAIL-ADMIN-SENDER-ADDRESS`
 
 > **`MICROSOFT_PROVIDER_AUTHENTICATION_SECRET`:** The App Service has an app setting that
 > references `TASKMANAGER-AUTH-CLIENT-SECRET` via a Key Vault reference
@@ -65,7 +69,71 @@ az keyvault secret set --vault-name $KV_NAME \
 
 ---
 
-## Step 2 — Add Front Door Redirect URI
+## Step 2 — DNS Configuration (GoDaddy)
+
+Two DNS records connect your custom domain to Azure resources.
+
+### 2a — Front Door CNAME
+
+Bicep creates the custom domain resource on Front Door when `customDomainHost` is set (production only). You must add the DNS record in GoDaddy to point to it:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| CNAME | www | `<fd-endpoint>.azurefd.net` | 1 Hour |
+
+Front Door will auto-provision a managed TLS certificate once the CNAME resolves. This can take 10-15 minutes.
+
+Also add the **validation TXT** record that Azure shows in the Front Door custom domain setup:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| TXT | _dnsauth.www | `<validation-token-from-azure>` | 1 Hour |
+
+### 2b — ACS Email Custom Domain (optional — branded sender address)
+
+By default, ACS sends from an Azure-managed domain (`DoNotReply@<guid>.azurecomm.net`). To send from a custom subdomain (e.g. `DoNotReply@mail.myteamtasks.net`):
+
+1. **Azure Portal → Communication Services → your ACS → Email → Domains → Add custom domain**
+2. Enter: `mail.myteamtasks.net`
+3. Azure gives you a **TXT verification record** — add it in GoDaddy:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| TXT | mail | `ms-domain-verification=<value-from-azure>` | 1 Hour |
+
+4. Wait 15-20 minutes for verification to complete (check the domain status in Azure Portal)
+5. After verification, Azure shows **SPF** and **DKIM** records. Add these in GoDaddy:
+
+| Type | Name | Value | Purpose |
+|------|------|-------|--------|
+| TXT | mail | `v=spf1 include:spf.protection.outlook.com -all` | SPF — authorises Azure to send on behalf of your domain |
+| CNAME | selector1-azurecomm-prod-net._domainkey.mail | `<value-from-azure>` | DKIM — cryptographic email signing key 1 |
+| CNAME | selector2-azurecomm-prod-net._domainkey.mail | `<value-from-azure>` | DKIM — cryptographic email signing key 2 |
+
+6. Wait for SPF and DKIM to show as **Verified** in the Azure Portal
+7. Add a **MailFrom address** (e.g. `DoNotReply@mail.myteamtasks.net`)
+8. Link this domain to your ACS resource (Domains → your domain → Link to Communication Service)
+9. Update the Key Vault secret `TASKMANAGER-EMAIL-SENDER-ADDRESS` with the new sender address
+
+### 2c — Admin ACS Email Custom Domain (optional — branded admin alerts)
+
+Bicep provisions a second ACS instance (`<projectName>-acs-admin`) dedicated to critical admin alerts. By default it uses an Azure-managed domain. To brand admin emails (e.g. `DoNotReply@alerts.myteamtasks.net`):
+
+1. Repeat the same steps as 2b above, but for the **admin** ACS resource
+2. Use a different subdomain: `alerts.myteamtasks.net`
+3. Add the TXT, SPF, and DKIM records in GoDaddy (same process, different subdomain name)
+4. After verification, add a MailFrom address (e.g. `DoNotReply@alerts.myteamtasks.net`)
+5. Link the domain to the admin ACS resource
+6. Update the Key Vault secret `TASKMANAGER-EMAIL-ADMIN-SENDER-ADDRESS` with the admin sender address
+
+> **Note:** Each custom email domain can only be linked to ONE ACS resource. The user-facing ACS uses `mail.myteamtasks.net` and the admin ACS uses `alerts.myteamtasks.net`. Arena environments should use the default Azure-managed domains.
+
+> **SPF** (Sender Policy Framework) tells receiving mail servers "Azure is authorised to send email for this domain." Without it, emails may land in spam.
+> **DKIM** (DomainKeys Identified Mail) adds a cryptographic signature to outgoing emails, proving they haven't been tampered with in transit.
+
+---
+
+## Step 3 — Add Front Door Redirect URI
 
 The Front Door endpoint hostname is output by the Bicep deployment (output name: `frontDoorEndpointHostName`). You can also find it in the Azure Portal under **Front Door and CDN profiles** → your profile → **Endpoints**.
 
@@ -92,7 +160,7 @@ az ad app update --id <AUTH_APP_ID> \
 
 ---
 
-## Step 3 — Upload Default Images
+## Step 4 — Upload Default Images
 
 The application uses default images stored in Azure Blob Storage. Upload them once:
 
@@ -125,7 +193,10 @@ az storage blob upload-batch \
 
 After completing this guide, verify:
 
-- [ ] Key Vault shows 17 secrets (10 auto + 7 manual)
+- [ ] Key Vault shows 19 secrets (11 auto + 8 manual)
+- [ ] Front Door CNAME resolves (`nslookup www.myteamtasks.net` → azurefd.net)
+- [ ] Front Door managed TLS certificate is provisioned (check Azure Portal)
+- [ ] ACS email custom domain shows as Verified (if configured)
 - [ ] Auth App Registration has 4 redirect URIs (production domain, FD endpoint, localhost:5173, localhost:8081)
 - [ ] Default images container exists in Blob Storage with uploaded files
 - [ ] The backend App Service starts successfully (it reads Key Vault secrets at startup — if any are missing, the app fails to start with a clear error)

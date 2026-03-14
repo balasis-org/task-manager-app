@@ -36,6 +36,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimi
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final GroupMembershipRepository groupMembershipRepository;
     private final GroupEventRepository groupEventRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
+    @Qualifier("userEmailClient")
     private final ObjectProvider<EmailClient> emailClientProvider;
     private final BlobStorageService blobStorageService;
     private final AuthorizationService authorizationService;

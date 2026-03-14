@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
 import io.github.balasis.taskmanager.engine.infrastructure.email.service.SmtpEmailClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -15,7 +16,18 @@ public class EmailDevConfig {
     private static final Logger log = LoggerFactory.getLogger(EmailDevConfig.class);
 
     @Bean
-    public EmailClient emailDevClient(){
+    @Qualifier("userEmailClient")
+    public EmailClient userEmailClient(){
+        return buildSmtpClient();
+    }
+
+    @Bean
+    @Qualifier("adminEmailClient")
+    public EmailClient adminEmailClient(){
+        return buildSmtpClient();
+    }
+
+    private SmtpEmailClient buildSmtpClient() {
         String host = System.getenv("SmtpEmailClientHost");
         String portStr = System.getenv("SmtpEmailClientPort");
 
