@@ -14,7 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"i", "n", "d", "diu", "iu", "oi", "on", "an", "aen", "aaen", "ca", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ue", "eq", "tp"})
+@JsonPropertyOrder({"i", "n", "d", "diu", "iu", "oi", "on", "an", "aen", "aaen", "ca", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ue", "eq", "uac", "acq", "tp"})
 public class GroupWithPreviewDto {
     @JsonProperty("i")   private Long id;
     @JsonProperty("n")   private String name;
@@ -44,8 +44,13 @@ public class GroupWithPreviewDto {
     @JsonProperty("mm")   private Integer maxMembers;
     @JsonProperty("ddce") private Boolean dailyDownloadCapEnabled;
     @JsonProperty("aaen") private Boolean allowAssigneeEmailNotification;
+    @JsonProperty("ds")   private Boolean downgradeShielded;
     @JsonProperty("ue")   private Integer usedEmailsMonth;
     @JsonProperty("eq")   private Integer emailQuotaPerMonth;
+
+    // analysis credit budget (TEAMS_PRO)
+    @JsonProperty("uac")  private Integer usedTaskAnalysisCreditsMonth;
+    @JsonProperty("acq")  private Integer taskAnalysisCreditsPerMonth;
 
     @JsonProperty("tp")  private Set<TaskPreviewDto> taskPreviews;
 }

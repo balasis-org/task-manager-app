@@ -33,4 +33,10 @@ public class TaskInboundResource extends BaseInboundResource {
     @Min(value = 0, message = "priority must be between 0 and 10")
     @Max(value = 10, message = "priority must be between 0 and 10")
     private Integer priority;
+
+    @Min(value = 1, message = "maxAssigneeFiles must be at least 1")
+    private Integer maxAssigneeFiles;
+
+    @Min(value = 1, message = "maxFileSizeBytes must be at least 1")
+    private Long maxFileSizeBytes;
 }

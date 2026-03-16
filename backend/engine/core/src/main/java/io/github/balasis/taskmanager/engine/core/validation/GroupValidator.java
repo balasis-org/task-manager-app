@@ -30,6 +30,8 @@ public interface GroupValidator extends BaseValidator<Group>{
 
     void validateReviewTask(Task task, Long groupId, Long userId);
 
+    void validateFileReview(Task task, Long groupId, Long userId);
+
     void validateCreateGroupInvitation(GroupInvitation groupInvitation);
 
     void validateInvitationRole(GroupInvitation groupInvitation);

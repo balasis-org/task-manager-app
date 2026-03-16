@@ -14,7 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "aaen", "lged", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ct", "dti"})
+@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "aaen", "ds", "lged", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ct", "dti"})
 public class GroupRefreshDto {
 
     @JsonProperty("sn")   private Instant serverNow;
@@ -48,6 +48,7 @@ public class GroupRefreshDto {
     @JsonProperty("mm")   private Integer maxMembers;
     @JsonProperty("ddce") private Boolean dailyDownloadCapEnabled;
     @JsonProperty("aaen") private Boolean allowAssigneeEmailNotification;
+    @JsonProperty("ds")   private Boolean downgradeShielded;
 
     @JsonProperty("ct")   private Set<TaskPreviewDto> changedTasks;
 

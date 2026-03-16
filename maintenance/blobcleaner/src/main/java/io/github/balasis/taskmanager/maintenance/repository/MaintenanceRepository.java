@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MaintenanceRepository {
 
+    @lombok.Getter
     private final JdbcTemplate jdbcTemplate;
 
     public boolean existsById(BlobContainerType type, long id) {
@@ -160,12 +161,129 @@ public class MaintenanceRepository {
     public int resetMonthlyBudgets() {
         return jdbcTemplate.update("""
             UPDATE Users
-            SET usedDownloadBytesMonth = 0,
-                usedEmailsMonth        = 0,
-                usedImageScansMonth    = 0
+            SET usedDownloadBytesMonth       = 0,
+                usedEmailsMonth              = 0,
+                usedImageScansMonth          = 0,
+                usedTaskAnalysisCreditsMonth = 0
             WHERE usedDownloadBytesMonth > 0
                OR usedEmailsMonth > 0
                OR usedImageScansMonth > 0
+               OR usedTaskAnalysisCreditsMonth > 0
         """);
     }
+
+    public int purgeProcessedEmails(int retentionHours) {
+        return jdbcTemplate.update("""
+            DELETE FROM EmailOutbox
+            WHERE status IN ('SENT', 'FAILED')
+              AND COALESCE(sentAt, createdAt) < DATEADD(HOUR, ?, GETUTCDATE())
+        """, -retentionHours);
+    }
+
+    public int purgeProcessedModerations(int retentionDays) {
+        return jdbcTemplate.update("""
+            DELETE FROM ImageModerationQueue
+            WHERE status IN ('APPROVED', 'REJECTED', 'FAILED')
+              AND COALESCE(processedAt, createdAt) < DATEADD(DAY, ?, GETUTCDATE())
+        """, -retentionDays);
+    }
+
+    public int purgeCompletedAnalysisRequests(int retentionDays) {
+        return jdbcTemplate.update("""
+            DELETE FROM TaskAnalysisRequests
+            WHERE status IN ('COMPLETED', 'FAILED')
+              AND processedAt < DATEADD(DAY, ?, GETUTCDATE())
+        """, -retentionDays);
+    }
+
+    // ── Downgrade grace-period cleanup ──────────────────────────────────
+
+    /**
+     * Returns user IDs whose 7-day downgrade grace period has expired.
+     * These users still have over-budget blobs that need to be cleaned.
+     */
+    public List<Long> findGraceExpiredUserIds() {
+        return jdbcTemplate.queryForList("""
+            SELECT id FROM Users
+            WHERE downgradeGraceDeadline IS NOT NULL
+              AND downgradeGraceDeadline < GETUTCDATE()
+        """, Long.class);
+    }
+
+    /**
+     * Returns blob URLs for a given user, ordered by cleanup priority:
+     * 1. Unshielded groups first, shielded groups last
+     * 2. Within each bucket: DONE tasks first, then non-DONE
+     * 3. Within each sub-bucket: oldest files first
+     *
+     * The caller decides how many to delete (based on how many bytes over budget).
+     */
+    public List<DowngradeFileRow> findDeletableFilesByPriority(long userId) {
+        return jdbcTemplate.query("""
+            SELECT fileId, fileUrl, fileSize, fileType, shielded, isDone
+            FROM (
+                SELECT f.id       AS fileId,
+                       f.fileUrl  AS fileUrl,
+                       f.fileSize AS fileSize,
+                       'CREATOR'  AS fileType,
+                       CASE WHEN COALESCE(g.downgradeShielded, 0) = 1 THEN 1 ELSE 0 END AS shielded,
+                       CASE WHEN t.taskState = 'DONE' THEN 0 ELSE 1 END AS isDone
+                FROM TaskFiles f
+                JOIN Tasks t  ON t.id       = f.task_id
+                JOIN Groups g ON g.id       = t.group_id
+                WHERE g.owner_id = ?
+
+                UNION ALL
+
+                SELECT af.id       AS fileId,
+                       af.fileUrl  AS fileUrl,
+                       af.fileSize AS fileSize,
+                       'ASSIGNEE'  AS fileType,
+                       CASE WHEN COALESCE(g.downgradeShielded, 0) = 1 THEN 1 ELSE 0 END AS shielded,
+                       CASE WHEN t.taskState = 'DONE' THEN 0 ELSE 1 END AS isDone
+                FROM TaskAssigneeFiles af
+                JOIN Tasks t  ON t.id       = af.task_id
+                JOIN Groups g ON g.id       = t.group_id
+                WHERE g.owner_id = ?
+            ) AS allFiles
+            ORDER BY shielded, isDone, fileId ASC
+        """, (rs, row) -> new DowngradeFileRow(
+                rs.getLong("fileId"),
+                rs.getString("fileUrl"),
+                rs.getLong("fileSize"),
+                rs.getString("fileType")
+        ), userId, userId);
+    }
+
+    public void deleteCreatorFile(long fileId) {
+        jdbcTemplate.update("DELETE FROM TaskFiles WHERE id = ?", fileId);
+    }
+
+    public void deleteAssigneeFile(long fileId) {
+        jdbcTemplate.update("DELETE FROM TaskAssigneeFiles WHERE id = ?", fileId);
+    }
+
+    /**
+     * Clears grace-period fields after cleanup is complete (or deadline expired).
+     */
+    public int clearGraceFields(long userId) {
+        return jdbcTemplate.update("""
+            UPDATE Users
+            SET downgradeGraceDeadline = NULL,
+                previousPlan           = NULL
+            WHERE id = ?
+        """, userId);
+    }
+
+    /**
+     * Returns the current storage budget for a plan (matches PlanLimits logic).
+     * Used by maintenance to determine when a user is over budget.
+     */
+    public long getUsedStorageBytes(long userId) {
+        Long used = jdbcTemplate.queryForObject(
+                "SELECT usedStorageBytes FROM Users WHERE id = ?", Long.class, userId);
+        return used != null ? used : 0L;
+    }
+
+    public record DowngradeFileRow(long fileId, String fileUrl, long fileSize, String fileType) {}
 }

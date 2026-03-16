@@ -6,11 +6,13 @@ import com.azure.core.util.BinaryData;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ModerationResult;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class ContentSafetyServiceImpl extends BaseComponent implements ContentSafetyService {
 
@@ -18,12 +20,22 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
 
     private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
+    // Per-category severity thresholds — at or above this value = violation
+    private static final Map<ImageCategory, Integer> THRESHOLDS = Map.of(
+            ImageCategory.SEXUAL,    2,  // strict
+            ImageCategory.VIOLENCE,  4,  // lenient (anime/game art tolerance)
+            ImageCategory.HATE,      4,
+            ImageCategory.SELF_HARM, 4
+    );
+
+    private static final int DEFAULT_THRESHOLD = 4;
+
     public ContentSafetyServiceImpl(ContentSafetyClient client) {
         this.client = client;
     }
 
     @Override
-    public boolean isSafe(InputStream input) {
+    public ModerationResult analyze(InputStream input) {
         try {
             byte[] bytes = readCapped(input, MAX_IMAGE_BYTES);
             var imageData = new ContentSafetyImageData()
@@ -38,9 +50,16 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
                 logger.trace("{} severity: {}", c.getCategory(), c.getSeverity());
             }
 
-            return categories.stream()
-                    .map(ImageCategoriesAnalysis::getSeverity)
-                    .allMatch(severity -> severity == null || severity < 3);
+            for (ImageCategoriesAnalysis c : categories) {
+                int severity = c.getSeverity() != null ? c.getSeverity() : 0;
+                int threshold = THRESHOLDS.getOrDefault(c.getCategory(), DEFAULT_THRESHOLD);
+                if (severity >= threshold) {
+                    return ModerationResult.rejected(
+                            c.getCategory().toString(), severity);
+                }
+            }
+
+            return ModerationResult.safe();
 
         } catch (IOException e) {
             throw new BlobUploadException("Failed reading image: " + e.getMessage());

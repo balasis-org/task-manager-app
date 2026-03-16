@@ -41,4 +41,9 @@ public class UserOutboundResource extends BaseOutboundResource {
     private Integer usedEmailsMonth;
     /** Populated at the controller level — monthly email quota for this plan. */
     private Integer emailsPerMonth;
+    private Integer usedTaskAnalysisCreditsMonth;
+    /** Populated at the controller level — monthly analysis credit cap for this plan. */
+    private Integer taskAnalysisCreditsPerMonth;
+    private Instant downgradeGraceDeadline;
+    private SubscriptionPlan previousPlan;
 }

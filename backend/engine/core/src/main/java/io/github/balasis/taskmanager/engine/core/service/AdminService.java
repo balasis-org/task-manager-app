@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 
 @Service
@@ -35,6 +36,7 @@ public class AdminService {
     private final DeletedTaskRepository deletedTaskRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TaskParticipantRepository taskParticipantRepository;
+    private final FileReviewStatusRepository fileReviewStatusRepository;
     private final BlobStorageService blobStorageService;
 
     private void requireAdmin() {
@@ -143,7 +145,17 @@ public class AdminService {
         if (email != null && !email.isBlank()) user.setEmail(email);
         if (systemRole != null) user.setSystemRole(systemRole);
         if (subscriptionPlan != null) {
+            SubscriptionPlan oldPlan = user.getSubscriptionPlan();
             user.setSubscriptionPlan(subscriptionPlan);
+            if (subscriptionPlan.ordinal() < oldPlan.ordinal()) {
+                // downgrade — start 7-day grace period
+                user.setPreviousPlan(oldPlan);
+                user.setDowngradeGraceDeadline(Instant.now().plus(Duration.ofDays(7)));
+            } else if (subscriptionPlan.ordinal() > oldPlan.ordinal()) {
+                // upgrade — clear any active grace period
+                user.setPreviousPlan(null);
+                user.setDowngradeGraceDeadline(null);
+            }
             // Bump lastChangeInGroup on all groups this user owns so that
             // the polling has-changed endpoint detects the plan change and
             // frontends refresh their cached plan-derived limits.
@@ -244,6 +256,9 @@ public class AdminService {
         groupInvitationRepository.deleteAllByGroup_Id(groupId);
 
         deletedTaskRepository.deleteAllByGroup_Id(groupId);
+
+        fileReviewStatusRepository.deleteAllByTaskFileGroupId(groupId);
+        fileReviewStatusRepository.deleteAllByTaskAssigneeFileGroupId(groupId);
 
         taskRepository.deleteAllByGroup_Id(groupId);
 

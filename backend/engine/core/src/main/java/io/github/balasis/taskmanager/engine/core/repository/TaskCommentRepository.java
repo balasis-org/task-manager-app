@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Optional;
 
 public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> {
@@ -64,4 +65,20 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
                                           @Param("groupId") Long groupId,
                                           @Param("creatorId") Long creatorId,
                                           Pageable pageable);
+
+    @Modifying
+    @Query("""
+        DELETE FROM TaskComment tc
+        WHERE tc.task.id = :taskId
+          AND tc.createdAt < :before
+    """)
+    int deleteByTaskIdAndCreatedAtBefore(@Param("taskId") Long taskId,
+                                         @Param("before") Instant before);
+
+    @Query("""
+        SELECT COUNT(tc), COALESCE(SUM(LENGTH(tc.comment)), 0)
+        FROM TaskComment tc
+        WHERE tc.task.id = :taskId
+    """)
+    Object[] countAndSumCharsByTaskId(@Param("taskId") Long taskId);
 }

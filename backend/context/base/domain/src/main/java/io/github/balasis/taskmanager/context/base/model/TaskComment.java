@@ -38,6 +38,10 @@ public class TaskComment extends BaseModel{
     @Column
     private Instant createdAt;
 
+    @Column
+    @lombok.Builder.Default
+    private boolean containsPii = false;
+
     @PrePersist
     protected void onCreate(){
         createdAt = Instant.now();

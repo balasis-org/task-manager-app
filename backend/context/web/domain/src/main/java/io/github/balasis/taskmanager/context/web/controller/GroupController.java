@@ -1,18 +1,26 @@
 package io.github.balasis.taskmanager.context.web.controller;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
+import io.github.balasis.taskmanager.context.base.enumeration.AnalysisType;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
+import io.github.balasis.taskmanager.context.base.model.TaskAnalysisSnapshot;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
+import io.github.balasis.taskmanager.context.web.resource.filereview.inbound.FileReviewInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
+import io.github.balasis.taskmanager.context.web.resource.taskanalysis.outbound.TaskAnalysisEstimateResource;
+import io.github.balasis.taskmanager.context.web.resource.taskanalysis.outbound.TaskAnalysisSnapshotResource;
+import io.github.balasis.taskmanager.engine.core.dto.AnalysisEstimateDto;
+import io.github.balasis.taskmanager.engine.core.dto.FileReviewInfoDto;
+import io.github.balasis.taskmanager.engine.core.dto.GroupFileDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
@@ -43,10 +51,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -71,6 +82,12 @@ public class GroupController extends BaseComponent {
     private final PresenceService presenceService;
     private final PlanLimits planLimits;
     private final DownloadGate downloadGate;
+    private final ObjectMapper objectMapper;
+
+    private static final TypeReference<List<String>> STRING_LIST =
+            new TypeReference<>() {};
+    private static final TypeReference<List<TaskAnalysisSnapshotResource.CommentAnalysisView>> COMMENT_VIEW_LIST =
+            new TypeReference<>() {};
 
     @PostMapping
     public ResponseEntity<GroupOutboundResource> create(@RequestBody final GroupInboundResource groupInboundResource){
@@ -261,10 +278,9 @@ public class GroupController extends BaseComponent {
         resourceDataValidator.validateResourceData(inbound);
         Set<MultipartFile> filesSet = files == null ? Collections.emptySet() : new HashSet<>(files);
         var partialTask = taskInboundMapper.toDomain(inbound);
-        return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
-                        inbound.getReviewerIds(), filesSet)
-        ));
+        var task = groupService.createTask(groupId, partialTask, inbound.getAssignedIds(),
+                        inbound.getReviewerIds(), filesSet);
+        return ResponseEntity.ok(mapAndEnrich(task, groupId));
     }
 
     @GetMapping(path = "/{groupId}/tasks/search")
@@ -368,9 +384,10 @@ public class GroupController extends BaseComponent {
             @PathVariable Long groupId,
             @PathVariable Long taskId
     ){
-        return ResponseEntity.ok(
-                taskOutboundMapper.toResource(groupService.getTask(groupId,taskId))
-        );
+        var task = groupService.getTask(groupId, taskId);
+        var resource = mapAndEnrich(task, groupId);
+        enrichFileReviews(task, resource);
+        return ResponseEntity.ok(resource);
     }
 
     @PatchMapping(path="/{groupId}/task/{taskId}")
@@ -380,12 +397,9 @@ public class GroupController extends BaseComponent {
             @RequestBody TaskInboundPatchResource taskInboundPatchResource
             ){
         resourceDataValidator.validateResourceData(taskInboundPatchResource);
-        return ResponseEntity.ok(
-                taskOutboundMapper.toResource(
-                        groupService.patchTask(groupId,taskId,
-                                taskInboundMapper.toDomain(taskInboundPatchResource))
-                )
-        );
+        var task = groupService.patchTask(groupId, taskId,
+                taskInboundMapper.toDomain(taskInboundPatchResource));
+        return ResponseEntity.ok(mapAndEnrich(task, groupId));
     }
 
     @DeleteMapping("/{groupId}/task/{taskId}")
@@ -404,11 +418,8 @@ public class GroupController extends BaseComponent {
             @RequestBody TaskInboundPatchResource taskInboundPatchResource
     ){
         resourceDataValidator.validateResourceData(taskInboundPatchResource);
-        return ResponseEntity.ok(
-                taskOutboundMapper.toResource(
-                        groupService.reviewTask(groupId, taskId, taskInboundMapper.toDomain(taskInboundPatchResource))
-                )
-        );
+        var task = groupService.reviewTask(groupId, taskId, taskInboundMapper.toDomain(taskInboundPatchResource));
+        return ResponseEntity.ok(mapAndEnrich(task, groupId));
     }
 
     @PostMapping(path = "/{groupId}/task/{taskId}/to-be-reviewed")
@@ -417,12 +428,10 @@ public class GroupController extends BaseComponent {
             @PathVariable Long taskId
     ) {
         return ResponseEntity.ok(
-                taskOutboundMapper.toResource(
-                        groupService.markTaskToBeReviewed(groupId, taskId)
-                )
+                mapAndEnrich(groupService.markTaskToBeReviewed(groupId, taskId), groupId)
         );
     }
-    
+
     @PostMapping(path="/{groupId}/task/{taskId}/taskParticipants")
     public ResponseEntity<TaskOutboundResource> addParticipant(
             @PathVariable Long groupId,
@@ -431,11 +440,10 @@ public class GroupController extends BaseComponent {
             ) {
         resourceDataValidator.validateResourceData(taskParticipantInboundResource);
        return ResponseEntity.ok(
-               taskOutboundMapper.toResource(
-                groupService.addTaskParticipant(groupId, taskId,
+               mapAndEnrich(groupService.addTaskParticipant(groupId, taskId,
                         taskParticipantInboundResource.getUserId(),
-                        taskParticipantInboundResource.getTaskParticipantRole() )
-        ));
+                        taskParticipantInboundResource.getTaskParticipantRole()), groupId)
+       );
     }
 
     @PostMapping(path = "/{groupId}/task/{taskId}/files",
@@ -445,8 +453,8 @@ public class GroupController extends BaseComponent {
             @PathVariable Long taskId,
             @RequestPart("file") MultipartFile file
     ) {
-           return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.addTaskFile(groupId, taskId, file)
+           return ResponseEntity.ok(mapAndEnrich(
+                groupService.addTaskFile(groupId, taskId, file), groupId
         ));
     }
 
@@ -457,8 +465,8 @@ public class GroupController extends BaseComponent {
             @PathVariable Long taskId,
             @RequestPart("file") MultipartFile file
     ) {
-        return ResponseEntity.ok(taskOutboundMapper.toResource(
-                groupService.addAssigneeTaskFile(groupId, taskId, file)
+        return ResponseEntity.ok(mapAndEnrich(
+                groupService.addAssigneeTaskFile(groupId, taskId, file), groupId
         ));
     }
 
@@ -681,6 +689,170 @@ public class GroupController extends BaseComponent {
                         groupService.changeGroupMembershipRole(groupId, groupMembershipId, role)
                 )
         );
+    }
+
+    // ── File Gallery & Per-File Review ─────────────────────────
+
+    @GetMapping("/{groupId}/files")
+    public ResponseEntity<List<GroupFileDto>> getGroupFiles(@PathVariable Long groupId) {
+        return ResponseEntity.ok(groupService.getGroupFiles(groupId));
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/files/{fileId}/review")
+    public ResponseEntity<Void> reviewTaskFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long fileId,
+            @RequestBody FileReviewInboundResource inbound
+    ) {
+        resourceDataValidator.validateResourceData(inbound);
+        groupService.reviewTaskFile(groupId, taskId, fileId, inbound.getStatus(), inbound.getNote());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/assignee-files/{fileId}/review")
+    public ResponseEntity<Void> reviewAssigneeFile(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @PathVariable Long fileId,
+            @RequestBody FileReviewInboundResource inbound
+    ) {
+        resourceDataValidator.validateResourceData(inbound);
+        groupService.reviewAssigneeFile(groupId, taskId, fileId, inbound.getStatus(), inbound.getNote());
+        return ResponseEntity.ok().build();
+    }
+
+    // ── Comment Intelligence ─────────────────────────────────────
+
+    @GetMapping("/{groupId}/task/{taskId}/analysis-estimate")
+    public ResponseEntity<TaskAnalysisEstimateResource> getAnalysisEstimate(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId) {
+        AnalysisEstimateDto dto = groupService.getAnalysisEstimate(groupId, taskId);
+        TaskAnalysisSnapshot s = dto.snapshot();
+
+        int fullCredits = s.getEstimatedAnalysisCredits()
+                        + s.getEstimatedSummaryCredits()
+                        + s.getEstimatedEgressCredits();
+        boolean stale = s.getEstimateChangeMarker() != null
+                     && s.getEstimatedAt() != null
+                     && s.getEstimateChangeMarker().isAfter(s.getEstimatedAt());
+
+        TaskAnalysisEstimateResource r = new TaskAnalysisEstimateResource();
+        r.setCommentCount(s.getEstimatedCommentCount());
+        r.setTotalChars(s.getEstimatedTotalChars());
+        r.setAnalysisCredits(s.getEstimatedAnalysisCredits());
+        r.setSummaryCredits(s.getEstimatedSummaryCredits());
+        r.setEgressCredits(s.getEstimatedEgressCredits());
+        r.setFullCredits(fullCredits);
+        r.setBudgetUsed(dto.budgetUsed());
+        r.setBudgetMax(dto.budgetMax());
+        r.setBudgetRemaining(dto.budgetMax() - dto.budgetUsed());
+        r.setEstimatedAt(s.getEstimatedAt());
+        r.setStale(stale);
+        return ResponseEntity.ok(r);
+    }
+
+    @PostMapping("/{groupId}/task/{taskId}/analyze")
+    public ResponseEntity<Map<String, Integer>> requestAnalysis(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestParam AnalysisType type) {
+        int credits = groupService.requestAnalysis(groupId, taskId, type);
+        return ResponseEntity.accepted().body(Map.of("creditsCharged", credits));
+    }
+
+    @GetMapping("/{groupId}/task/{taskId}/analysis")
+    public ResponseEntity<TaskAnalysisSnapshotResource> getAnalysisSnapshot(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId) {
+        TaskAnalysisSnapshot snap = groupService.getAnalysisSnapshot(groupId, taskId);
+        if (snap == null || (snap.getAnalyzedAt() == null && snap.getSummarizedAt() == null)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(toSnapshotResource(snap));
+    }
+
+    @DeleteMapping("/{groupId}/task/{taskId}/comments/bulk")
+    public ResponseEntity<Map<String, Integer>> bulkDeleteComments(
+            @PathVariable Long groupId,
+            @PathVariable Long taskId,
+            @RequestParam Instant before) {
+        int deleted = groupService.bulkDeleteCommentsBefore(groupId, taskId, before);
+        return ResponseEntity.ok(Map.of("deleted", deleted));
+    }
+
+    // ── private helpers ──────────────────────────────────────────
+
+    private TaskOutboundResource mapAndEnrich(io.github.balasis.taskmanager.context.base.model.Task task, Long groupId) {
+        var resource = taskOutboundMapper.toResource(task);
+        var limits = groupService.resolveEffectiveFileLimits(groupId, task);
+        resource.setEffectiveMaxCreatorFiles(limits.maxCreatorFiles());
+        resource.setEffectiveMaxAssigneeFiles(limits.maxAssigneeFiles());
+        resource.setEffectiveMaxFileSizeBytes(limits.maxFileSizeBytes());
+        return resource;
+    }
+
+    private void enrichFileReviews(io.github.balasis.taskmanager.context.base.model.Task task,
+                                   TaskOutboundResource resource) {
+        Set<Long> cIds = task.getCreatorFiles().stream()
+                .map(f -> f.getId()).collect(java.util.stream.Collectors.toSet());
+        Set<Long> aIds = task.getAssigneeFiles().stream()
+                .map(f -> f.getId()).collect(java.util.stream.Collectors.toSet());
+
+        if (cIds.isEmpty() && aIds.isEmpty()) return;
+
+        Map<Long, List<FileReviewInfoDto>> reviews = groupService.getFileReviews(cIds, aIds);
+
+        if (resource.getFiles() != null) {
+            for (var f : resource.getFiles()) {
+                f.setReviews(reviews.getOrDefault(f.getId(), List.of()));
+            }
+        }
+        if (resource.getAssigneeFiles() != null) {
+            for (var f : resource.getAssigneeFiles()) {
+                f.setReviews(reviews.getOrDefault(f.getId(), List.of()));
+            }
+        }
+    }
+
+    private TaskAnalysisSnapshotResource toSnapshotResource(TaskAnalysisSnapshot snap) {
+        TaskAnalysisSnapshotResource r = new TaskAnalysisSnapshotResource();
+
+        if (snap.getOverallSentiment() != null) {
+            r.setOverallSentiment(snap.getOverallSentiment().name());
+        }
+        r.setOverallConfidence(snap.getOverallConfidence());
+        r.setPositiveCount(snap.getPositiveCount());
+        r.setNeutralCount(snap.getNeutralCount());
+        r.setNegativeCount(snap.getNegativeCount());
+        r.setPiiDetectedCount(snap.getPiiDetectedCount());
+        r.setAnalysisCommentCount(snap.getAnalysisCommentCount());
+        r.setAnalyzedAt(snap.getAnalyzedAt());
+
+        if (snap.getKeyPhrases() != null) {
+            try { r.setKeyPhrases(objectMapper.readValue(snap.getKeyPhrases(), STRING_LIST)); }
+            catch (Exception ignored) { /* non-critical */ }
+        }
+        if (snap.getCommentResults() != null) {
+            try { r.setCommentResults(objectMapper.readValue(snap.getCommentResults(), COMMENT_VIEW_LIST)); }
+            catch (Exception ignored) { /* non-critical */ }
+        }
+
+        boolean analysisStale = snap.getAnalysisChangeMarker() != null
+                             && snap.getAnalyzedAt() != null
+                             && snap.getAnalysisChangeMarker().isAfter(snap.getAnalyzedAt());
+        r.setAnalysisStale(analysisStale);
+
+        r.setSummaryText(snap.getSummaryText());
+        r.setSummaryCommentCount(snap.getSummaryCommentCount());
+        r.setSummarizedAt(snap.getSummarizedAt());
+
+        boolean summaryStale = snap.getSummaryChangeMarker() != null
+                            && snap.getSummarizedAt() != null
+                            && snap.getSummaryChangeMarker().isAfter(snap.getSummarizedAt());
+        r.setSummaryStale(summaryStale);
+        return r;
     }
 
 }

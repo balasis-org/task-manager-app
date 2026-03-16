@@ -5,6 +5,7 @@ import com.azure.ai.contentsafety.ContentSafetyClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.ai.contentsafety.models.AnalyzeTextOptions;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ModerationResult;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.service.ContentSafetyServiceImpl;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class ContentSafetyDevConfig {
             if (endpoint == null || endpoint.isBlank() || key == null || key.isBlank()) {
                 log.warn("Content Safety env vars are missing — falling back to no-op (all images allowed)");
                 contentSafetyDisabled = true;
-                return input -> true;
+                return input -> ModerationResult.safe();
             }
 
             ContentSafetyClient client = new ContentSafetyClientBuilder()
@@ -54,7 +55,7 @@ public class ContentSafetyDevConfig {
             log.warn("Content Safety client failed to initialise: {} — falling back to no-op (all images allowed)",
                     e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             contentSafetyDisabled = true;
-            return input -> true;
+            return input -> ModerationResult.safe();
         }
     }
 

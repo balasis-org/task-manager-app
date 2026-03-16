@@ -19,4 +19,9 @@ public class StressPlanLimitsOverride extends PlanLimits {
     public long storageBudgetBytes(SubscriptionPlan plan) {
         return Long.MAX_VALUE;
     }
+
+    @Override
+    public int taskAnalysisCreditsPerMonth(SubscriptionPlan plan) {
+        return Integer.MAX_VALUE;
+    }
 }

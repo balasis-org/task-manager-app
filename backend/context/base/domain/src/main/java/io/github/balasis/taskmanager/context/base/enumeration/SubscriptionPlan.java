@@ -4,5 +4,6 @@ public enum SubscriptionPlan {
     FREE,
     STUDENT,
     ORGANIZER,
-    TEAM
+    TEAM,
+    TEAMS_PRO
 }

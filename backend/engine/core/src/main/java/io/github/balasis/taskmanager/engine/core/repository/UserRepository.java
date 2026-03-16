@@ -93,6 +93,36 @@ public interface UserRepository extends JpaRepository<User,Long> {
     int incrementImageScanUsage(@Param("userId") Long userId,
                                 @Param("maxScans") int maxScans);
 
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.usedImageScansMonth = u.usedImageScansMonth - 1
+        WHERE u.id = :userId
+          AND COALESCE(u.usedImageScansMonth, 0) > 0
+    """)
+    int decrementImageScanUsage(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.usedTaskAnalysisCreditsMonth = COALESCE(u.usedTaskAnalysisCreditsMonth, 0) + :credits
+        WHERE u.id = :userId
+          AND COALESCE(u.usedTaskAnalysisCreditsMonth, 0) + :credits <= :maxCredits
+    """)
+    int incrementTaskAnalysisCredits(@Param("userId") Long userId,
+                                     @Param("credits") int credits,
+                                     @Param("maxCredits") int maxCredits);
+
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.usedTaskAnalysisCreditsMonth = COALESCE(u.usedTaskAnalysisCreditsMonth, 0) - :credits
+        WHERE u.id = :userId
+          AND COALESCE(u.usedTaskAnalysisCreditsMonth, 0) >= :credits
+    """)
+    int decrementTaskAnalysisCredits(@Param("userId") Long userId,
+                                     @Param("credits") int credits);
+
     @Query("""
     select u
     from User u

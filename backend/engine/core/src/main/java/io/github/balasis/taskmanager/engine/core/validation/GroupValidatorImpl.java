@@ -175,6 +175,11 @@ public class GroupValidatorImpl implements GroupValidator{
     @Override
     public void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId) {
         doesTaskBelongToGroup(task, groupId);
+
+        if (task.getTaskState() != io.github.balasis.taskmanager.context.base.enumeration.TaskState.IN_PROGRESS) {
+            throw new BusinessRuleException("Task can only be moved to review from IN_PROGRESS state");
+        }
+
         boolean isAssignee = task.getTaskParticipants().stream()
                 .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.ASSIGNEE
                         && tp.getUser().getId().equals(effectiveCurrentUser.getUserId()));
@@ -186,6 +191,10 @@ public class GroupValidatorImpl implements GroupValidator{
     @Override
     public void validateReviewTask(Task task, Long groupId, Long userId) {
         doesTaskBelongToGroup(task, groupId);
+
+        if (task.getTaskState() != io.github.balasis.taskmanager.context.base.enumeration.TaskState.TO_BE_REVIEWED) {
+            throw new BusinessRuleException("Task can only be reviewed when it is in TO_BE_REVIEWED state");
+        }
 
         boolean isReviewerOnTask = task.getTaskParticipants().stream()
                 .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER
@@ -203,6 +212,33 @@ public class GroupValidatorImpl implements GroupValidator{
         boolean allowed = role == Role.GROUP_LEADER || role == Role.TASK_MANAGER;
         if (!allowed) {
             throw new UnauthorizedException("You are not authorized to review this task");
+        }
+    }
+
+    @Override
+    public void validateFileReview(Task task, Long groupId, Long userId) {
+        doesTaskBelongToGroup(task, groupId);
+
+        if (task.getTaskState() != io.github.balasis.taskmanager.context.base.enumeration.TaskState.TO_BE_REVIEWED) {
+            throw new BusinessRuleException("Files can only be reviewed when the task is in TO_BE_REVIEWED state");
+        }
+
+        boolean isReviewerOnTask = task.getTaskParticipants().stream()
+                .anyMatch(tp -> tp.getTaskParticipantRole() == TaskParticipantRole.REVIEWER
+                        && tp.getUser().getId().equals(userId));
+
+        if (isReviewerOnTask) {
+            return;
+        }
+
+        var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, userId);
+        if (membershipOpt.isEmpty()) {
+            throw new NotAGroupMemberException("User is not part of the group");
+        }
+        var role = membershipOpt.get().getRole();
+        boolean allowed = role == Role.GROUP_LEADER || role == Role.TASK_MANAGER;
+        if (!allowed) {
+            throw new UnauthorizedException("You are not authorized to review files on this task");
         }
     }
 

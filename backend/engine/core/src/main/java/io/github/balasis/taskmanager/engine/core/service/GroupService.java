@@ -1,10 +1,16 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
+import io.github.balasis.taskmanager.context.base.enumeration.FileReviewDecision;
+import io.github.balasis.taskmanager.context.base.enumeration.AnalysisType;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.*;
+import io.github.balasis.taskmanager.engine.core.dto.AnalysisEstimateDto;
+import io.github.balasis.taskmanager.engine.core.dto.EffectiveFileLimitsDto;
+import io.github.balasis.taskmanager.engine.core.dto.FileReviewInfoDto;
+import io.github.balasis.taskmanager.engine.core.dto.GroupFileDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
@@ -15,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface GroupService{
@@ -49,6 +57,7 @@ public interface GroupService{
     TaskComment addTaskComment(Long groupId, Long taskId, String comment);
     TaskComment patchTaskComment(Long groupId, Long taskId, Long commentId, String comment);
     void deleteTaskComment(Long groupId, Long taskId, Long commentId);
+    int bulkDeleteCommentsBefore(Long groupId, Long taskId, java.time.Instant before);
 
         Set<TaskPreviewDto> findTasksWithPreviewByFilters(
             Long groupId,
@@ -106,4 +115,26 @@ public interface GroupService{
 
     /** Lightweight membership gate - throws if the caller is not a member. */
     void checkMembership(Long groupId);
+
+    // ── Comment Intelligence ────────────────────────────────────
+
+    AnalysisEstimateDto getAnalysisEstimate(Long groupId, Long taskId);
+
+    int requestAnalysis(Long groupId, Long taskId, AnalysisType type);
+
+    TaskAnalysisSnapshot getAnalysisSnapshot(Long groupId, Long taskId);
+
+    // ── File Gallery & Per-File Review ──────────────────────────
+
+    List<GroupFileDto> getGroupFiles(Long groupId);
+
+    void reviewTaskFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
+
+    void reviewAssigneeFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
+
+    /** Batch-fetch review info for a set of file IDs (keyed by file id). */
+    Map<Long, List<FileReviewInfoDto>> getFileReviews(Set<Long> creatorFileIds, Set<Long> assigneeFileIds);
+
+    /** Resolve effective file limits for a task (task → group → plan, Math.min). */
+    EffectiveFileLimitsDto resolveEffectiveFileLimits(Long groupId, Task task);
 }

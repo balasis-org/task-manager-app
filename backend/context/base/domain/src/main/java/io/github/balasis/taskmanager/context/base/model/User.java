@@ -109,8 +109,34 @@ public class User extends BaseModel{
     @Builder.Default
     private int usedImageScansMonth = 0;
 
+    @Column
+    @Builder.Default
+    private int usedTaskAnalysisCreditsMonth = 0;
+
     @Column(length = 500)
     private String msProfilePhotoUrl;
+
+    // ── Downgrade grace-period fields ───────────────────────────────────
+    @Column
+    private Instant downgradeGraceDeadline;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private SubscriptionPlan previousPlan;
+
+    // ── Moderation escalation fields ────────────────────────────────────
+    @Column
+    private Instant uploadBannedUntil;
+
+    @Column
+    private Instant accountBannedUntil;
+
+    @Column
+    @Builder.Default
+    private int uploadBanCount = 0;
+
+    @Column
+    private Instant lastUploadBanAt;
 
     @PrePersist
     protected void onCreate(){

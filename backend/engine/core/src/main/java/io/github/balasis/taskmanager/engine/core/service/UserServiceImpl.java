@@ -13,6 +13,7 @@ import io.github.balasis.taskmanager.engine.core.validation.UserValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ImageModerationService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class UserServiceImpl extends BaseComponent implements UserService {
     private final DefaultImageService defaultImageService;
     private final PlanLimits planLimits;
     private final ImageChangeLimiterService imageChangeLimiterService;
+    private final ImageModerationService imageModerationService;
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
@@ -80,6 +82,13 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         var user = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
 
+        // upload ban check
+        if (user.getUploadBannedUntil() != null && Instant.now().isBefore(user.getUploadBannedUntil())) {
+            throw new BusinessRuleException(
+                    "Image uploads are temporarily prevented until " + user.getUploadBannedUntil() + ". "
+                    + "A previous upload violated our content policy.");
+        }
+
         SubscriptionPlan plan = user.getSubscriptionPlan();
         if (!planLimits.isPaid(plan)) {
             throw new BusinessRuleException(
@@ -102,9 +111,9 @@ public class UserServiceImpl extends BaseComponent implements UserService {
         String blobName = blobStorageService.uploadProfileImage(file, user.getId());
         user.setImgUrl(blobName);
 
-        if (oldBlobName != null) {
-            blobStorageService.deleteProfileImage(oldBlobName);
-        }
+        // enqueue for async moderation — old blob kept as revert target
+        imageModerationService.enqueue(
+                user.getId(), "USER", user.getId(), blobName, oldBlobName);
 
         return user;
     }
