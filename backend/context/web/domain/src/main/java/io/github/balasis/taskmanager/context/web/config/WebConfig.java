@@ -1,5 +1,6 @@
 package io.github.balasis.taskmanager.context.web.config;
 
+import io.github.balasis.taskmanager.context.web.interceptor.AccountBanInterceptor;
 import io.github.balasis.taskmanager.context.web.interceptor.RateLimitInterceptor;
 import io.github.balasis.taskmanager.context.web.jwt.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final AccountBanInterceptor accountBanInterceptor;
     private final Environment environment;
 
     @Value("${app.download-threads:15}")
@@ -46,6 +48,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .order(2)
                 .excludePathPatterns("/auth/**", "/health", "/actuator/health", "/h2-console", "/");
+
+        registry.addInterceptor(accountBanInterceptor)
+                .addPathPatterns("/**")
+                .order(3)
+                .excludePathPatterns("/auth/**", "/health", "/actuator/health", "/h2-console");
     }
 
     // without this Spring spawns unbounded threads per download (SimpleAsyncTaskExecutor)

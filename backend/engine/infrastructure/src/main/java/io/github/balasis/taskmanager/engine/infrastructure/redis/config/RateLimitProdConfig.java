@@ -3,11 +3,17 @@ package io.github.balasis.taskmanager.engine.infrastructure.redis.config;
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.EmailDrainLockService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.CommentAnalysisLockService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageModerationLockService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.PresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.RateLimitService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisDownloadGuardService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisEmailDrainLockService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisImageChangeLimiterService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisCommentAnalysisLockService;
+import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisImageModerationLockService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisPresenceService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.service.RedisRateLimitService;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
@@ -96,5 +102,20 @@ public class RateLimitProdConfig {
     @Bean
     public ImageChangeLimiterService imageChangeLimiterService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
         return new RedisImageChangeLimiterService(redisConnection, "");
+    }
+
+    @Bean
+    public EmailDrainLockService emailDrainLockService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        return new RedisEmailDrainLockService(redisConnection);
+    }
+
+    @Bean
+    public ImageModerationLockService imageModerationLockService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        return new RedisImageModerationLockService(redisConnection);
+    }
+
+    @Bean
+    public CommentAnalysisLockService commentAnalysisLockService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
+        return new RedisCommentAnalysisLockService(redisConnection);
     }
 }

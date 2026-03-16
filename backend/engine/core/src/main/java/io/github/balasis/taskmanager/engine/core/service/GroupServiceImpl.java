@@ -4,9 +4,15 @@ import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.authorization.UnauthorizedException;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
+import io.github.balasis.taskmanager.engine.core.dto.EffectiveFileLimitsDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
+import io.github.balasis.taskmanager.engine.core.dto.FileReviewInfoDto;
+import io.github.balasis.taskmanager.engine.core.dto.GroupFileDto;
+import io.github.balasis.taskmanager.engine.core.dto.AnalysisEstimateDto;
+import io.github.balasis.taskmanager.context.base.enumeration.AnalysisType;
+import io.github.balasis.taskmanager.context.base.enumeration.FileReviewDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
@@ -29,10 +35,14 @@ import io.github.balasis.taskmanager.engine.core.transfer.TaskFileDownload;
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ImageModerationService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailQueueService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.TaskEmailTemplates;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
+import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.TaskAnalysisService;
+import io.github.balasis.taskmanager.engine.core.util.PiiDetector;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -48,10 +58,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,11 +73,13 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final TaskParticipantRepository taskParticipantRepository;
     private final TaskFileRepository taskFileRepository;
     private final TaskAssigneeFileRepository taskAssigneeFileRepository;
+    private final FileReviewStatusRepository fileReviewStatusRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final GroupEventRepository groupEventRepository;
     private final EffectiveCurrentUser effectiveCurrentUser;
     @Qualifier("userEmailClient")
     private final ObjectProvider<EmailClient> emailClientProvider;
+    private final EmailQueueService emailQueueService;
     private final BlobStorageService blobStorageService;
     private final AuthorizationService authorizationService;
     private final DefaultImageService defaultImageService;
@@ -80,6 +89,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     private final PlanLimits planLimits;
     private final DownloadGuardService downloadGuardService;
     private final ImageChangeLimiterService imageChangeLimiterService;
+    private final ImageModerationService imageModerationService;
+    private final TaskAnalysisService taskAnalysisService;
     private final org.springframework.core.env.Environment environment;
 
     // ── limit-resolution helpers ────────────────────────────────────────
@@ -114,9 +125,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return planDefault;
     }
 
-    // atomic budget charge — FREE tier skips, paid tier throws if over
+    // atomic budget charge — all tiers tracked, throws if over budget.
     private void chargeStorageBudget(User leader, long sizeBytes) {
-        if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
         long budget = planLimits.storageBudgetBytes(leader.getSubscriptionPlan());
         int updated = userRepository.addStorageUsage(leader.getId(), sizeBytes, budget);
         if (updated == 0) {
@@ -124,9 +134,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
     }
 
+    // Always refund — keeps usedStorageBytes accurate regardless of current plan.
     private void refundStorageBudget(User leader, Long fileSizeBytes) {
         if (fileSizeBytes == null || fileSizeBytes <= 0) return;
-        if (!planLimits.isPaid(leader.getSubscriptionPlan())) return;
         userRepository.subtractStorageUsage(leader.getId(), fileSizeBytes);
     }
 
@@ -281,6 +291,17 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             groupEventRepository.save(gEvAssigneeEmail);
         }
 
+        if (group.getDowngradeShielded() != null) {
+            existingGroup.setDowngradeShielded(group.getDowngradeShielded());
+            touchLastGroupEventDate(existingGroup);
+            var gEvShield = GroupEvent.builder().group(existingGroup)
+                    .description(group.getDowngradeShielded()
+                            ? "Downgrade shield enabled — this group's files will be deleted last"
+                            : "Downgrade shield disabled")
+                    .build();
+            groupEventRepository.save(gEvShield);
+        }
+
         touchGroupChange(existingGroup, true);
 
         return groupRepository.save(existingGroup);
@@ -297,6 +318,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         groupInvitationRepository.deleteAllByGroup_Id(groupId);
         deletedTaskRepository.deleteAllByGroup_Id(groupId);
+        fileReviewStatusRepository.deleteAllByTaskFileGroupId(groupId);
+        fileReviewStatusRepository.deleteAllByTaskAssigneeFileGroupId(groupId);
         taskRepository.deleteAllByGroup_Id(groupId);
         groupMembershipRepository.deleteAllByGroup_Id(groupId);
         groupRepository.deleteById(groupId);
@@ -311,6 +334,15 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
         User owner = group.getOwner();
         SubscriptionPlan ownerPlan = owner.getSubscriptionPlan();
+
+        // upload ban check (applies to the uploader, not the owner)
+        User uploader = userRepository.findById(effectiveCurrentUser.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (uploader.getUploadBannedUntil() != null && Instant.now().isBefore(uploader.getUploadBannedUntil())) {
+            throw new BusinessRuleException(
+                    "Image uploads are temporarily prevented until " + uploader.getUploadBannedUntil() + ". "
+                    + "A previous upload violated our content policy.");
+        }
 
         if (!planLimits.isPaid(ownerPlan)) {
             throw new BusinessRuleException(
@@ -332,9 +364,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         group.setImgUrl(blobName);
         touchGroupChange(group, true);
 
-        if (oldBlobName != null) {
-            blobStorageService.deleteGroupImage(oldBlobName);
-        }
+        // enqueue for async moderation — old blob kept as revert target
+        imageModerationService.enqueue(
+                effectiveCurrentUser.getUserId(), "GROUP", groupId, blobName, oldBlobName);
 
         return groupRepository.save(group);
     }
@@ -463,8 +495,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
             .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
             .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
+            .downgradeShielded(group.getDowngradeShielded())
             .usedEmailsMonth(group.getOwner().getUsedEmailsMonth())
             .emailQuotaPerMonth(planLimits.emailQuotaPerMonth(ownerPlan))
+            .usedTaskAnalysisCreditsMonth(group.getOwner().getUsedTaskAnalysisCreditsMonth())
+            .taskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(ownerPlan))
             .taskPreviews(previews)
             .build();
         }
@@ -725,8 +760,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 String body = TaskEmailTemplates.inviteBody(
                         group.getName(), inviter.getName(),
                         (saved.getComment() != null && !saved.getComment().isBlank()) ? saved.getComment() : null);
-                final String emailTo = targetUser.getEmail();
-                CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
+                emailQueueService.enqueue(targetUser.getEmail(), subject, body);
             }
         }
     }
@@ -810,7 +844,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         long taskCount = taskRepository.countByGroup_Id(groupId);
         var currentUser = userRepository.findById(effectiveCurrentUser.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("Logged in user not found"));
-        int maxTasks = planLimits.maxTasksPerGroup(currentUser.getSubscriptionPlan());
+        User leader = findGroupLeader(groupId);
+        int maxTasks = planLimits.maxTasksPerGroup(leader.getSubscriptionPlan());
         if (taskCount >= maxTasks) {
             throw new LimitExceededException("A group can have at most " + maxTasks + " tasks");
         }
@@ -856,7 +891,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         }
 
         if (files != null && !files.isEmpty()) {
-            User leader = findGroupLeader(groupId);
             SubscriptionPlan leaderPlan = leader.getSubscriptionPlan();
             Group group = groupRepository.findById(groupId)
                     .orElseThrow(() -> new GroupNotFoundException("Group not found"));
@@ -878,6 +912,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                         .task(savedTask)
                         .fileSize(file.getSize())
+                        .uploadedBy(currentUser)
                         .build();
                 savedTask.getCreatorFiles().add(taskFile);
             }
@@ -942,8 +977,14 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             fetchedTask.setTitle(task.getTitle());
         if (task.getDescription()!= null)
             fetchedTask.setDescription(task.getDescription());
-        if (task.getTaskState()!= null)
+        if (task.getTaskState()!= null) {
+            TaskState oldState = fetchedTask.getTaskState();
             fetchedTask.setTaskState(task.getTaskState());
+            if (oldState == TaskState.TO_BE_REVIEWED && task.getTaskState() != TaskState.TO_BE_REVIEWED) {
+                fileReviewStatusRepository.deleteAllByTaskFileTaskId(taskId);
+                fileReviewStatusRepository.deleteAllByTaskAssigneeFileTaskId(taskId);
+            }
+        }
         if (task.getDueDate() != null)
             fetchedTask.setDueDate(task.getDueDate());
         if (task.getReviewersDecision()!=null){
@@ -953,6 +994,10 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (task.getReviewComment()!=null){
             fetchedTask.setReviewComment(task.getReviewComment());
         }
+        if (task.getMaxAssigneeFiles() != null)
+            fetchedTask.setMaxAssigneeFiles(task.getMaxAssigneeFiles());
+        if (task.getMaxFileSizeBytes() != null)
+            fetchedTask.setMaxFileSizeBytes(task.getMaxFileSizeBytes());
         fetchedTask.setLastEditBy(curUser);
         fetchedTask.setLastEditDate(Instant.now());
         touchTaskChange(fetchedTask, true, false, false);
@@ -971,6 +1016,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             fetchedTask.setReviewedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()));
             if (task.getReviewersDecision() == ReviewersDecision.APPROVE) {
                 fetchedTask.setTaskState(TaskState.DONE);
+                fileReviewStatusRepository.deleteAllByTaskFileTaskId(taskId);
+                fileReviewStatusRepository.deleteAllByTaskAssigneeFileTaskId(taskId);
             } else {
                 fetchedTask.setTaskState(TaskState.IN_PROGRESS);
             }
@@ -1057,8 +1104,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             String body = TaskEmailTemplates.notifyBody(
                     caller.getName(), task.getTitle(), group.getName(),
                     groupId, taskId, safeNote, appUrl);
-            final String emailTo = targetUser.getEmail();
-            CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
+            emailQueueService.enqueue(targetUser.getEmail(), subject, body);
         }
     }
 
@@ -1104,8 +1150,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     caller.getName(), task.getTitle(), group.getName(),
                     groupId, taskId, safeNote, appUrl);
             for (User target : targets) {
-                final String emailTo = target.getEmail();
-                CompletableFuture.runAsync(() -> emailClient.sendEmail(emailTo, subject, body));
+                emailQueueService.enqueue(target.getEmail(), subject, body);
             }
         }
     }
@@ -1132,6 +1177,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
                 .fileUrl(url)
                 .fileSize(file.getSize())
+                .uploadedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
                 .build());
         touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
@@ -1176,6 +1222,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         refundStorageBudget(leader, file.getFileSize());
 
         blobStorageService.deleteTaskFile(file.getFileUrl());
+        fileReviewStatusRepository.deleteByTaskFileId(file.getId());
         task.getCreatorFiles().remove(file);
         taskFileRepository.delete(file);
         touchTaskChange(task, false, false, false);
@@ -1204,6 +1251,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .name(StringSanitizer.sanitizeFilename(file.getOriginalFilename()))
             .fileUrl(url)
             .fileSize(file.getSize())
+            .uploadedBy(userRepository.getReferenceById(effectiveCurrentUser.getUserId()))
             .build());
         touchTaskChange(task, false, false, false);
         return taskRepository.save(task);
@@ -1227,6 +1275,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         refundStorageBudget(leader, file.getFileSize());
 
         blobStorageService.deleteTaskAssigneeFile(file.getFileUrl());
+        fileReviewStatusRepository.deleteByTaskAssigneeFileId(file.getId());
         task.getAssigneeFiles().remove(file);
         taskAssigneeFileRepository.delete(file);
         touchTaskChange(task, false, false, false);
@@ -1262,6 +1311,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
 
         groupValidator.validateAssigneeMarkTaskToBeReviewed(task, groupId);
+        fileReviewStatusRepository.deleteAllByTaskFileTaskId(taskId);
+        fileReviewStatusRepository.deleteAllByTaskAssigneeFileTaskId(taskId);
         task.setTaskState(TaskState.TO_BE_REVIEWED);
         touchTaskChange(task, true, false, false);
         taskRepository.save(task);
@@ -1287,6 +1338,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .creator(creator)
                 .creatorNameSnapshot(creator.getName())
                 .comment(comment)
+                .containsPii(PiiDetector.containsPii(comment))
                 .build()
         );
 
@@ -1306,6 +1358,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .orElseThrow(() -> new RuntimeException("Task comment not found"));
         groupValidator.validateTaskPatchComment(groupId,existing,taskId,comment);
         existing.setComment(comment);
+        existing.setContainsPii(PiiDetector.containsPii(comment));
         touchTaskChange(existing.getTask(), false, false, true);
         return taskCommentRepository.save(existing);
     }
@@ -1321,6 +1374,29 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         task.setCommentCount(currentCount);
         touchTaskChange(task, false, false, true);
         taskRepository.save(task);
+    }
+
+    @Override
+    public int bulkDeleteCommentsBefore(Long groupId, Long taskId, Instant before) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+
+        Task task = taskRepository.findByIdWithParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        if (!task.getGroup().getId().equals(groupId)) {
+            throw new BusinessRuleException("Task does not belong to the group");
+        }
+
+        int deleted = taskCommentRepository.deleteByTaskIdAndCreatedAtBefore(taskId, before);
+
+        if (deleted > 0) {
+            long currentCount = taskCommentRepository.countByTask_Id(taskId);
+            task.setCommentCount(currentCount);
+            touchTaskChange(task, false, false, true);
+            taskRepository.save(task);
+        }
+
+        return deleted;
     }
 
     @Override
@@ -1357,6 +1433,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                     .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
                     .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
                     .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
+                    .downgradeShielded(group.getDowngradeShielded())
                     .build();
         }
 
@@ -1375,7 +1452,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                 .maxTasks(planLimits.maxTasksPerGroup(ownerPlan))
                 .maxMembers(planLimits.maxMembersPerGroup(ownerPlan))
                 .dailyDownloadCapEnabled(group.getDailyDownloadCapEnabled())
-                .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification());
+                .allowAssigneeEmailNotification(group.getAllowAssigneeEmailNotification())
+                .downgradeShielded(group.getDowngradeShielded());
 
         if (groupNoJoinsChanged) {
             var groupImgUrlConverted = (group.getImgUrl() == null || group.getImgUrl().isBlank())
@@ -1645,6 +1723,261 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return creatorMembership.isEmpty() ||
             (creatorMembership.get().getRole() != Role.GROUP_LEADER &&
              creatorMembership.get().getRole() != Role.TASK_MANAGER);
+    }
+
+    // ── Comment Intelligence ────────────────────────────────────
+
+    private Task findTaskInGroup(Long groupId, Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+        if (!task.getGroup().getId().equals(groupId)) {
+            throw new BusinessRuleException("Task does not belong to the group");
+        }
+        return task;
+    }
+
+    private User requireTeamsProLeader(Long groupId) {
+        User leader = findGroupLeader(groupId);
+        if (!planLimits.isPaidPro(leader.getSubscriptionPlan())) {
+            throw new LimitExceededException("Comment Intelligence requires TEAMS_PRO plan");
+        }
+        return leader;
+    }
+
+    private int computeCredits(TaskAnalysisSnapshot snapshot, AnalysisType type) {
+        return switch (type) {
+            case ANALYSIS_ONLY -> snapshot.getEstimatedAnalysisCredits()
+                                + snapshot.getEstimatedEgressCredits();
+            case SUMMARY_ONLY  -> snapshot.getEstimatedSummaryCredits()
+                                + snapshot.getEstimatedEgressCredits();
+            case FULL          -> snapshot.getEstimatedAnalysisCredits()
+                                + snapshot.getEstimatedSummaryCredits()
+                                + snapshot.getEstimatedEgressCredits();
+        };
+    }
+
+    @Override
+    public AnalysisEstimateDto getAnalysisEstimate(Long groupId, Long taskId) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        findTaskInGroup(groupId, taskId);
+        User leader = requireTeamsProLeader(groupId);
+
+        TaskAnalysisSnapshot snapshot = taskAnalysisService.estimateCredits(taskId);
+
+        int budgetUsed = leader.getUsedTaskAnalysisCreditsMonth();
+        int budgetMax = planLimits.taskAnalysisCreditsPerMonth(leader.getSubscriptionPlan());
+
+        return new AnalysisEstimateDto(snapshot, budgetUsed, budgetMax);
+    }
+
+    @Override
+    public int requestAnalysis(Long groupId, Long taskId, AnalysisType type) {
+        authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER, Role.TASK_MANAGER));
+        findTaskInGroup(groupId, taskId);
+        User leader = requireTeamsProLeader(groupId);
+
+        if (taskAnalysisService.hasActiveRequest(taskId)) {
+            throw new BusinessRuleException("Analysis already in progress for this task");
+        }
+
+        TaskAnalysisSnapshot snapshot = taskAnalysisService.estimateCredits(taskId);
+        int credits = computeCredits(snapshot, type);
+        if (credits <= 0) {
+            throw new BusinessRuleException("No comments to analyse");
+        }
+
+        int maxCredits = planLimits.taskAnalysisCreditsPerMonth(leader.getSubscriptionPlan());
+        int updated = userRepository.incrementTaskAnalysisCredits(leader.getId(), credits, maxCredits);
+        if (updated == 0) {
+            throw new LimitExceededException("Monthly analysis credit budget exceeded");
+        }
+
+        taskAnalysisService.enqueueAnalysis(taskId, groupId,
+                effectiveCurrentUser.getUserId(), type, credits);
+        return credits;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TaskAnalysisSnapshot getAnalysisSnapshot(Long groupId, Long taskId) {
+        checkMembership(groupId);
+        findTaskInGroup(groupId, taskId);
+        return taskAnalysisService.getSnapshot(taskId);
+    }
+
+    // ── File Gallery & Per-File Review ──────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GroupFileDto> getGroupFiles(Long groupId) {
+        authorizationService.requireAnyRoleIn(groupId);
+
+        Long currentUserId = effectiveCurrentUser.getUserId();
+        var membershipOpt = groupMembershipRepository.findByUser_IdAndGroup_Id(currentUserId, groupId);
+        boolean isLeaderOrManager = membershipOpt != null && (
+                membershipOpt.getRole() == Role.GROUP_LEADER ||
+                membershipOpt.getRole() == Role.TASK_MANAGER
+        );
+
+        List<TaskFile> creatorFiles = isLeaderOrManager
+                ? taskFileRepository.findAllByGroupId(groupId)
+                : taskFileRepository.findAllByGroupIdAndParticipant(groupId, currentUserId);
+
+        List<TaskAssigneeFile> assigneeFiles = isLeaderOrManager
+                ? taskAssigneeFileRepository.findAllByGroupId(groupId)
+                : taskAssigneeFileRepository.findAllByGroupIdAndParticipant(groupId, currentUserId);
+
+        // Batch-fetch reviews
+        Set<Long> cIds = creatorFiles.stream().map(TaskFile::getId).collect(Collectors.toSet());
+        Set<Long> aIds = assigneeFiles.stream().map(TaskAssigneeFile::getId).collect(Collectors.toSet());
+
+        Map<Long, List<FileReviewInfoDto>> reviewMap = buildReviewMap(cIds, aIds);
+
+        List<GroupFileDto> result = new ArrayList<>(creatorFiles.size() + assigneeFiles.size());
+
+        for (TaskFile f : creatorFiles) {
+            var task = f.getTask();
+            result.add(GroupFileDto.builder()
+                    .id(f.getId())
+                    .fileType("CREATOR")
+                    .name(f.getName())
+                    .fileSize(f.getFileSize())
+                    .uploadedByName(f.getUploadedBy() != null ? f.getUploadedBy().getName() : null)
+                    .uploadedById(f.getUploadedBy() != null ? f.getUploadedBy().getId() : null)
+                    .createdAt(f.getCreatedAt())
+                    .taskId(task.getId())
+                    .taskTitle(task.getTitle())
+                    .taskState(task.getTaskState() != null ? task.getTaskState().name() : null)
+                    .reviews(reviewMap.getOrDefault(f.getId(), List.of()))
+                    .build());
+        }
+        for (TaskAssigneeFile f : assigneeFiles) {
+            var task = f.getTask();
+            result.add(GroupFileDto.builder()
+                    .id(f.getId())
+                    .fileType("ASSIGNEE")
+                    .name(f.getName())
+                    .fileSize(f.getFileSize())
+                    .uploadedByName(f.getUploadedBy() != null ? f.getUploadedBy().getName() : null)
+                    .uploadedById(f.getUploadedBy() != null ? f.getUploadedBy().getId() : null)
+                    .createdAt(f.getCreatedAt())
+                    .taskId(task.getId())
+                    .taskTitle(task.getTitle())
+                    .taskState(task.getTaskState() != null ? task.getTaskState().name() : null)
+                    .reviews(reviewMap.getOrDefault(f.getId(), List.of()))
+                    .build());
+        }
+
+        return result;
+    }
+
+    @Override
+    public void reviewTaskFile(Long groupId, Long taskId, Long fileId,
+                               FileReviewDecision status, String note) {
+        Long userId = effectiveCurrentUser.getUserId();
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateFileReview(task, groupId, userId);
+
+        boolean fileExists = task.getCreatorFiles().stream().anyMatch(f -> f.getId().equals(fileId));
+        if (!fileExists) {
+            throw new TaskFileNotFoundException("Creator file not found in this task");
+        }
+
+        var existing = fileReviewStatusRepository.findByTaskFile_IdAndReviewer_Id(fileId, userId);
+        if (existing.isPresent()) {
+            var frs = existing.get();
+            frs.setStatus(status);
+            frs.setNote(note);
+            frs.setCreatedAt(Instant.now());
+            fileReviewStatusRepository.save(frs);
+        } else {
+            fileReviewStatusRepository.save(FileReviewStatus.builder()
+                    .taskFile(taskFileRepository.getReferenceById(fileId))
+                    .reviewer(userRepository.getReferenceById(userId))
+                    .status(status)
+                    .note(note)
+                    .build());
+        }
+    }
+
+    @Override
+    public void reviewAssigneeFile(Long groupId, Long taskId, Long fileId,
+                                   FileReviewDecision status, String note) {
+        Long userId = effectiveCurrentUser.getUserId();
+        var task = taskRepository.findByIdWithFullFetchParticipantsAndFiles(taskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task with id " + taskId + " is not found"));
+
+        groupValidator.validateFileReview(task, groupId, userId);
+
+        boolean fileExists = task.getAssigneeFiles().stream().anyMatch(f -> f.getId().equals(fileId));
+        if (!fileExists) {
+            throw new TaskFileNotFoundException("Assignee file not found in this task");
+        }
+
+        var existing = fileReviewStatusRepository.findByTaskAssigneeFile_IdAndReviewer_Id(fileId, userId);
+        if (existing.isPresent()) {
+            var frs = existing.get();
+            frs.setStatus(status);
+            frs.setNote(note);
+            frs.setCreatedAt(Instant.now());
+            fileReviewStatusRepository.save(frs);
+        } else {
+            fileReviewStatusRepository.save(FileReviewStatus.builder()
+                    .taskAssigneeFile(taskAssigneeFileRepository.getReferenceById(fileId))
+                    .reviewer(userRepository.getReferenceById(userId))
+                    .status(status)
+                    .note(note)
+                    .build());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, List<FileReviewInfoDto>> getFileReviews(Set<Long> creatorFileIds, Set<Long> assigneeFileIds) {
+        return buildReviewMap(creatorFileIds, assigneeFileIds);
+    }
+
+    private Map<Long, List<FileReviewInfoDto>> buildReviewMap(Set<Long> creatorFileIds, Set<Long> assigneeFileIds) {
+        Map<Long, List<FileReviewInfoDto>> map = new HashMap<>();
+
+        if (!creatorFileIds.isEmpty()) {
+            for (FileReviewStatus frs : fileReviewStatusRepository.findByTaskFileIdIn(creatorFileIds)) {
+                map.computeIfAbsent(frs.getTaskFile().getId(), k -> new ArrayList<>())
+                        .add(new FileReviewInfoDto(
+                                frs.getStatus(),
+                                frs.getNote(),
+                                frs.getReviewer().getName(),
+                                frs.getReviewer().getId(),
+                                frs.getCreatedAt()));
+            }
+        }
+        if (!assigneeFileIds.isEmpty()) {
+            for (FileReviewStatus frs : fileReviewStatusRepository.findByTaskAssigneeFileIdIn(assigneeFileIds)) {
+                map.computeIfAbsent(frs.getTaskAssigneeFile().getId(), k -> new ArrayList<>())
+                        .add(new FileReviewInfoDto(
+                                frs.getStatus(),
+                                frs.getNote(),
+                                frs.getReviewer().getName(),
+                                frs.getReviewer().getId(),
+                                frs.getCreatedAt()));
+            }
+        }
+        return map;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EffectiveFileLimitsDto resolveEffectiveFileLimits(Long groupId, Task task) {
+        User leader = findGroupLeader(groupId);
+        SubscriptionPlan plan = leader.getSubscriptionPlan();
+        Group group = task.getGroup();
+        return new EffectiveFileLimitsDto(
+                resolveMaxCreatorFiles(task, group, plan),
+                resolveMaxAssigneeFiles(task, group, plan),
+                resolveMaxFileSizeBytes(task, group, plan)
+        );
     }
 
 }

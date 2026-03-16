@@ -34,4 +34,7 @@ public class AdminUserResource extends BaseOutboundResource {
     private Long downloadBudgetBytes;
     private Integer emailsPerMonth;
     private Integer imageScansPerMonth;
+    private Integer usedTaskAnalysisCreditsMonth;
+    /** Populated at the controller level — monthly analysis credit cap for this plan. */
+    private Integer taskAnalysisCreditsPerMonth;
 }

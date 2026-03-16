@@ -7,6 +7,7 @@ import io.github.balasis.taskmanager.maintenance.service.AcrCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.AssetCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.BlobCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.DatabaseCleanupService;
+import io.github.balasis.taskmanager.maintenance.service.DowngradeCleanupService;
 import io.github.balasis.taskmanager.maintenance.service.UserCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -22,6 +23,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
     private final UserCleanupService userCleanupService;
     private final AssetCleanerService assetCleanerService;
     private final DatabaseCleanupService databaseCleanupService;
+    private final DowngradeCleanupService downgradeCleanupService;
     private final AcrCleanerService acrCleanerService;
     private final MaintenanceRepository maintenanceRepository;
 
@@ -31,6 +33,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
             UserCleanupService userCleanupService,
             AssetCleanerService assetCleanerService,
             DatabaseCleanupService databaseCleanupService,
+            DowngradeCleanupService downgradeCleanupService,
             MaintenanceRepository maintenanceRepository,
             @Autowired(required = false) AcrCleanerService acrCleanerService
     ) {
@@ -38,6 +41,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         this.userCleanupService = userCleanupService;
         this.assetCleanerService = assetCleanerService;
         this.databaseCleanupService = databaseCleanupService;
+        this.downgradeCleanupService = downgradeCleanupService;
         this.maintenanceRepository = maintenanceRepository;
         this.acrCleanerService = acrCleanerService;
     }
@@ -102,8 +106,10 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         int reconciled = maintenanceRepository.reconcileStorageBudgets();
         logger.info("Reconciled storage budgets for {} user(s).", reconciled);
 
+        downgradeCleanupService.cleanGraceExpiredUsers();
+
         int monthlyReset = maintenanceRepository.resetMonthlyBudgets();
-        logger.info("Reset monthly download + email counters for {} user(s).", monthlyReset);
+        logger.info("Reset monthly download, email, and analysis-credit counters for {} user(s).", monthlyReset);
 
         if (acrCleanerService != null) {
             acrCleanerService.cleanOldImages();

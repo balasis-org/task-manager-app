@@ -11,7 +11,6 @@ import io.github.balasis.taskmanager.context.base.exception.critical.CriticalBlo
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
 import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
 import io.github.balasis.taskmanager.engine.infrastructure.image.ImageResizeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,16 +28,13 @@ public class BlobStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(BlobStorageService.class);
 
-    private final ContentSafetyService contentSafetyService;
     private final ImageResizeService imageResizeService;
 
     private final Map<BlobContainerType, BlobContainerClient> containers =
             new EnumMap<>(BlobContainerType.class);
 
     public BlobStorageService(BlobServiceClient blobServiceClient,
-                              ContentSafetyService contentSafetyService,
                               ImageResizeService imageResizeService) {
-        this.contentSafetyService = contentSafetyService;
         this.imageResizeService = imageResizeService;
 
         for (BlobContainerType type : BlobContainerType.values()) {
@@ -77,14 +73,12 @@ public class BlobStorageService {
     public String uploadProfileImage(MultipartFile file, Long prefixId){
         validateImageFormat(file);
         byte[] resized = imageResizeService.resize(file, ImageResizeService.PROFILE_SIZE);
-        assertContentSafety(resized);
         return uploadBytes(BlobContainerType.PROFILE_IMAGES, resized, prefixId, file.getOriginalFilename());
     }
 
     public String uploadGroupImage(MultipartFile file, Long prefixId){
         validateImageFormat(file);
         byte[] resized = imageResizeService.resize(file, ImageResizeService.GROUP_SIZE);
-        assertContentSafety(resized);
         return uploadBytes(BlobContainerType.GROUP_IMAGES, resized, prefixId, file.getOriginalFilename());
     }
 
@@ -226,10 +220,18 @@ public class BlobStorageService {
         }
     }
 
-    private void assertContentSafety(byte[] imageBytes) {
-        if (!contentSafetyService.isSafe(new ByteArrayInputStream(imageBytes))) {
-            throw new BlobUploadImageException("Image failed content safety check (potential adult content)");
-        }
+    /**
+     * Downloads the raw blob bytes for the moderation drainer to scan.
+     * Returns null if the blob doesn't exist (already deleted).
+     */
+    public byte[] downloadBlobBytes(String entityType, String blobName) {
+        BlobContainerType type = "USER".equals(entityType)
+                ? BlobContainerType.PROFILE_IMAGES
+                : BlobContainerType.GROUP_IMAGES;
+        BlobContainerClient container = containers.get(type);
+        BlobClient blobClient = container.getBlobClient(blobName);
+        if (!blobClient.exists()) return null;
+        return blobClient.downloadContent().toBytes();
     }
 
     private String uploadBytes(BlobContainerType type, byte[] data, Long prefixId, String originalFilename) {

@@ -22,6 +22,7 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
     @Mapping(target = "maxMembersPerGroup", ignore = true)
     @Mapping(target = "imageScansPerMonth", ignore = true)
     @Mapping(target = "emailsPerMonth", ignore = true)
+    @Mapping(target = "taskAnalysisCreditsPerMonth", ignore = true)
     UserOutboundResource toResource(User user);
 
     @Named("convertUserImgUrl")

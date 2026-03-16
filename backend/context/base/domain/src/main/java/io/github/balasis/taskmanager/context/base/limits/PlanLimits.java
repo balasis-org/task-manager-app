@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * they call methods here and get back a number.
  *
  * <p>Tier pricing (informational, not enforced here):
- * FREE = $0, STUDENT = $1.90/mo, ORGANIZER = $6.20/mo, TEAM = $10/mo
+ * FREE = €0, STUDENT = €1.90/mo, ORGANIZER = €6.20/mo, TEAM = €10/mo, TEAMS_PRO = €20/mo
  */
 @Component
 public class PlanLimits {
@@ -37,6 +37,7 @@ public class PlanLimits {
             case STUDENT   -> 5;
             case ORGANIZER -> 10;
             case TEAM      -> 15;
+            case TEAMS_PRO -> 15;
         };
     }
 
@@ -48,6 +49,7 @@ public class PlanLimits {
             case STUDENT   -> 20;
             case ORGANIZER -> 30;
             case TEAM      -> 50;
+            case TEAMS_PRO -> 50;
         };
     }
 
@@ -59,6 +61,7 @@ public class PlanLimits {
             case STUDENT   -> 100;
             case ORGANIZER -> 300;
             case TEAM      -> 500;
+            case TEAMS_PRO -> 500;
         };
     }
 
@@ -67,18 +70,20 @@ public class PlanLimits {
     public int maxCreatorFilesPerTask(SubscriptionPlan plan) {
         return switch (plan) {
             case FREE      -> 1;
-            case STUDENT   -> 3;
-            case ORGANIZER -> 5;
-            case TEAM      -> 5;
+            case STUDENT   -> 5;
+            case ORGANIZER -> 8;
+            case TEAM      -> 8;
+            case TEAMS_PRO -> 10;
         };
     }
 
     public int maxAssigneeFilesPerTask(SubscriptionPlan plan) {
         return switch (plan) {
-            case FREE      -> 1;
-            case STUDENT   -> 3;
-            case ORGANIZER -> 5;
-            case TEAM      -> 5;
+            case FREE      -> 2;
+            case STUDENT   -> 5;
+            case ORGANIZER -> 8;
+            case TEAM      -> 8;
+            case TEAMS_PRO -> 10;
         };
     }
 
@@ -95,21 +100,25 @@ public class PlanLimits {
             case STUDENT   -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
             case ORGANIZER -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
             case TEAM      -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
+            case TEAMS_PRO -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
         };
     }
 
-    // ── storage budget (bytes, 0 = no budget tracking) ──────────
+    // ── storage budget (bytes) ────────────────────────────────
 
     /**
      * Total bytes the group-leader may store across every group they own.
-     * FREE tier returns 0 — no budget tracking; only hard per-task limits.
+     * FREE gets 100 MB — enough for normal use but well below STUDENT (500 MB),
+     * keeping the tier ladder monotonic.  Per-file (5 MB) and per-task (1)
+     * limits further constrain individual uploads.
      */
     public long storageBudgetBytes(SubscriptionPlan plan) {
         return switch (plan) {
-            case FREE      -> 0;
+            case FREE      -> 100L * 1024 * 1024;          // 100 MB
             case STUDENT   -> 500L  * 1024 * 1024;       // 500 MB
             case ORGANIZER -> 2L    * 1024 * 1024 * 1024; //   2 GB
             case TEAM      -> 5L    * 1024 * 1024 * 1024; //   5 GB
+            case TEAMS_PRO -> 5L    * 1024 * 1024 * 1024; //   5 GB
         };
     }
 
@@ -126,6 +135,7 @@ public class PlanLimits {
             case STUDENT   -> 4L    * 1024 * 1024 * 1024; //    4 GB
             case ORGANIZER -> 25L   * 1024 * 1024 * 1024; //   25 GB
             case TEAM      -> 50L   * 1024 * 1024 * 1024; //   50 GB
+            case TEAMS_PRO -> 50L   * 1024 * 1024 * 1024; //   50 GB
         };
     }
 
@@ -144,6 +154,7 @@ public class PlanLimits {
             case STUDENT   -> 0;
             case ORGANIZER -> 150;
             case TEAM      -> 10_000;
+            case TEAMS_PRO -> 10_000;
         };
     }
 
@@ -159,6 +170,7 @@ public class PlanLimits {
             case STUDENT   -> 12;
             case ORGANIZER -> 20;
             case TEAM      -> 30;
+            case TEAMS_PRO -> 30;
         };
     }
 
@@ -175,6 +187,7 @@ public class PlanLimits {
             case STUDENT   ->  60_000;  //  1 min
             case ORGANIZER ->  90_000;  //  1.5 min
             case TEAM      -> 120_000;  //  2 min
+            case TEAMS_PRO -> 120_000;  //  2 min
         };
     }
 
@@ -208,6 +221,25 @@ public class PlanLimits {
             case STUDENT   -> 50;
             case ORGANIZER -> 100;
             case TEAM      -> 150;
+            case TEAMS_PRO -> 150;
         };
+    }
+
+    // ── monthly task-analysis credit budget ──────────────────────
+
+    public int taskAnalysisCreditsPerMonth(SubscriptionPlan plan) {
+        return switch (plan) {
+            case FREE      -> 0;
+            case STUDENT   -> 0;
+            case ORGANIZER -> 0;
+            case TEAM      -> 0;
+            case TEAMS_PRO -> 8_000;
+        };
+    }
+
+    // ── helpers: pro-tier check ─────────────────────────────────
+
+    public boolean isPaidPro(SubscriptionPlan plan) {
+        return plan == SubscriptionPlan.TEAMS_PRO;
     }
 }

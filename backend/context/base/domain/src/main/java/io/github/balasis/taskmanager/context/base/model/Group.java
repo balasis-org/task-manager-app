@@ -94,6 +94,10 @@ public class Group extends BaseModel{
     @Builder.Default
     private Boolean dailyDownloadCapEnabled = true;
 
+    @Column
+    @Builder.Default
+    private Boolean downgradeShielded = false;
+
     @PrePersist
     protected void onCreate(){
         createdAt = Instant.now();

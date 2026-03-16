@@ -42,6 +42,7 @@ public class UserController extends BaseComponent {
         resource.setMaxMembersPerGroup(planLimits.maxMembersPerGroup(me.getSubscriptionPlan()));
         resource.setImageScansPerMonth(planLimits.imageScansPerMonth(me.getSubscriptionPlan()));
         resource.setEmailsPerMonth(planLimits.emailQuotaPerMonth(me.getSubscriptionPlan()));
+        resource.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(me.getSubscriptionPlan()));
         return ResponseEntity.ok(resource);
     }
 
@@ -71,6 +72,7 @@ public class UserController extends BaseComponent {
         resource.setMaxMembersPerGroup(planLimits.maxMembersPerGroup(patched.getSubscriptionPlan()));
         resource.setImageScansPerMonth(planLimits.imageScansPerMonth(patched.getSubscriptionPlan()));
         resource.setEmailsPerMonth(planLimits.emailQuotaPerMonth(patched.getSubscriptionPlan()));
+        resource.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(patched.getSubscriptionPlan()));
         return ResponseEntity.ok(resource);
     }
 

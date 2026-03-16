@@ -22,4 +22,5 @@ public class GroupOutboundResource extends BaseOutboundResource {
     private Instant lastGroupEventDate;
     private Boolean allowEmailNotification;
     private Boolean allowAssigneeEmailNotification;
+    private Boolean downgradeShielded;
 }

@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+
 @Getter
 @Setter
 @ToString
@@ -27,4 +31,20 @@ public class TaskAssigneeFile extends BaseModel {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id")
     private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploadedById")
+    private User uploadedBy;
+
+    @OneToMany(mappedBy = "taskAssigneeFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<FileReviewStatus> fileReviewStatuses = new HashSet<>();
+
+    @Column
+    private Instant createdAt;
+
+    @PrePersist
+    void defaults() {
+        if (createdAt == null) createdAt = Instant.now();
+    }
 }

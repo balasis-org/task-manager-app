@@ -174,6 +174,7 @@ public class AdminController extends BaseComponent {
         r.setDownloadBudgetBytes(planLimits.downloadBudgetBytes(user.getSubscriptionPlan()));
         r.setEmailsPerMonth(planLimits.emailQuotaPerMonth(user.getSubscriptionPlan()));
         r.setImageScansPerMonth(planLimits.imageScansPerMonth(user.getSubscriptionPlan()));
+        r.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(user.getSubscriptionPlan()));
         return r;
     }
 }

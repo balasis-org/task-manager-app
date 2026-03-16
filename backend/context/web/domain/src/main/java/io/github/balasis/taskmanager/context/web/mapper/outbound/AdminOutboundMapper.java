@@ -18,6 +18,7 @@ public interface AdminOutboundMapper {
     @Mapping(target = "downloadBudgetBytes", ignore = true)
     @Mapping(target = "emailsPerMonth", ignore = true)
     @Mapping(target = "imageScansPerMonth", ignore = true)
+    @Mapping(target = "taskAnalysisCreditsPerMonth", ignore = true)
     AdminUserResource toUserResource(User user);
 
     @Named("groupList")

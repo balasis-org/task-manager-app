@@ -9,6 +9,9 @@ import org.mapstruct.Mapper;
 public interface TaskOutboundMapper extends BaseOutboundMapper<Task, TaskOutboundResource> {
 
     @Mapping(source = "creatorFiles", target = "files")
+    @Mapping(target = "effectiveMaxCreatorFiles", ignore = true)
+    @Mapping(target = "effectiveMaxAssigneeFiles", ignore = true)
+    @Mapping(target = "effectiveMaxFileSizeBytes", ignore = true)
     TaskOutboundResource toResource(Task task);
 
 }
