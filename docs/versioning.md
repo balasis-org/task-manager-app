@@ -240,6 +240,8 @@ No consequences to consistency since any other module existing before v0.5 was j
 
 ### v0.9.0 — AI Comment Intelligence, per-file review, per-task file limits and queue architecture
 - Date: 2026-03-16
+- Tag object: `e9f5102870c99a3f66d9b54f7e3f5a881a64713d` (annotated)
+- Tag target (commit): `25f99081d756b644fb53908d0cd008d682eeeda0`
 - Highlights:
 
     **AI Comment Intelligence (TEAMS_PRO exclusive):**
