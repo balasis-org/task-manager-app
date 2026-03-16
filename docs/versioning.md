@@ -153,7 +153,7 @@ No consequences to consistency since any other module existing before v0.5 was j
 - Highlights:
 
     **Infrastructure-as-Code:**
-    - `main.bicep` (1,374 lines) provisioning all 15 Azure PaaS resources from a single template.
+    - `main.bicep` (1,374 lines) provisioning all 16 Azure PaaS resources from a single template.
     - `deploy-infra.yml` — manual-trigger GitHub Actions workflow with what-if/deploy modes. Writes generated resource names (ACR, App Service, Storage, Front Door) back to GitHub Environment variables via GH CLI.
     - `.bicepparam` files for production, arena-stress, and arena-security environments.
     - PowerShell fallback scripts (`ps1-az-scripts/`) with `.env`-based SP authentication.
@@ -172,7 +172,7 @@ No consequences to consistency since any other module existing before v0.5 was j
     - Shared test infrastructure: `config.js`, `http-helpers.js`, `test-logger.js`.
 
     **Cost engineering & subscription tiers:**
-    - `PlanLimits` four-tier system (FREE / STUDENT / ORGANIZER / TEAM) with atomic SQL budget enforcement for storage, downloads, email, and Content Safety.
+    - `PlanLimits` five-tier system (FREE / STUDENT / ORGANIZER / TEAM / TEAMS_PRO) with atomic SQL budget enforcement for storage, downloads, email, Content Safety, and AI analysis.
     - Five Flyway migrations (V3–V7): constraints, subscription columns, download budget, image scan budget, notification flag.
     - `DownloadGate` concurrency limiter (3 concurrent streams per user), `DownloadGuardService` (re-download throttle), `ImageChangeLimiterService` (burst limiter).
     - Owner-bears-cost model: all budget operations charge the group leader's account.
@@ -237,6 +237,59 @@ No consequences to consistency since any other module existing before v0.5 was j
     - Auth app registration guide: single-tenant vs multi-tenant rationale clarified.
     - Markdown guides restructured for IaC setup documentation.
     - Contracts POM module description added.
+
+### v0.9.0 — AI Comment Intelligence, per-file review, per-task file limits and queue architecture
+- Date: 2026-03-15
+- Highlights:
+
+    **AI Comment Intelligence (TEAMS_PRO exclusive):**
+    - Full Azure AI Language integration: sentiment analysis, key phrase extraction, PII detection, abstractive summarisation.
+    - `TextAnalyticsService` + `TextAnalyticsServiceImpl`: batched `analyzeBatch` calls (groups of 25 documents), three profile-driven configs (`TextAnalyticsProdConfig`, `TextAnalyticsDevConfig`, `NoOpTextAnalyticsConfig`).
+    - `TaskAnalysisService` interface + `JpaTaskAnalysisService`: credit estimation (`commentCount × 3 + ⌈chars/5120⌉`), enqueue/dequeue lifecycle, snapshot persistence.
+    - `CommentAnalysisDrainer`: scheduled worker drains analysis queue under Redis distributed lock (`CommentAnalysisLockService`).
+    - New entities: `TaskAnalysisRequest` (tracks type, credit cost, status), `TaskAnalysisSnapshot` (stores results — sentiment, key phrases, PII findings, summary).
+    - New enums: `AnalysisType` (FULL/QUICK), `OverallSentiment`.
+    - `AnalysisPanel.jsx` frontend component with credit estimate preview and result display.
+    - Atomic credit enforcement via `PlanLimits.maxTaskAnalysisCreditsPerMonth` (8,000 for TEAMS_PRO, 0 for all others).
+
+    **Asynchronous queue architecture (email + image moderation):**
+    - `EmailQueueService` interface + `JpaEmailQueueService`: email dispatch decoupled from request handling via `EmailOutbox` entity.
+    - `EmailQueueDrainer`: scheduled worker respects ACS rate limits (30/min, 100/hour), Redis distributed lock (`EmailDrainLockService`).
+    - `ImageModerationService` interface + `JpaImageModerationService`: Content Safety scanning via `ImageModerationQueue` entity.
+    - `ImageModerationDrainer`: batched scanning (5 images/10 seconds), Redis lock (`ImageModerationLockService`).
+    - Flyway V8 (`email_outbox` table) and V9 (`image_moderation_queue` table).
+    - `ModerationResult` record for structured scan results with severity thresholds.
+    - `NoOpEmailConfig` and `NoOpContentSafetyConfig` for arena/dev profiles.
+
+    **Per-file review system:**
+    - `FileReviewStatus` entity (N→1 TaskFile or TaskAssigneeFile, N→1 User reviewer) with `FileReviewDecision` enum (APPROVED/NEEDS_REVISION/REJECTED).
+    - `FileReviewStatusRepository` with queries for per-task and per-file review state.
+    - `FileReviewInfoDto` for structured review data in task responses.
+    - Flyway V10 (`file_review_and_metadata` — review table, file metadata columns).
+
+    **Per-task file limit overrides:**
+    - `EffectiveFileLimitsDto` record: resolved limits after three-level cascade (task override → group → plan default, can only tighten).
+    - Nullable `maxCreatorFiles`, `maxAssigneeFiles`, `maxFileSizeBytes` columns on Task inbound/outbound DTOs.
+    - `resolveEffectiveFileLimits()` in `GroupService` — `Math.min` tightening logic.
+    - Frontend: `NewTaskPopup` exposes file limit controls (disabled + tier badge for FREE), `Task.jsx` enforces effective limits from API response.
+
+    **Group File Gallery:**
+    - `GroupFiles.jsx` — aggregated file view across all tasks in a group, with per-file review indicators.
+    - `GroupFileDto` — flattened DTO combining file metadata, task context, and review state.
+
+    **Backend refinements:**
+    - `AccountBanInterceptor` — pre-handle interceptor for banned-user enforcement.
+    - `PiiDetector` utility for client-side PII masking preview.
+    - `PlanLimits` expanded: `maxCreatorFilesPerTask`, `maxAssigneeFilesPerTask`, `maxFileSizeBytes` per tier (FREE: 1/2/5MB, STUDENT: 5/5/100MB, ORGANIZER: 8/8/100MB, TEAM: 8/8/100MB, TEAMS_PRO: 10/10/100MB).
+    - `GroupServiceImpl` expanded with file review endpoints, group file gallery queries, and per-task limit resolution.
+    - `DowngradeCleanupService` in maintenance module — grace-period file removal on plan downgrade.
+
+    **Frontend UX:**
+    - Tier badges and greyed-out controls on FREE-restricted features (file limit sliders, AI panel) as visual upgrade prompts.
+    - `TierUpgradePopup` updated with per-task file limit tier comparison.
+    - `TermsOfService` updated with current tier allocations.
+
+
 ---
 
 ## Notes
