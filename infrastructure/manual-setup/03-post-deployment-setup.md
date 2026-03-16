@@ -8,7 +8,7 @@
 
 ## Step 1 — Seed Key Vault Secrets
 
-The Key Vault has 19 secrets total: **11 auto-populated by Bicep** (DB connection string, blob keys, Redis, Content Safety, ACS endpoints x2, App Insights) and **8 that you add manually**:
+The Key Vault has 20 secrets total: **12 auto-populated by Bicep** (DB connection string, blob keys, Redis, Content Safety, Text Analytics, ACS endpoints x2, App Insights) and **8 that you add manually**:
 
 ### Option A: Azure Portal
 
@@ -193,7 +193,7 @@ az storage blob upload-batch \
 
 After completing this guide, verify:
 
-- [ ] Key Vault shows 19 secrets (11 auto + 8 manual)
+- [ ] Key Vault shows 20 secrets (12 auto + 8 manual)
 - [ ] Front Door CNAME resolves (`nslookup www.myteamtasks.net` → azurefd.net)
 - [ ] Front Door managed TLS certificate is provisioned (check Azure Portal)
 - [ ] ACS email custom domain shows as Verified (if configured)

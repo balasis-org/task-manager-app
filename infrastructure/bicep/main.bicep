@@ -1,5 +1,5 @@
 // main.bicep — MyTeamTasks Azure Infrastructure
-// Phase 1: Base (identity, monitoring, storage, SQL, Redis, KV, ACR, Content Safety, ACS, RBAC)
+// Phase 1: Base (identity, monitoring, storage, SQL, Redis, KV, ACR, Content Safety, Text Analytics, ACS, RBAC)
 // Phase 2: Compute (App Service Plan, Web App, Container App Jobs)
 // Phase 3: Front Door (WAF, routes, rule sets)
 
@@ -8,8 +8,8 @@
 @description('Primary Azure region')
 param location string
 
-@description('Region for Content Safety (limited regional availability)')
-param contentSafetyLocation string = 'westeurope'
+@description('Region for Cognitive Services — Content Safety + Text Analytics (limited regional availability)')
+param cognitiveServicesLocation string = 'westeurope'
 
 @description('Project name used as prefix for resource names')
 param projectName string
@@ -344,6 +344,14 @@ resource kvSecretContentSafetyEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-0
   }
 }
 
+resource kvSecretTextAnalyticsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'TASKMANAGER-TEXT-ANALYTICS-ENDPOINT'
+  properties: {
+    value: textAnalytics.properties.endpoint
+  }
+}
+
 resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'TASKMANAGER-ACS-ENDPOINT'
@@ -394,11 +402,26 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
 
 resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
   name: '${projectName}-contentsafety'
-  location: contentSafetyLocation
+  location: cognitiveServicesLocation
   tags: tags
   kind: 'ContentSafety'
   sku: {
     name: 'S0'
+  }
+  properties: {
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+// 9b. Text Analytics (Comment Intelligence — sentiment, key phrases, PII, summarisation) — West Europe
+
+resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
+  name: '${projectName}-textanalytics'
+  location: cognitiveServicesLocation
+  tags: tags
+  kind: 'TextAnalytics'
+  sku: {
+    name: 'S'
   }
   properties: {
     publicNetworkAccess: 'Enabled'
@@ -499,10 +522,21 @@ resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Cognitive Services User — image moderation
+// Cognitive Services User — image moderation (Content Safety)
 resource csRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: contentSafety
   name: guid(contentSafety.id, managedIdentity.id, 'CognitiveServicesUser')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services User — comment analysis (Text Analytics / AI Language)
+resource taRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: textAnalytics
+  name: guid(textAnalytics.id, managedIdentity.id, 'CognitiveServicesUser')
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
     principalId: managedIdentity.properties.principalId
