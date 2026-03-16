@@ -62,7 +62,7 @@ export default function NtFileSection({ files, onFilesChange, onError, maxFiles,
                         return (
                             <span key={i} className="popup-chip" title={f.name}>
                                 <Icon size={12} />
-                                {f.name}
+                                <span className="popup-chip-name">{f.name}</span>
                                 <button type="button" className="popup-chip-rm" onClick={() => removeFile(i)}>
                                     <FiX size={10} />
                                 </button>

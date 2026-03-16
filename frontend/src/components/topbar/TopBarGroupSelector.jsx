@@ -21,7 +21,7 @@ export default function TopBarGroupSelector({
 
     const maxGroups = user?.maxGroups ?? Infinity;
     const atCap = groups.length >= maxGroups;
-    const isMaxTier = user?.subscriptionPlan === "TEAM";
+    const isMaxTier = user?.subscriptionPlan === "TEAMS_PRO";
 
     useEffect(() => {
         function handleClick(e) {

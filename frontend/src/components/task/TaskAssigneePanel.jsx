@@ -1,6 +1,7 @@
 // Assignee list + picker. Shares participant styles with TaskReviewPanel.
 import { FiPlus, FiX, FiMail } from "react-icons/fi";
 import userImg from "@assets/js/userImg";
+import { formatRole } from "@assets/js/formatLabel";
 
 export default function TaskAssigneePanel({
     assignees, eligibleAssignees, showPicker, onTogglePicker,
@@ -47,7 +48,7 @@ export default function TaskAssigneePanel({
                                 <img src={userImg(m.user, blobUrl)} alt="" className="task-participant-img" />
                                 <span className={`task-presence-dot picker-dot${onlineSet.has(m.user?.id) ? " online" : ""}`} />
                                 <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
-                                <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
+                                <span className="task-participant-role-tag">{formatRole(m.role)}</span>
                             </div>
                         ))
                     )}

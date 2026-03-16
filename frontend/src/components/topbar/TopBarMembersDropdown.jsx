@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import { FiUsers, FiPlus, FiSearch } from "react-icons/fi";
 import { useBlobUrl } from "@context/BlobSasContext";
+import { formatRole } from "@assets/js/formatLabel";
 import MemberDetailPopup from "@components/popups/MemberDetailPopup";
 import "@styles/topbar/TopBarMembersDropdown.css";
 
@@ -102,12 +103,12 @@ export default function TopBarMembersDropdown({
                                             src={(m.user?.imgUrl) ? blobUrl(m.user.imgUrl) : (m.user?.defaultImgUrl)
                                                 ? blobUrl(m.user.defaultImgUrl) : ""}
                                             alt=""
-                                            className="topbar-member-img"
+                                            className={`topbar-member-img tier-ring-${m.user?.subscriptionPlan || 'FREE'}`}
                                         />
                                         <span className="topbar-member-name">{m.user?.name || m.user?.email}</span>
                                         {m.user?.sameOrg && <span className="topbar-org-badge" title="Same organisation">ORG</span>}
                                         <span className="topbar-member-role">
-                                            {m.role}
+                                            {formatRole(m.role)}
                                         </span>
                                     </div>
                                 ))

@@ -46,6 +46,12 @@
     background: var(--bg-secondary, #f8f9fa);
 }
 
+.presence-avatar.tier-ring-FREE       { border-color: var(--tier-FREE); }
+.presence-avatar.tier-ring-STUDENT    { border-color: var(--tier-STUDENT); }
+.presence-avatar.tier-ring-ORGANIZER  { border-color: var(--tier-ORGANIZER); }
+.presence-avatar.tier-ring-TEAM       { border-color: var(--tier-TEAM); }
+.presence-avatar.tier-ring-TEAMS_PRO  { border-color: var(--tier-TEAMS_PRO); }
+
 .presence-dot {
     position: absolute;
     bottom: -1px;

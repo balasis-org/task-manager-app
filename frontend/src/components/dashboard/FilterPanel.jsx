@@ -8,7 +8,7 @@ const PRIORITY_MAX = 10; // TODO: pull from backend config if it ever becomes dy
 
 const STATE_OPTIONS = [
     { value: "", label: "Any" },
-    { value: "TODO", label: "TODO" },
+    { value: "TODO", label: "To do" },
     { value: "IN_PROGRESS", label: "In progress" },
     { value: "TO_BE_REVIEWED", label: "To be reviewed" },
     { value: "DONE", label: "Done" },

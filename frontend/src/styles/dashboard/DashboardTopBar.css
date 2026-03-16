@@ -370,7 +370,15 @@
     border-radius: 50%;
     object-fit: cover;
     background: var(--border-primary);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
 }
+
+.topbar-member-img.tier-ring-FREE       { border-color: var(--tier-FREE); }
+.topbar-member-img.tier-ring-STUDENT    { border-color: var(--tier-STUDENT); }
+.topbar-member-img.tier-ring-ORGANIZER  { border-color: var(--tier-ORGANIZER); }
+.topbar-member-img.tier-ring-TEAM       { border-color: var(--tier-TEAM); }
+.topbar-member-img.tier-ring-TEAMS_PRO  { border-color: var(--tier-TEAMS_PRO); }
 
 .topbar-member-role {
     margin-left: auto;

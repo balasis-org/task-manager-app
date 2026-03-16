@@ -14,7 +14,7 @@
     height: 2.25em;
     border-radius: 50%;
     object-fit: cover;
-    background: #ddd;
+    background: var(--bg-secondary);
     border: 0.06em solid var(--border-input);
     flex-shrink: 0;
 }
@@ -107,12 +107,12 @@
 }
 
 .comment-action-btn:hover {
-    background: #eee;
+    background: var(--bg-hover);
     color: var(--text-primary);
 }
 
 .comment-action-btn.danger:hover {
-    background: #ffe0e0;
+    background: var(--danger-bg);
     color: var(--danger);
 }
 
@@ -188,6 +188,26 @@
 
 .btn-save-edit:hover {
     background: var(--accent-primary-hover);
+}
+
+.comment-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.comment-pii-badge {
+    display: inline-block;
+    font-size: 0.62em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #b45309;
+    background: #fef3c7;
+    border: 0.06em solid #fcd34d;
+    border-radius: 0.25em;
+    padding: 0.1em 0.4em;
+    line-height: 1;
+    cursor: default;
 }
 
 @media (max-width: 48em) {

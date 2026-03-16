@@ -66,7 +66,7 @@
 }
 
 .gs-save-btn:hover:not(:disabled) {
-    background: #333;
+    background: var(--text-heading-alt);
 }
 
 .gs-save-btn:disabled {
@@ -126,7 +126,7 @@
     padding: 0.625em 0.75em;
     border: 0.06em dashed var(--danger);
     border-radius: 0.375em;
-    background: #fff5f5;
+    background: var(--danger-bg);
     font-size: 0.81em;
     color: var(--text-primary);
     animation: fadeSlide 0.2s ease;

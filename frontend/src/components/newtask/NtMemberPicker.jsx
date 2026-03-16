@@ -1,6 +1,7 @@
 // Chip-style picker, reused for both reviewers and assignees in the new-task form
 import { FiX, FiSearch } from "react-icons/fi";
 import userImg from "@assets/js/userImg";
+import { formatRole } from "@assets/js/formatLabel";
 import "@styles/newtask/NtMemberPicker.css";
 
 export default function NtMemberPicker({
@@ -48,7 +49,7 @@ export default function NtMemberPicker({
                         <div key={m.user?.id} className="popup-picker-item" onClick={() => onAdd(m)}>
                             <img src={userImg(m.user, blobUrl)} alt="" className="popup-search-img" />
                             <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
-                            <span className="popup-picker-role">{m.role.replace(/_/g, " ")}</span>
+                            <span className="popup-picker-role">{formatRole(m.role)}</span>
                         </div>
                     ))}
                 </div>

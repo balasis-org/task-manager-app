@@ -158,3 +158,96 @@
     color: var(--text-muted);
     white-space: nowrap;
 }
+
+/* ── Per-file review badges ─────────────────────── */
+
+.file-review-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.1em 0.4em;
+    border-radius: 0.3em;
+    white-space: nowrap;
+}
+
+.badge-checked {
+    background: var(--success-bg, rgba(52, 168, 83, 0.12));
+    color: var(--success, #34a853);
+}
+
+.badge-revision {
+    background: var(--warning-bg, rgba(251, 188, 4, 0.14));
+    color: var(--warning, #e67c00);
+}
+
+.file-review-toggle {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.88em;
+    padding: 0.125em 0.25em;
+    border-radius: 0.25em;
+    transition: color 0.12s, background 0.12s;
+}
+
+.file-review-toggle:hover {
+    color: var(--accent-primary);
+    background: var(--bg-accent-subtle);
+}
+
+.file-review-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    width: 100%;
+    margin-top: 0.25em;
+    flex-wrap: wrap;
+}
+
+.file-review-note {
+    flex: 1;
+    min-width: 6em;
+    font-size: 0.85em;
+    padding: 0.2em 0.4em;
+    border: 0.06em solid var(--border-light);
+    border-radius: 0.3em;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.file-review-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.2em 0.5em;
+    border: none;
+    border-radius: 0.3em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.12s;
+}
+
+.file-review-btn:hover {
+    filter: brightness(0.9);
+}
+
+.btn-checked {
+    background: var(--success, #34a853);
+    color: var(--text-on-primary, #fff);
+}
+
+.btn-revision {
+    background: var(--warning, #e67c00);
+    color: var(--text-on-primary, #fff);
+}
+
+.task-file-item {
+    flex-wrap: wrap;
+}

@@ -41,10 +41,10 @@ export default function SidebarProfile({ user }) {
                 <img
                     src={profileImg}
                     alt="profile"
-                    className="sidebar-profile-img"
+                    className={`sidebar-profile-img tier-ring-${user?.subscriptionPlan || 'FREE'}`}
                 />
             ) : (
-                <div className="sidebar-profile-img" />
+                <div className={`sidebar-profile-img tier-ring-${user?.subscriptionPlan || 'FREE'}`} />
             )}
             {user?.name && (
                 <span className="sidebar-profile-name">{user.name}</span>

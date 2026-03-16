@@ -1,6 +1,7 @@
 ﻿// Single comment bubble. Handles the edge case where the creator
 // was deleted - falls back to creatorNameSnapshot.
 import userImg from "@assets/js/userImg";
+import { formatRole } from "@assets/js/formatLabel";
 import "@styles/comments/CommentCard.css";
 
 export default function CommentCard({
@@ -39,7 +40,7 @@ export default function CommentCard({
                             : <>{c.creator?.name || c.creator?.email || "Unknown"}
                                 {taskRole && (
                                     <span className="comment-role-tag">
-                                        ({taskRole.replace("_", " ")})
+                                        ({formatRole(taskRole)})
                                     </span>
                                 )}
                               </>
@@ -102,9 +103,16 @@ export default function CommentCard({
                     <p className="comment-text">{c.comment}</p>
                 )}
 
-                <span className="comment-date">
-                    {formatDateTime(c.createdAt)}
-                </span>
+                <div className="comment-meta-row">
+                    <span className="comment-date">
+                        {formatDateTime(c.createdAt)}
+                    </span>
+                    {c.containsPii && (
+                        <span className="comment-pii-badge" title="This comment may contain personal information">
+                            PII
+                        </span>
+                    )}
+                </div>
             </div>
         </div>
     );

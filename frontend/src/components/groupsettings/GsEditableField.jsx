@@ -8,6 +8,7 @@ import "@styles/groupsettings/GsEditableField.css";
 
 export default function GsEditableField({
     label,
+    icon,
     groupId,
     fieldKey,
     initialValue,
@@ -64,7 +65,7 @@ export default function GsEditableField({
     return (
         <section className="gs-section">
             <div className="gs-section-header">
-                <span className="gs-section-label">{label}</span>
+                <span className="gs-section-label">{icon} {label}</span>
                 {!editing && (
                     <button className="gs-edit-btn" onClick={() => setEditing(true)} title="Edit">
                         <FiEdit2 size={13} />

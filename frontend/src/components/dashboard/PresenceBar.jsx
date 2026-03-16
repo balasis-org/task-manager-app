@@ -37,7 +37,7 @@ export default function PresenceBar({ members, presenceUserIds, currentUserId })
                 {shown.map((m, i) => (
                     <div
                         key={m.user?.id}
-                        className={`presence-avatar${m.user?.id === currentUserId ? " presence-avatar-me" : ""}`}
+                        className={`presence-avatar${m.user?.id === currentUserId ? " presence-avatar-me" : ""} tier-ring-${m.user?.subscriptionPlan || 'FREE'}`}
                         title={m.user?.id === currentUserId ? "You" : (m.user?.name || m.user?.email)}
                         style={{ zIndex: shown.length - i }}
                     >

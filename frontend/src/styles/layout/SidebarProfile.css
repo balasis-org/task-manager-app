@@ -12,9 +12,16 @@
     height: 3.25em;
     border-radius: 50%;
     object-fit: cover;
-    border: 0.125em solid #555;
+    border: 0.15em solid var(--tier-FREE, #999);
     background: #333;
+    transition: border-color 0.25s;
 }
+
+.sidebar-profile-img.tier-ring-FREE       { border-color: var(--tier-FREE); }
+.sidebar-profile-img.tier-ring-STUDENT    { border-color: var(--tier-STUDENT); }
+.sidebar-profile-img.tier-ring-ORGANIZER  { border-color: var(--tier-ORGANIZER); }
+.sidebar-profile-img.tier-ring-TEAM       { border-color: var(--tier-TEAM); }
+.sidebar-profile-img.tier-ring-TEAMS_PRO  { border-color: var(--tier-TEAMS_PRO); }
 
 .sidebar-profile-name {
     font-size: 0.75em;
@@ -28,7 +35,7 @@
 
 .sidebar-profile-email {
     font-size: 0.56em;
-    color: #888;
+    color: var(--text-faint);
     text-align: center;
     max-width: 10em;
     overflow: hidden;

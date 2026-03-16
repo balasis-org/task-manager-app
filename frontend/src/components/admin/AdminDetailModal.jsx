@@ -8,7 +8,7 @@ import { useToast } from "@context/ToastContext";
 import { formatFileSize } from "@assets/js/fileUtils";
 import "@styles/admin/AdminDetailModal.css";
 
-const PLANS = ["FREE", "STUDENT", "ORGANIZER", "TEAM"];
+const PLANS = ["FREE", "STUDENT", "ORGANIZER", "TEAM", "TEAMS_PRO"];
 
 function ThresholdBar({ label, used, total, format }) {
     if (!total || total <= 0) return null;
