@@ -239,7 +239,7 @@ No consequences to consistency since any other module existing before v0.5 was j
     - Contracts POM module description added.
 
 ### v0.9.0 — AI Comment Intelligence, per-file review, per-task file limits and queue architecture
-- Date: 2026-03-15
+- Date: 2026-03-16
 - Highlights:
 
     **AI Comment Intelligence (TEAMS_PRO exclusive):**
@@ -288,6 +288,26 @@ No consequences to consistency since any other module existing before v0.5 was j
     - Tier badges and greyed-out controls on FREE-restricted features (file limit sliders, AI panel) as visual upgrade prompts.
     - `TierUpgradePopup` updated with per-task file limit tier comparison.
     - `TermsOfService` updated with current tier allocations.
+    - Theme CSS expanded: new variables for file review states, analysis panels, and dark-mode contrast fixes.
+    - `formatLabel.js` utility for human-readable label formatting.
+    - Group settings, member detail, invite popups — styling and layout refinements.
+
+    **Infrastructure & CI/CD:**
+    - Dual-ACS email architecture: `EmailDevConfig` and `EmailProdConfig` updated for dual ACS resource support.
+    - CI/CD environment selector: `workflow_dispatch` on all three pipelines (`backend`, `frontend`, `maintenance`) now accepts `production`, `arena-stress`, `arena-security` target environments.
+    - CI/CD deploy condition fix: deploy jobs gated on `workflow_dispatch || (push && ref == main)`.
+    - Bicep `main.bicep` expanded: ACS Email Service + domain provisioning, Log Analytics Workspace split into prod/dev, Front Door switched from system-assigned to user-assigned managed identity, ACR name hyphen-stripping, first-deploy placeholder image for Container App Jobs.
+    - Node.js 24 opt-in for GitHub Actions via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var.
+    - `push-default-images.ps1` script for seeding default images into Blob Storage.
+
+    **Documentation & repo standards:**
+    - Easy Auth vs OAuth2 distinction clarified in IaC auth guide.
+    - App Registration credentials and secret boundaries documented.
+    - IaC README restructured with clearer setup flow.
+    - Dependabot switched to security-only updates (version-update PRs disabled).
+    - PR template and bug report template refined.
+    - `.gitignore` patterns expanded for new build outputs.
+    - `README.md` updated for current architecture and feature set.
 
 
 ---
