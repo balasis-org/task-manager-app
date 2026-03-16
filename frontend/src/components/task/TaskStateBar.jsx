@@ -2,7 +2,7 @@
 import "@styles/task/TaskStateBar.css";
 
 const STATE_LABELS = {
-    TODO: "TODO",
+    TODO: "To Do",
     IN_PROGRESS: "In Progress",
     TO_BE_REVIEWED: "To Be Reviewed",
     DONE: "Done",

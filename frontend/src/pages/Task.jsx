@@ -93,11 +93,17 @@ export default function Task() {
         return creatorMember.role !== "GROUP_LEADER" && creatorMember.role !== "TASK_MANAGER";
     })();
     const canReview = isReviewer || isLeaderOrManager;
+    const canReviewFiles = canReview && task?.taskState === "TO_BE_REVIEWED";
     const canMoveToBeReviewed = isAssignee;
     const canChangeState = isLeaderOrManager;
     const canAddParticipants = isLeaderOrManager;
     const canUploadFiles = isLeaderOrManager;
     const canUploadAssigneeFiles = isAssignee || isLeaderOrManager;
+
+    // Prefer per-task effective limits from the backend; fall back to group-level
+    const effectiveMaxCreatorFiles  = task?.effectiveMaxCreatorFiles  ?? fileLimits.maxCreatorFiles;
+    const effectiveMaxAssigneeFiles = task?.effectiveMaxAssigneeFiles ?? fileLimits.maxAssigneeFiles;
+    const effectiveMaxFileSizeBytes = task?.effectiveMaxFileSizeBytes ?? fileLimits.maxFileSizeBytes;
 
     const reviewers = task?.taskParticipants
         ? [...task.taskParticipants].filter((p) => p.taskParticipantRole === "REVIEWER") : [];
@@ -276,10 +282,10 @@ export default function Task() {
 
     async function handleFileAdd(file, isAssignee) {
         const currentCount = isAssignee ? (task?.assigneeFiles?.length || 0) : (task?.files?.length || 0);
-        const maxFiles = isAssignee ? fileLimits.maxAssigneeFiles : fileLimits.maxCreatorFiles;
+        const maxFiles = isAssignee ? effectiveMaxAssigneeFiles : effectiveMaxCreatorFiles;
         if (currentCount >= maxFiles) { showToast(`Maximum ${maxFiles} files already uploaded`); return; }
-        if (isFileTooLarge(file, fileLimits.maxFileSizeBytes)) {
-            showToast(`File exceeds ${formatFileSize(fileLimits.maxFileSizeBytes)} limit`);
+        if (isFileTooLarge(file, effectiveMaxFileSizeBytes)) {
+            showToast(`File exceeds ${formatFileSize(effectiveMaxFileSizeBytes)} limit`);
             return;
         }
         const fd = new FormData();
@@ -338,6 +344,18 @@ export default function Task() {
         } catch (err) { showToast(err?.message || "Failed to delete file"); autoHeal(); }
     }
 
+    async function handleFileReview(fileId, isAssignee, status, note) {
+        const endpoint = isAssignee
+            ? `/api/groups/${groupId}/task/${taskId}/assignee-files/${fileId}/review`
+            : `/api/groups/${groupId}/task/${taskId}/files/${fileId}/review`;
+        try {
+            await apiPost(endpoint, { status, note });
+            const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
+            setTask(refreshed);
+            showToast("File review saved", "success");
+        } catch (err) { showToast(err?.message || "Failed to submit file review"); autoHeal(); }
+    }
+
     /* -- guards -- */
     if (loading) return <Spinner />;
     if (error) return <div className="task-page-error">{error}</div>;
@@ -381,12 +399,14 @@ export default function Task() {
                     onSave={handleSave} onCancel={() => setEditing(false)}
                 >
                     <TaskFilesSection
-                        files={task.files || []} maxFiles={fileLimits.maxCreatorFiles}
-                        canUpload={canUploadFiles} label="Files" emptyText="No files"
+                        files={task.files || []} maxFiles={effectiveMaxCreatorFiles}
+                        canUpload={canUploadFiles} canReview={canReviewFiles}
+                        label="Files" emptyText="No files"
                         className="task-files-section"
                         onFileAdd={(f) => handleFileAdd(f, false)}
                         onDownload={(id, name) => handleDownload(id, name, false)}
                         onDelete={(id) => handleDeleteFile(id, false)}
+                        onFileReview={(fileId, status, note) => handleFileReview(fileId, false, status, note)}
                         downloadingId={downloadingId}
                     />
                 </TaskBody>
@@ -444,16 +464,18 @@ export default function Task() {
                         )}
 
                         <TaskFilesSection
-                            files={task.assigneeFiles || []} maxFiles={fileLimits.maxAssigneeFiles}
-                            canUpload={canUploadAssigneeFiles} label="Assignee Files"
+                            files={task.assigneeFiles || []} maxFiles={effectiveMaxAssigneeFiles}
+                            canUpload={canUploadAssigneeFiles} canReview={canReviewFiles}
+                            label="Assignee Files"
                             emptyText="No assignee files" className="task-sidebar-section"
                             onFileAdd={(f) => handleFileAdd(f, true)}
                             onDownload={(id, name) => handleDownload(id, name, true)}
                             onDelete={(id) => handleDeleteFile(id, true)}
+                            onFileReview={(fileId, status, note) => handleFileReview(fileId, true, status, note)}
                             downloadingId={downloadingId}
                         />
 
-                        {canMoveToBeReviewed && task.taskState !== "TO_BE_REVIEWED" && task.taskState !== "DONE" && (
+                        {canMoveToBeReviewed && task.taskState === "IN_PROGRESS" && (
                             <div className="task-sidebar-section task-move-section">
                                 <button className="btn-primary btn-block" onClick={handleMoveToBeReviewed}>
                                     Move to be reviewed

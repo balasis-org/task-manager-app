@@ -46,7 +46,7 @@
     transform: none;
     z-index: 30;
     background: var(--bg-secondary);
-    color: #aaa;
+    color: var(--text-disabled);
     border: 0.06em solid var(--border-primary);
     border-top: none;
     border-right: none;
@@ -63,7 +63,7 @@
 }
 
 .sidebar-toggle:hover {
-    color: #666;
+    color: var(--text-muted);
     background: var(--bg-active);
 }
 
@@ -82,7 +82,7 @@
 
 .sidebar-date {
     font-size: 0.62em;
-    color: #777;
+    color: var(--text-muted);
     text-align: center;
     padding: 0.5em 0.5em 0;
 }
@@ -149,7 +149,7 @@
         font-size: 0.69em;
         background: var(--bg-secondary);
         border-bottom: 0.06em solid var(--border-primary);
-        color: #888;
+        color: var(--text-muted);
         flex-shrink: 0;
     }
 
@@ -160,7 +160,7 @@
     }
 
     .mini-info-label {
-        color: #999;
+        color: var(--text-placeholder);
     }
 
     .mini-info-code {
@@ -173,7 +173,7 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: #888;
+        color: var(--text-muted);
         padding: 0.15em;
         border-radius: 0.2em;
         display: inline-flex;
@@ -183,8 +183,8 @@
     }
 
     .mini-info-btn:hover {
-        color: #555;
-        background: rgba(0, 0, 0, 0.06);
+        color: var(--text-tertiary);
+        background: var(--bg-hover);
     }
 
     .mini-info-btn:disabled {
@@ -197,6 +197,6 @@
     }
 
     .mini-info-date {
-        color: #999;
+        color: var(--text-placeholder);
     }
 }

@@ -10,7 +10,7 @@
     letter-spacing: 0.15em;
     user-select: all;
     padding: 0.25em 0.5em;
-    background: #f3f3f3;
+    background: var(--bg-secondary);
     border-radius: 4px;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .settings-code-btn:hover:not(:disabled) {
-    background: #eee;
+    background: var(--bg-hover);
     color: var(--text-primary);
 }
 

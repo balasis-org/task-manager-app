@@ -17,6 +17,7 @@ import Spinner from "@components/Spinner";
 import CommentCard from "@components/comments/CommentCard";
 import CommentComposer from "@components/comments/CommentComposer";
 import CommentDeleteModal from "@components/comments/CommentDeleteModal";
+import AnalysisPanel from "@components/comments/AnalysisPanel";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Comments.css";
 
@@ -28,7 +29,7 @@ export default function Comments() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useContext(AuthContext);
-    const { activeGroup, myRole, refreshActiveGroup, presenceUserIds } = useContext(GroupContext);
+    const { activeGroup, myRole, refreshActiveGroup, presenceUserIds, groupDetail } = useContext(GroupContext);
     const showToast = useToast();
     const blobUrl = useBlobUrl();
 
@@ -238,6 +239,12 @@ export default function Comments() {
                     <span className="breadcrumb-current">Comments</span>
                 </span>
             </div>
+            <AnalysisPanel
+                groupId={groupId}
+                taskId={taskId}
+                groupDetail={groupDetail}
+                showToast={showToast}
+            />
 
             {(commentsHaveChanged || commentsStale) && (
                 <div className="comments-stale-banner">
@@ -247,6 +254,8 @@ export default function Comments() {
                     </button>
                 </div>
             )}
+
+
 
             {totalPages > 1 && (
                 <div className="comments-pagination">
@@ -315,6 +324,8 @@ export default function Comments() {
                     maxLen={MAX_LEN}
                 />
             )}
+
+
 
             {deleteId && (
                 <CommentDeleteModal

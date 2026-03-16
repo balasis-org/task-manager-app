@@ -17,7 +17,10 @@ import { encryptForCache, decryptFromCache, cacheMatchesKey } from "@assets/js/c
  *   mcf  = maxCreatorFiles   maf  = maxAssigneeFiles   mfsb = maxFileSizeBytes
  *   mt   = maxTasks           mm   = maxMembers
  *   ddce = dailyDownloadCapEnabled
+ *   ds   = downgradeShielded
  *   aaen = allowAssigneeEmailNotification
+ *   uac  = usedTaskAnalysisCreditsMonth
+ *   acq  = taskAnalysisCreditsPerMonth
  *   tp   = taskPreviews (array of TaskPreviewDto)
  *
  * TaskPreviewDto (each task card on the dashboard):
@@ -123,6 +126,8 @@ function applyPlanFields(cached, delta) {
     if (delta.mm   != null) merged.mm   = delta.mm;
     if (delta.ddce != null) merged.ddce = delta.ddce;
     if (delta.aaen != null) merged.aaen = delta.aaen;
+    if (delta.uac  != null) merged.uac  = delta.uac;
+    if (delta.acq  != null) merged.acq  = delta.acq;
     return merged;
 }
 
@@ -154,6 +159,8 @@ function applyDeltaToDetail(cachedDetail, delta) {
     if (delta.mm   !== undefined && delta.mm   !== null) merged.mm   = delta.mm;
     if (delta.ddce !== undefined && delta.ddce !== null) merged.ddce = delta.ddce;
     if (delta.aaen !== undefined && delta.aaen !== null) merged.aaen = delta.aaen;
+    if (delta.uac  !== undefined && delta.uac  !== null) merged.uac  = delta.uac;
+    if (delta.acq  !== undefined && delta.acq  !== null) merged.acq  = delta.acq;
 
     // Task previews - remove deleted, upsert changed
     let tasks = [...(merged.tp ?? [])];

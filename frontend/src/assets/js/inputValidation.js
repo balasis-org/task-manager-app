@@ -25,7 +25,7 @@ export const LIMITS = Object.freeze({
 // safe fallbacks for file limits when groupDetail hasn't loaded yet
 const FILE_LIMIT_DEFAULTS = Object.freeze({
     maxCreatorFiles:   1,
-    maxAssigneeFiles:  1,
+    maxAssigneeFiles:  2,
     maxFileSizeBytes:  5 * 1024 * 1024,   // 5 MB (FREE plan)
     maxTasks:          30,
     maxMembers:        8,

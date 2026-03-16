@@ -21,5 +21,5 @@
 }
 
 .popup-chip-add:hover {
-    background: #eee;
+    background: var(--bg-hover);
 }

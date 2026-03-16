@@ -105,9 +105,55 @@
 }
 @keyframes staleFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
+.dashboard-downgrade-banner {
+    padding: 0.5em 1em;
+    background: var(--downgrade-bg, #ffe0e0);
+    color: var(--downgrade-text, #8b1a1a);
+    border: 1px solid var(--downgrade-border, #e57373);
+    border-radius: 6px;
+    margin: 0.5em 0.75em;
+    font-size: 0.82em;
+    font-weight: 500;
+    animation: staleFadeIn 0.3s ease;
+}
+
 @media (max-width: 768px) {
     .dashboard-announcement {
         font-size: 0.75em;
 
     }
+}
+
+/* ── Tasks / Files tab toggle ─────────────────── */
+
+.dashboard-tab-toggle {
+    display: inline-flex;
+    margin-left: auto;
+    border: 0.06em solid var(--border-light);
+    border-radius: 0.4em;
+    overflow: hidden;
+}
+
+.dashboard-tab-btn {
+    background: var(--bg-primary);
+    border: none;
+    cursor: pointer;
+    padding: 0.25em 0.7em;
+    font-size: 0.82em;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: background 0.12s, color 0.12s;
+}
+
+.dashboard-tab-btn:not(:last-child) {
+    border-right: 0.06em solid var(--border-light);
+}
+
+.dashboard-tab-btn.active {
+    background: var(--accent-primary);
+    color: var(--text-on-primary);
+}
+
+.dashboard-tab-btn:hover:not(.active) {
+    background: var(--bg-accent-subtle);
 }

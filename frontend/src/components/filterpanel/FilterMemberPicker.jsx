@@ -1,6 +1,7 @@
 ﻿// Dropdown for picking a member by name/email - used in the filter panel
 import { useState, useRef, useEffect } from "react";
 import { FiX } from "react-icons/fi";
+import { formatRole } from "@assets/js/formatLabel";
 import "@styles/filterpanel/FilterMemberPicker.css";
 
 export default function FilterMemberPicker({
@@ -84,7 +85,7 @@ export default function FilterMemberPicker({
                                 onClick={() => handleSelect(String(m.user?.id))}
                             >
                                 {m.user?.name || m.user?.email}
-                                <span className="filter-member-role">{m.role}</span>
+                                <span className="filter-member-role">{formatRole(m.role)}</span>
                             </div>
                         ))}
                         {filteredMembers(search).length === 0 && (

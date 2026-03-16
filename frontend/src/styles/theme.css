@@ -5,7 +5,7 @@
     --bg-secondary:      #f8f9fa;
     --bg-tertiary:       #fafbfc;
     --bg-hover:          #f5f7fa;
-    --bg-active: #f37f02;
+    --bg-active:         #eaedf0;
     --bg-input:          #fff;
     --bg-dropzone:       #fafafe;
     --bg-accent-subtle:  #e8f0fe;
@@ -51,7 +51,7 @@
     --accent-violet-deep:   #ede9fe;
     --accent: #577797;
 
-    --success:           #28a745;
+    --success: #218838;
     --success-hover:     #238d43;
     --success-bg:        #d4edda;
     --success-bg-alt:    #e8f5e9;
@@ -95,6 +95,13 @@
     --toast-success-shadow: rgba(39, 174, 96, 0.45);
     --danger-notif:      #e74c3c;
     --notif-badge-shadow:rgba(231, 76, 60, 0.4);
+
+    /* Tier profile ring colours (light mode) */
+    --tier-FREE:       #999;
+    --tier-STUDENT:    #1a73e8;
+    --tier-ORGANIZER:  #7c3aed;
+    --tier-TEAM:       #28a745;
+    --tier-TEAMS_PRO:  #e6a817;
 }
 
 [data-theme="dark"] {
@@ -145,7 +152,14 @@
     --accent-violet-deep:   #3a2d5e;
     --accent: #697785;
 
-    --success:           #34d058;
+    /* Tier profile ring colours (dark mode) */
+    --tier-FREE:       #888;
+    --tier-STUDENT:    #5b9cf6;
+    --tier-ORGANIZER:  #a78bfa;
+    --tier-TEAM:       #4ade80;
+    --tier-TEAMS_PRO:  #fbbf24;
+
+    --success: #228a37;
     --success-hover:     #2ea043;
     --success-bg:        #1c3829;
     --success-bg-alt:    #1a3326;

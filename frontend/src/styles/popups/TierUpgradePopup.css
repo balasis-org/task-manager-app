@@ -1,5 +1,5 @@
 .tier-upgrade-popup {
-    width: 36em;
+    width: 42em;
     position: relative;
 }
 
@@ -34,6 +34,42 @@
     display: flex;
     justify-content: flex-end;
     margin-top: 1.25em;
+}
+
+/* ── AI chip on TEAMS_PRO column header ── */
+.tier-pro-col {
+    position: relative;
+}
+
+.tier-ai-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    font-size: 0.65em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: var(--accent-subtle, rgba(99, 102, 241, 0.12));
+    color: var(--accent, #6366f1);
+    padding: 0.15em 0.45em;
+    border-radius: 0.35em;
+    margin-left: 0.4em;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* ── AI row highlight ── */
+.tier-ai-row td {
+    background: var(--accent-subtle, rgba(99, 102, 241, 0.05));
+}
+
+.tier-ai-row td:first-child {
+    font-weight: 500;
+}
+
+.tier-ai-inline {
+    vertical-align: -0.1em;
+    opacity: 0.7;
+    margin-right: 0.15em;
 }
 
 @media (max-width: 40em) {

@@ -8,28 +8,30 @@ import "@styles/pages/Login.css";
 
 const IS_DEV = import.meta.env.DEV;
 
+// GF=Free  GS=Student  GO=Organizer  GT=Team(stress)  GP=TeamsPro
 const DEV_USERS = [
-    { label: "Lena Dev",   email: "lena.dev@example.com"  ,role:"(GA leader · GC leader)" },
-    { label: "Marco Dev",  email: "marco.dev@example.com" ,role:"(GA manager · GC manager)"},
-    { label: "Nina Dev",   email: "nina.dev@example.com"  ,role:"(GA reviewer · GC reviewer)"},
-    { label: "Tomas Dev",  email: "tomas.dev@example.com" ,role:"(GA member1 · GC member)"},
-    { label: "Sofia Dev",  email: "sofia.dev@example.com" ,role:"(GA member2 · GC member)"},
-    { label: "Peter Dev",  email: "peter.dev@example.com" ,role:"(GA guest · GC member)"},
-    { label: "Hanna Dev",  email: "hanna.dev@example.com" ,role:"(GB leader · GC member)"},
-    { label: "Erik Dev",   email: "erik.dev@example.com"  ,role:"(GB manager · GC member)"},
-    { label: "Julia Dev",  email: "julia.dev@example.com" ,role:"(GB reviewer · GC member)"},
-    { label: "Ravi Dev",   email: "ravi.dev@example.com"  ,role:"(GB member1 · GC member)"},
-    { label: "Katya Dev",  email: "katya.dev@example.com" ,role:"(GB member2 · GC member)"},
-    { label: "Leon Dev",   email: "leon.dev@example.com"  ,role:"(GB guest · GC member)"},
+    { label: "Lena Dev",   email: "lena.dev@example.com",  role: "FREE · GF:leader · GT:member" },
+    { label: "Marco Dev",  email: "marco.dev@example.com", role: "STUDENT · GS:leader · GT:tskMgr" },
+    { label: "Nina Dev",   email: "nina.dev@example.com",  role: "ORGANIZER · GO:leader · GT:reviewer" },
+    { label: "Tomas Dev",  email: "tomas.dev@example.com", role: "TEAM · GT:leader" },
+    { label: "Alina Dev",  email: "alina.dev@example.com", role: "TEAMS_PRO · GP:leader" },
+    { label: "Sofia Dev",  email: "sofia.dev@example.com", role: "STUDENT · GO:reviewer · GP:tskMgr · GT:member" },
+    { label: "Peter Dev",  email: "peter.dev@example.com", role: "STUDENT · GO:member · GP:reviewer · GT:member" },
+    { label: "Hanna Dev",  email: "hanna.dev@example.com", role: "STUDENT · GO:member · GP:member · GT:member" },
+    { label: "Leon Dev",   email: "leon.dev@example.com",  role: "STUDENT · GO:tskMgr · GP:member · GT:member" },
+    { label: "Erik Dev",   email: "erik.dev@example.com",  role: "FREE · GS:tskMgr · GT:member" },
+    { label: "Julia Dev",  email: "julia.dev@example.com", role: "FREE · GS:reviewer · GT:member" },
+    { label: "Ravi Dev",   email: "ravi.dev@example.com",  role: "FREE · GS:member · GT:member" },
+    { label: "Katya Dev",  email: "katya.dev@example.com", role: "FREE · GS:member · GT:member" },
 ];
 
-// stress-test users (stress01-stress38), all GC members
-const STRESS_USERS = Array.from({ length: 38 }, (_, i) => {
+// stress-test users (stress01-stress02 shown in dropdown, rest exist in DB for k6)
+const STRESS_USERS = Array.from({ length: 2 }, (_, i) => {
     const num = String(i + 1).padStart(2, "0");
     return {
         label: `Stress${num} Dev`,
         email: `stress${num}.dev@example.com`,
-        role: "(GC member)",
+        role: "FREE · GT:member",
     };
 });
 
@@ -41,6 +43,7 @@ export default function Login() {
 
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
+    const [fakePlan, setFakePlan] = useState("");
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
 
@@ -58,7 +61,9 @@ export default function Login() {
         setBusy(true);
         try {
             const name = fakeEmail.split("@")[0].replace(".dev", "");
-            await apiPost("/api/auth/fake-login", { email: fakeEmail, name });
+            const body = { email: fakeEmail, name };
+            if (fakePlan) body.subscriptionPlan = fakePlan;
+            await apiPost("/api/auth/fake-login", body);
             if (returnUrl && returnUrl !== "/dashboard") {
                 sessionStorage.setItem("returnUrl", returnUrl);
             }
@@ -154,13 +159,30 @@ export default function Login() {
                                             </option>
                                         ))}
                                     </optgroup>
-                                    <optgroup label="Stress-test users (GC)">
+                                    <optgroup label="Stress-test users (GT)">
                                         {STRESS_USERS.map((u) => (
                                             <option key={u.email} value={u.email}>
                                                 {u.label} {u.role}
                                             </option>
                                         ))}
                                     </optgroup>
+                                </select>
+                            </label>
+
+                            <label className="login-field">
+                                <span className="login-field-label">
+                                    Subscription plan override
+                                </span>
+                                <select
+                                    value={fakePlan}
+                                    onChange={(e) => setFakePlan(e.target.value)}
+                                >
+                                    <option value="">Default (keep existing)</option>
+                                    <option value="FREE">FREE</option>
+                                    <option value="STUDENT">STUDENT</option>
+                                    <option value="ORGANIZER">ORGANIZER</option>
+                                    <option value="TEAM">TEAM</option>
+                                    <option value="TEAMS_PRO">TEAMS_PRO</option>
                                 </select>
                             </label>
 

@@ -115,6 +115,10 @@
     border-bottom: 0.06em solid var(--border-secondary);
 }
 
+.task-sidebar-section .task-sidebar-add svg {
+    stroke: white;
+}
+
 .task-sidebar-section:last-child {
     border-bottom: none;
 }
@@ -193,7 +197,7 @@
 .task-participant-remove {
     background: none;
     border: none;
-    color: var(--text-placeholder);
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0.15em;
     border-radius: 50%;
@@ -228,7 +232,6 @@
 
 .task-participant-email:hover:not(:disabled) {
     background: rgba(37, 99, 235, 0.12);
-    color: #1d4ed8;
 }
 
 .task-participant-email.unreachable {
@@ -246,14 +249,15 @@
 }
 
 .task-bulk-all-btn {
+
     display: flex;
     align-items: center;
     gap: 0.4em;
     width: 100%;
     padding: 0.45em 0.6em;
     border: 1px solid grey;
-    background: var(--bg-secondary);
-    color: var(--accent-primary);
+    background: var(--success-hover);
+    color: white;
     font-size: 0.82rem;
     font-weight: 500;
     cursor: pointer;

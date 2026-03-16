@@ -141,7 +141,7 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* storage usage — only shown for paid plans (budget > 0) */}
+                {/* storage usage — shown for all plans with a budget */}
                 {user?.storageBudgetBytes > 0 && (
                     <section className="settings-card">
                         <h2 className="settings-card-heading">

@@ -11,6 +11,7 @@ import DashboardTopBar from "@components/dashboard/DashboardTopBar";
 import DashboardEmptyState from "@components/dashboard/DashboardEmptyState";
 import DashboardColumnHeaders from "@components/dashboard/DashboardColumnHeaders";
 import DashboardTaskSection from "@components/dashboard/DashboardTaskSection";
+import GroupFiles from "@components/dashboard/GroupFiles";
 import Spinner from "@components/Spinner";
 import { useToast } from "@context/ToastContext";
 import { groupFileLimits } from "@assets/js/inputValidation";
@@ -22,7 +23,7 @@ import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Dashboard.css";
 
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
-const STATE_LABELS = {TODO: "TODO",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
+const STATE_LABELS = {TODO: "To do",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 
 /* fixed column widths - rem so they stay identical regardless of local font-size */
 const COL_WIDTHS    = ["minmax(7rem,1fr)", "6.5rem", "7.5rem", "6.25rem", "3rem", "3rem"];
@@ -101,6 +102,7 @@ export default function Dashboard() {
     const [topBarOpen, setTopBarOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [hideInaccessible, setHideInaccessible] = useState(false);
+    const [activeTab, setActiveTab] = useState("tasks");
 
     const [showNewGroup, setShowNewGroup] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
@@ -283,6 +285,16 @@ export default function Dashboard() {
                 </div>
             )}
 
+            {user?.downgradeGraceDeadline && new Date(user.downgradeGraceDeadline) > new Date() && (
+                <div className="dashboard-downgrade-banner">
+                    <strong>Plan downgraded.</strong>{" "}
+                    You have until{" "}
+                    {new Date(user.downgradeGraceDeadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}{" "}
+                    to bring your storage within budget. After that, excess files will be automatically removed
+                    (unshielded groups first, completed tasks first, oldest first).
+                </div>
+            )}
+
             {groupDetail?.an !== undefined && groupDetail?.an !== null && (
                 <div className={`dashboard-announcement${groupDetail.an ? " has-text" : " empty"}`}>
                     <strong>Announcement:</strong>{" "}
@@ -327,33 +339,54 @@ export default function Dashboard() {
                         >
                             {hideInaccessible ? "\uD83D\uDD13 Accessible only" : "\uD83D\uDD12 Show all"}
                         </button>
+
+                        <div className="dashboard-tab-toggle">
+                            <button
+                                className={`dashboard-tab-btn${activeTab === "tasks" ? " active" : ""}`}
+                                onClick={() => setActiveTab("tasks")}
+                            >
+                                Tasks
+                            </button>
+                            <button
+                                className={`dashboard-tab-btn${activeTab === "files" ? " active" : ""}`}
+                                onClick={() => setActiveTab("files")}
+                            >
+                                Files
+                            </button>
+                        </div>
                     </div>
 
                     { }
-                    <DashboardColumnHeaders
-                        visCols={visCols}
-                        gridTemplate={gridTemplate + (showDeleteColumn ? " " + delColW : "")}
-                        showDeleteColumn={showDeleteColumn}
-                    />
+                    {activeTab === "tasks" ? (
+                        <>
+                            <DashboardColumnHeaders
+                                visCols={visCols}
+                                gridTemplate={gridTemplate + (showDeleteColumn ? " " + delColW : "")}
+                                showDeleteColumn={showDeleteColumn}
+                            />
 
-                    {TASK_STATES.map((state) => (
-                        <DashboardTaskSection
-                            key={state}
-                            state={state}
-                            label={STATE_LABELS[state]}
-                            collapsed={collapsedSections[state]}
-                            tasks={tasksByState[state]}
-                            onToggle={() => toggleSection(state)}
-                            canManageTasks={canManageTasks}
-                            showDeleteColumn={showDeleteColumn}
-                            onOpenNewTask={handleOpenNewTask}
-                            groupId={activeGroup?.id}
-                            gridTemplate={gridTemplate}
-                            visCols={visCols}
-                            onDeleted={refreshActiveGroup}
-                            deleteColWidth={delColW}
-                        />
-                    ))}
+                            {TASK_STATES.map((state) => (
+                                <DashboardTaskSection
+                                    key={state}
+                                    state={state}
+                                    label={STATE_LABELS[state]}
+                                    collapsed={collapsedSections[state]}
+                                    tasks={tasksByState[state]}
+                                    onToggle={() => toggleSection(state)}
+                                    canManageTasks={canManageTasks}
+                                    showDeleteColumn={showDeleteColumn}
+                                    onOpenNewTask={handleOpenNewTask}
+                                    groupId={activeGroup?.id}
+                                    gridTemplate={gridTemplate}
+                                    visCols={visCols}
+                                    onDeleted={refreshActiveGroup}
+                                    deleteColWidth={delColW}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        <GroupFiles groupId={activeGroup?.id} />
+                    )}
                 </div>
             )}
 
@@ -408,6 +441,7 @@ export default function Dashboard() {
                     onCreated={handleTaskCreated}
                     onRefresh={refreshActiveGroup}
                     maxCreatorFiles={fileLimits.maxCreatorFiles}
+                    maxAssigneeFiles={fileLimits.maxAssigneeFiles}
                     maxFileSizeBytes={fileLimits.maxFileSizeBytes}
                 />
             )}

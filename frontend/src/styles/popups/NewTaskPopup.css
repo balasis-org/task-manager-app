@@ -44,6 +44,14 @@
     padding: 0.19em 0.625em 0.19em 0.25em;
     font-size: 0.75em;
     color: var(--text-primary);
+    max-width: 100%;
+    min-width: 0;
+}
+.popup-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 .popup-chip-img {
     width: 1.12em;

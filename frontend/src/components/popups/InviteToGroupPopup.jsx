@@ -4,7 +4,13 @@ import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
 import "@styles/popups/Popup.css";
 
-const ROLES = ["MEMBER", "GUEST", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
+const ROLES = [
+    { value: "MEMBER",        label: "Member",        hint: "Can be assigned to tasks and upload files" },
+    { value: "GUEST",         label: "Guest",         hint: "View-only access, cannot be assigned" },
+    { value: "REVIEWER",      label: "Reviewer",      hint: "Can review and approve or reject work" },
+    { value: "TASK_MANAGER",  label: "Task Manager",  hint: "Can create, edit, and manage tasks" },
+    { value: "GROUP_LEADER",  label: "Group Leader",  hint: "Full control including settings and invitations" },
+];
 
 export default function InviteToGroupPopup({ groupId, groupDetail, onClose }) {
     const showToast = useToast();
@@ -70,11 +76,14 @@ export default function InviteToGroupPopup({ groupId, groupDetail, onClose }) {
                         Role
                         <select value={role} onChange={(e) => setRole(e.target.value)}>
                             {ROLES.map((r) => (
-                                <option key={r} value={r}>
-                                    {r}
+                                <option key={r.value} value={r.value}>
+                                    {r.label}
                                 </option>
                             ))}
                         </select>
+                        <span className="popup-hint">
+                            {ROLES.find((r) => r.value === role)?.hint}
+                        </span>
                     </label>
 
                     <label>

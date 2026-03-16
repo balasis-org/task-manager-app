@@ -15,10 +15,11 @@ export function ToastProvider({ children }) {
         setToasts((prev) => prev.filter((t) => t.id !== id));
     }, []);
 
-    const showToast = useCallback((message, type = "error", duration = 4000) => {
+    const showToast = useCallback((message, type = "error", duration) => {
         const id = nextId++;
+        const ms = duration ?? (type === "error" ? 8000 : 4000);
         setToasts((prev) => [...prev, { id, message, type }]);
-        timers.current[id] = setTimeout(() => removeToast(id), duration);
+        timers.current[id] = setTimeout(() => removeToast(id), ms);
     }, [removeToast]);
 
     return (
