@@ -65,8 +65,8 @@ class PlanLimitsTest {
     }
 
     @Test
-    void maxAssigneeFilesPerTask_freeGetsOneFile() {
-        assertEquals(1, planLimits.maxAssigneeFilesPerTask(SubscriptionPlan.FREE));
+    void maxAssigneeFilesPerTask_freeGetsTwoFiles() {
+        assertEquals(2, planLimits.maxAssigneeFilesPerTask(SubscriptionPlan.FREE));
     }
 
     // ── file size caps ──────────────────────────────────────────
@@ -88,14 +88,15 @@ class PlanLimitsTest {
     // ── storage budget ──────────────────────────────────────────
 
     @Test
-    void storageBudgetBytes_freeHasNoBudgetTracking() {
-        assertEquals(0, planLimits.storageBudgetBytes(SubscriptionPlan.FREE));
+    void storageBudgetBytes_freeGetsHundredMegabytes() {
+        long hundredMb = 100L * 1024 * 1024;
+        assertEquals(hundredMb, planLimits.storageBudgetBytes(SubscriptionPlan.FREE));
     }
 
     @Test
-    void storageBudgetBytes_paidTiersArePositiveAndIncreasing() {
+    void storageBudgetBytes_allTiersPositiveAndIncreasing() {
         assertTierOrder(
-                0L, // FREE is zero, skip it in ordering
+                planLimits.storageBudgetBytes(SubscriptionPlan.FREE),
                 planLimits.storageBudgetBytes(SubscriptionPlan.STUDENT),
                 planLimits.storageBudgetBytes(SubscriptionPlan.ORGANIZER),
                 planLimits.storageBudgetBytes(SubscriptionPlan.TEAM)
