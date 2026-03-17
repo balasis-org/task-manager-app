@@ -8,7 +8,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+// user profile contract. thin wrapper -- most of the interesting
+// logic lives in UserServiceImpl (image upload pipeline, invite codes, etc.)
 public interface UserService {
+    // getMyProfile has side-effects (lastActiveAt, cache key rotation)
     User getMyProfile();
     User findCurrentUser();
     User patchMyProfile(User user);

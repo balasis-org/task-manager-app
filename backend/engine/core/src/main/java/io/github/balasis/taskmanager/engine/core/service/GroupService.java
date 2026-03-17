@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// core service contract. everything group-related goes through here:
+// group CRUD, membership, invitations, tasks, task files, comments,
+// polling/refresh, file reviews, and comment intelligence.
+// implementation is in GroupServiceImpl.
 public interface GroupService{
 
     Group create(Group group);
@@ -86,6 +90,8 @@ public interface GroupService{
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
     void deleteAllGroupEvents(Long groupId);
 
+    // refresh returns only the parts that changed since the client's
+    // last-seen timestamp, keeping polling payloads small
     GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
 
     void deleteTask(Long groupId, Long taskId);
@@ -107,6 +113,9 @@ public interface GroupService{
         Boolean hasFiles
     );
 
+    // lightweight has-changed checks: the frontend calls these frequently
+    // (every few seconds) to decide whether it needs to call the heavier
+    // refresh/detail endpoints.
     boolean hasNewInvitations();
 
     boolean hasGroupChanged(Long groupId, Instant lastSeen);
@@ -116,7 +125,10 @@ public interface GroupService{
     // Lightweight membership gate — throws if the caller is not a member
     void checkMembership(Long groupId);
 
-    // ── Comment Intelligence ────────────────────────────────────
+    // ── Comment Intelligence (Teams Pro only) ─────────────────
+    // AI-driven analysis of task comment threads. estimate shows the
+    // credit cost before the user commits; requestAnalysis actually
+    // queues the work; getAnalysisSnapshot returns the results.
 
     AnalysisEstimateDto getAnalysisEstimate(Long groupId, Long taskId);
 
@@ -124,8 +136,8 @@ public interface GroupService{
 
     TaskAnalysisSnapshot getAnalysisSnapshot(Long groupId, Long taskId);
 
-    // ── File Gallery & Per-File Review ──────────────────────────
-
+    // ── File Gallery & Per-File Review ──────────────────────────    // browse all files across all tasks in one place,
+    // plus per-file approve/reject by reviewers
     List<GroupFileDto> getGroupFiles(Long groupId);
 
     void reviewTaskFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
