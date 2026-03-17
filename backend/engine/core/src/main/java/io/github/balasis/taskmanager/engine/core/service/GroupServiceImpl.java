@@ -1221,7 +1221,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         User leader = findGroupLeader(groupId);
         refundStorageBudget(leader, file.getFileSize());
 
-        blobStorageService.deleteTaskFile(file.getFileUrl());
         fileReviewStatusRepository.deleteByTaskFileId(file.getId());
         task.getCreatorFiles().remove(file);
         taskFileRepository.delete(file);
@@ -1274,7 +1273,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         User leader = findGroupLeader(groupId);
         refundStorageBudget(leader, file.getFileSize());
 
-        blobStorageService.deleteTaskAssigneeFile(file.getFileUrl());
         fileReviewStatusRepository.deleteByTaskAssigneeFileId(file.getId());
         task.getAssigneeFiles().remove(file);
         taskAssigneeFileRepository.delete(file);
@@ -1405,7 +1403,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         authorizationService.requireAnyRoleIn(groupId);
         Instant serverNow = Instant.now();
 
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByIdWithOwner(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group with id " + groupId + " not found"));
 
         boolean groupChanged = group.getLastChangeInGroup() != null && group.getLastChangeInGroup().isAfter(lastSeen);

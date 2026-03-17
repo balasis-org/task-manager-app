@@ -82,11 +82,8 @@ public class BlobStorageService {
         return uploadBytes(BlobContainerType.GROUP_IMAGES, resized, prefixId, file.getOriginalFilename());
     }
 
-    /**
-     * Uploads a pre-trusted image (e.g. Microsoft profile photo) to the
-     * profile-images container. Resizes but skips Content Safety —
-     * the source is already moderated by Microsoft.
-     */
+    // Uploads a pre-trusted image (e.g. MS profile photo) to the profile-images
+    // container. Resizes but skips Content Safety since the source is already moderated.
     public String uploadTrustedProfileImage(byte[] imageBytes, Long userId) {
         byte[] resized = imageResizeService.resize(imageBytes, ImageResizeService.PROFILE_SIZE);
         return uploadBytes(BlobContainerType.PROFILE_IMAGES, resized, userId, "ms-photo.jpg");
@@ -126,12 +123,8 @@ public class BlobStorageService {
         }
     }
 
-    /**
-     * True fire-and-forget: dispatches the delete to a background thread
-     * and returns immediately.  The caller is never blocked.  If the
-     * delete fails for any reason the orphan blob will be swept by
-     * the next scheduled maintenance run.
-     */
+    // Fire-and-forget delete: dispatches to a background thread and returns immediately.
+    // If it fails, the maintenance job will clean up the orphan blob later.
     private void tryDeleteAsync(BlobContainerType type, String blobName) {
         if (blobName == null || blobName.isBlank()) return;
         CompletableFuture.runAsync(() -> deleteInternal(type, blobName))
@@ -150,15 +143,9 @@ public class BlobStorageService {
         tryDeleteAsync(BlobContainerType.GROUP_IMAGES, blobName);
     }
 
-    public void deleteTaskFile(String blobName) {
-        if (blobName == null || blobName.isBlank()) return;
-        deleteInternal(BlobContainerType.TASK_FILES, blobName);
-    }
-
-    public void deleteTaskAssigneeFile(String blobName) {
-        if (blobName == null || blobName.isBlank()) return;
-        deleteInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
-    }
+    // Task file blob deletion is handled exclusively by the maintenance job.
+    // DB records are removed in removeTaskFile / removeAssigneeTaskFile;
+    // the orphaned blob is swept by BlobCleanerService.clean().
 
     private void assertTaskAssigneeFile(MultipartFile file, long maxSizeBytes) {
         if (file == null || file.isEmpty()) {
@@ -220,10 +207,8 @@ public class BlobStorageService {
         }
     }
 
-    /**
-     * Downloads the raw blob bytes for the moderation drainer to scan.
-     * Returns null if the blob doesn't exist (already deleted).
-     */
+    // Downloads raw blob bytes for the moderation drainer to scan.
+    // Returns null when the blob no longer exists.
     public byte[] downloadBlobBytes(String entityType, String blobName) {
         BlobContainerType type = "USER".equals(entityType)
                 ? BlobContainerType.PROFILE_IMAGES

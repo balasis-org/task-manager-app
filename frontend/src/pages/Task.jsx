@@ -180,7 +180,7 @@ export default function Task() {
             if (editDesc !== task.description) body.description = editDesc;
             if (editState !== task.taskState) body.taskState = editState;
             const updated = await apiPatch(`/api/groups/${groupId}/task/${taskId}`, body);
-            setTask(updated);
+            applyTask(updated);
             setEditing(false);
         } catch (err) { showToast(err?.message || "Failed to save changes"); autoHeal(); }
     }
@@ -188,8 +188,7 @@ export default function Task() {
     async function handleStateChange(newState) {
         try {
             const updated = await apiPatch(`/api/groups/${groupId}/task/${taskId}`, { taskState: newState });
-            setTask(updated);
-            setEditState(newState);
+            applyTask(updated);
         } catch (err) { showToast(err?.message || "Failed to change state"); autoHeal(); }
     }
 
@@ -199,7 +198,7 @@ export default function Task() {
             const updated = await apiPost(`/api/groups/${groupId}/task/${taskId}/review`, {
                 reviewComment, reviewersDecision: reviewDecision,
             });
-            setTask(updated);
+            applyTask(updated);
             setReviewComment("");
         } catch (err) { showToast(err?.message || "Failed to submit review"); autoHeal(); }
         finally { setSubmittingReview(false); }
@@ -211,7 +210,7 @@ export default function Task() {
                 `/api/groups/${groupId}/task/${taskId}/taskParticipants`,
                 { userId, taskParticipantRole: role }
             );
-            setTask(updated);
+            applyTask(updated);
             if (role === "REVIEWER") setShowReviewerPicker(false);
             else setShowAssigneePicker(false);
         } catch (err) { showToast(err?.message || "Failed to add participant"); autoHeal(); }
@@ -221,7 +220,7 @@ export default function Task() {
         try {
             await apiDelete(`/api/groups/${groupId}/task/${taskId}/taskParticipant/${participantId}`);
             const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
-            setTask(refreshed);
+            applyTask(refreshed);
         } catch (err) { showToast(err?.message || "Failed to remove participant"); autoHeal(); }
     }
 
@@ -276,7 +275,7 @@ export default function Task() {
     async function handleMoveToBeReviewed() {
         try {
             const updated = await apiPost(`/api/groups/${groupId}/task/${taskId}/to-be-reviewed`);
-            setTask(updated);
+            applyTask(updated);
         } catch (err) { showToast(err?.message || "Failed to move task to review"); autoHeal(); }
     }
 
@@ -293,7 +292,7 @@ export default function Task() {
         const endpoint = isAssignee
             ? `/api/groups/${groupId}/task/${taskId}/assignee-files`
             : `/api/groups/${groupId}/task/${taskId}/files`;
-        try { const updated = await apiPost(endpoint, fd); setTask(updated); }
+        try { const updated = await apiPost(endpoint, fd); applyTask(updated); }
         catch (err) { showToast(err?.message || `Failed to upload ${isAssignee ? "assignee " : ""}file`); autoHeal(); }
     }
 
@@ -340,7 +339,7 @@ export default function Task() {
                 : `/api/groups/${groupId}/task/${taskId}/files/${fileId}`;
             await apiDelete(endpoint);
             const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
-            setTask(refreshed);
+            applyTask(refreshed);
         } catch (err) { showToast(err?.message || "Failed to delete file"); autoHeal(); }
     }
 
@@ -351,7 +350,7 @@ export default function Task() {
         try {
             await apiPost(endpoint, { status, note });
             const refreshed = await apiGet(`/api/groups/${groupId}/task/${taskId}`);
-            setTask(refreshed);
+            applyTask(refreshed);
             showToast("File review saved", "success");
         } catch (err) { showToast(err?.message || "Failed to submit file review"); autoHeal(); }
     }

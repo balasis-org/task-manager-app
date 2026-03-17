@@ -50,9 +50,21 @@ public class BlobCleanerService extends BaseComponent {
 
     private int processBatch(List<BlobItem> batch, BlobContainerType type) {
         int deleted = 0;
+        boolean isTaskContainer = type == BlobContainerType.TASK_FILES
+                || type == BlobContainerType.TASK_ASSIGNEE_FILES;
+
         for (BlobItem blob : batch) {
-            long id = extractId(blob.getName());
-            if (id <= 0 || !repository.existsById(type, id)) {
+            boolean isOrphan;
+            if (isTaskContainer) {
+                // For task file containers, check if any DB row references this blob name
+                isOrphan = !repository.existsByBlobName(type, blob.getName());
+            } else {
+                // For image containers (profile/group), the prefix is the owner entity ID
+                long id = extractId(blob.getName());
+                isOrphan = id <= 0 || !repository.existsById(type, id);
+            }
+
+            if (isOrphan) {
                 blobAccessService.deleteBlob(type, blob.getName());
                 logger.info("Deleted orphan blob: {}", blob.getName());
                 deleted++;
