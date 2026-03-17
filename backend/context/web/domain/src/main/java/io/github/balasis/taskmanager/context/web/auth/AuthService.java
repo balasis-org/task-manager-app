@@ -130,10 +130,8 @@ public class AuthService extends BaseComponent {
         }
     }
 
-    /**
-     * Best-effort: fetch the user's Microsoft profile photo and store it
-     * in blob storage. Fails silently — a missing photo must never block login.
-     */
+    // Best-effort: fetch MS profile photo and store in blob storage.
+    // Fails silently — a missing photo must never block login.
     private void tryFetchMicrosoftPhoto(String accessToken, User user) {
         if (accessToken == null || accessToken.isBlank()) return;
         try {

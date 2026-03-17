@@ -2,11 +2,9 @@ package io.github.balasis.taskmanager.engine.core.util;
 
 import java.util.regex.Pattern;
 
-/**
- * Local PII detector — regex-based, zero-cost, runs synchronously.
- * Detects: email addresses, phone numbers, credit card numbers, IBANs.
- * Used on every comment create/edit for ALL tiers (GDPR story: universal, no tier gate).
- */
+// Local PII detector — regex-based, no external calls, runs synchronously.
+// Covers: email addresses, phone numbers, credit card numbers, IBANs.
+// Applied on every comment create/edit for all tiers (GDPR requirement, not tier-gated).
 public final class PiiDetector {
 
     private PiiDetector() {}

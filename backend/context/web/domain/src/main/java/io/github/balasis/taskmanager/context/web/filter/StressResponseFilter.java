@@ -16,17 +16,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Strips the body of application/octet-stream responses (file downloads)
- * to eliminate egress costs during arena stress testing.
- *
- * <p>JSON and other content types pass through untouched so k6 can read
- * response bodies (IDs, status, etc.).
- *
- * <p>Spring sets Content-Type from the ResponseEntity builder BEFORE
- * dispatching StreamingResponseBody to the async thread, so the
- * content type is known when {@code getOutputStream()} is called.
- */
+// Strips the body of octet-stream responses (file downloads) to eliminate
+// egress costs during arena stress testing.
+//
+// JSON and other content types pass through untouched so k6 can still
+// read response bodies (IDs, status, etc.).
+//
+// Spring sets Content-Type from the ResponseEntity builder BEFORE dispatching
+// StreamingResponseBody to the async thread, so the content type is known
+// when getOutputStream() is called.
 @Component
 @Profile("prod-arena-stress")
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -91,11 +89,8 @@ public class StressResponseFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * Counts bytes written but discards them. Delegates lifecycle
-     * methods (isReady, setWriteListener) to the real stream so
-     * async dispatch works correctly.
-     */
+    // Counts bytes written but discards them. Delegates lifecycle methods
+    // (isReady, setWriteListener) to the real stream so async dispatch works.
     private static class VoidOutputStream extends ServletOutputStream {
 
         private final ServletOutputStream delegate;

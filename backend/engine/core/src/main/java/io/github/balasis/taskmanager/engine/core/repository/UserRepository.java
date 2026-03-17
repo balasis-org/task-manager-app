@@ -21,11 +21,9 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByInviteCode(String inviteCode);
 
-    /**
-     * Atomically increments the leader's storage counter.
-     * Returns 0 (= no rows updated) when the increment would exceed the
-     * given budget, so the caller can reject the upload cleanly.
-     */
+    // Atomically bumps the leader's storage counter.
+    // Returns 0 (no rows updated) when the increment would exceed the budget,
+    // so the caller can reject the upload.
     @Modifying
     @Query("""
         UPDATE User u
@@ -37,11 +35,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
                         @Param("size") long size,
                         @Param("budget") long budget);
 
-    /**
-     * Atomically decrements storage on file deletion.
-     * Clamps to zero so that maintenance reconciliation is the only thing
-     * that needs to handle negative drift.
-     */
+    // Atomically decrements storage on file deletion.
+    // Clamps to zero; maintenance reconciliation handles any negative drift.
     @Modifying
     @Query("""
         UPDATE User u
@@ -53,10 +48,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
     void subtractStorageUsage(@Param("userId") Long userId,
                               @Param("size") long size);
 
-    /**
-     * Atomically increments the owner's monthly download counter.
-     * Returns 0 when the increment would exceed the given budget.
-     */
+    // Atomically bumps the owner's monthly download counter.
+    // Returns 0 when the increment would exceed the budget.
     @Modifying
     @Query("""
         UPDATE User u
@@ -68,11 +61,9 @@ public interface UserRepository extends JpaRepository<User,Long> {
                          @Param("size") long size,
                          @Param("budget") long budget);
 
-    /**
-     * Atomically increments the owner's monthly email counter.
-     * Returns 0 (no rows updated) when the quota would be exceeded,
-     * so the caller silently skips the email.
-     */
+    // Atomically bumps the owner's monthly email counter.
+    // Returns 0 (no rows updated) when the quota would be exceeded,
+    // so the caller silently skips the email.
     @Modifying
     @Query("""
         UPDATE User u

@@ -17,11 +17,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-/**
- * Drains the EmailOutbox table at a rate that respects ACS platform limits
- * (30 messages/minute, 100 messages/hour).  A Redis distributed lock ensures
- * only one application instance drains at a time across scaled-out replicas.
- */
+// Drains the EmailOutbox table at a rate that respects ACS limits
+// (30 msgs/min, 100 msgs/hour). A Redis distributed lock ensures only one
+// app instance drains at a time across scaled-out replicas.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class EmailQueueDrainer {

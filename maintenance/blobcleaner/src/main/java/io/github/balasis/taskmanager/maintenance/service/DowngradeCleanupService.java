@@ -10,11 +10,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Cleans up over-budget files for users whose downgrade grace period has expired.
- * Deletion priority: unshielded groups first, DONE tasks first, oldest files first.
- * After cleanup (or if already within budget), grace fields are cleared.
- */
+// Cleans up over-budget files for users whose downgrade grace period expired.
+// Deletion priority: unshielded groups first, DONE tasks first, oldest files first.
+// After cleanup (or if already within budget), grace fields are cleared.
 @Service
 @RequiredArgsConstructor
 public class DowngradeCleanupService extends BaseComponent {

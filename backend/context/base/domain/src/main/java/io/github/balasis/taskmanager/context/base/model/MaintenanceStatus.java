@@ -5,12 +5,9 @@ import lombok.*;
 
 import java.time.Instant;
 
-/**
- * Singleton row (id = 1) that tracks the last successful
- * execution of each maintenance mode.  The maintenance job
- * upserts this after every run; the backend can read it to
- * detect stale maintenance (fallback alerting).
- */
+// Singleton row (id = 1) tracking the last successful run of each maintenance mode.
+// The maintenance job upserts this after every run; the backend reads it
+// to detect stale maintenance (fallback alerting).
 @Getter
 @Setter
 @Builder
