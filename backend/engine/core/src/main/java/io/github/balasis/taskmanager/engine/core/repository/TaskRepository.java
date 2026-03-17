@@ -33,8 +33,10 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     LEFT JOIN FETCH t.group
     LEFT JOIN FETCH t.taskParticipants tp
     LEFT JOIN FETCH tp.user
-    LEFT JOIN FETCH t.creatorFiles
-    LEFT JOIN FETCH t.assigneeFiles
+    LEFT JOIN FETCH t.creatorFiles cf
+    LEFT JOIN FETCH cf.uploadedBy
+    LEFT JOIN FETCH t.assigneeFiles af
+    LEFT JOIN FETCH af.uploadedBy
     LEFT JOIN FETCH t.reviewedBy
     WHERE t.id = :taskId
     """)
@@ -46,8 +48,11 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     FROM Task t
     LEFT JOIN FETCH t.group
     LEFT JOIN FETCH t.taskParticipants tp
-    LEFT JOIN FETCH t.creatorFiles
-    LEFT JOIN FETCH t.assigneeFiles
+    LEFT JOIN FETCH tp.user
+    LEFT JOIN FETCH t.creatorFiles cf
+    LEFT JOIN FETCH cf.uploadedBy
+    LEFT JOIN FETCH t.assigneeFiles af
+    LEFT JOIN FETCH af.uploadedBy
     WHERE t.id = :taskId
     """)
     Optional<Task> findByIdWithParticipantsAndFiles(@Param("taskId") Long taskId);

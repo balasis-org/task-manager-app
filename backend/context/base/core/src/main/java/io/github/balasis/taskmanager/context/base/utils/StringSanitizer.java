@@ -31,8 +31,10 @@ public final class StringSanitizer {
         String safe = sanitizeFilename(originalFilename);
         String blobSafe = BLOB_UNSAFE_PATTERN.matcher(safe).replaceAll("_");
         if (blobSafe.isEmpty()) blobSafe = fallbackUuid();
-        if (prefixId == null) return blobSafe;
-        return prefixId + "-" + blobSafe;
+        // Include a short UUID segment to prevent overwrites when the same filename is uploaded twice
+        String uniqueSegment = UUID.randomUUID().toString().substring(0, 8);
+        if (prefixId == null) return uniqueSegment + "-" + blobSafe;
+        return prefixId + "-" + uniqueSegment + "-" + blobSafe;
     }
 
     private static String fallbackUuid() {

@@ -47,7 +47,7 @@ public class TaskAnalysisSnapshot extends BaseModel {
     @Column
     private Instant estimateChangeMarker;
 
-    // ── Analysis results (nullable until analysis run) ──────────
+    //Analysis results (nullable until analysis run)
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
@@ -83,7 +83,7 @@ public class TaskAnalysisSnapshot extends BaseModel {
     @Column
     private Instant analysisChangeMarker;
 
-    // ── Summary results (nullable until summary run) ────────────
+    // Summary results (nullable until summary run)
 
     @Column(columnDefinition = "nvarchar(max)")
     private String summaryText;

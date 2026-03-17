@@ -25,6 +25,16 @@ public class MaintenanceRepository {
         return count != null && count > 0;
     }
 
+    public boolean existsByBlobName(BlobContainerType type, String blobName) {
+        String sql = String.format(
+                "SELECT COUNT(*) FROM %s WHERE %s = ?",
+                type.getTableName(), type.getColumnName()
+        );
+
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, blobName);
+        return count != null && count > 0;
+    }
+
     public List<Long> findInactiveUserIdsWithoutGroups() {
         return jdbcTemplate.queryForList("""
             SELECT u.id
@@ -198,10 +208,7 @@ public class MaintenanceRepository {
 
     // ── Downgrade grace-period cleanup ──────────────────────────────────
 
-    /**
-     * Returns user IDs whose 7-day downgrade grace period has expired.
-     * These users still have over-budget blobs that need to be cleaned.
-     */
+    // Returns user IDs whose 7-day downgrade grace window has already passed.
     public List<Long> findGraceExpiredUserIds() {
         return jdbcTemplate.queryForList("""
             SELECT id FROM Users
@@ -210,14 +217,11 @@ public class MaintenanceRepository {
         """, Long.class);
     }
 
-    /**
-     * Returns blob URLs for a given user, ordered by cleanup priority:
-     * 1. Unshielded groups first, shielded groups last
-     * 2. Within each bucket: DONE tasks first, then non-DONE
-     * 3. Within each sub-bucket: oldest files first
-     *
-     * The caller decides how many to delete (based on how many bytes over budget).
-     */
+    // Returns blob URLs for a user, ordered by cleanup priority:
+    // 1. unshielded groups before shielded
+    // 2. DONE tasks before non-DONE
+    // 3. oldest files first
+    // Caller decides how many to actually delete based on byte overage.
     public List<DowngradeFileRow> findDeletableFilesByPriority(long userId) {
         return jdbcTemplate.query("""
             SELECT fileId, fileUrl, fileSize, fileType, shielded, isDone
@@ -263,9 +267,7 @@ public class MaintenanceRepository {
         jdbcTemplate.update("DELETE FROM TaskAssigneeFiles WHERE id = ?", fileId);
     }
 
-    /**
-     * Clears grace-period fields after cleanup is complete (or deadline expired).
-     */
+    // Clears grace-period fields once cleanup finishes or the deadline expires.
     public int clearGraceFields(long userId) {
         return jdbcTemplate.update("""
             UPDATE Users
@@ -275,10 +277,8 @@ public class MaintenanceRepository {
         """, userId);
     }
 
-    /**
-     * Returns the current storage budget for a plan (matches PlanLimits logic).
-     * Used by maintenance to determine when a user is over budget.
-     */
+    // Returns the user's current storage usage in bytes.
+    // Used by maintenance to figure out whether they're over budget.
     public long getUsedStorageBytes(long userId) {
         Long used = jdbcTemplate.queryForObject(
                 "SELECT usedStorageBytes FROM Users WHERE id = ?", Long.class, userId);
