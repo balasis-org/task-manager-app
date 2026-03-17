@@ -16,7 +16,7 @@ import java.util.Iterator;
 @Service
 public class ImageResizeServiceImpl implements ImageResizeService {
 
-    /** Reject anything above 25 megapixels to guard against decompression bombs. */
+    // Reject anything above 25 megapixels to guard against decompression bombs
     private static final long MAX_PIXELS = 25_000_000;
 
     @Override

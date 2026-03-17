@@ -16,10 +16,10 @@ import java.util.List;
 // on read via ZREMRANGEBYSCORE.
 public class RedisPresenceService extends BaseComponent implements PresenceService {
 
-    /** Users not seen within this window are considered offline. */
+    // Users not seen within this window are treated as offline
     private static final int HEARTBEAT_TTL_SECONDS = 90;
 
-    /** Safety TTL on the whole key - auto-deletes if the group goes fully idle. */
+    // Safety TTL on the entire key — auto-deletes when a group goes fully idle
     private static final int KEY_TTL_SECONDS = 300;
 
     private final String keyPrefix;

@@ -71,10 +71,8 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         return MODE_FULL;
     }
 
-    /**
-     * Short-interval mode (every 30-45 min).
-     * Only scans task-file containers where orphans accumulate fastest.
-     */
+    // Short-interval mode (every 30–45 min).
+    // Only scans task-file containers where orphans accumulate fastest.
     private void runTaskBlobsOnly() {
         int totalOrphans = 0;
         int totalScanned = 0;
@@ -85,12 +83,9 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         maintenanceRepository.upsertMaintenanceStatus(false, totalOrphans, totalScanned, 0);
     }
 
-    /**
-     * Full daily mode.
-     * Scans ALL blob containers (task files, images, group images),
-     * cleans stale assets, purges inactive users, runs DB hygiene,
-     * resets group-creation counters and optionally cleans ACR images.
-     */
+    // Full daily mode. Scans ALL blob containers (task files, images,
+    // group images), cleans stale assets, purges inactive users,
+    // runs DB hygiene, resets counters and optionally cleans ACR images.
     private void runFull() {
         for (BlobContainerType type : BlobContainerType.values()) {
             blobCleanerService.clean(type);

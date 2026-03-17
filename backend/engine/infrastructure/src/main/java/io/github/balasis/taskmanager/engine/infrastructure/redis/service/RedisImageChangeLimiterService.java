@@ -8,12 +8,9 @@ import io.lettuce.core.api.sync.RedisCommands;
 
 import java.nio.charset.StandardCharsets;
 
-/**
- * Redis INCR + EXPIRE implementation. Allows a burst of up to 5 image
- * changes then blocks until the 5-minute window expires. Fail-open:
- * any Redis error is logged but does not block the upload — the global
- * rate limiter (fail-closed) is the last line of defence.
- */
+// Redis INCR + EXPIRE implementation. Allows up to 5 image changes per
+// 5-minute window then blocks. Fail-open: any Redis error is logged but
+// doesn't block the upload — the global rate limiter is the last line of defence.
 public class RedisImageChangeLimiterService extends BaseComponent implements ImageChangeLimiterService {
 
     private static final int MAX_PER_WINDOW = 5;

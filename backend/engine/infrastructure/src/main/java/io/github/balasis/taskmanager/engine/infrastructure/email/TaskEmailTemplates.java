@@ -1,10 +1,7 @@
 package io.github.balasis.taskmanager.engine.infrastructure.email;
 
-/**
- * Centralised, plain-text email templates.
- * Every message ends with a direct link to the task so the recipient can jump
- * straight into the app after authenticating.
- */
+// Centralised plain-text email templates.
+// Each message ends with a direct link so the recipient can jump straight into the app.
 public final class TaskEmailTemplates {
 
     private TaskEmailTemplates() {}

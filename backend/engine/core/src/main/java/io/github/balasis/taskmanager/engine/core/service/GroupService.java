@@ -113,7 +113,7 @@ public interface GroupService{
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 
-    /** Lightweight membership gate - throws if the caller is not a member. */
+    // Lightweight membership gate — throws if the caller is not a member
     void checkMembership(Long groupId);
 
     // ── Comment Intelligence ────────────────────────────────────
@@ -132,9 +132,9 @@ public interface GroupService{
 
     void reviewAssigneeFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
 
-    /** Batch-fetch review info for a set of file IDs (keyed by file id). */
+    // Batch-fetch review info for a set of file IDs (keyed by file id)
     Map<Long, List<FileReviewInfoDto>> getFileReviews(Set<Long> creatorFileIds, Set<Long> assigneeFileIds);
 
-    /** Resolve effective file limits for a task (task → group → plan, Math.min). */
+    // Resolve effective file limits for a task (task → group → plan, Math.min)
     EffectiveFileLimitsDto resolveEffectiveFileLimits(Long groupId, Task task);
 }

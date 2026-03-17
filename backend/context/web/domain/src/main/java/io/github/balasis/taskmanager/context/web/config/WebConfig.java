@@ -107,7 +107,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .anyMatch(p -> p.startsWith("dev"));
     }
 
-    /** Returns all non-loopback IPv4 site/local addresses of this machine. */
+    // Returns all non-loopback IPv4 site/local addresses of this machine
     private static List<String> getLocalNetworkIps() {
         List<String> ips = new ArrayList<>();
         try {
