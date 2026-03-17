@@ -25,19 +25,25 @@ public class TaskComment extends BaseModel{
     @JoinColumn
     private Task task;
 
+    // nullable because if the user gets deleted we keep the comment but lose the FK.
+    // thats why we also store creatorNameSnapshot.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = true)
     private User creator;
 
+    // preserved so comments still show a name even after the user is gone
     @Column
     private String creatorNameSnapshot;
 
+    // nvarchar because comments can contain unicode (emoji etc)
     @Column(columnDefinition = "nvarchar(800)")
     private String comment;
 
     @Column
     private Instant createdAt;
 
+    // set by the AI analysis pipeline when PII is detected in the comment text.
+    // the frontend can use this to show a warning badge.
     @Column
     @lombok.Builder.Default
     private boolean containsPii = false;

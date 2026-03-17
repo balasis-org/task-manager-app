@@ -7,6 +7,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+// this is NOT a soft-delete table. its a tombstone for poll-based sync.
+// when a task gets deleted we insert a row here so the next time the frontend
+// polls refreshGroup it sees "task X was deleted" and removes it from the UI.
+// without this the frontend would never know a task disappeared between polls.
+// rows are purged after 30 days by DatabaseCleanupService in the maintenance job.
 @Getter
 @Setter
 @SuperBuilder
@@ -22,6 +27,8 @@ public class DeletedTask extends BaseModel{
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
 
+    // the PK the task had before we deleted it, so the frontend can match
+    // it against its local cache and drop it
     @Column
     private Long deletedTaskId;
 

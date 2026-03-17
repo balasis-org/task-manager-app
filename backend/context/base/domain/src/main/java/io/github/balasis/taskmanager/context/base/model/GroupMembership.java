@@ -10,6 +10,8 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// join table between User and Group. every user in a group has exactly one of these.
+// the role determines what they can do (see RolePolicyService for the permission matrix).
 @Getter
 @Setter
 @SuperBuilder
@@ -34,6 +36,8 @@ public class GroupMembership extends BaseModel{
     @Column(nullable = false)
     private Role role;
 
+    // tracks when this member last viewed the group events log.
+    // compared against the latest event timestamp to show unread badge in UI.
     @Column
     private Instant lastSeenGroupEvents;
 

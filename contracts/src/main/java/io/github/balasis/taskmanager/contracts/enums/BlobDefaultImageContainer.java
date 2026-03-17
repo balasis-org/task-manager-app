@@ -1,6 +1,12 @@
 package io.github.balasis.taskmanager.contracts.enums;
 
 import lombok.Getter;
+
+// config for the default image seeding at startup. we keep 4 profile defaults
+// and 4 group defaults in the "default-images" container. DefaultImageBootstrap
+// reads these from local disk and uploads them to blob storage, then saves
+// their blob names in the default_images table.
+// filePrefix distinguishes profile vs group images in the container.
 @Getter
 public enum BlobDefaultImageContainer {
 

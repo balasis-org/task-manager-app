@@ -4,6 +4,8 @@ import java.text.Normalizer;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+// utility for sanitizing user-provided filenames before storing them as blob keys.
+// prevents path traversal, null bytes, and other nasty chars from reaching Azure.
 public final class StringSanitizer {
 
     private StringSanitizer() {}
@@ -27,6 +29,10 @@ public final class StringSanitizer {
         return sanitizeFilename(original);
     }
 
+    // blob key format: {taskId}-{8charUUID}-{sanitized_filename}
+    // the UUID segment prevents two uploads of the same filename from
+    // silently overwriting each other in blob storage. without it, uploading
+    // "report.pdf" twice to the same task would clobber the first file.
     public static String toSafeBlobKey(Long prefixId, String originalFilename) {
         String safe = sanitizeFilename(originalFilename);
         String blobSafe = BLOB_UNSAFE_PATTERN.matcher(safe).replaceAll("_");

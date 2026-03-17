@@ -7,6 +7,10 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// links a user to a task with a specific role (CREATOR, ASSIGNEE, or REVIEWER).
+// the unique constraint on (user, task, role) means a user can actually have
+// multiple roles on the same task (e.g. be both CREATOR and REVIEWER) but
+// cant be assigned the same role twice.
 @Getter
 @Setter
 @SuperBuilder
@@ -30,6 +34,8 @@ public class TaskParticipant extends BaseModel{
     @Column(name = "task_participant_role",nullable = false)
     private TaskParticipantRole taskParticipantRole;
 
+    // tracks when this participant last viewed the comments thread.
+    // compared against task.lastCommentDate to show "new comments" badge.
     @Column
     private Instant lastSeenTaskComments;
 

@@ -10,6 +10,9 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+// the core work unit. belongs to exactly one group. has a state machine lifecycle:
+// TODO -> IN_PROGRESS -> TO_BE_REVIEWED -> DONE (with some allowed backwards transitions).
+// the group_id + title pair is unique so you cant have two tasks with the same name in one group.
 @Getter
 @Setter
 @SuperBuilder
@@ -34,6 +37,9 @@ public class Task extends BaseModel{
     @Column(nullable = false)
     private TaskState taskState;
 
+    // snapshot of the creator's id and name at task creation time.
+    // if the creator later leaves the group or gets deleted, we still
+    // know who originally created the task without a FK that would break.
     @Column(name = "creator_id_snapshot")
     private Long creatorIdSnapshot;
 
@@ -48,6 +54,9 @@ public class Task extends BaseModel{
     @Builder.Default
     private Set<TaskParticipant> taskParticipants = new HashSet<>();
 
+    // two separate file collections: creator files (attached by task creator or managers)
+    // and assignee files (uploaded by the person assigned to the task).
+    // they live in different blob containers and have separate count limits.
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL,orphanRemoval = true)
     @Builder.Default
     private Set<TaskFile> creatorFiles = new HashSet<>();
@@ -60,6 +69,7 @@ public class Task extends BaseModel{
     @Builder.Default
     private Set<TaskComment> taskComments = new HashSet<>();
 
+    // set when a REVIEWER approves or rejects the task in TO_BE_REVIEWED state
     @Enumerated(EnumType.STRING)
     @Column
     private ReviewersDecision reviewersDecision;
@@ -72,6 +82,7 @@ public class Task extends BaseModel{
     @Column(length = 400)
     private String reviewComment;
 
+    // tracks who last edited and when (shown in the UI as "last edited by X")
     @ManyToOne
     @JoinColumn
     private User lastEditBy;
@@ -79,6 +90,11 @@ public class Task extends BaseModel{
     @Column
     private Instant lastEditDate;
 
+    // multiple change timestamps because the frontend polls at different granularities.
+    // lastChangeDate = any change at all (used by group-level refresh)
+    // lastChangeDateNoJoins = only direct task field changes (not file/participant/comment changes)
+    // lastChangeDateInParticipants, lastChangeDateInComments = scoped to those child collections
+    // the frontend compares these against its cached values to know what to re-fetch
     @Column
     private Instant lastChangeDate;
 
@@ -90,13 +106,15 @@ public class Task extends BaseModel{
 
     @Column
     private Instant lastChangeDateInComments;
-    
+
     @Column
     private Instant createdAt;
 
     @Column
     private Instant dueDate;
 
+    // denormalized comment count so we can show it in task previews without
+    // loading the entire comments collection
     @Column
     private Long commentCount;
 
@@ -106,8 +124,8 @@ public class Task extends BaseModel{
     @Column
     private Instant lastCommentDate;
 
-    // ── task-level override columns (nullable = use group / plan default) ──
-
+    // task-level overrides for file limits. when set these take priority
+    // over group overrides and plan defaults. see Group for the cascade logic.
     @Column
     private Integer maxCreatorFiles;
 

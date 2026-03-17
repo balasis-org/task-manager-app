@@ -8,6 +8,12 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// transactional outbox pattern for email. instead of sending emails inline
+// during a request (which could fail and leave the transaction in a weird state)
+// we insert a row here inside the same transaction as the business operation.
+// the EmailQueueDrainer picks these up every 5 seconds and actually sends them.
+// this way if the email service is down the business operation still succeeds
+// and emails get retried later.
 @Getter
 @Setter
 @SuperBuilder

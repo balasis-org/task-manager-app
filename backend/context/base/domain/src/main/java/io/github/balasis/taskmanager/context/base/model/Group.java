@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+// a workspace that users collaborate in. the owner (who created it) is the one whose
+// subscription plan limits apply to the whole group (member caps, storage budget, etc.)
 @Getter
 @Setter
 @SuperBuilder
@@ -34,10 +36,14 @@ public class Group extends BaseModel{
     @Column(length = 500)
     private String imgUrl;
 
+    // LAZY because we only need the owner when checking plan limits or mapping
+    // to the DTO. fetched explicitly via JOIN FETCH in repo queries when needed.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
+    // cascade ALL + orphanRemoval on all children so deleting a group
+    // takes everything with it in one transaction
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<GroupMembership> memberships = new HashSet<>();
@@ -61,26 +67,35 @@ public class Group extends BaseModel{
     @Builder.Default
     private Boolean allowAssigneeEmailNotification = false;
 
+    // these timestamps are the backbone of poll-based sync. the frontend calls
+    // refreshGroup and only gets new data when lastChangeInGroup has advanced.
+    // we split them so the poller can tell if it needs to refetch tasks vs members.
+    // lastChangeInGroupNoJoins is for lightweight changes that dont touch child entities.
     @Column
     private Instant lastChangeInGroup;
 
     @Column
     private Instant lastChangeInGroupNoJoins;
 
+    // set when a task gets deleted, so the refresh endpoint can send tombstones
     @Column
     private Instant lastDeleteTaskDate;
 
+    // set when a member joins/leaves/changes role, triggers member list refresh
     @Column
     private Instant lastMemberChangeDate;
 
+    // set by the maintenance job after cleanup, used for staleness detection
     @Column
     private Instant lastMaintenanceDate;
 
     @Column
     private Instant createdAt;
 
-    // ── group-level override columns (nullable = use plan default) ──
-
+    // group-level overrides for file limits. when these are null the system
+    // falls back to the owner's plan defaults from PlanLimits.
+    // if the task also has overrides, task wins over group.
+    // this 3-tier cascade (plan -> group -> task) lets admins fine-tune per context.
     @Column
     private Integer maxCreatorFilesPerTask;
 
@@ -90,10 +105,13 @@ public class Group extends BaseModel{
     @Column
     private Long maxFileSizeBytes;
 
+    // when true, downloads from this group count against the owner's monthly budget
     @Column
     @Builder.Default
     private Boolean dailyDownloadCapEnabled = true;
 
+    // when true the maintenance DowngradeCleanupService skips this group
+    // even if the owner downgraded. admin can set this for special cases.
     @Column
     @Builder.Default
     private Boolean downgradeShielded = false;
