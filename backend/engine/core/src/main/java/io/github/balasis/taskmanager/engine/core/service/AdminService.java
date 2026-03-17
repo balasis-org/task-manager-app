@@ -21,6 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 
+// admin panel backend: bypasses normal authorization and uses SystemRole.ADMIN
+// checks instead. every method calls requireAdmin() first.
+// no class-level @Transactional because read vs write varies per method,
+// and some admin ops (like deleteUser) need specific cascade ordering.
 @Service
 @RequiredArgsConstructor
 public class AdminService {
@@ -39,6 +43,8 @@ public class AdminService {
     private final FileReviewStatusRepository fileReviewStatusRepository;
     private final BlobStorageService blobStorageService;
 
+    // gate method: checks SystemRole from the DB, not from the JWT.
+    // this way revoking admin in the DB takes effect immediately.
     private void requireAdmin() {
         var userId = effectiveCurrentUser.getUserId();
         var user = userRepository.findById(userId)
@@ -106,6 +112,8 @@ public class AdminService {
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
     }
 
+    // admin file downloads bypass all budget/repeat-guard checks.
+    // the admin doesn't burn the group leader's download quota.
     @Transactional(readOnly = true)
     public TaskFileDownload downloadTaskFile(Long taskId, Long fileId) {
         requireAdmin();
@@ -134,6 +142,9 @@ public class AdminService {
         return new TaskFileDownload(download.inputStream(), file.getName(), download.size());
     }
 
+    // plan change handling: downgrading starts a 7-day grace period
+    // so the user has time to clean up files that exceed the new limits.
+    // upgrading clears any in-progress grace period immediately.
     @Transactional
     public User updateUser(Long userId, String name, String email, SystemRole systemRole,
                            SubscriptionPlan subscriptionPlan, Boolean allowEmailNotification) {
@@ -156,9 +167,8 @@ public class AdminService {
                 user.setPreviousPlan(null);
                 user.setDowngradeGraceDeadline(null);
             }
-            // Bump lastChangeInGroup on all groups this user owns so that
-            // the polling has-changed endpoint detects the plan change and
-            // frontends refresh their cached plan-derived limits.
+            // touching the group's lastChangeInGroup so the frontend
+            // polling picks up the changed plan-derived limits
             groupRepository.touchLastChangeByOwnerId(userId, Instant.now());
         }
         if (allowEmailNotification != null) user.setAllowEmailNotification(allowEmailNotification);
@@ -166,6 +176,9 @@ public class AdminService {
         return userRepository.save(user);
     }
 
+    // admin rename check: cant have two groups with the same name under
+    // the same owner. the validator in normal GroupService does the same
+    // check but this code path bypasses the normal service.
     @Transactional
     public Group updateGroup(Long groupId, String name, String description, String announcement,
                              Boolean allowEmailNotification) {
@@ -222,6 +235,13 @@ public class AdminService {
         return taskCommentRepository.save(existing);
     }
 
+    // user deletion cascade:
+    // 1. detach comments (set creator=null, preserve the name snapshot)
+    // 2. clear any "reviewed by" and "last edit by" refs in tasks
+    // 3. delete invitations (both sent and received)
+    // 4. delete refresh tokens
+    // 5. finally delete the user row
+    // cant delete admins or users who still own groups.
     @Transactional
     public void deleteUser(Long userId) {
         requireAdmin();
@@ -247,6 +267,9 @@ public class AdminService {
         userRepository.delete(user);
     }
 
+    // group deletion cascade (admin path, same order as GroupService.delete
+    // but without the blob cleanup since admin delete is a hard nuke):
+    // invitations -> tombstones -> file reviews -> tasks -> memberships -> group
     @Transactional
     public void deleteGroup(Long groupId) {
         requireAdmin();
@@ -285,6 +308,8 @@ public class AdminService {
         taskCommentRepository.delete(comment);
     }
 
+    // admin support tools: manually reset monthly counters
+    // (useful when a bug double-charged someone)
     @Transactional
     public User resetUserEmailUsage(Long userId) {
         requireAdmin();
