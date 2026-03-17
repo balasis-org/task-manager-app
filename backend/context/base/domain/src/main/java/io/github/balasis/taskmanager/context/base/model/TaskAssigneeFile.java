@@ -8,6 +8,10 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+// same structure as TaskFile but for files uploaded by the assignee.
+// lives in a separate blob container ("task-assignee-files") and has its own
+// count limit per task. keeping them apart makes the review workflow cleaner
+// because reviewers primarily care about what the assignee submitted.
 @Getter
 @Setter
 @ToString

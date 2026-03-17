@@ -173,6 +173,9 @@ public class PlanLimits {
     }
 
     // 5 s base (blob RTT + TCP ramp) + transfer at assumed 2 MB/s floor, clamped to [10 s .. tier cap]
+    // the 2 MB/s minimum is a conservative assumption for slow connections.
+    // if the transfer takes longer than the cap the connection gets killed
+    // by BaseComponent.transferWithTimeout to free up the thread.
     public long computeDownloadTimeoutMs(long fileSizeBytes, SubscriptionPlan downloaderPlan) {
         long minSpeedBytesPerSec = 2048L * 1024; // 2 MB/s — see ToS minimum-speed clause
         long transferMs = (fileSizeBytes * 1000) / minSpeedBytesPerSec;

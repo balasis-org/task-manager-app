@@ -5,6 +5,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+// system-provided default images for profiles and groups. these get uploaded
+// to blob storage at startup by DefaultImageBootstrap, then their blob names
+// are stored here. when a user or group hasnt set a custom image we pick one
+// of these at random.
 @Getter
 @Setter
 @SuperBuilder

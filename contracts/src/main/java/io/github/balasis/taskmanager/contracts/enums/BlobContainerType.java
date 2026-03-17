@@ -2,6 +2,13 @@ package io.github.balasis.taskmanager.contracts.enums;
 
 import lombok.Getter;
 
+// maps each Azure Blob Storage container to the DB table and column that
+// references it. the maintenance orphan scanner uses this to check if a blob
+// in a container still has a matching row in the DB. if not its an orphan
+// and gets deleted. containerName is the actual Azure container name,
+// tableName/columnName tell the scanner where to look.
+// the contracts module is shared between backend and maintenance so both
+// agree on the same container layout.
 @Getter
 public enum BlobContainerType {
 

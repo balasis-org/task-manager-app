@@ -7,6 +7,10 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// per-reviewer status for a file. a single file can have multiple reviews from
+// different reviewers. points to either a TaskFile or a TaskAssigneeFile (one will
+// be null and the other set). this is intentional, keeps the schema simple vs having
+// a polymorphic FK or an intermediate table.
 @Getter
 @Setter
 @SuperBuilder
