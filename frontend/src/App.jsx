@@ -21,6 +21,9 @@ import { BlobSasProvider } from "@context/BlobSasContext.jsx";
 import { ToastProvider } from "@context/ToastContext.jsx";
 import TierUpgradeProvider from "@context/TierUpgradeContext.jsx";
 
+// provider nesting order matters: AppShield (error boundary) > ToastProvider >
+// AuthProvider (user state) > BlobSasProvider (image URLs) > TierUpgradeProvider >
+// GroupProvider (depends on AuthContext for user.id and cacheKey).
 export default function App() {
     return (
         <AppShield>

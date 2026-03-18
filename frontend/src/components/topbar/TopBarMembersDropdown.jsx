@@ -5,6 +5,8 @@ import { formatRole } from "@assets/js/formatLabel";
 import MemberDetailPopup from "@components/popups/MemberDetailPopup";
 import "@styles/topbar/TopBarMembersDropdown.css";
 
+// members dropdown in the top bar. searchable, shows online/offline dots
+// via presenceUserIds set. clicking a member opens MemberDetailPopup.
 export default function TopBarMembersDropdown({
     members,
     canInvite,

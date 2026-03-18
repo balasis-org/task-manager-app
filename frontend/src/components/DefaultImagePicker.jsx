@@ -4,6 +4,9 @@ import { apiGet } from "@assets/js/apiClient.js";
 import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/popups/DefaultImagePicker.css";
 
+// grid popup for picking from server-hosted default images.
+// type="user" or "group" — fetches the list from /api/users/me/default-images?type=.
+// images live in the "default-images/" blob container prefix.
 export default function DefaultImagePicker({ type, onPick, onClose }) {
     const blobUrl = useBlobUrl();
     const [images, setImages] = useState([]);

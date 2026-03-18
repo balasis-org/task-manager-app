@@ -15,6 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 
+// core-layer impl of TaskAnalysisService. handles the lifecycle before the drainer picks it up:
+// estimate credits (including inter-region egress cost), check for in-progress requests,
+// enqueue a new analysis, and retrieve the snapshot.
+// credit formula: 3 credits/comment for analysis, ceil(totalChars/5120) for summarization,
+// plus a small egress surcharge for Italy North ↔ West Europe cross-region traffic.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor

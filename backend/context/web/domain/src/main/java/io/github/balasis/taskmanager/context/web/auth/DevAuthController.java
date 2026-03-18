@@ -25,6 +25,9 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 
+// dev/arena-only fake-login bypass — creates or updates a user directly without
+// touching Azure AD. supports plan upgrades/downgrades with 7-day grace period.
+// active for: dev-h2, dev-mssql, dev-flyway-mssql, arena-stress, arena-security.
 @RestController
 @RequiredArgsConstructor
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql", "prod-arena-stress", "prod-arena-security"})

@@ -1,3 +1,5 @@
+// verifies that unauthenticated and forged-token requests are rejected.
+// 4 tests: anonymous, forged JWT, expired JWT, garbage refresh token.
 import http from "k6/http";
 import { check } from "k6";
 import { BASE_URL } from "../config.js";

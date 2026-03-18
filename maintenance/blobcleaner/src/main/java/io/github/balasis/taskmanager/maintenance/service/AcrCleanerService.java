@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 
+// keeps the last 2 container images per ACR repo and deletes older ones.
+// only runs in prod — dev builds don't push to ACR.
 @Service
 @Profile("prod-azuresql")
 @AllArgsConstructor

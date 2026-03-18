@@ -21,6 +21,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.util.Map;
 
+// admin panel endpoints: paginated browsing of users/groups/tasks/comments,
+// CRUD + destructive ops (delete user/group/task/comment), plan changes,
+// usage resets, and file downloads (bypasses normal ownership checks).
+// authorization enforced at service layer (AdminService checks SystemRole.ADMIN).
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin")

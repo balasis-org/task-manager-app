@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// arena stress profile: skip moderation entirely so load tests don't hit the API
 @Configuration
 @Profile("prod-arena-stress")
 public class NoOpContentSafetyConfig {

@@ -3,6 +3,8 @@ import { apiPatch } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import "@styles/groupsettings/GsToggleField.css";
 
+// debounced toggle — waits 1 second after the last flip before PATCHing.
+// prevents rapid-fire API calls when user toggles back and forth.
 export default function GsToggleField({ label, icon, groupId, fieldKey, value, onUpdated, disabled, disabledHint, note }) {
     const showToast = useToast();
     const [on, setOn] = useState(value);

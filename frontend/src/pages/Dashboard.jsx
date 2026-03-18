@@ -22,6 +22,9 @@ import { FiRefreshCw } from "react-icons/fi";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Dashboard.css";
 
+// main dashboard: group selector in top bar, task cards grouped by state column,
+// group files gallery tab, server-side filtering, and stale-banner when GroupContext
+// polling stops. delegates rendering to DashboardTopBar, DashboardTaskSection, etc.
 const TASK_STATES = ["TODO", "IN_PROGRESS", "TO_BE_REVIEWED", "DONE"];
 const STATE_LABELS = {TODO: "To do",IN_PROGRESS: "In progress",TO_BE_REVIEWED: "To be reviewed",DONE: "Done"};
 

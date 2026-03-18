@@ -1,10 +1,12 @@
+# shared base config — all profiles inherit this.
+# profile-specific overrides live in application-{profile}.yml.
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev-h2}
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 550MB
+      max-file-size: 100MB       # per-file limit (TEAMS_PRO max = 50 MB, extra headroom)
+      max-request-size: 550MB    # total multipart envelope (10 files × 50 MB + overhead)
   data:
     web:
       pageable:
@@ -12,12 +14,12 @@ spring:
   jpa:
     properties:
       hibernate:
-        use_nationalized_character_data: true
+        use_nationalized_character_data: true    # NVARCHAR for Azure SQL unicode
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
-    open-in-view: false
+    open-in-view: false    # no lazy loading outside tx — prevents accidental N+1
   jackson:
     time-zone: UTC
   lifecycle:
@@ -54,6 +56,6 @@ logging:
     org.flywaydb: WARN
 
 app:
-  jwt-secret-name: TASKMANAGER-JWT-SECRET
-  download-threads: 15
-  public-url: ${APP_PUBLIC_URL:http://localhost:5173}
+  jwt-secret-name: TASKMANAGER-JWT-SECRET    # Key Vault secret name (prod) or env var (dev)
+  download-threads: 15                       # thread pool for parallel blob downloads
+  public-url: ${APP_PUBLIC_URL:http://localhost:5173}   # used for CORS and absolute URLs

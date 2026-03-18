@@ -1,3 +1,5 @@
+// shared HTTP helpers for k6 tests — login, cookie extraction, group lookups,
+// and typed request wrappers. all requests go through BASE_URL.
 import http from "k6/http";
 import { check } from "k6";
 import { BASE_URL, TIER_LEADERS, TIER_GROUP_NAMES } from "./config.js";

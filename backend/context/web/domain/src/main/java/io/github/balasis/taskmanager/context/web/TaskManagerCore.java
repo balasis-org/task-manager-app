@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+// app entry point — @ComponentScan pulls in all five module packages
+// (engine.core, context.base, engine.monitoring, engine.infrastructure, context.web).
 @SpringBootApplication
 @EnableScheduling
 @ComponentScan(basePackages = {

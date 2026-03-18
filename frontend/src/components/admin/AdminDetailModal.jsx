@@ -10,6 +10,8 @@ import "@styles/admin/AdminDetailModal.css";
 
 const PLANS = ["FREE", "STUDENT", "ORGANIZER", "TEAM", "TEAMS_PRO"];
 
+// ThresholdBar — reused for storage budget, download budget, email quota.
+// turns red (danger class) at 90%+ usage.
 function ThresholdBar({ label, used, total, format }) {
     if (!total || total <= 0) return null;
     const pct = Math.min(100, (used / total) * 100);
@@ -25,6 +27,9 @@ function ThresholdBar({ label, used, total, format }) {
     );
 }
 
+// detail overlay for admin CRUD — one component handles users, groups,
+// tasks, and comments with if/else branches per type. shared overlay and
+// action layout makes this simpler than four separate detail components.
 export default function AdminDetailModal({
     detailItem, detailLoading, onClose, onRefresh,
     onRequestDelete, blobUrl, onDownload, downloadingId, formatDate,

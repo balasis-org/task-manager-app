@@ -1,5 +1,8 @@
 import { Component } from "react";
 
+// React error boundary: catches render crashes and shows a "Back to Dashboard"
+// fallback instead of a white screen. class component because hooks can't
+// use getDerivedStateFromError yet.
 class AppShield extends Component {
     constructor(props) {
         super(props);

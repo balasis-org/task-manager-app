@@ -3,6 +3,8 @@ import { FiX, FiPlus } from "react-icons/fi";
 import { isFileTooLarge, getFileIcon, formatFileSize } from "@assets/js/fileUtils";
 import "@styles/newtask/NtFileSection.css";
 
+// drag-and-drop file picker for new-task form. validates size against
+// maxFileSizeBytes and count against maxFiles before adding to the list.
 export default function NtFileSection({ files, onFilesChange, onError, maxFiles, maxFileSizeBytes }) {
     const [fileDragOver, setFileDragOver] = useState(false);
     const fileInputRef = useRef(null);

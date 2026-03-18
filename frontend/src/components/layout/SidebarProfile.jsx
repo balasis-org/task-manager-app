@@ -6,6 +6,9 @@ import { useToast } from "@context/ToastContext";
 import { useBlobUrl } from "@context/BlobSasContext";
 import "@styles/layout/SidebarProfile.css";
 
+// mini profile card in the sidebar: avatar with tier ring, name, invite code
+// with copy + refresh buttons. tier-ring-{plan} CSS class draws a colored
+// border ring matching the subscription tier.
 export default function SidebarProfile({ user }) {
     const blobUrl = useBlobUrl();
     const { setUser } = useContext(AuthContext);

@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// core-layer impl of ImageModerationService. just persists a PENDING row
+// to the queue table, the actual moderation is done by ImageModerationDrainer.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor

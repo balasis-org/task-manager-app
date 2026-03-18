@@ -1,4 +1,7 @@
-﻿import { useState, useEffect, useContext, useRef, useCallback } from "react";
+﻿// single-task view: inline-editable title/description, state transition bar,
+// file upload sections (creator + assignee), participant management, review panel,
+// email notifications. uses useSmartPoll on /has-task-changed for live updates.
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FiChevronRight, FiChevronLeft, FiRefreshCw, FiMail } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext";

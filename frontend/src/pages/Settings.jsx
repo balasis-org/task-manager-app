@@ -1,4 +1,7 @@
-﻿import { useContext, useEffect, useState } from "react";
+﻿// user settings: profile edit (name, avatar, MS photo, default image picker),
+// invite code display, email notification toggle, theme switch,
+// subscription plan info with storage/download/email/scan budget bars.
+import { useContext, useEffect, useState } from "react";
 import { FiUser, FiMail, FiCheck, FiX, FiHardDrive, FiDownloadCloud, FiLayers, FiImage } from "react-icons/fi";
 import { AuthContext } from "@context/AuthContext.jsx";
 import { useToast } from "@context/ToastContext";

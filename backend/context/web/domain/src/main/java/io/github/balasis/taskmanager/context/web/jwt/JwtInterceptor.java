@@ -18,6 +18,20 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+// auth interceptor: first line of auth for every API request.
+//
+// refresh token rotation:
+//   when the JWT expires (15 min), instead of forcing a re-login, the interceptor
+//   reads the "RefreshKey" cookie (format: "tokenId:refreshCode"), looks up the
+//   RefreshToken row in the DB, verifies the code with constant-time comparison
+//   (MessageDigest.isEqual), then generates a NEW refresh code (rotation), mints
+//   a fresh JWT, and sends both back as Set-Cookie headers.
+//   why rotate? if an attacker steals the refresh cookie, the real user's next
+//   request will fail (code mismatch) → detectable. this is the "refresh token
+//   rotation" pattern recommended by OAuth 2.0 for browser clients.
+//
+// order: runs at interceptor order 1 — before rate-limit and account-ban checks.
+// populates CurrentUser (request-scoped bean) with the authenticated userId.
 @Component
 @RequiredArgsConstructor
 public class JwtInterceptor extends BaseComponent implements HandlerInterceptor {

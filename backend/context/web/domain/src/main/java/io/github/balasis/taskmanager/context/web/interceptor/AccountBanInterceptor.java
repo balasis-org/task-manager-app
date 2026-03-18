@@ -12,6 +12,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.time.Instant;
 
+// blocks write requests (POST/PATCH/DELETE) for users whose accountBannedUntil
+// is still in the future — set by the content moderation escalation ladder.
+// GETs pass through so banned users keep read-only access.
 @Component
 @RequiredArgsConstructor
 public class AccountBanInterceptor implements HandlerInterceptor {

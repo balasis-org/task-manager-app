@@ -21,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+// thin REST controller for profile + account CRUD — delegates everything to UserService,
+// enriches responses with plan-specific limits (storage budget, download budget, email quota)
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")

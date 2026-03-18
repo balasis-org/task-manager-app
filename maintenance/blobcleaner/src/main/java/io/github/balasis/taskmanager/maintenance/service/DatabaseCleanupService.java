@@ -5,15 +5,18 @@ import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepositor
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+// DB hygiene — purges rows that are only kept for audit/sync and past their
+// retention window. Each retention constant is intentionally generous so that
+// any late-running cron still has overlap.
 @Service
 @AllArgsConstructor
 public class DatabaseCleanupService extends BaseComponent {
 
-    private static final int TOMBSTONE_RETENTION_DAYS = 30;
-    private static final int INVITATION_RETENTION_DAYS = 30;
-    private static final int EMAIL_OUTBOX_RETENTION_HOURS = 24;
-    private static final int MODERATION_RETENTION_DAYS = 30;
-    private static final int ANALYSIS_REQUEST_RETENTION_DAYS = 30;
+    private static final int TOMBSTONE_RETENTION_DAYS = 30;       // soft-deletes for frontend sync
+    private static final int INVITATION_RETENTION_DAYS = 30;      // resolved (accepted/declined)
+    private static final int EMAIL_OUTBOX_RETENTION_HOURS = 24;   // sent or failed emails
+    private static final int MODERATION_RETENTION_DAYS = 30;      // processed image scans
+    private static final int ANALYSIS_REQUEST_RETENTION_DAYS = 30; // completed AI analysis jobs
 
     private final MaintenanceRepository repository;
 

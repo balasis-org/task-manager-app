@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// core-layer impl of EmailQueueService. persists a PENDING row,
+// EmailQueueDrainer picks it up and sends through ACS or SMTP.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor

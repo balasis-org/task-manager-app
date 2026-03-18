@@ -1,3 +1,5 @@
+// k6 test configuration — shared by both attack-simulations and stress tests.
+// all users map to DataLoader-seeded dev accounts (fake-login only, no Azure AD).
 // Override via: k6 run --env BASE_URL=https://<frontdoor>.azurefd.net script.js
 // Defaults to localhost for local development against Docker Compose stack
 export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";

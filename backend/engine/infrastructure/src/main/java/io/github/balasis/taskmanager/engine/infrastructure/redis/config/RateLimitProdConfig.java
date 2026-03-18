@@ -30,6 +30,19 @@ import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
+// mega config: creates the shared Redis connection (Azure Cache for Redis, TLS, Key Vault credentials)
+// plus every Redis-backed bean: rate limiter, presence tracker, download guard, image change limiter,
+// and all three distributed locks (email, moderation, analysis).
+//
+// uses Lettuce (not Jedis) as the Redis driver because Bucket4j's Redis integration
+// (bucket4j-lettuce) requires it. Lettuce is non-blocking under the hood but we use
+// the sync() command API for simplicity.
+//
+// ByteArrayCodec: Bucket4j stores its own binary bucket state in Redis, so we skip
+// the default UTF-8 string codec and use raw byte arrays to avoid encoding overhead.
+//
+// connection is shared across all beans — Lettuce connections are thread-safe
+// (they multiplex commands over a single TCP connection).
 @Configuration
 @Profile({"prod-h2", "prod-azuresql", "prod-arena-stress", "prod-arena-security"})
 @RequiredArgsConstructor
@@ -54,6 +67,8 @@ public class RateLimitProdConfig {
         String host = parts[0];
         int port = (parts.length > 1) ? Integer.parseInt(parts[1]) : 10000;
 
+        // Azure Cache for Redis uses TLS on port 10000 (non-SSL: 6380, but we always use SSL).
+        // "default" is the Redis 6+ ACL username for password-only auth.
         RedisURI uri = RedisURI.builder()
                 .withHost(host)
                 .withPort(port)
@@ -72,6 +87,13 @@ public class RateLimitProdConfig {
     @Bean
     public RateLimitService rateLimitService(StatefulRedisConnection<byte[], byte[]> redisConnection) {
         try {
+            // LettuceBasedProxyManager: the Bucket4j adapter that stores token-bucket state
+            // as binary blobs in Redis. each user's bucket is a single Redis key.
+            //
+            // ExpirationAfterWriteStrategy.basedOnTimeForRefillingBucketUpToMax:
+            //   sets a Redis TTL equal to the time needed to fully refill the bucket.
+            //   (here: 16 min > our 15-min window, so buckets auto-expire when idle
+            //   and dont litter Redis with stale keys)
             LettuceBasedProxyManager<byte[]> proxyManager = LettuceBasedProxyManager
                     .builderFor(redisConnection)
                     .withExpirationStrategy(

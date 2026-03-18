@@ -6,8 +6,13 @@ import { formatRole } from "@assets/js/formatLabel";
 import "@styles/popups/Popup.css";
 import "@styles/popups/MemberDetailPopup.css";
 
+// role hierarchy: GUEST < MEMBER < REVIEWER < TASK_MANAGER < GROUP_LEADER.
+// only GROUP_LEADER can assign roles, and only up to TASK_MANAGER
+// (GROUP_LEADER is not in ASSIGNABLE_ROLES to prevent self-demotion).
 const ASSIGNABLE_ROLES = ["GUEST", "MEMBER", "REVIEWER", "TASK_MANAGER"];
 
+// group leader can change roles and remove members. isSelf prevents
+// self-actions. counts tasks created by this member from taskPreviews.
 export default function MemberDetailPopup({
     member,
     groupId,

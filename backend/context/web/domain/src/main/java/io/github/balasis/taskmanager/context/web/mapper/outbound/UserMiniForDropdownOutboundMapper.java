@@ -8,6 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// lightweight user projection for dropdowns — sameOrg is ignored here,
+// controller sets it manually after comparing tenantIds.
 @Mapper(componentModel="spring")
 public interface UserMiniForDropdownOutboundMapper extends BaseOutboundMapper<User, UserMiniForDropdownOutboundResource> {
 

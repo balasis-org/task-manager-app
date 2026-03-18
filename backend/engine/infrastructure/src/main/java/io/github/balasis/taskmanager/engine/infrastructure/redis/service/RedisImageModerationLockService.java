@@ -7,6 +7,9 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+// distributed lock for the image moderation drainer using Redis SET NX EX.
+// SET NX EX = "SET if Not eXists, with EXpiry" — returns "OK" if acquired, null if held.
+// EX TTL auto-releases if the holder crashes. see RedisCommentAnalysisLockService for details.
 public class RedisImageModerationLockService implements ImageModerationLockService {
 
     private static final byte[] LOCK_KEY = "image:moderation:lock".getBytes(StandardCharsets.UTF_8);

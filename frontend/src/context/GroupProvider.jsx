@@ -193,6 +193,12 @@ function applyDeltaToDetail(cachedDetail, delta) {
 // members, polling, and localStorage cache management.
 // =====================================================================
 
+// the heaviest context: manages group list + active group detail + members +
+// encrypted localStorage cache (AES-GCM via cacheCrypto, keyed to user.cacheKey).
+// on active-group switch: tries cache-then-delta-refresh via /groups/{id}/refresh,
+// falls back to full fetch if no cache. polling uses has-changed (409=stale, 204=fresh)
+// with 3-tier idle backoff (30s active / 60s slow / stop after 15min idle).
+// multi-user eviction: keeps at most 3 users in localStorage, purges oldest.
 export default function GroupProvider({ children }) {
     const { user } = useContext(AuthContext);
 

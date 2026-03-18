@@ -29,6 +29,9 @@ import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
+// dev version: connects to local Redis (localhost:6379 or overridable via REDIS_HOST/PORT/PASSWORD).
+// creates the same bean set as the prod config. uses plain TCP (no TLS) for local dev.
+// Lettuce + ByteArrayCodec for the same reason as prod — Bucket4j needs raw byte storage.
 @Configuration
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor

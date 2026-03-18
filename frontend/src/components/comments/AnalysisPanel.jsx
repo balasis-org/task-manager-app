@@ -17,6 +17,22 @@ const SENTIMENT_COLORS = {
     MIXED:    "#f59e0b",
 };
 
+// TEAMS_PRO feature — AI-powered comment analysis via Azure AI Language.
+//
+// shows cost estimate (in analysis credits — the tier-based quota), lets user pick
+// analysis type (FULL / ANALYSIS_ONLY / SUMMARY_ONLY), then polls for results.
+//
+// results include:
+//   - overall sentiment: POSITIVE / NEGATIVE / NEUTRAL / MIXED (majority vote across comments)
+//   - per-comment breakdown: individual sentiment + confidence for each comment
+//   - key phrases: top-20 noun phrases extracted by Azure AI Language
+//   - PII detection: PII = Personally Identifiable Information (SSNs, emails, phone numbers,
+//     credit cards, physical addresses, etc.). shows a count of detected entities.
+//   - optional AI summary: extractive summary (verbatim sentences, not generative)
+//
+// bulk-delete button: lets the group leader wipe all comments before the analysis
+// snapshot timestamp. useful after PII is found — you can delete the offending comments
+// without having to find them one by one.
 export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast }) {
     const isTeamsPro = groupDetail?.op === "TEAMS_PRO";
 
@@ -54,6 +70,8 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
 
     if (!isTeamsPro) return null;
 
+    // fires two polls after queueing: 4s and 10s — the backend processes
+    // analysis async via the outbox pattern, usually finishes within 5-8s
     async function handleAnalyze() {
         setSubmitting(true);
         try {
@@ -87,6 +105,8 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
         }
     }
 
+    // credit cost depends on analysis type — FULL = analysis + summary + egress,
+    // partial types only charge their portion. disables the button if over budget.
     const creditsForType = estimate
         ? analysisType === "ANALYSIS_ONLY" ? (estimate.analysisCredits + estimate.egressCredits)
         : analysisType === "SUMMARY_ONLY"  ? (estimate.summaryCredits + estimate.egressCredits)

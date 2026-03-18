@@ -11,6 +11,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// prod: two separate Azure Communication Services email clients.
+// userEmailClient sends to regular users (invitations, notifications).
+// adminEmailClient sends from a different domain/sender for admin alerts.
+// both use managed identity.
 @Configuration
 @Profile({"prod-h2","prod-azuresql"})
 @AllArgsConstructor

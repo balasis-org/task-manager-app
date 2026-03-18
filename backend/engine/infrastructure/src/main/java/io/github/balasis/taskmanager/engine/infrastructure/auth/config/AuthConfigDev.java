@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// dev: reads OAuth params from plain env vars (no Key Vault dependency)
 @Getter
 @Configuration
 @Profile({"dev-mssql", "dev-h2", "dev-flyway-mssql"})

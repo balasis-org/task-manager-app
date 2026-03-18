@@ -6,6 +6,9 @@ import { FiUsers, FiLogIn, FiTool } from "react-icons/fi";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Login.css";
 
+// login page: production uses Azure AD redirect (getLoginUrl), dev profiles
+// show a fake-login panel with preset users across all subscription tiers.
+// redirects to returnUrl after successful auth (saved in sessionStorage).
 const IS_DEV = import.meta.env.DEV;
 
 // GF=Free  GS=Student  GO=Organizer  GT=Team(stress)  GP=TeamsPro

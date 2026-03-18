@@ -8,6 +8,10 @@ import TopBarGroupSelector from "@components/topbar/TopBarGroupSelector";
 import PresenceBar from "@components/dashboard/PresenceBar";
 import "@styles/dashboard/DashboardTopBar.css";
 
+// orchestrates the top bar above the dashboard: group selector, member dropdown,
+// search, filter panel, presence bar, settings/leave buttons.
+// hasUnseenEvents compares group's last event timestamp vs user's lastSeenGroupEvents
+// to decide whether to show the unseen-events indicator dot.
 export default function DashboardTopBar({
     groups,
     activeGroup,

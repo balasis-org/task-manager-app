@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 
 import java.util.List;
 
+// arena stress: returns neutral data so load tests dont bill the AI APIs
 @Configuration
 @Profile("prod-arena-stress")
 public class NoOpTextAnalyticsConfig {

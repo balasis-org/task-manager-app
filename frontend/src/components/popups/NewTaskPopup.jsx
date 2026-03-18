@@ -17,6 +17,11 @@ const STATE_OPTIONS = [
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
+// full task creation form — title, desc, state, priority, due, reviewers,
+// assignees, files, and per-task file limits. submits as multipart/form-data
+// with a JSON "data" part + file attachments.
+// the role-filtering for reviewers and assignees mirrors the backend's
+// @PreAuthorize checks: REVIEWER+ can review, MEMBER+ can be assigned.
 export default function NewTaskPopup({ groupId, initialState, members, groupDetail, onClose, onCreated, onRefresh, maxCreatorFiles, maxAssigneeFiles, maxFileSizeBytes }) {
     const blobUrl = useBlobUrl();
     const [title, setTitle] = useState("");
@@ -49,6 +54,8 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
                                   || (m.user?.email || "").toLowerCase().includes(assigneeSearch.toLowerCase()))
     );
 
+    // prune stale selections when members list changes (e.g. someone
+    // was kicked from the group while the popup was open)
     useEffect(() => {
         const currentMemberIds = new Set((members || []).map((m) => m.user?.id));
         setSelectedReviewers((prev) => prev.filter((m) => currentMemberIds.has(m.user?.id)));
@@ -76,6 +83,7 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
             if (dueDate) payload.dueDate = new Date(dueDate).toISOString();
             if (selectedAssignees.length) payload.assignedIds = selectedAssignees.map((m) => m.user?.id);
             if (selectedReviewers.length) payload.reviewerIds = selectedReviewers.map((m) => m.user?.id);
+            // per-task limits: only sent if stricter than the group-level defaults
             if (taskMaxAssigneeFiles !== "" && Number(taskMaxAssigneeFiles) < maxAssigneeFiles)
                 payload.maxAssigneeFiles = Number(taskMaxAssigneeFiles);
             if (taskMaxFileSizeMB !== "") {

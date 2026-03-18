@@ -13,6 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
+// Thumbnailator-based resizer. outputs 256x256 JPEG at 85% quality.
+// checks pixel dimensions first to reject decompression bombs (>25 megapixels)
+// before loading the full image into memory.
 @Service
 public class ImageResizeServiceImpl implements ImageResizeService {
 
