@@ -9,6 +9,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// prod: Azure Blob Storage authenticated via Managed Identity.
+// Managed Identity = the App Service has an Azure AD identity assigned to it,
+// so it can access Key Vault / Blob Storage / etc. without storing any secrets.
+// the SDK exchanges the MI token automatically — no connection string needed.
 @Configuration
 @Profile({"prod-h2", "prod-azuresql", "prod-arena-stress", "prod-arena-security"})
 @AllArgsConstructor

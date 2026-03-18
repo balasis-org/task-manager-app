@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// arena profiles: disables email, content safety, and image moderation entirely.
+// keeps the beans alive so autowiring doesn't break, but everything is a no-op.
+// this file is the kitchen-sink disable switch for load testing.
 @Configuration
 @Profile({"prod-arena-stress", "prod-arena-security"})
 public class NoOpEmailConfig {

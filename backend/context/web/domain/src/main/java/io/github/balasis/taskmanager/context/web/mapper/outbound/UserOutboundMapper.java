@@ -8,6 +8,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// most ignored fields (storageBudgetBytes, maxGroups, downloadBudgetBytes, etc.) are
+// populated by the controller from PlanLimits after mapping — keeps mapper pure.
+// URL converters prepend container names so the frontend can build SAS download URLs.
 @Mapper(componentModel = "spring")
 public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboundResource> {
 

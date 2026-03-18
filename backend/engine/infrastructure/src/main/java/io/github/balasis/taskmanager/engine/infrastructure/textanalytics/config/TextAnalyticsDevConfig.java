@@ -22,6 +22,12 @@ import org.springframework.core.annotation.Order;
 
 import java.util.List;
 
+// dev: API key auth for Azure AI Language (Managed Identity isnt available locally).
+// AzureKeyCredential wraps the API key for the SDK's Authorization header.
+// no-op fallback: if env vars are missing, returns neutral sentiment for everything
+// so the UI still renders normally. the probe call (detectLanguage) forces eager
+// credential validation — the SDK otherwise validates lazily, leading to confusing errors.
+// prints a big ASCII banner at startup when disabled.
 @Configuration
 @Profile({"dev-mssql", "dev-h2", "dev-flyway-mssql"})
 @RequiredArgsConstructor

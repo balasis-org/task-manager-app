@@ -8,6 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// prepends blob container name to imgUrl/defaultImgUrl so frontend gets
+// "group-images/abc.jpg" and can combine it with the SAS token from BlobSasContext.
 @Mapper(componentModel = "spring", uses = {UserOutboundMapper.class})
 public interface GroupOutboundMapper extends BaseOutboundMapper<Group, GroupOutboundResource> {
 

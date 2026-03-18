@@ -11,6 +11,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// prod: builds the Azure AI Language TextAnalyticsClient using Managed Identity.
+// Managed Identity = the App Service gets an Azure AD token automatically,
+// so no API key is stored anywhere. the endpoint URL comes from Key Vault.
+// the TextAnalyticsClient is the main SDK entry point for all NLP operations
+// (sentiment, key phrases, PII detection, extractive summary).
 @Configuration
 @Profile({"prod-h2", "prod-azuresql", "prod-arena-security"})
 @RequiredArgsConstructor

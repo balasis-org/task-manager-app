@@ -1,4 +1,7 @@
-﻿import { useState, useEffect, useContext, useRef, useCallback } from "react";
+﻿// comment thread with pagination, inline edit/delete, PII warning badges,
+// AI analysis panel (sentiment + key phrases + summary). uses useSmartPoll
+// on /has-comments-changed for live updates without re-fetching every page.
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import {
     FiArrowLeft,

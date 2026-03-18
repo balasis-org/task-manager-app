@@ -4,6 +4,9 @@ import { FiTrash2, FiAlertTriangle } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 import "@styles/popups/GroupEventsPopup.css";
 
+// paginated audit log for a group — shows membership changes, task state
+// changes, file uploads, etc. events before seenThreshold are dimmed.
+// leader can bulk-clear all events.
 export default function GroupEventsPopup({ groupId, onClose, lastSeenGroupEvents, isLeader }) {
     const [events, setEvents] = useState([]);
     const [page, setPage] = useState(0);

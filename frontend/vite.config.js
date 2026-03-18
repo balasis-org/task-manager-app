@@ -8,6 +8,9 @@ const __dirname = path.dirname(__filename);
 
 export default ({ mode }) => {
 
+  // in dev, proxy /api to the Spring Boot backend on :8080.
+  // in prod, the SPA is served from Azure blob storage and
+  // the API is on the same Front Door hostname — no proxy needed.
   const devProxy = {
     '/api': {
       target: 'http://localhost:8080',

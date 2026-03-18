@@ -5,6 +5,17 @@ import lombok.Getter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// prod: all OAuth params eagerly read from Azure Key Vault at construction.
+//
+// scope = "openid profile email User.Read":
+//   openid  = required for OpenID Connect, gives us the id_token JWT
+//   profile = includes name, preferred_username in the token claims
+//   email   = includes email claim (needed for user upsert)
+//   User.Read = Microsoft Graph permission to read the user's profile photo
+//
+// authority = https://login.microsoftonline.com/{tenantId} — the Azure AD
+// issuer base URL. appending /oauth2/v2.0/authorize or /token gives the
+// standard OAuth2 endpoints.
 @Getter
 @Configuration
 @Profile({"prod-azuresql", "prod-h2", "prod-arena-stress", "prod-arena-security"})

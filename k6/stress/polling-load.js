@@ -1,3 +1,5 @@
+// stress test: simulates many users polling has-changed endpoints concurrently.
+// tracks 429 rate-limit responses vs successful polls. threshold: <50% rate-limited.
 import http from "k6/http";
 import { sleep } from "k6";
 import { Counter, Rate } from "k6/metrics";

@@ -5,6 +5,9 @@ import { useTierUpgrade } from "@context/TierUpgradeContext";
 import "@styles/topbar/TopBarGroupSelector.css";
 import "@styles/popups/Popup.css";
 
+// group selector dropdown in the top bar. shows all user's groups as a list.
+// if the user hit their maxGroups cap and isn't on TEAMS_PRO, shows a limit
+// message with an upgrade option instead of opening the new-group popup.
 export default function TopBarGroupSelector({
     groups,
     activeGroup,

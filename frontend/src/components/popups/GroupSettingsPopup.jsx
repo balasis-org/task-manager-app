@@ -7,7 +7,10 @@ import GsDeleteSection from "@components/groupsettings/GsDeleteSection";
 import "@styles/popups/Popup.css";
 import "@styles/popups/GroupSettingsPopup.css";
 
+// composes GsEditableField, GsToggleField, GsImageSection, GsDeleteSection
+// into a settings overlay. email features are plan-gated (ORGANIZER+).
 export default function GroupSettingsPopup({ group, groupDetail, members, user, onClose, onUpdated, onDeleted }) {
+    // FREE and STUDENT plans can't send email notifications
     const emailDisabled = groupDetail?.op === "FREE" || groupDetail?.op === "STUDENT";
 
     return (

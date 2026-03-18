@@ -13,6 +13,10 @@ const STATE_LABELS = {
     DONE: "Done",
 };
 
+// flat table of all files across all tasks in a group.
+// uses short-key DTOs (f.i=id, f.n=name, f.ft=fileType, f.fs=fileSize,
+// f.rv=reviews, f.tn=taskTitle, f.ts=taskState, f.un=uploaderName).
+// clicking a row navigates to the parent task.
 export default function GroupFiles({ groupId }) {
     const navigate = useNavigate();
     const [files, setFiles] = useState([]);

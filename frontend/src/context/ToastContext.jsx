@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 import "@styles/Toast.css";
 
+// global toast notification system. error toasts auto-dismiss after 8s,
+// success after 4s. click to dismiss early. stacks multiple toasts.
 const ToastContext = createContext(null);
 
 let nextId = 1;

@@ -5,6 +5,8 @@ import io.github.balasis.taskmanager.context.web.resource.taskfile.outbound.Task
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+// reviews ignored here — enriched in GroupController.enrichFileReviews()
+// after a separate batch query to avoid N+1.
 @Mapper(componentModel = "spring")
 public interface TaskFileOutboundMapper extends BaseOutboundMapper<TaskFile, TaskFileOutboundResource>{
 

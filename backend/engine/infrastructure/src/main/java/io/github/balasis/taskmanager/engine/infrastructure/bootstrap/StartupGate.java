@@ -5,6 +5,9 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Arrays;
 
+// two atomic flags: imagesReady (DefaultImageBootstrap done) and dataReady (DataLoader done).
+// StartupBlockingFilter returns 503 until both are true.
+// if the DataLoader profile isnt active, dataReady starts as true.
 @Component
 public class StartupGate {
     private final AtomicBoolean imagesReady = new AtomicBoolean(false);

@@ -60,6 +60,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// the big REST controller — covers groups, tasks, comments, file uploads/downloads,
+// invitations, member management, comment intelligence (analysis + summary), file reviews.
+// downloads use DownloadGate for per-user concurrency limiting and ETag-based 304s.
+// smart-poll endpoints (hasGroupChanged etc.) return 409/204 so the frontend avoids refetching.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/groups")

@@ -1,5 +1,8 @@
 
 // text-length limits — these never vary by plan
+// mirrors backend Jakarta validation constraints so the frontend can
+// show errors before submitting. these must stay in sync with the
+// @Size/@Max annotations on the inbound resource DTOs.
 export const LIMITS = Object.freeze({
 
     GROUP_NAME:        50,

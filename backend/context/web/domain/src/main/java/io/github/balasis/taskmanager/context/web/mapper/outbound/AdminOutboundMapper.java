@@ -8,6 +8,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// admin-specific mapper with list vs detail variants: list ignores heavy nested
+// fields (members, description) for page performance, detail includes them.
+// URL converters prepend the blob container name so the frontend can build
+// the full SAS URL — same pattern used in GroupOutboundMapper/UserOutboundMapper.
 @Mapper(componentModel = "spring")
 public interface AdminOutboundMapper {
 

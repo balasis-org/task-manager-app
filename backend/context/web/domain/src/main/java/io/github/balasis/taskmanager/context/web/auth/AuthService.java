@@ -42,6 +42,24 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+// Azure AD integration — the core of the OAuth2 Authorization Code flow.
+//
+// exchangeCodeForToken: POSTs the authorization code + client_secret to
+//   https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+//   and gets back {access_token, id_token, refresh_token, ...}.
+//
+// decodeIdToken: parses the id_token (a signed JWT), fetches Azure AD's public
+//   signing keys from the JWKS (JSON Web Key Set) endpoint at
+//   https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys,
+//   verifies the RSA signature (RSASSAVerifier), and checks the audience claim.
+//   JWKS is cached for 1 hour, invalidated on key-rotation (kid mismatch).
+//
+// personal MSA accounts (Outlook, Hotmail) share the well-known tenant GUID
+// "9188040d-6c67-4c5b-b112-36a304b66dad". any other tenant means the user belongs
+// to an actual organization — isOrg flag is set accordingly.
+//
+// after successful auth: upserts the User record, pulls the MS profile photo
+// from Microsoft Graph API, and mints a 10-min JWT + 24h refresh cookie.
 @Service
 @RequiredArgsConstructor
 public class AuthService extends BaseComponent {
@@ -58,6 +76,9 @@ public class AuthService extends BaseComponent {
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
+    // JWKS = JSON Web Key Set — Azure AD publishes its public RSA signing keys here.
+    // we cache it for 1 hour to avoid hitting Microsoft's endpoint on every login.
+    // if a kid (key ID) from the token isn't in our cache, we force-refresh once.
     private volatile JWKSet cachedJwkSet;
     private volatile long jwkSetFetchedAt;
     private static final long JWKS_CACHE_MS = 1000L * 60 * 60;
@@ -239,6 +260,9 @@ public class AuthService extends BaseComponent {
         return responseItem;
     }
 
+    // OAuth2 token exchange: sends the authorization code to Microsoft's token endpoint.
+    // grant_type=authorization_code tells Azure AD we're exchanging a one-time code for tokens.
+    // returns: {access_token, id_token, token_type, expires_in, scope, refresh_token}
     public Map<String, Object> exchangeCodeForToken(String code) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("client_id", authConfig.getClientId());
@@ -259,6 +283,15 @@ public class AuthService extends BaseComponent {
                 .block();
     }
 
+    // decodes and cryptographically verifies the id_token from Azure AD.
+    // id_token is a signed JWT (JWS) with an RSA signature.
+    // steps:
+    //   1. parse the compact JWT string into header + payload + signature
+    //   2. extract the "kid" (key ID) from the header
+    //   3. look up the matching public key from Microsoft's JWKS endpoint
+    //   4. verify the RSA signature using RSASSAVerifier (from Nimbus JOSE)
+    //   5. check the "aud" (audience) claim matches our client_id
+    // if any step fails → CriticalAuthIntegrityException (potential token forgery)
     public Map<String, Object> decodeIdToken(String idToken) {
         try {
             SignedJWT jwt = SignedJWT.parse(idToken);

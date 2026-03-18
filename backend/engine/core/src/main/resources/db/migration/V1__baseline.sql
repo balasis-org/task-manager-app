@@ -1,3 +1,7 @@
+-- V1: Baseline schema — all core tables (Users, Groups, Tasks, TaskFiles,
+-- GroupMemberships, GroupInvitations, Comments, GroupEvent, DeletedTasks,
+-- default_images, RefreshTokens, MaintenanceStatus). Created from
+-- Hibernate's ddl-auto=create output and normalized.
 
 CREATE TABLE [default_images](
     [id] BIGINT IDENTITY(1,1) NOT NULL,

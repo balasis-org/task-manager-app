@@ -29,6 +29,21 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+// drains the TaskAnalysisRequest queue every 10s behind a Redis distributed lock.
+//
+// uses CAS (Compare-And-Swap) via casUpdateStatus(id, "PENDING", "PROCESSING") to
+// atomically flip the request status. if another replica already flipped it, the
+// UPDATE returns 0 rows affected and we skip it — prevents double-processing.
+//
+// runs 3 Azure AI Language APIs per request (bundled in one beginAnalyzeActions call):
+//   - Sentiment analysis: positive/negative/neutral per comment + overall
+//   - Key phrase extraction: top-20 meaningful noun phrases across all comments
+//   - PII detection: counts personally identifiable information entities
+//     (PII = Personally Identifiable Information: SSNs, emails, phone numbers, etc.)
+// optionally runs extractive summarization (AI picks representative sentences).
+//
+// on failure: retries up to 3x, then marks FAILED and refunds the user's analysis
+// credits (credits are the tier-based quota for running AI analysis).
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class CommentAnalysisDrainer {
@@ -144,6 +159,7 @@ public class CommentAnalysisDrainer {
         requestRepository.save(request);
     }
 
+    // bump retry count; if maxed out, mark FAILED and refund credits back to the user
     private void handleFailure(TaskAnalysisRequest request) {
         txTemplate.executeWithoutResult(status -> {
             request.setRetryCount(request.getRetryCount() + 1);

@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+// runs once on container start, then exits — Azure Container Apps restarts it on cron.
+// two modes: "task-blobs" (runs every 30-45 min, orphan scan only) and
+// "full" (daily, does everything: blobs + assets + users + DB + counters + ACR)
 @Component
 public class MaintenanceRunner extends BaseComponent implements CommandLineRunner {
 
@@ -27,6 +30,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
     private final AcrCleanerService acrCleanerService;
     private final MaintenanceRepository maintenanceRepository;
 
+    // AcrCleanerService is optional — only exists in prod-azuresql profile
     @Autowired
     public MaintenanceRunner(
             BlobCleanerService blobCleanerService,
@@ -60,6 +64,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         logger.info("Maintenance run finished (mode={}). Container will exit.", mode);
     }
 
+    // env var takes priority, then CLI arg, then default to full
     private String resolveMode(String[] args) {
         String envMode = System.getenv("MAINTENANCE_MODE");
         if (envMode != null && !envMode.isBlank()) {

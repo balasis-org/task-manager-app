@@ -1,3 +1,6 @@
+// structured console logger for attack-simulation scripts.
+// prints a banner, per-test headers, request/response lines,
+// and a pass/fail summary at the end.
 import { BASE_URL } from "./config.js";
 
 const SEPARATOR = "================================================================";

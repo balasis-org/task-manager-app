@@ -13,6 +13,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+// OAuth2 Authorization Code flow (RFC 6749 §4.1) with Azure AD as the identity provider.
+//
+// flow:
+//   1. GET /auth/login-url → builds the Azure AD /authorize URL with a random CSRF state
+//      and sets an httpOnly "oauth_state" cookie.
+//   2. browser redirects to Azure AD → user logs in → Azure redirects back with ?code=...&state=...
+//   3. POST /auth/exchange → verifies the state cookie matches (CSRF protection), exchanges
+//      the authorization code for tokens at Microsoft's /oauth2/v2.0/token endpoint,
+//      verifies the id_token JWT signature via JWKS, upserts the user, then sets
+//      httpOnly JWT + refresh cookies.
+//   4. POST /auth/logout → clears both cookies + deletes the refresh token from the DB.
+//
+// MessageDigest.isEqual is used for state comparison — it's constant-time to prevent
+// timing attacks on the CSRF state.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")

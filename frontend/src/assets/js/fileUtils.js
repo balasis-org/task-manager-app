@@ -1,4 +1,5 @@
-
+// file icon mapping by extension, size checks, and human-readable size formatting.
+// used by task file sections and the group files gallery.
 import {
     FiFile,
     FiFileText,

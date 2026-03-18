@@ -23,6 +23,18 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+// central blob operations for all container types.
+//
+// Azure Blob Storage hierarchy: Storage Account > Container > Blob.
+// a "container" is like a top-level folder. BlobContainerClient gives CRUD on one container;
+// BlobClient points to a single blob (file) inside it.
+//
+// on construction it eagerly creates any missing containers (idempotent).
+// PublicAccessType.BLOB = anonymous read access to individual blobs (for profile/group images
+// served directly to browsers). private containers (task files) require auth.
+//
+// images are resized via ImageResizeService before upload. task files stored as-is.
+// deletes are fire-and-forget async — if they fail, the maintenance BlobCleanerService sweeps orphans.
 @Service
 public class BlobStorageService {
 

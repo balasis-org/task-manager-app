@@ -25,6 +25,21 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+// polls the ImageModerationQueue table every 10s on a Redis-locked schedule.
+// grabs up to 5 pending items, downloads the blob bytes from Azure Blob Storage,
+// sends them to Azure Content Safety (severity analysis across 4 categories),
+// then either approves (deletes the old/previous image) or rejects (reverts to
+// previous image, refunds the scan quota credit, and applies the escalation ladder).
+//
+// escalation ladder: every 3 violations within a 30-day rolling window bumps the level.
+//   L1 = 1-hour upload ban  (user can still read/comment, just not upload images)
+//   L2 = 24-hour upload ban
+//   L3 = 7-day upload ban
+//   L4 = 30-day full account write ban (no comments, no tasks, nothing) then level resets.
+// if >30 days pass without a ban, the counter resets to 0 (clean slate).
+//
+// uses manual TransactionTemplate because @Scheduled methods can't participate in
+// Spring's @Transactional proxy — the scheduled thread bypasses the proxy.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class ImageModerationDrainer {
@@ -167,6 +182,8 @@ public class ImageModerationDrainer {
         }
     }
 
+    // if >30 days since last ban the counter resets, otherwise count violations since
+    // whichever is more recent: last ban or 30 days ago. 3 violations = level bump.
     private void applyEscalation(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) return;

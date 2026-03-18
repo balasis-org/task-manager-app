@@ -9,6 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// dev: sends through a local SMTP server like MailHog or MailPit (localhost:1025 by default).
+// host and port are overridable via SmtpEmailClientHost / SmtpEmailClientPort env vars.
+// both user and admin clients share the same SMTP instance.
 @Configuration
 @Profile({"dev-h2","dev-mssql","dev-flyway-mssql"})
 public class EmailDevConfig {

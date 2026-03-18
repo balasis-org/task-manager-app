@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
 
+// invitation lifecycle: respond (accept/reject), list my pending, list sent by me.
+// checkNewInvitations throws BusinessRuleException as HTTP 409 signal — the frontend
+// polls this and shows a badge when 409 comes back.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/group-invitations")

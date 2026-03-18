@@ -10,6 +10,10 @@ import { AuthContext } from "@context/AuthContext";
 import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/groupsettings/GsImageSection.css";
 
+// Group cover image - drag-drop upload or pick from defaults.
+// custom upload goes through /api/groups/{id}/image (multipart),
+// default image pick goes through /api/groups/{id}/image/pick-default.
+// both bump usedImageScansMonth because the backend runs moderation on upload.
 export default function GsImageSection({ group, ownerPlan, onUpdated }) {
     const showToast = useToast();
     const blobUrl = useBlobUrl();

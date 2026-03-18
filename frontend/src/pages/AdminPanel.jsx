@@ -1,3 +1,6 @@
+// admin CRUD panel: tabs for users/groups/tasks/comments, paginated tables
+// with search + debounce, detail modals, delete confirmation, plan changes.
+// only visible to SystemRole.ADMIN users (ProtectedRoute + SidebarNav gate).
 import { useContext, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiRefreshCw } from "react-icons/fi";

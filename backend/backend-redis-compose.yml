@@ -1,3 +1,5 @@
+# Redis for rate limiting and presence tracking in local dev.
+# tmpfs = ephemeral storage, no persistence needed for dev.
 services:
   redis:
     image: redis:7-alpine

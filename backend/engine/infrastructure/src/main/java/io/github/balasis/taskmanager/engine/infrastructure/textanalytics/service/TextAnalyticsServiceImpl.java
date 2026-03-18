@@ -28,6 +28,29 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+// Azure AI Language (formerly "Text Analytics") — the Cognitive Services NLP API.
+// API docs: https://learn.microsoft.com/en-us/azure/ai-services/language-service/
+//
+// beginAnalyzeActions is a *long-running operation* (LRO): the SDK starts a server-side
+// job, returns a poller, and getFinalResult() blocks until Azure finishes processing.
+// one action set can bundle multiple analyses together so we pay one network round-trip.
+//
+// PII = Personally Identifiable Information. the RecognizePiiEntitiesAction scans text
+// for things like social security numbers, email addresses, phone numbers, passport
+// numbers, credit card numbers, physical addresses, etc. each detected entity has a
+// category (e.g. "SSN", "Email", "PhoneNumber") and a confidence score 0.0-1.0.
+// we only count the number of entities per comment — we don't redact or store them.
+//
+// AnalyzeSentimentAction returns one of "positive", "negative", "neutral", "mixed"
+// per document plus confidence scores for each label (they sum to ~1.0).
+//
+// ExtractKeyPhrasesAction pulls out the most meaningful noun phrases from the text.
+//
+// ExtractiveSummaryAction picks the most representative sentences from the input
+// (not generative AI — it just selects existing sentences, no hallucination risk).
+//
+// Azure limits: 25 documents per batch, 5120 characters per document.
+// we chunk accordingly before sending.
 public class TextAnalyticsServiceImpl implements TextAnalyticsService {
 
     private static final Logger logger = LoggerFactory.getLogger(TextAnalyticsServiceImpl.class);
@@ -45,10 +68,11 @@ public class TextAnalyticsServiceImpl implements TextAnalyticsService {
                 .map(c -> new TextDocumentInput(c.id(), c.text()))
                 .toList();
 
-        Map<String, String> sentimentMap = new LinkedHashMap<>();
-        Map<String, Double> confidenceMap = new LinkedHashMap<>();
-        Map<String, List<String>> keyPhrasesMap = new LinkedHashMap<>();
-        Map<String, Integer> piiCountMap = new LinkedHashMap<>();
+        // per-document results keyed by document ID (the comment ID)
+        Map<String, String> sentimentMap = new LinkedHashMap<>();       // "positive"/"negative"/"neutral"
+        Map<String, Double> confidenceMap = new LinkedHashMap<>();      // highest of the 3 confidence scores
+        Map<String, List<String>> keyPhrasesMap = new LinkedHashMap<>(); // noun phrases the API extracted
+        Map<String, Integer> piiCountMap = new LinkedHashMap<>();       // count of PII entities found (SSN, email, phone, etc.)
 
         for (int i = 0; i < allDocs.size(); i += BATCH_SIZE) {
             List<TextDocumentInput> chunk = allDocs.subList(i, Math.min(i + BATCH_SIZE, allDocs.size()));
@@ -108,11 +132,14 @@ public class TextAnalyticsServiceImpl implements TextAnalyticsService {
             Map<String, List<String>> keyPhrasesMap,
             Map<String, Integer> piiCountMap) {
 
+        // bundle 3 analyses into one action set — Azure runs them in parallel server-side
         TextAnalyticsActions actions = new TextAnalyticsActions()
-                .setAnalyzeSentimentActions(new AnalyzeSentimentAction())
-                .setExtractKeyPhrasesActions(new ExtractKeyPhrasesAction())
-                .setRecognizePiiEntitiesActions(new RecognizePiiEntitiesAction());
+                .setAnalyzeSentimentActions(new AnalyzeSentimentAction())       // positive/negative/neutral
+                .setExtractKeyPhrasesActions(new ExtractKeyPhrasesAction())     // meaningful noun phrases
+                .setRecognizePiiEntitiesActions(new RecognizePiiEntitiesAction()); // SSN, email, phone, etc.
 
+        // beginAnalyzeActions starts an LRO on Azure's side and returns a SyncPoller.
+        // getFinalResult() blocks until the job completes (typically 2-10s depending on batch size).
         var poller = client.beginAnalyzeActions(chunk, actions, null, Context.NONE);
         var results = poller.getFinalResult();
 
@@ -136,6 +163,9 @@ public class TextAnalyticsServiceImpl implements TextAnalyticsService {
                     })
             );
 
+            // PII entities: each entity represents one detected piece of personally identifiable
+            // information (e.g. "john@example.com" → Email, "123-45-6789" → US SSN).
+            // we just count them — the actual text/category/offset is available but not stored.
             page.getRecognizePiiEntitiesResults().forEach(actionResult ->
                     actionResult.getDocumentsResults().forEach(r -> {
                         if (!r.isError()) {
@@ -161,6 +191,9 @@ public class TextAnalyticsServiceImpl implements TextAnalyticsService {
             docs.add(new TextDocumentInput(String.valueOf(docIdx), chunk));
         }
 
+        // extractive summarization: picks up to 6 of the most representative sentences
+        // from the input. this is NOT generative — it selects verbatim sentences, so there
+        // is zero hallucination risk. Azure ranks sentences by centrality + redundancy.
         TextAnalyticsActions actions = new TextAnalyticsActions()
                 .setExtractiveSummaryActions(new ExtractiveSummaryAction()
                         .setMaxSentenceCount(6));

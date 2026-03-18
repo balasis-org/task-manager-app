@@ -1,4 +1,6 @@
-
+# JRE-only Alpine image — no JDK tools in prod.
+# runs as non-root (appuser). MaxRAMPercentage=75% leaves headroom
+# for the container sidecar and OS overhead on Azure Container Apps.
 FROM eclipse-temurin:21-jre-alpine
 
 LABEL maintainer="balasis" \

@@ -1,3 +1,7 @@
+// global fetch wrapper: credentials:include for httpOnly cookies,
+// auto-JSON for non-FormData bodies, 401 retry via registered handler
+// (AuthProvider's refresh-cookie flow), 429 extracts Retry-After, 503
+// passes error up for StartupGate-style blocking.
 let authHandlers = {
     onUnauthorized: null,
 };

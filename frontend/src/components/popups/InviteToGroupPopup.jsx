@@ -12,6 +12,9 @@ const ROLES = [
     { value: "GROUP_LEADER",  label: "Group Leader",  hint: "Full control including settings and invitations" },
 ];
 
+// invite-by-code form: the inviter enters the target user's invite code
+// (not an email address). the backend resolves the code to a user.
+// email notification toggle only visible on ORGANIZER+ plans.
 export default function InviteToGroupPopup({ groupId, groupDetail, onClose }) {
     const showToast = useToast();
     const [inviteCode, setInviteCode] = useState("");

@@ -5,6 +5,10 @@ import { FiPlus, FiDownload, FiTrash2, FiCheck, FiAlertTriangle } from "react-ic
 import { getFileIcon, formatFileSize } from "@assets/js/fileUtils";
 import "@styles/task/TaskFilesSection.css";
 
+// drag-and-drop + click-to-upload file section with inline file review UI.
+// reused for both creator files and assignee files — the parent passes
+// different labels/limits/handlers. REVIEW_NOTE_MAX is a local UI cap,
+// not enforced by the backend.
 const REVIEW_NOTE_MAX = 200;
 
 export default function TaskFilesSection({

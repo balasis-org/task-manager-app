@@ -1,7 +1,9 @@
+# prod-azuresql: Azure SQL via managed identity, Flyway migrations,
+# restricted actuator endpoints, no SQL logging.
 spring:
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate   # schema managed by Flyway only
     show-sql: false
 
   flyway:

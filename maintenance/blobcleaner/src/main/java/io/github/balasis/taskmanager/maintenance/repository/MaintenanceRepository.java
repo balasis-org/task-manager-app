@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+// raw JDBC — the maintenance module is standalone and doesn't share the
+// backend's JPA entities, so everything is hand-written SQL.
 @Repository
 @AllArgsConstructor
 public class MaintenanceRepository {
@@ -35,6 +37,8 @@ public class MaintenanceRepository {
         return count != null && count > 0;
     }
 
+    // different retention windows: 7 days for default-image users, 14 for
+    // users who uploaded a custom image (they invested more effort)
     public List<Long> findInactiveUserIdsWithoutGroups() {
         return jdbcTemplate.queryForList("""
             SELECT u.id
@@ -53,6 +57,9 @@ public class MaintenanceRepository {
         """, Long.class);
     }
 
+    // deletes related rows first (invitations, tokens) then the user.
+    // FK violations are caught — means some new FK was created between
+    // the SELECT and DELETE (user became active again).
     public boolean tryDeleteUser(Long userId) {
         try {
 

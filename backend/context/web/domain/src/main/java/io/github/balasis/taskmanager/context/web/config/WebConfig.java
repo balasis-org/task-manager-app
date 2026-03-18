@@ -22,6 +22,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+// interceptor chain ordering: JWT (1) → rate-limit (2) → account-ban (3).
+// bounded thread pool for StreamingResponseBody downloads (default 15 threads).
+// CORS: production domain + localhost origins; dev profiles auto-discover
+// local-network IPs so mobile testing via Vite network URL works.
 @Configuration
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {

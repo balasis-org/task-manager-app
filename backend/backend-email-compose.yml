@@ -1,3 +1,4 @@
+# MailHog: catches outbound emails on :1025, web UI on :8025
 services:
   mailhog:
     image: mailhog/mailhog:latest

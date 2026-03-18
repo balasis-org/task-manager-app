@@ -3,6 +3,8 @@ import "@styles/popups/Popup.css";
 import "@styles/popups/TierUpgradePopup.css";
 import "@styles/pages/TermsOfService.css";
 
+// read-only plan comparison popup — no payment gateway exists (thesis project).
+// triggered globally via TierUpgradeContext when any plan limit is hit.
 export default function TierUpgradePopup({ onClose }) {
     return (
         <div className="popup-overlay" onMouseDown={onClose}>
