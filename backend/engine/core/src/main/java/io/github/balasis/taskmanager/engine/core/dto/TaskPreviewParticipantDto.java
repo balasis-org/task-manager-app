@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+// lightweight participant entry used inside task preview cards
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

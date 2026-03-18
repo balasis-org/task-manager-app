@@ -12,6 +12,10 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+// seeds the default_images table with filenames for profile and group avatars.
+// runs at HIGHEST_PRECEDENCE +10 so it finishes before DataLoader starts assigning
+// images to seed users. the actual PNG files live in blob storage (Azurite locally,
+// Azure Blob in prod) — this just ensures the DB rows exist.
 @Component
 @RequiredArgsConstructor
 public class DefaultImageBootstrap extends BaseComponent {

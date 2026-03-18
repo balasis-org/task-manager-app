@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Set;
 
+// full group snapshot returned when the user first opens a group. same
+// minified property names as GroupRefreshDto but includes the full task
+// preview set and budget counters for the tier UI. this is the "initial load"
+// payload; subsequent updates come through GroupRefreshDto polls.
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

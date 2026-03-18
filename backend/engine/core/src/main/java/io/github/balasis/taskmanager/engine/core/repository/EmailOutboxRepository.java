@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 
+// transactional outbox pattern: emails are written as PENDING rows inside
+// the same DB transaction as the triggering action, then picked up by
+// EmailQueueDrainer on a 10-second schedule. same retry+fail logic as image moderation.
 @Repository
 public interface EmailOutboxRepository extends JpaRepository<EmailOutbox, Long> {
 

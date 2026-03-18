@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+// big repository — lots of custom fetch-join queries to avoid N+1 problems
+// on the task detail and task list pages. each findBy* variant fetches a
+// different set of associations depending on what the caller needs.
 @Repository
 public interface TaskRepository extends JpaRepository<Task,Long> {
     boolean existsByTitleAndGroup_Id(String title, Long groupId);
@@ -26,6 +29,7 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
     @Modifying
     void deleteAllByGroup_Id(Long groupId);
 
+    // full fetch for task detail view — participants, both file collections, and the reviewer
     @Query("""
 
     SELECT t
@@ -157,6 +161,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
             @Param("dueDateBefore") Instant dueDateBefore
         );
 
+    // used by the smart-poll refresh — only returns tasks changed since
+    // the client's last poll timestamp to minimize payload size
     @Query("""
         SELECT DISTINCT t
         FROM Task t
@@ -170,6 +176,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
         @Param("since") Instant since
     );
 
+    // returns just IDs matching filter criteria — the frontend sends these
+    // filters and then fetches full task data for the matching set
     @Query("""
         SELECT DISTINCT t.id
         FROM Task t
@@ -212,6 +220,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
             @Param("hasFiles") Boolean hasFiles
     );
 
+    // cleanup for user deletion: nullify FK references so the user row can
+    // be removed without violating foreign key constraints
     @Modifying
     @Query("UPDATE Task t SET t.reviewedBy = null WHERE t.reviewedBy.id = :userId")
     void nullifyReviewedByForUser(@Param("userId") Long userId);
