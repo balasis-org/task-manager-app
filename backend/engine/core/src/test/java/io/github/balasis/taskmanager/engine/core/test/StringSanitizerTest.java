@@ -78,8 +78,8 @@ class StringSanitizerTest {
         String result = SafeBlobKey(42L, "image.png");
         assertTrue(result.startsWith("42-"), "should start with prefix id");
         assertTrue(result.endsWith("image.png"), "should end with sanitized filename");
-        // format: 42-<8-char-uuid>-image.png
-        assertEquals(4, result.split("-").length, "expected prefixId-uuid-filename segments");
+        // format: 42-<8-char-uuid>-image.png  →  3 segments when split on '-'
+        assertEquals(3, result.split("-").length, "expected prefixId-uuid-filename segments");
     }
 
     @Test
