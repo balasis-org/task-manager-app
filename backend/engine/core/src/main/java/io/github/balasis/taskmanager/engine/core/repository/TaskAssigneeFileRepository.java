@@ -8,6 +8,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+// same pattern as TaskFileRepository but for assignee-uploaded files.
+// kept in a separate table because assignee files have different
+// upload permissions and count limits.
 @Repository
 public interface TaskAssigneeFileRepository extends JpaRepository<TaskAssigneeFile, Long> {
 

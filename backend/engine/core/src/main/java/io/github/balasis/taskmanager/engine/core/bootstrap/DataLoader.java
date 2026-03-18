@@ -32,6 +32,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+// seeds the database with fake users, groups, tasks, invitations, and near-limit
+// budget counters for local dev. only active when the "DataLoader" Spring profile
+// is enabled. creates one group per subscription tier so every plan can be tested.
+// LOWEST_PRECEDENCE ordering ensures DefaultImageBootstrap runs first — we need
+// default images available before assigning them to seed users.
 @Component
 @Profile({"DataLoader"})
 @RequiredArgsConstructor
@@ -48,6 +53,9 @@ public class DataLoader extends BaseComponent {
     private final DefaultImageService defaultImageService;
     private final StartupGate startupGate;
 
+    // idempotent: if lena already exists, the whole data load is skipped.
+    // the finally block marks StartupGate as data-ready even on failure,
+    // otherwise the app would stay in 503 mode forever.
     @EventListener(ApplicationReadyEvent.class)
     @Order(Ordered.LOWEST_PRECEDENCE)
     public void onApplicationReady(ApplicationReadyEvent evt)  {
@@ -78,6 +86,8 @@ public class DataLoader extends BaseComponent {
         }
     }
 
+    // members shared across 3+ groups need at least STUDENT plan
+    // because FREE only allows 2 group memberships
     private Map<String, User> seedUsers() {
         logger.trace("Seeding users...");
 
@@ -259,7 +269,10 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-        private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
+    // withUser temporarily swaps the UserContext so GroupService sees
+    // the seed user as the "logged in" user. crucial because group creation
+    // assigns ownership to the current user.
+    private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
         User inviteeWithCode = userRepository.findById(invitee.getId()).orElseThrow();
         if (inviteeWithCode.getInviteCode() == null || inviteeWithCode.getInviteCode().isBlank()) {
             inviteeWithCode.refreshInviteCode();
@@ -381,6 +394,9 @@ public class DataLoader extends BaseComponent {
     // ── Near-limit budget seeding ────────────────────────────────────
     // All tier leaders are fully consumed except ALINA (TEAMS_PRO),
     // who keeps a tiny gap — the only account that can still use resources.
+    // sets all tier leaders to their plan's exact limits (fully consumed) except
+    // ALINA (TEAMS_PRO) who keeps a tiny gap. this lets us test "over budget" UI
+    // states for every tier while still having one account that can do stuff.
     private void applyNearLimitBudgets(Map<String, User> users) {
         logger.trace("Setting budget counters near plan limits...");
 

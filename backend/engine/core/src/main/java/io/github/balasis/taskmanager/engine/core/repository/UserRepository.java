@@ -11,6 +11,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+// most of the @Modifying queries here do atomic counter updates (storage, downloads,
+// emails, image scans, analysis credits). they return int (rows affected) so the
+// caller can tell if the budget was exceeded (0 = over budget, 1 = success).
+// this avoids read-then-write races without pessimistic locks.
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByAzureKey(String azureKey);
@@ -19,6 +23,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     boolean existsByAzureKey(String azureKey);
 
+    // invite-code based lookup — used when creating a group invitation
+    // by invite code instead of by user id (so you cant guess user ids)
     Optional<User> findByInviteCode(String inviteCode);
 
     // Atomically bumps the leader's storage counter.
@@ -122,6 +128,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
     """)
     Page<User> searchUser(@Param("q") String q, Pageable pageable);
 
+    // search for invite targets: excludes users already in the group,
+    // and optionally filters by tenant id for org-scoped invitations
     @Query("""
     select u
     from User u

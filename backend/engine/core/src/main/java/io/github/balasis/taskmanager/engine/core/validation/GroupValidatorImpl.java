@@ -28,6 +28,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+// the heaviest validator in the codebase. every group-related write operation
+// goes through here before persisting. methods are named after the operations
+// they guard, and they throw specific exception types so the global exception
+// handler can return the right HTTP status codes.
 @Component
 @RequiredArgsConstructor
 public class GroupValidatorImpl implements GroupValidator{
@@ -81,6 +85,8 @@ public class GroupValidatorImpl implements GroupValidator{
         isUserAlreadyReviewerInTask(task,userId);
     }
 
+    // file uploads: only GROUP_LEADER and TASK_MANAGER can upload creator files.
+    // assignee files have a separate method with broader access.
     @Override
     public void validateAddTaskFile(Task task, Long groupId, MultipartFile file, int maxFiles) {
         doesTaskBelongToGroup(task,groupId);
@@ -95,6 +101,7 @@ public class GroupValidatorImpl implements GroupValidator{
         ensureMaxFiles(task.getCreatorFiles().size(), maxFiles);
     }
 
+    // assignee file uploads: leaders, managers, AND the actual assignees can upload
     @Override
     public void validateAddAssigneeTaskFile(Task task, Long groupId, MultipartFile file, int maxFiles) {
         doesTaskBelongToGroup(task, groupId);
@@ -116,6 +123,7 @@ public class GroupValidatorImpl implements GroupValidator{
         ensureMaxFiles(task.getAssigneeFiles().size(), maxFiles);
     }
 
+    // download: must be leader/manager OR a participant on the task
     @Override
     public void validateDownloadTaskFile(Task task, Long groupId) {
         doesTaskBelongToGroup(task,groupId);
@@ -172,6 +180,7 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
+    // only assignees can push their task to TO_BE_REVIEWED, and only from IN_PROGRESS
     @Override
     public void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId) {
         doesTaskBelongToGroup(task, groupId);
@@ -188,6 +197,8 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
+    // reviewing: task-level reviewers can always review, but leaders and managers
+    // can also review even if theyre not listed as a reviewer on that specific task
     @Override
     public void validateReviewTask(Task task, Long groupId, Long userId) {
         doesTaskBelongToGroup(task, groupId);
@@ -242,6 +253,9 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
+    // invitation rules: the inviter's own role determines what roles they can assign.
+    // only GROUP_LEADER can invite with roles above MEMBER/GUEST, and nobody can
+    // assign GROUP_LEADER through an invitation (that would be a leadership transfer).
     @Override
     public void validateCreateGroupInvitation(GroupInvitation groupInvitation) {
         isToBeInvitedUserExists(groupInvitation);
@@ -261,6 +275,8 @@ public class GroupValidatorImpl implements GroupValidator{
         isTheInvitationOnPendingStatus(invitation);
     }
 
+    // membership removal: leaders cant remove themselves (would orphan the group),
+    // non-leaders can only remove themselves (leaving the group)
     @Override
     public void validateRemoveGroupMember(Long groupId, Long currentUserId, Long memberUserId, Optional<GroupMembership> currentMembershipOpt) {
         if (currentMembershipOpt.isEmpty()) {
@@ -278,6 +294,7 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
+    // role changes: only the leader can do this, and leadership transfer is blocked
     @Override
     public void validateChangeGroupMembershipRole(Long groupId, Long targetUserId, Role newRole) {
 
@@ -306,6 +323,8 @@ public class GroupValidatorImpl implements GroupValidator{
 
     }
 
+    // comments: leaders and managers can comment on any task, others must be
+    // a participant (assignee or reviewer) on that specific task
     @Override
     public void validateTaskComment(Long groupId, Task task, String comment) {
 
@@ -334,6 +353,7 @@ public class GroupValidatorImpl implements GroupValidator{
         }
     }
 
+    // comment deletion: creator can delete their own, leaders/managers can delete anyone's
     @Override
     public void validateDeleteTask(Long groupId,TaskComment existing , Task fromExisting ,Long taskId) {
         if (!Objects.equals(fromExisting.getId(), taskId) || !Objects.equals(fromExisting.getGroup().getId(), groupId)) {

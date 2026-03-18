@@ -11,12 +11,18 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 
+// queue table for async image moderation. images are scanned by a scheduled
+// drainer (ImageModerationDrainer) that picks PENDING entries in batch.
+// countViolationsSince powers the 4-level escalation ban logic.
 @Repository
 public interface ImageModerationQueueRepository extends JpaRepository<ImageModerationQueue, Long> {
 
+    // oldest-first ordering so no image starves in the queue
     @Query("SELECT q FROM ImageModerationQueue q WHERE q.status = 'PENDING' ORDER BY q.createdAt")
     List<ImageModerationQueue> findPendingBatch(Pageable pageable);
 
+    // counts recent violations for a user — feeds the escalation ladder:
+    // 1st = warning, 2nd = 24h ban, 3rd = 7d ban, 4th+ = permanent
     @Query("""
         SELECT COUNT(q) FROM ImageModerationQueue q
         WHERE q.status = 'REJECTED'
@@ -25,6 +31,8 @@ public interface ImageModerationQueueRepository extends JpaRepository<ImageModer
     """)
     int countViolationsSince(@Param("userId") Long userId, @Param("since") Instant since);
 
+    // bump retry count and auto-fail after 3 attempts so poison entries
+    // dont block the queue forever
     @Modifying
     @Query("""
         UPDATE ImageModerationQueue q

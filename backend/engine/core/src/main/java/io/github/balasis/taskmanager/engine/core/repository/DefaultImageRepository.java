@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+// lookup table for default avatar/group images. seeded by DefaultImageBootstrap.
+// findByType returns all images for a container type so DefaultImageService
+// can pick one at random when a new user/group is created.
 @Repository
 public interface DefaultImageRepository extends JpaRepository<DefaultImage,Long> {
     List<DefaultImage> findByType(BlobContainerType type);

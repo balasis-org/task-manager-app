@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.Optional;
 
+// group queries are split between admin views (full eager fetches for the
+// admin dashboard) and user views (lighter fetches). touchLastChangeByOwnerId
+// bumps the group's timestamp so the smart-poll knows something changed.
 @Repository
 public interface GroupRepository extends JpaRepository<Group,Long> {
     boolean existsByNameAndOwner_Id(String name, Long ownerId);

@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Set;
 
+// payload returned by the smart-poll refresh endpoint. uses single/two-letter
+// JSON property names to minimize payload size — this gets polled every few
+// seconds by every connected client so bytes matter. the "changed" flag tells
+// the frontend whether anything actually changed since the last poll; if false
+// the client can skip re-rendering entirely.
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

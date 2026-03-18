@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+// queue for AI task analysis requests (TEAMS_PRO feature). the drainer picks
+// PENDING entries, calls Azure AI, and writes results to TaskAnalysisSnapshot.
+// casUpdateStatus does an optimistic compare-and-swap to prevent two drainer
+// instances from processing the same request.
 public interface TaskAnalysisRequestRepository extends JpaRepository<TaskAnalysisRequest, Long> {
 
     List<TaskAnalysisRequest> findByStatus(String status, Pageable pageable);

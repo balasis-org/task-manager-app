@@ -8,6 +8,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+// creator-uploaded files (task attachments set by leader/manager).
+// the two query variants: one for leaders who see all files in the group,
+// one for participants who only see files on tasks theyre involved in.
 @Repository
 public interface TaskFileRepository extends JpaRepository<TaskFile, Long> {
 

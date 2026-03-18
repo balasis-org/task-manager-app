@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+// per-file review decisions (APPROVED, REJECTED, NEEDS_CHANGES) by reviewers.
+// both creator files and assignee files can be reviewed, hence the two
+// parallel sets of queries. bulk deletes clean up when a group or task is removed.
 @Repository
 public interface FileReviewStatusRepository extends JpaRepository<FileReviewStatus, Long> {
 

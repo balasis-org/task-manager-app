@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.List;
 
+// flat file row for the group files view. merges data from both TaskFile and
+// TaskAssigneeFile into one DTO with a "fileType" discriminator. short JSON
+// keys like all the other DTOs in this layer.
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
