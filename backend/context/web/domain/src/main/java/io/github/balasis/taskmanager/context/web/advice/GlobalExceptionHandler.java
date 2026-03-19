@@ -31,6 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+// central exception-to-HTTP mapping: CriticalException→503, auth→401/403,
+// BusinessRule→409, RateLimit→429, blob errors→503/410, everything else→500.
+// RateLimitExceededException also sets Retry-After header.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

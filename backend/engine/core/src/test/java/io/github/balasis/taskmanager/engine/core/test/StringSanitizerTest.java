@@ -77,13 +77,24 @@ class StringSanitizerTest {
     void toSafeBlobKey_withPrefixId_prependsIdDash() {
         String result = SafeBlobKey(42L, "image.png");
         assertTrue(result.startsWith("42-"), "should start with prefix id");
+        assertTrue(result.endsWith("image.png"), "should end with sanitized filename");
+        // format: 42-<8-char-uuid>-image.png  →  3 segments when split on '-'
+        assertEquals(3, result.split("-").length, "expected prefixId-uuid-filename segments");
     }
 
     @Test
     void toSafeBlobKey_withNullPrefixId_noPrefixAdded() {
         String result = SafeBlobKey(null, "image.png");
-        assertFalse(result.contains("-") && result.startsWith("null"),
+        assertFalse(result.startsWith("null"),
                 "should not prepend 'null'");
+        assertTrue(result.endsWith("image.png"), "should end with sanitized filename");
+    }
+
+    @Test
+    void toSafeBlobKey_uniquePerCall() {
+        String a = SafeBlobKey(1L, "same.txt");
+        String b = SafeBlobKey(1L, "same.txt");
+        assertNotEquals(a, b, "two calls with same input should produce different keys");
     }
 
     @Test
@@ -96,7 +107,7 @@ class StringSanitizerTest {
     @Test
     void toSafeBlobKey_nullFilename_returnsFallbackUuid() {
         String result = SafeBlobKey(1L, null);
-        // prefixId + "-" + uuid
+        // prefixId + "-" + uuid8 + "-" + fallback-uuid
         assertTrue(result.startsWith("1-"), "should still have prefix");
     }
 

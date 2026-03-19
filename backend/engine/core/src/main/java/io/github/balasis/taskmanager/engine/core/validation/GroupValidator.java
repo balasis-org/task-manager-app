@@ -7,6 +7,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Optional;
 import java.util.Set;
 
+// the big one. GroupValidator covers every write operation on groups, tasks,
+// files, invitations, comments, and membership changes. each method corresponds
+// to a service-layer operation and runs before the actual mutation.
 public interface GroupValidator extends BaseValidator<Group>{
     void validateForCreateTask(Long groupId, Set<Long> assignedIds, Set<Long> reviewerIds);
 
@@ -29,6 +32,8 @@ public interface GroupValidator extends BaseValidator<Group>{
     void validateAssigneeMarkTaskToBeReviewed(Task task, Long groupId);
 
     void validateReviewTask(Task task, Long groupId, Long userId);
+
+    void validateFileReview(Task task, Long groupId, Long userId);
 
     void validateCreateGroupInvitation(GroupInvitation groupInvitation);
 

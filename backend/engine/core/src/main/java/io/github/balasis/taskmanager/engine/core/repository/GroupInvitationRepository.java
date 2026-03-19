@@ -12,6 +12,9 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 
+// invitations have three views: incoming (for the invitee), sent (for the inviter),
+// and admin. the findTop...OrderByIdDesc is used by DataLoader to grab the most
+// recent pending invite when auto-accepting seed invitations.
 @Repository
 public interface GroupInvitationRepository extends JpaRepository<GroupInvitation,Long> {
     boolean existsByUser_IdAndGroup_Id(Long id, Long id1);

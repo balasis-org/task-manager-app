@@ -27,4 +27,10 @@ public class TaskInboundPatchResource extends BaseInboundResource {
     @jakarta.validation.constraints.Min(value = 0, message = "priority must be between 0 and 10")
     @jakarta.validation.constraints.Max(value = 10, message = "priority must be between 0 and 10")
     private Integer priority;
+
+    @jakarta.validation.constraints.Min(value = 1, message = "maxAssigneeFiles must be at least 1")
+    private Integer maxAssigneeFiles;
+
+    @jakarta.validation.constraints.Min(value = 1, message = "maxFileSizeBytes must be at least 1")
+    private Long maxFileSizeBytes;
 }

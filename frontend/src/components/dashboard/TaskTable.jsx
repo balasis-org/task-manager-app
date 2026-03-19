@@ -7,8 +7,7 @@ import { formatDate } from "@assets/js/formatDate";
 import "@styles/dashboard/TaskTable.css";
 
 // thresholds match the backend's priority scale (1-10).
-// we could make these configurable per-group but it's not worth the
-// complexity right now - every group uses the same scale.
+// color-coded: 1-4 = Low (green), 5-7 = Med (yellow), 8-10 = High (red)
 function priorityTag(p) {
     if (p == null) return "-";
     let label, cls;

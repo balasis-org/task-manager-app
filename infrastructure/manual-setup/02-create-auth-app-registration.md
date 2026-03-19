@@ -5,15 +5,23 @@
 
 ## purpose
 
-The application uses **Azure AD (Entra ID) OAuth 2.0 Authorization Code** flow
-for user authentication. This App Registration:
+This App Registration serves **two independent purposes** on the same Entra ID object:
 
+**A — OAuth 2.0 user login (Spring Boot backend code):**
 1. Holds the **client ID** and **tenant ID** used by the Spring Boot backend
    to build authorization URLs and exchange codes for tokens
 2. Stores a **client secret** used server-side for the token exchange
 3. Defines the **redirect URIs** Azure AD sends users back to after login
-4. Has an **Application ID URI** that serves as the audience identifier for
-   token validation (`decodeIdToken` verifies `aud` claim matches the client ID)
+
+**B — Easy Auth / Front Door origin authentication (Azure infrastructure):**
+4. Has an **Application ID URI** (`api://<client-id>`) that serves as the
+   audience for Easy Auth on the App Service — Front Door's managed identity
+   requests a token scoped to `api://<client-id>/.default`, and Easy Auth
+   validates that the token's audience matches
+
+> Easy Auth is **not** involved in user login — it only validates that incoming
+> requests carry a valid Front Door MI token. User sign-in is handled entirely
+> by the Spring Boot OAuth 2.0 Authorization Code flow (purpose A above).
 
 > **Tenant choice:** Single tenant is the default and recommended setting. The current
 > backend restrictions (10k user cap, tier-based access with no self-serve upgrade)
@@ -50,6 +58,8 @@ for user authentication. This App Registration:
    - `http://localhost:5173/auth/callback` (local frontend dev server)
    - `http://localhost:8081/auth/callback` (local backend)
 3. The Front Door endpoint URI (`https://<fd-endpoint>.azurefd.net/auth/callback`) is added after the first Bicep deployment — see [guide 03](03-post-deployment-setup.md)
+# Note — in case of arena set up you will need to come back to this app registration in order to add the FD url+callback URI
+
 
 ### Step 4 — Configure Authentication Settings
 
@@ -66,10 +76,16 @@ Still in **Authentication**:
 2. Accept the default: `api://<client-id>` — e.g. `api://7b429825-f7cf-4971-b9b7-36c491c8ed3e`
 3. Click **Save**
 
-> The Application ID URI is used as the **audience claim** in Azure AD tokens.
-> The backend validates that the `aud` field in the `id_token` matches the
-> `clientId`. No scopes or authorized client applications need to be defined —
-> the app uses the standard `openid profile email User.Read` delegated scopes.
+> The Application ID URI is consumed by **Easy Auth** on the App Service:
+> Bicep configures `allowedAudiences: ['api://<client-id>']` in the
+> `authsettingsV2` resource, and Front Door's origin group requests tokens
+> scoped to `api://<client-id>/.default`. This is how FD proves its identity
+> to the App Service — **not** related to user login.
+>
+> The backend's OAuth 2.0 flow validates `id_token` audience against the plain
+> `clientId` (not the `api://` URI). No custom scopes or authorized client
+> applications need to be defined — the app uses the standard
+> `openid profile email User.Read` delegated permissions.
 
 ---
 

@@ -1,4 +1,9 @@
 ﻿
+// AES-256-GCM encryption for localStorage group cache.
+// key is user.cacheKey (server-generated, rotated on password change).
+// PBKDF2 100k iterations derives the AES key, cached in-memory.
+// stored format: "<8-char tag>:<base64(iv + ciphertext)>" — the tag
+// lets cacheMatchesKey quickly check if the cache belongs to the current user.
 const SALT = new TextEncoder().encode("tm-cache-salt-v1");
 const IV_LEN = 12;
 

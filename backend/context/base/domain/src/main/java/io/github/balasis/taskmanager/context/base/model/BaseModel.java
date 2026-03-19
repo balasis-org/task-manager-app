@@ -11,6 +11,8 @@ import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
 
+// every entity in the system extends this so we get a consistent auto-increment PK
+// we use IDENTITY generation because Azure SQL / SQL Server handles it natively
 @Getter
 @Setter
 @SuperBuilder

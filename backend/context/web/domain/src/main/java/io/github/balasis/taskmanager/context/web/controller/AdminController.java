@@ -21,6 +21,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.util.Map;
 
+// admin panel endpoints: paginated browsing of users/groups/tasks/comments,
+// CRUD + destructive ops (delete user/group/task/comment), plan changes,
+// usage resets, and file downloads (bypasses normal ownership checks).
+// authorization enforced at service layer (AdminService checks SystemRole.ADMIN).
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin")
@@ -174,6 +178,7 @@ public class AdminController extends BaseComponent {
         r.setDownloadBudgetBytes(planLimits.downloadBudgetBytes(user.getSubscriptionPlan()));
         r.setEmailsPerMonth(planLimits.emailQuotaPerMonth(user.getSubscriptionPlan()));
         r.setImageScansPerMonth(planLimits.imageScansPerMonth(user.getSubscriptionPlan()));
+        r.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(user.getSubscriptionPlan()));
         return r;
     }
 }

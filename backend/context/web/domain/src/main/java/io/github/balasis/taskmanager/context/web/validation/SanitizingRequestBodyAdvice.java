@@ -10,6 +10,9 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAd
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
+// auto-sanitizes every String field on any BaseInboundResource before the controller
+// method sees it — strips invisible Unicode chars and trims whitespace.
+// fires via Spring’s RequestBodyAdvice hook after JSON deserialization.
 @RestControllerAdvice
 public class SanitizingRequestBodyAdvice extends RequestBodyAdviceAdapter {
 

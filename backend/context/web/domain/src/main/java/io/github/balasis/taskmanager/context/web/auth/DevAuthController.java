@@ -7,9 +7,10 @@ import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.RefreshToken;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.jwt.JwtService;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.RefreshTokenRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
+import io.github.balasis.taskmanager.engine.core.repository.GroupRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -19,9 +20,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 
+// dev/arena-only fake-login bypass — creates or updates a user directly without
+// touching Azure AD. supports plan upgrades/downgrades with 7-day grace period.
+// active for: dev-h2, dev-mssql, dev-flyway-mssql, arena-stress, arena-security.
 @RestController
 @RequiredArgsConstructor
 @Profile({"dev-h2", "dev-mssql", "dev-flyway-mssql", "prod-arena-stress", "prod-arena-security"})
@@ -30,6 +36,7 @@ public class DevAuthController extends BaseComponent {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final GroupRepository groupRepository;
     private final JwtService jwtService;
     private final DefaultImageService defaultImageService;
     private final PlanLimits planLimits;
@@ -61,9 +68,23 @@ public class DevAuthController extends BaseComponent {
         User user = userRepository.findByEmail(email)
             .or(() -> userRepository.findByAzureKey(azureKey))
             .map(existing -> {
-                existing.setLastActiveAt(java.time.Instant.now());
+                existing.setLastActiveAt(Instant.now());
                 if (request.subscriptionPlan() != null && !request.subscriptionPlan().isBlank()) {
-                    existing.setSubscriptionPlan(resolveSubscriptionPlan(request.subscriptionPlan()));
+                    SubscriptionPlan newPlan = resolveSubscriptionPlan(request.subscriptionPlan());
+                    SubscriptionPlan oldPlan = existing.getSubscriptionPlan();
+                    if (newPlan != oldPlan) {
+                        existing.setSubscriptionPlan(newPlan);
+                        if (newPlan.ordinal() < oldPlan.ordinal()) {
+                            // downgrade — start 7-day grace period
+                            existing.setPreviousPlan(oldPlan);
+                            existing.setDowngradeGraceDeadline(Instant.now().plus(Duration.ofDays(7)));
+                        } else {
+                            // upgrade — clear any active grace period
+                            existing.setPreviousPlan(null);
+                            existing.setDowngradeGraceDeadline(null);
+                        }
+                        groupRepository.touchLastChangeByOwnerId(existing.getId(), Instant.now());
+                    }
                 }
                 return userRepository.save(existing);
             })

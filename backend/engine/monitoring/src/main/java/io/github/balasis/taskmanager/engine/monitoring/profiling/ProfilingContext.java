@@ -27,12 +27,12 @@ public final class ProfilingContext {
 
     // --- lifecycle ---
 
-    /** Starts profiling for this request thread. */
+    // Starts profiling for this request thread.
     public static void begin(String controllerName, String methodName) {
         CURRENT.set(new ProfilingContext(controllerName, methodName));
     }
 
-    /** Finishes profiling and returns the formatted timing tree (or null). */
+    // Finishes profiling and returns the formatted timing tree (or null).
     public static String end() {
         ProfilingContext ctx = CURRENT.get();
         if (ctx == null) return null;
@@ -42,7 +42,7 @@ public final class ProfilingContext {
         return ctx.formatTree(totalMs);
     }
 
-    /** True if profiling is active on this thread. */
+    // True if profiling is active on this thread.
     public static boolean isActive() {
         return CURRENT.get() != null;
     }
@@ -66,7 +66,7 @@ public final class ProfilingContext {
         ctx.entryStack.add(entry);
     }
 
-    /** Leaves a profiled layer, recording elapsed time. */
+    // Leaves a profiled layer, recording elapsed time.
     public static void popLayer() {
         ProfilingContext ctx = CURRENT.get();
         if (ctx == null || ctx.entryStack.isEmpty()) return;

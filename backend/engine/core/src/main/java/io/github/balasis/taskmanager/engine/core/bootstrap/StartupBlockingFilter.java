@@ -13,6 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+// returns 503 to all requests until StartupGate says the app is ready.
+// prevents race conditions where a request arrives before DefaultImageBootstrap
+// or DataLoader have finished. health probes and h2-console are exempted
+// so Azure can still check liveness during boot.
 @Component
 public class StartupBlockingFilter implements Filter {
 

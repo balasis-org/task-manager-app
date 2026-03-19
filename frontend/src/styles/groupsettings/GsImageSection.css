@@ -38,7 +38,7 @@
 }
 
 .gs-upload-btn:hover {
-    background: #eee;
+    background: var(--bg-hover);
 }
 
 .gs-defaults-btn {

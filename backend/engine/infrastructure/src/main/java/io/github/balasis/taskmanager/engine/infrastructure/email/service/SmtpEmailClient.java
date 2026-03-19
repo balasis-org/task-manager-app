@@ -11,6 +11,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
+// dev email client: sends through a local SMTP server (MailHog or MailPit).
+// MailHog/MailPit are test SMTP servers that capture emails in a web UI (localhost:8025)
+// instead of actually delivering them. no authentication, plain text only.
+// started via backend-email-compose.yml docker-compose.
 @AllArgsConstructor
 public class SmtpEmailClient implements EmailClient {
 

@@ -7,6 +7,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+// deletes users who have no group memberships and haven't been active for
+// 7 days (no custom image) or 14 days (has custom image — gives more time
+// in case they uploaded but haven't joined a group yet).
+// FK violations are swallowed — means the user got re-activated mid-cleanup.
 @Service
 @AllArgsConstructor
 public class UserCleanupService extends BaseComponent {

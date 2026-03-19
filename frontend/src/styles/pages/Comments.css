@@ -54,7 +54,6 @@
     gap: 0.375em;
     color: var(--text-faint);
     font-weight: 500;
-    max-width: 18em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

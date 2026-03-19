@@ -18,6 +18,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 
+// Internal JWT (JSON Web Token) minting + validation.
+//
+// uses HMAC-SHA256 (HS256): a symmetric signing algorithm where the same secret key
+// signs and verifies the token. the key is a Base64-encoded 256-bit secret stored in
+// Azure Key Vault (or an env var in dev). SecretKeySpec wraps it as a JCA key object.
+//
+// token structure: header.payload.signature (Base64url-encoded, dot-separated).
+//   - header: {"alg":"HS256"}
+//   - payload: {"sub":"userId", "iat":..., "exp":...}  (15 min expiry)
+//   - signature: HMAC-SHA256(header + "." + payload, secret)
+//
+// Jwts.builder() creates the token; Jwts.parser().verifyWith() validates it.
+// expired tokens throw ExpiredJwtException → mapped to UnauthenticatedException.
 @Service
 @RequiredArgsConstructor
 public class JwtService extends BaseComponent {
@@ -32,6 +45,9 @@ public class JwtService extends BaseComponent {
 
     @PostConstruct
     void initSignInKey() {
+        // the secret is stored Base64-encoded in Key Vault (or env var).
+        // we decode it to raw bytes, then wrap as a JCA SecretKeySpec with the
+        // "HmacSHA256" algorithm identifier so the JJWT library knows what to use.
         String secret_key = secretClientProvider.getSecret(jwtSecretName);
         byte[] bytes = Base64.getDecoder().decode(secret_key.getBytes(StandardCharsets.UTF_8));
         cachedSignInKey = new SecretKeySpec(bytes, "HmacSHA256");

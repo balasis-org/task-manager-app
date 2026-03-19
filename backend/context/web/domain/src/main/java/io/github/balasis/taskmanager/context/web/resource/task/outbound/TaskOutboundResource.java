@@ -28,4 +28,8 @@ public class TaskOutboundResource extends BaseOutboundResource {
     private String reviewComment;
     private UserOutboundResource lastEditBy;
     private Instant lastEditDate;
+
+    private Integer effectiveMaxCreatorFiles;
+    private Integer effectiveMaxAssigneeFiles;
+    private Long effectiveMaxFileSizeBytes;
 }

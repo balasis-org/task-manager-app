@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+// handles the junction table between tasks and users (with role: ASSIGNEE, REVIEWER, CREATOR).
+// the custom deletes are used when removing a member from a group — we need to
+// strip them from all tasks in that group, not just one task.
 @Repository
 public interface TaskParticipantRepository extends JpaRepository<TaskParticipant, Long> {
 
@@ -16,6 +19,8 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
     @Query("delete from TaskParticipant tp where tp.user.id = :userId and tp.task.group.id = :groupId")
     void deleteByUserIdAndGroupId(@Param("userId") Long userId, @Param("groupId") Long groupId);
 
+    // when a reviewer is removed from the group, we only delete their REVIEWER links
+    // (not all participant links) so they keep their ASSIGNEE/CREATOR roles
     @Modifying
     @Query("""
         delete from TaskParticipant tp

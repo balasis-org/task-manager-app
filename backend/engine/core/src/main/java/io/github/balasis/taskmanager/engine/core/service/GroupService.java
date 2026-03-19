@@ -1,10 +1,16 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
+import io.github.balasis.taskmanager.context.base.enumeration.FileReviewDecision;
+import io.github.balasis.taskmanager.context.base.enumeration.AnalysisType;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskParticipantRole;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.*;
+import io.github.balasis.taskmanager.engine.core.dto.AnalysisEstimateDto;
+import io.github.balasis.taskmanager.engine.core.dto.EffectiveFileLimitsDto;
+import io.github.balasis.taskmanager.engine.core.dto.FileReviewInfoDto;
+import io.github.balasis.taskmanager.engine.core.dto.GroupFileDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupRefreshDto;
 import io.github.balasis.taskmanager.engine.core.dto.GroupWithPreviewDto;
 import io.github.balasis.taskmanager.engine.core.dto.TaskPreviewDto;
@@ -15,8 +21,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+// core service contract. everything group-related goes through here:
+// group CRUD, membership, invitations, tasks, task files, comments,
+// polling/refresh, file reviews, and comment intelligence.
+// implementation is in GroupServiceImpl.
 public interface GroupService{
 
     Group create(Group group);
@@ -49,6 +61,7 @@ public interface GroupService{
     TaskComment addTaskComment(Long groupId, Long taskId, String comment);
     TaskComment patchTaskComment(Long groupId, Long taskId, Long commentId, String comment);
     void deleteTaskComment(Long groupId, Long taskId, Long commentId);
+    int bulkDeleteCommentsBefore(Long groupId, Long taskId, java.time.Instant before);
 
         Set<TaskPreviewDto> findTasksWithPreviewByFilters(
             Long groupId,
@@ -77,6 +90,8 @@ public interface GroupService{
     Page<GroupEvent> findAllGroupEvents(Long groupId, Pageable pageable);
     void deleteAllGroupEvents(Long groupId);
 
+    // refresh returns only the parts that changed since the client's
+    // last-seen timestamp, keeping polling payloads small
     GroupRefreshDto refreshGroup(Long groupId, Instant lastSeen);
 
     void deleteTask(Long groupId, Long taskId);
@@ -98,12 +113,40 @@ public interface GroupService{
         Boolean hasFiles
     );
 
+    // lightweight has-changed checks: the frontend calls these frequently
+    // (every few seconds) to decide whether it needs to call the heavier
+    // refresh/detail endpoints.
     boolean hasNewInvitations();
 
     boolean hasGroupChanged(Long groupId, Instant lastSeen);
     boolean hasTaskChanged(Long groupId, Long taskId, Instant since);
     boolean hasCommentsChanged(Long groupId, Long taskId, Instant since);
 
-    /** Lightweight membership gate - throws if the caller is not a member. */
+    // Lightweight membership gate — throws if the caller is not a member
     void checkMembership(Long groupId);
+
+    // ── Comment Intelligence (Teams Pro only) ─────────────────
+    // AI-driven analysis of task comment threads. estimate shows the
+    // credit cost before the user commits; requestAnalysis actually
+    // queues the work; getAnalysisSnapshot returns the results.
+
+    AnalysisEstimateDto getAnalysisEstimate(Long groupId, Long taskId);
+
+    int requestAnalysis(Long groupId, Long taskId, AnalysisType type);
+
+    TaskAnalysisSnapshot getAnalysisSnapshot(Long groupId, Long taskId);
+
+    // ── File Gallery & Per-File Review ──────────────────────────    // browse all files across all tasks in one place,
+    // plus per-file approve/reject by reviewers
+    List<GroupFileDto> getGroupFiles(Long groupId);
+
+    void reviewTaskFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
+
+    void reviewAssigneeFile(Long groupId, Long taskId, Long fileId, FileReviewDecision status, String note);
+
+    // Batch-fetch review info for a set of file IDs (keyed by file id)
+    Map<Long, List<FileReviewInfoDto>> getFileReviews(Set<Long> creatorFileIds, Set<Long> assigneeFileIds);
+
+    // Resolve effective file limits for a task (task → group → plan, Math.min)
+    EffectiveFileLimitsDto resolveEffectiveFileLimits(Long groupId, Task task);
 }

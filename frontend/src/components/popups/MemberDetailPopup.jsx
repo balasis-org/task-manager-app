@@ -2,11 +2,17 @@
 import { apiPatch, apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { useBlobUrl } from "@context/BlobSasContext";
+import { formatRole } from "@assets/js/formatLabel";
 import "@styles/popups/Popup.css";
 import "@styles/popups/MemberDetailPopup.css";
 
+// role hierarchy: GUEST < MEMBER < REVIEWER < TASK_MANAGER < GROUP_LEADER.
+// only GROUP_LEADER can assign roles, and only up to TASK_MANAGER
+// (GROUP_LEADER is not in ASSIGNABLE_ROLES to prevent self-demotion).
 const ASSIGNABLE_ROLES = ["GUEST", "MEMBER", "REVIEWER", "TASK_MANAGER"];
 
+// group leader can change roles and remove members. isSelf prevents
+// self-actions. counts tasks created by this member from taskPreviews.
 export default function MemberDetailPopup({
     member,
     groupId,
@@ -76,14 +82,14 @@ export default function MemberDetailPopup({
                     <div className="mdp-avatar-wrapper">
                         <span className={`mdp-status-dot${isOnline ? " online" : ""}`} />
                         {imgSrc ? (
-                            <img src={imgSrc} alt="" className="mdp-avatar" />
+                            <img src={imgSrc} alt="" className={`mdp-avatar tier-ring-${member.user?.subscriptionPlan || 'FREE'}`} />
                         ) : (
-                            <span className="mdp-avatar mdp-avatar-placeholder" />
+                            <span className={`mdp-avatar mdp-avatar-placeholder tier-ring-${member.user?.subscriptionPlan || 'FREE'}`} />
                         )}
                     </div>
                     <div className="mdp-header-info">
                         <h2 className="mdp-name">{userName}</h2>
-                        <span className="mdp-role-badge">{member.role.replace(/_/g, " ")}</span>
+                        <span className="mdp-role-badge">{formatRole(member.role)}</span>
                         {member.user?.sameOrg && (
                             <span className="mdp-org-badge">ORG</span>
                         )}
@@ -113,7 +119,7 @@ export default function MemberDetailPopup({
                             >
                                 {ASSIGNABLE_ROLES.map((r) => (
                                     <option key={r} value={r}>
-                                        {r.replace(/_/g, " ")}
+                                        {formatRole(r)}
                                     </option>
                                 ))}
                             </select>

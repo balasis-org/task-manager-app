@@ -9,6 +9,10 @@ import SidebarProfile from "@components/layout/SidebarProfile";
 import SidebarNav from "@components/layout/SidebarNav";
 import "@styles/Layout.css";
 
+// main shell: collapsible sidebar + top mini-info bar + content area.
+// polls /group-invitations/check-new with 3-tier idle backoff
+// (1min active / 3min idle / 45min deep-idle) and shows a badge on the
+// invitations nav link when 409 comes back (meaning new invites exist).
 export default function Layout({ children }) {
     const { user, setUser, logout } = useContext(AuthContext);
     const navigate = useNavigate();

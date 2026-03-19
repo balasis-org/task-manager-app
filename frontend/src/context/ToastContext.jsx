@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 import "@styles/Toast.css";
 
+// global toast notification system. error toasts auto-dismiss after 8s,
+// success after 4s. click to dismiss early. stacks multiple toasts.
 const ToastContext = createContext(null);
 
 let nextId = 1;
@@ -15,10 +17,11 @@ export function ToastProvider({ children }) {
         setToasts((prev) => prev.filter((t) => t.id !== id));
     }, []);
 
-    const showToast = useCallback((message, type = "error", duration = 4000) => {
+    const showToast = useCallback((message, type = "error", duration) => {
         const id = nextId++;
+        const ms = duration ?? (type === "error" ? 8000 : 4000);
         setToasts((prev) => [...prev, { id, message, type }]);
-        timers.current[id] = setTimeout(() => removeToast(id), duration);
+        timers.current[id] = setTimeout(() => removeToast(id), ms);
     }, [removeToast]);
 
     return (

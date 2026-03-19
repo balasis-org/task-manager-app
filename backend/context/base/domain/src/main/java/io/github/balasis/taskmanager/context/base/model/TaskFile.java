@@ -4,6 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+
+// a file uploaded by the task creator (or a task manager). stored in the
+// "task-files" blob container. fileUrl is the blob key, not a full URL.
+// the actual download goes through BlobStorageService which streams it
+// from Azure Blob Storage (or Azurite in dev).
 @Getter
 @Setter
 @ToString
@@ -27,4 +35,22 @@ public class TaskFile extends BaseModel{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id")
     private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploadedById")
+    private User uploadedBy;
+
+    // each file can have review statuses from multiple reviewers
+    // (e.g. reviewer A says CHECKED, reviewer B says NEEDS_REVISION)
+    @OneToMany(mappedBy = "taskFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<FileReviewStatus> fileReviewStatuses = new HashSet<>();
+
+    @Column
+    private Instant createdAt;
+
+    @PrePersist
+    void defaults() {
+        if (createdAt == null) createdAt = Instant.now();
+    }
 }

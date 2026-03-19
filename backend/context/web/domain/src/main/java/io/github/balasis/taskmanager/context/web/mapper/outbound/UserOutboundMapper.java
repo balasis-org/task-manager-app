@@ -2,12 +2,15 @@ package io.github.balasis.taskmanager.context.web.mapper.outbound;
 
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobDefaultImageContainer;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// most ignored fields (storageBudgetBytes, maxGroups, downloadBudgetBytes, etc.) are
+// populated by the controller from PlanLimits after mapping — keeps mapper pure.
+// URL converters prepend container names so the frontend can build SAS download URLs.
 @Mapper(componentModel = "spring")
 public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboundResource> {
 
@@ -22,6 +25,7 @@ public interface UserOutboundMapper extends BaseOutboundMapper<User, UserOutboun
     @Mapping(target = "maxMembersPerGroup", ignore = true)
     @Mapping(target = "imageScansPerMonth", ignore = true)
     @Mapping(target = "emailsPerMonth", ignore = true)
+    @Mapping(target = "taskAnalysisCreditsPerMonth", ignore = true)
     UserOutboundResource toResource(User user);
 
     @Named("convertUserImgUrl")

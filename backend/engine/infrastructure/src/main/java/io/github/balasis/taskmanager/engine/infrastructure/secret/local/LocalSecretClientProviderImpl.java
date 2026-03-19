@@ -4,6 +4,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientPr
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+// dev: secrets are just env vars, no Key Vault dependency
 @Profile({"dev-h2","dev-mssql","dev-flyway-mssql"})
 @Component
 public class LocalSecretClientProviderImpl implements SecretClientProvider {

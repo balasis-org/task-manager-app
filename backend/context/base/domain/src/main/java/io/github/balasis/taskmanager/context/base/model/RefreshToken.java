@@ -9,6 +9,11 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// JWT refresh tokens. we use short-lived access tokens (from the JWT service)
+// paired with longer-lived refresh tokens stored in the DB. the refresh code
+// is a random 128-char string, not a JWT itself, so it cant be decoded or forged.
+// expires 24 hours after creation. the user can have multiple active refresh tokens
+// (one per device/session).
 @Getter
 @Setter
 @SuperBuilder

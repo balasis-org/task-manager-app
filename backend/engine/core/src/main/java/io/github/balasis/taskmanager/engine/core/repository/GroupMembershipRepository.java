@@ -13,6 +13,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+// the junction table between users and groups, with a Role column.
+// findByUserIdWithGroup is the main query for the dashboard sidebar —
+// it loads all groups a user belongs to in one shot with fetch joins.
 @Repository
 public interface GroupMembershipRepository extends JpaRepository<GroupMembership,Long> {
 

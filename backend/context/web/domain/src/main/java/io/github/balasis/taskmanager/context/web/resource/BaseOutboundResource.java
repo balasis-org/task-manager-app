@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 
+// base for all outbound DTOs — every response includes the entity id.
 @Getter
 @Setter
 public class BaseOutboundResource implements Serializable {

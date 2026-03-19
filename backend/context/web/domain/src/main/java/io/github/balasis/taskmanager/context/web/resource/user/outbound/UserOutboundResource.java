@@ -27,18 +27,23 @@ public class UserOutboundResource extends BaseOutboundResource {
     private SubscriptionPlan subscriptionPlan;
     private Long usedStorageBytes;
     private Long usedDownloadBytesMonth;
-    /** Populated at the controller level — PlanLimits budget for this user's plan. */
+    // populated at the controller level — PlanLimits budget for this user's plan
     private Long storageBudgetBytes;
-    /** Populated at the controller level — max groups this user may own. */
+    // populated at the controller level — max groups this user may own
     private Integer maxGroups;
-    /** Populated at the controller level — monthly download budget in bytes. */
+    // populated at the controller level — monthly download budget in bytes
     private Long downloadBudgetBytes;
-    /** Populated at the controller level — max members per group for this plan. */
+    // populated at the controller level — max members per group for this plan
     private Integer maxMembersPerGroup;
     private Integer usedImageScansMonth;
-    /** Populated at the controller level — monthly image scan cap for this plan. */
+    // populated at the controller level — monthly image scan cap
     private Integer imageScansPerMonth;
     private Integer usedEmailsMonth;
-    /** Populated at the controller level — monthly email quota for this plan. */
+    // populated at the controller level — monthly email quota
     private Integer emailsPerMonth;
+    private Integer usedTaskAnalysisCreditsMonth;
+    // populated at the controller level — monthly analysis credit cap
+    private Integer taskAnalysisCreditsPerMonth;
+    private Instant downgradeGraceDeadline;
+    private SubscriptionPlan previousPlan;
 }

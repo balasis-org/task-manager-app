@@ -49,7 +49,7 @@
 
 			<dependency>
 				<groupId>io.github.balasis</groupId>
-				<artifactId>task-manager-contracts</artifactId>
+				<artifactId>task-manager-shared</artifactId>
 				<version>1.0-SNAPSHOT</version>
 			</dependency>
 
@@ -102,6 +102,12 @@
 				<groupId>com.azure</groupId>
 				<artifactId>azure-ai-contentsafety</artifactId>
 				<version>1.0.16</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.azure</groupId>
+				<artifactId>azure-ai-textanalytics</artifactId>
+				<version>5.5.2</version>
 			</dependency>
 
 			<dependency>
@@ -175,7 +181,7 @@
 
 		<dependency>
 			<groupId>io.github.balasis</groupId>
-			<artifactId>task-manager-contracts</artifactId>
+			<artifactId>task-manager-shared</artifactId>
 		</dependency>
 
 		<dependency>

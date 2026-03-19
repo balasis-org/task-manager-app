@@ -1,7 +1,9 @@
+# dev-h2: in-memory H2 database, no Flyway, schema auto-created by Hibernate.
+# fastest feedback loop — no Docker needed, just run the boot app.
 spring:
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create     # drops + recreates schema every restart
     properties:
       hibernate:
         generate_statistics: false

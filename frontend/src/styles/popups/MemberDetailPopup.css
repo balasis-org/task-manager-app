@@ -17,7 +17,15 @@
     object-fit: cover;
     background: var(--border-primary);
     flex-shrink: 0;
+    border: 0.15em solid transparent;
+    transition: border-color 0.25s;
 }
+
+.mdp-avatar.tier-ring-FREE       { border-color: var(--tier-FREE); }
+.mdp-avatar.tier-ring-STUDENT    { border-color: var(--tier-STUDENT); }
+.mdp-avatar.tier-ring-ORGANIZER  { border-color: var(--tier-ORGANIZER); }
+.mdp-avatar.tier-ring-TEAM       { border-color: var(--tier-TEAM); }
+.mdp-avatar.tier-ring-TEAMS_PRO  { border-color: var(--tier-TEAMS_PRO); }
 
 .mdp-avatar-wrapper {
     position: relative;

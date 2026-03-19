@@ -3,6 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/AuthCallback.css";
 
+// OAuth2 callback: receives the authorization code from Azure AD redirect,
+// exchanges it via /api/auth/exchange (which sets httpOnly JWT + refresh cookies),
+// then navigates to the saved returnUrl or /dashboard.
 export default function AuthCallback() {
     const [searchParams] = useSearchParams();
     const [error, setError] = useState("");

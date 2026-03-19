@@ -5,6 +5,7 @@ import com.azure.ai.contentsafety.ContentSafetyClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.ai.contentsafety.models.AnalyzeTextOptions;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ModerationResult;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.service.ContentSafetyServiceImpl;
 import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientProvider;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
+// dev: uses API key auth for Azure Content Safety (Managed Identity isn't available locally).
+// if the env vars are missing or the key is invalid, gracefully falls back to no-op
+// (all images pass moderation) so local devs can run the app without an Azure subscription.
+// the probe call (analyzeText) forces eager credential validation at startup — the Azure SDK
+// normally validates lazily on first real call, which would give confusing errors later.
+// prints a big ASCII banner at startup when disabled so you cant miss it.
 @Configuration
 @Profile({"dev-mssql", "dev-h2", "dev-flyway-mssql"})
 @RequiredArgsConstructor
@@ -29,6 +36,7 @@ public class ContentSafetyDevConfig {
 
     private boolean contentSafetyDisabled = false;
 
+    // azure SDK validates credentials lazily so we probe it now to fail fast
     @Bean
     public ContentSafetyService contentSafetyService() {
         try {
@@ -38,7 +46,7 @@ public class ContentSafetyDevConfig {
             if (endpoint == null || endpoint.isBlank() || key == null || key.isBlank()) {
                 log.warn("Content Safety env vars are missing — falling back to no-op (all images allowed)");
                 contentSafetyDisabled = true;
-                return input -> true;
+                return input -> ModerationResult.safe();
             }
 
             ContentSafetyClient client = new ContentSafetyClientBuilder()
@@ -54,7 +62,7 @@ public class ContentSafetyDevConfig {
             log.warn("Content Safety client failed to initialise: {} — falling back to no-op (all images allowed)",
                     e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             contentSafetyDisabled = true;
-            return input -> true;
+            return input -> ModerationResult.safe();
         }
     }
 

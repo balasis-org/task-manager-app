@@ -3,6 +3,7 @@
 import { FiPlus, FiX, FiMail } from "react-icons/fi";
 import { LIMITS } from "@assets/js/inputValidation";
 import userImg from "@assets/js/userImg";
+import { formatRole } from "@assets/js/formatLabel";
 import "@styles/task/TaskReviewPanel.css";
 
 const DECISION_OPTIONS = ["APPROVE", "REJECT"];
@@ -54,7 +55,7 @@ export default function TaskReviewPanel({
                                 <img src={userImg(m.user, blobUrl)} alt="" className="task-participant-img" />
                                 <span className={`task-presence-dot picker-dot${onlineSet.has(m.user?.id) ? " online" : ""}`} />
                                 <span title={m.user?.email}>{m.user?.name || m.user?.email}</span>
-                                <span className="task-participant-role-tag">{m.role.replace("_", " ")}</span>
+                                <span className="task-participant-role-tag">{formatRole(m.role)}</span>
                             </div>
                         ))
                     )}
@@ -125,7 +126,7 @@ export default function TaskReviewPanel({
             </div>
 
             {/* review form */}
-            {canReview && (
+            {canReview && task.taskState === "TO_BE_REVIEWED" && (
                 <div className="task-review-form">
                     <label>Reviewer Comment</label>
                     <div className="task-review-textarea-wrapper">

@@ -6,7 +6,7 @@
 
 # Backend
 /backend/ @Balasis
-/contracts/ @Balasis
+/shared/ @Balasis
 
 # Frontend
 /frontend/ @Balasis

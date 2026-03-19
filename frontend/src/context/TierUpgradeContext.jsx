@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import TierUpgradePopup from "@components/popups/TierUpgradePopup";
 
+// provides openTierUpgrade() to any component that hits a plan limit —
+// renders TierUpgradePopup globally so it can be triggered from anywhere.
 const TierUpgradeContext = createContext(() => {});
 
 export function useTierUpgrade() {

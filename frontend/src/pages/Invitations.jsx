@@ -10,6 +10,9 @@ import InvitationsSentTable from "@components/invitations/InvitationsSentTable";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Invitations.css";
 
+// received + sent invitation lists. marks lastSeenInvites on load so
+// the Layout badge clears. accept/reject triggers reloadGroups() to
+// immediately show the new group in the sidebar.
 export default function Invitations() {
     const { user, setUser } = useContext(AuthContext);
     const { groups, reloadGroups } = useContext(GroupContext);

@@ -5,10 +5,16 @@ import io.github.balasis.taskmanager.context.web.resource.task.outbound.TaskOutb
 import org.mapstruct.Mapping;
 import org.mapstruct.Mapper;
 
+// delegates file and participant mapping to sub-mappers.
+// creatorFiles→files rename because the frontend calls them just "files".
+// effectiveMax* fields are ignored here — controller enriches them from PlanLimits.
 @Mapper(componentModel = "spring", uses = {TaskFileOutboundMapper.class, TaskAssigneeFileOutboundMapper.class, TaskParticipantOutboundMapper.class, UserOutboundMapper.class})
 public interface TaskOutboundMapper extends BaseOutboundMapper<Task, TaskOutboundResource> {
 
     @Mapping(source = "creatorFiles", target = "files")
+    @Mapping(target = "effectiveMaxCreatorFiles", ignore = true)
+    @Mapping(target = "effectiveMaxAssigneeFiles", ignore = true)
+    @Mapping(target = "effectiveMaxFileSizeBytes", ignore = true)
     TaskOutboundResource toResource(Task task);
 
 }

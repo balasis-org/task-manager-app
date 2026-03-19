@@ -5,7 +5,10 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-// Health indicator for Blob Storage - lists containers to verify credentials and network.
+// Spring Boot Actuator health indicator for Azure Blob Storage.
+// listBlobContainers() is a lightweight API call that verifies credentials,
+// network connectivity, and that the storage account is reachable.
+// shows up at /actuator/health as "blobStorage": {"status": "UP"} or "DOWN".
 @Component
 public class BlobStorageHealthIndicator implements HealthIndicator {
 

@@ -5,6 +5,9 @@ import { useToast } from "@context/ToastContext";
 import { apiPost } from "@assets/js/apiClient.js";
 import "@styles/settings/SettingsInviteCode.css";
 
+// invite code management: copy to clipboard and regenerate.
+// regenerating invalidates the old code so pending invitations using it
+// won't resolve to this user anymore.
 export default function SettingsInviteCode() {
     const { user, setUser } = useContext(AuthContext);
     const showToast = useToast();

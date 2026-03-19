@@ -2,7 +2,7 @@ using './main.bicep'
 
 // Core
 param location = 'italynorth'
-param contentSafetyLocation = 'westeurope'
+param cognitiveServicesLocation = 'westeurope'
 param projectName = 'MyTeamTasksV2'
 param tags = {
   project: 'MyTeamTasksV2'

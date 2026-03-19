@@ -7,6 +7,8 @@ import org.mapstruct.Mapper;
 
 import java.util.Set;
 
+// inbound mappers are trivial — MapStruct auto-maps matching field names.
+// GroupInboundMapper uses UserInboundMapper for nested user fields.
 @Mapper(componentModel = "spring", uses = {UserInboundMapper.class})
 public interface GroupInboundMapper {
     Group toDomain(GroupInboundResource resource);

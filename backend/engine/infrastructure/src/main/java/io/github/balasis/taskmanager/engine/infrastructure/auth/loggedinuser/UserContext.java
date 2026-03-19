@@ -2,6 +2,8 @@ package io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser;
 
 import org.springframework.stereotype.Component;
 
+// thread-local user ID for non-request contexts (DataLoader, scheduled tasks).
+// callers must set() before use and clear() after to avoid leaking across threads.
 @Component
 public class UserContext {
 

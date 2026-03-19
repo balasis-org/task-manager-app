@@ -9,8 +9,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Optional;
 
+// comments have a soft-link to their creator that gets nullified when a user
+// leaves or is removed. the creatorNameSnapshot field preserves the display name
+// so old comments dont show "unknown" — thats what detachCreator* does.
 public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> {
     long countByTask_Id(Long taskId);
 
@@ -64,4 +68,21 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
                                           @Param("groupId") Long groupId,
                                           @Param("creatorId") Long creatorId,
                                           Pageable pageable);
+
+    @Modifying
+    @Query("""
+        DELETE FROM TaskComment tc
+        WHERE tc.task.id = :taskId
+          AND tc.createdAt < :before
+    """)
+    int deleteByTaskIdAndCreatedAtBefore(@Param("taskId") Long taskId,
+                                         @Param("before") Instant before);
+
+    // used by the analysis credits estimator to gauge how much text a task has
+    @Query("""
+        SELECT COUNT(tc), COALESCE(SUM(LENGTH(tc.comment)), 0)
+        FROM TaskComment tc
+        WHERE tc.task.id = :taskId
+    """)
+    Object[] countAndSumCharsByTaskId(@Param("taskId") Long taskId);
 }

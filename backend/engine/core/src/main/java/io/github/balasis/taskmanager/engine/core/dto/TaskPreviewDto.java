@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+// compact task card data for the group task list / kanban board. the "deletable"
+// flag is computed server-side based on the callers role so the frontend doesnt
+// have to figure it out.
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

@@ -1,5 +1,8 @@
 
 // text-length limits — these never vary by plan
+// mirrors backend Jakarta validation constraints so the frontend can
+// show errors before submitting. these must stay in sync with the
+// @Size/@Max annotations on the inbound resource DTOs.
 export const LIMITS = Object.freeze({
 
     GROUP_NAME:        50,
@@ -25,7 +28,7 @@ export const LIMITS = Object.freeze({
 // safe fallbacks for file limits when groupDetail hasn't loaded yet
 const FILE_LIMIT_DEFAULTS = Object.freeze({
     maxCreatorFiles:   1,
-    maxAssigneeFiles:  1,
+    maxAssigneeFiles:  2,
     maxFileSizeBytes:  5 * 1024 * 1024,   // 5 MB (FREE plan)
     maxTasks:          30,
     maxMembers:        8,

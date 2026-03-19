@@ -28,7 +28,7 @@ What actually happened.
 
 - **Browser:** (e.g. Chrome 120, Firefox 130)
 - **OS:** (e.g. Windows 11, macOS 15)
-- **Subscription tier:** (FREE / STUDENT / ORGANIZER / TEAM)
+- **Subscription tier:** (FREE / STUDENT / ORGANIZER / TEAM / TEAMS_PRO)
 - **Group role:** (GROUP_LEADER / TASK_MANAGER / REVIEWER / MEMBER / GUEST)
 
 ## Screenshots

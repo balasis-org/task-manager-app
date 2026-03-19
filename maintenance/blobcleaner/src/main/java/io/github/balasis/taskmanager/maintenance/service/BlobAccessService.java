@@ -2,7 +2,7 @@ package io.github.balasis.taskmanager.maintenance.service;
 
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
