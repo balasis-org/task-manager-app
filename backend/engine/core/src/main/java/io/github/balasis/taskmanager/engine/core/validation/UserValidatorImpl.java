@@ -7,6 +7,9 @@ import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+// lightweight — user creation only checks azure key uniqueness,
+// patch only blocks blank names. most user constraints come from
+// the OAuth flow, not from manual validation.
 @Component
 @AllArgsConstructor
 public class UserValidatorImpl implements UserValidator{

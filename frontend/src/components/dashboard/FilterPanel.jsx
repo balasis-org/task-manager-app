@@ -8,7 +8,7 @@ const PRIORITY_MAX = 10; // TODO: pull from backend config if it ever becomes dy
 
 const STATE_OPTIONS = [
     { value: "", label: "Any" },
-    { value: "TODO", label: "TODO" },
+    { value: "TODO", label: "To do" },
     { value: "IN_PROGRESS", label: "In progress" },
     { value: "TO_BE_REVIEWED", label: "To be reviewed" },
     { value: "DONE", label: "Done" },
@@ -35,6 +35,11 @@ function isFilterEmpty(f) {
     return Object.values(f).every((v) => v === "" || v == null);
 }
 
+// advanced task filter — creator, reviewer, assignee, priority range,
+// state, has-files toggle, due-date. once applied the panel locks
+// (isApplied=true) so the user must click Edit to change filters.
+// click-outside closes via mousedown (not click) so the panel closes
+// before the bubbled event reaches whatever was clicked next.
 export default function FilterPanel({
     members,
     filters,

@@ -5,12 +5,18 @@ import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepositor
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+// DB hygiene — purges rows that are only kept for audit/sync and past their
+// retention window. Each retention constant is intentionally generous so that
+// any late-running cron still has overlap.
 @Service
 @AllArgsConstructor
 public class DatabaseCleanupService extends BaseComponent {
 
-    private static final int TOMBSTONE_RETENTION_DAYS = 30;
-    private static final int INVITATION_RETENTION_DAYS = 30;
+    private static final int TOMBSTONE_RETENTION_DAYS = 30;       // soft-deletes for frontend sync
+    private static final int INVITATION_RETENTION_DAYS = 30;      // resolved (accepted/declined)
+    private static final int EMAIL_OUTBOX_RETENTION_HOURS = 24;   // sent or failed emails
+    private static final int MODERATION_RETENTION_DAYS = 30;      // processed image scans
+    private static final int ANALYSIS_REQUEST_RETENTION_DAYS = 30; // completed AI analysis jobs
 
     private final MaintenanceRepository repository;
 
@@ -18,6 +24,9 @@ public class DatabaseCleanupService extends BaseComponent {
         purgeExpiredTokens();
         purgeDeletedTaskTombstones();
         purgeResolvedInvitations();
+        purgeProcessedEmails();
+        purgeProcessedModerations();
+        purgeCompletedAnalysisRequests();
     }
 
     private void purgeExpiredTokens() {
@@ -46,6 +55,36 @@ public class DatabaseCleanupService extends BaseComponent {
                     deleted, INVITATION_RETENTION_DAYS);
         } else {
             logger.info("DB cleanup: no stale resolved invitations found.");
+        }
+    }
+
+    private void purgeProcessedEmails() {
+        int deleted = repository.purgeProcessedEmails(EMAIL_OUTBOX_RETENTION_HOURS);
+        if (deleted > 0) {
+            logger.info("DB cleanup: purged {} processed email outbox row(s) older than {} hours.",
+                    deleted, EMAIL_OUTBOX_RETENTION_HOURS);
+        } else {
+            logger.info("DB cleanup: no stale email outbox rows found.");
+        }
+    }
+
+    private void purgeProcessedModerations() {
+        int deleted = repository.purgeProcessedModerations(MODERATION_RETENTION_DAYS);
+        if (deleted > 0) {
+            logger.info("DB cleanup: purged {} processed moderation row(s) older than {} days.",
+                    deleted, MODERATION_RETENTION_DAYS);
+        } else {
+            logger.info("DB cleanup: no stale moderation rows found.");
+        }
+    }
+
+    private void purgeCompletedAnalysisRequests() {
+        int deleted = repository.purgeCompletedAnalysisRequests(ANALYSIS_REQUEST_RETENTION_DAYS);
+        if (deleted > 0) {
+            logger.info("DB cleanup: purged {} completed analysis request(s) older than {} days.",
+                    deleted, ANALYSIS_REQUEST_RETENTION_DAYS);
+        } else {
+            logger.info("DB cleanup: no stale analysis requests found.");
         }
     }
 }

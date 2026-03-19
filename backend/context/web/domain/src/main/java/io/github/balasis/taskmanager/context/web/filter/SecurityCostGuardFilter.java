@@ -15,20 +15,16 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Cost-guard for the arena security-testing profile.
- *
- * <p>Prevents accidental misuse (e.g. running a stress script against the
- * security arena) by enforcing two limits that are invisible to the
- * single-VU security k6 scripts but trip immediately under load:
- * <ul>
- *   <li>Max concurrent requests (default 3 — all security scripts use 1 VU)</li>
- *   <li>Rolling hourly request budget (default 500 — entire security suite is ~106 requests)</li>
- * </ul>
- *
- * <p>Returns <b>503</b> (not 429) so responses are clearly distinguishable
- * from the Bucket4j 429s that security scripts intentionally test.
- */
+// Cost-guard for the arena security-testing profile.
+//
+// Prevents accidental misuse (e.g. running a stress script against the
+// security arena) by enforcing two limits invisible to the single-VU
+// security k6 scripts but that trip immediately under load:
+//   - max concurrent requests (default 3 — security scripts use 1 VU)
+//   - rolling hourly request budget (default 500 — full security suite is ~106 requests)
+//
+// Returns 503 (not 429) so responses are distinguishable from the Bucket4j
+// 429s that security scripts intentionally test.
 @Component
 @Profile("prod-arena-security")
 @Order(Ordered.HIGHEST_PRECEDENCE)

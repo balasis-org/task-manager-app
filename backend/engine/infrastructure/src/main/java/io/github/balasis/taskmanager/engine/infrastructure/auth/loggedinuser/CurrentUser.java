@@ -5,6 +5,8 @@ import lombok.Setter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
 
+// request-scoped bean holding the authenticated user's ID.
+// populated by JwtInterceptor on every authenticated request.
 @Getter
 @Setter
 @Component

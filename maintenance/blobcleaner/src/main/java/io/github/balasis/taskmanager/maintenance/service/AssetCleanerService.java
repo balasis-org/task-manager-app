@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 
+// the frontend SPA bundle (JS/CSS) is deployed to the "assets" container.
+// old bundles linger after each deploy — this cleans anything older than 7 days.
+// non-JS/CSS files (e.g. default images) are left alone.
 @Service
 @AllArgsConstructor
 public class AssetCleanerService extends BaseComponent {

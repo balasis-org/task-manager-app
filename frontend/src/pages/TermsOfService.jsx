@@ -2,10 +2,11 @@ import { useNavigate } from "react-router-dom";
 import {
     FiArrowLeft, FiFileText, FiInfo, FiUserPlus, FiShield,
     FiUploadCloud, FiAlertCircle, FiEye, FiLock, FiClock,
-    FiAlertTriangle, FiRefreshCw, FiMail, FiLayers
+    FiAlertTriangle, FiRefreshCw, FiMail, FiLayers, FiCpu
 } from "react-icons/fi";
 import "@styles/pages/Legal.css";
 import "@styles/pages/TermsOfService.css";
+import "@styles/popups/TierUpgradePopup.css";
 import usePageTitle from "@hooks/usePageTitle";
 
 export default function TermsOfService() {
@@ -51,7 +52,7 @@ export default function TermsOfService() {
             <section className="legal-section">
                 <h2><FiLayers size={18} /> Subscription Tiers</h2>
                 <p>
-                    MyTeamTasks defines four subscription tiers. Each tier determines
+                    MyTeamTasks defines five subscription tiers. Each tier determines
                     the limits that apply to your account. The group owner&rsquo;s
                     tier governs all members of that group.
                 </p>
@@ -78,6 +79,10 @@ export default function TermsOfService() {
                                 <th>Student</th>
                                 <th>Organizer</th>
                                 <th>Team</th>
+                                <th className="tier-pro-col">
+                                    Teams Pro
+                                    <span className="tier-ai-chip"><FiCpu size={10} /> AI</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -87,12 +92,14 @@ export default function TermsOfService() {
                                 <td>$1.90/mo</td>
                                 <td>$6.20/mo</td>
                                 <td>$10/mo</td>
+                                <td>$20/mo</td>
                             </tr>
                             <tr>
                                 <td>Members / group</td>
                                 <td>8</td>
                                 <td>20</td>
                                 <td>30</td>
+                                <td>50</td>
                                 <td>50</td>
                             </tr>
                             <tr>
@@ -101,6 +108,7 @@ export default function TermsOfService() {
                                 <td>5</td>
                                 <td>10</td>
                                 <td>15</td>
+                                <td>15</td>
                             </tr>
                             <tr>
                                 <td>Tasks per group</td>
@@ -108,20 +116,23 @@ export default function TermsOfService() {
                                 <td>100</td>
                                 <td>300</td>
                                 <td>500</td>
+                                <td>500</td>
                             </tr>
                             <tr>
                                 <td>Creator files / task</td>
                                 <td>1</td>
-                                <td>3</td>
-                                <td>5</td>
-                                <td>5</td>
+                                <td>Up to 5</td>
+                                <td>Up to 8</td>
+                                <td>Up to 8</td>
+                                <td>Up to 10</td>
                             </tr>
                             <tr>
                                 <td>Assignee files / task</td>
-                                <td>1</td>
-                                <td>3</td>
-                                <td>5</td>
-                                <td>5</td>
+                                <td>2</td>
+                                <td>Up to 5</td>
+                                <td>Up to 8</td>
+                                <td>Up to 8</td>
+                                <td>Up to 10</td>
                             </tr>
                             <tr>
                                 <td>Max file size</td>
@@ -129,12 +140,14 @@ export default function TermsOfService() {
                                 <td>100 MB</td>
                                 <td>100 MB</td>
                                 <td>100 MB</td>
+                                <td>100 MB</td>
                             </tr>
                             <tr>
                                 <td>Storage budget</td>
-                                <td>&mdash;</td>
+                                <td>100 MB</td>
                                 <td>500 MB</td>
                                 <td>2 GB</td>
+                                <td>5 GB</td>
                                 <td>5 GB</td>
                             </tr>
                             <tr>
@@ -143,6 +156,7 @@ export default function TermsOfService() {
                                 <td>4 GB</td>
                                 <td>25 GB</td>
                                 <td>50 GB</td>
+                                <td>50 GB</td>
                             </tr>
                             <tr>
                                 <td>Download timeout</td>
@@ -150,11 +164,13 @@ export default function TermsOfService() {
                                 <td>60 s</td>
                                 <td>90 s</td>
                                 <td>120 s</td>
+                                <td>120 s</td>
                             </tr>
                             <tr>
                                 <td>Email notifications</td>
                                 <td>&mdash;</td>
                                 <td>&mdash;</td>
+                                <td>Yes</td>
                                 <td>Yes</td>
                                 <td>Yes</td>
                             </tr>
@@ -164,10 +180,12 @@ export default function TermsOfService() {
                                 <td>&mdash;</td>
                                 <td>Yes</td>
                                 <td>Yes</td>
+                                <td>Yes</td>
                             </tr>
                             <tr>
                                 <td>Custom images</td>
                                 <td>&mdash;</td>
+                                <td>Yes</td>
                                 <td>Yes</td>
                                 <td>Yes</td>
                                 <td>Yes</td>
@@ -178,6 +196,15 @@ export default function TermsOfService() {
                                 <td>50</td>
                                 <td>100</td>
                                 <td>150</td>
+                                <td>150</td>
+                            </tr>
+                            <tr className="tier-ai-row">
+                                <td><FiCpu size={12} className="tier-ai-inline" /> AI analysis credits / mo</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>8,000</td>
                             </tr>
                         </tbody>
                     </table>
@@ -256,10 +283,10 @@ export default function TermsOfService() {
                 </div>
                 <p>
                     The Service employs <strong>automated content-safety
-                    filters</strong> (including Azure AI Content Safety) to detect and
-                    prevent the upload of prohibited content, including adult, violent, or
-                    otherwise harmful material. Content flagged by these filters may be
-                    automatically rejected or removed.
+                    filters</strong> (including Azure AI Content Safety) to detect
+                    prohibited content such as adult, violent, or otherwise harmful
+                    material. Uploaded images are scanned asynchronously; content
+                    flagged by these filters is automatically removed after scanning.
                 </p>
                 <p>
                     <strong>File upload limits apply.</strong> Each task may have a
@@ -337,10 +364,20 @@ export default function TermsOfService() {
                 <h2><FiEye size={18} /> Content Moderation</h2>
                 <p>
                     The Service utilises automated content-safety systems (including
-                    Azure AI Content Safety) to analyse uploaded files and text. Content
-                    that violates our guidelines may be automatically filtered, flagged,
-                    or removed. We reserve the right to remove any content at our
-                    discretion.
+                    Azure AI Content Safety) to analyse uploaded images. Uploaded
+                    images are accepted immediately and scanned asynchronously in the
+                    background. If a scan determines that an image violates our
+                    guidelines, the image is <strong>automatically removed</strong> and
+                    replaced with your previous image (or the default image if no
+                    previous image existed).
+                </p>
+                <p>
+                    <strong>Repeat violations trigger escalating restrictions.</strong>{" "}
+                    Multiple content-policy violations within a rolling 30-day window
+                    result in progressively longer upload restrictions, ranging from a
+                    short temporary hold to, in severe cases, a temporary account-wide
+                    write restriction. These restrictions are applied automatically and
+                    lift on their own once the restriction period expires.
                 </p>
                 <p>
                     In addition to automated systems, platform administrators may

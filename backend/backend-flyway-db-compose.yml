@@ -1,3 +1,4 @@
+# separate MSSQL instance for dev-flyway-mssql profile (tests Flyway migrations locally)
 services:
   mssql-flyway:
     image: mcr.microsoft.com/mssql/server:2022-latest

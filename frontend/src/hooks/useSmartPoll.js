@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+// generic 3-tier polling hook used by Task and Comments pages.
+// tier1: active polling (30s), tier1Long: long sessions (60s),
+// tier2: idle >10min (60s), stops at 15min idle (isStale=true).
+// user activity (click/key/scroll) resets the idle clock and reschedules.
+// checkFn should throw {status:409} when the server says data changed.
 export default function useSmartPoll(checkFn, {
     tier1Ms      = 30_000,
     tier1LongMs  = 60_000,

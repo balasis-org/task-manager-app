@@ -10,11 +10,16 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Set;
 
+// payload returned by the smart-poll refresh endpoint. uses single/two-letter
+// JSON property names to minimize payload size — this gets polled every few
+// seconds by every connected client so bytes matter. the "changed" flag tells
+// the frontend whether anything actually changed since the last poll; if false
+// the client can skip re-rendering entirely.
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "aaen", "lged", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ct", "dti"})
+@JsonPropertyOrder({"sn", "c", "mc", "n", "d", "an", "diu", "iu", "aen", "aaen", "ds", "lged", "op", "db", "udb", "sb", "usb", "mcf", "maf", "mfsb", "mt", "mm", "ddce", "ct", "dti"})
 public class GroupRefreshDto {
 
     @JsonProperty("sn")   private Instant serverNow;
@@ -48,6 +53,7 @@ public class GroupRefreshDto {
     @JsonProperty("mm")   private Integer maxMembers;
     @JsonProperty("ddce") private Boolean dailyDownloadCapEnabled;
     @JsonProperty("aaen") private Boolean allowAssigneeEmailNotification;
+    @JsonProperty("ds")   private Boolean downgradeShielded;
 
     @JsonProperty("ct")   private Set<TaskPreviewDto> changedTasks;
 

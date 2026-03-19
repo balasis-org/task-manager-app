@@ -12,9 +12,12 @@ import io.github.balasis.taskmanager.engine.core.service.authorization.Authoriza
 import io.github.balasis.taskmanager.engine.core.validation.GroupValidator;
 import io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser.EffectiveCurrentUser;
 import io.github.balasis.taskmanager.engine.infrastructure.blob.service.BlobStorageService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ImageModerationService;
 import io.github.balasis.taskmanager.engine.infrastructure.email.EmailClient;
+import io.github.balasis.taskmanager.engine.infrastructure.email.EmailQueueService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.DownloadGuardService;
 import io.github.balasis.taskmanager.engine.infrastructure.redis.ImageChangeLimiterService;
+import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.TaskAnalysisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,10 +36,12 @@ class GroupServiceTest {
     private TaskParticipantRepository taskParticipantRepository;
     private TaskFileRepository taskFileRepository;
     private TaskAssigneeFileRepository taskAssigneeFileRepository;
+    private FileReviewStatusRepository fileReviewStatusRepository;
     private GroupMembershipRepository groupMembershipRepository;
     private GroupEventRepository groupEventRepository;
     private EffectiveCurrentUser effectiveCurrentUser;
     private ObjectProvider<EmailClient> emailClientProvider;
+    private EmailQueueService emailQueueService;
     private BlobStorageService blobStorageService;
     private GroupServiceImpl groupService;
     private AuthorizationService authorizationService;
@@ -46,6 +51,8 @@ class GroupServiceTest {
     private PlanLimits planLimits;
     private DownloadGuardService downloadGuardService;
     private ImageChangeLimiterService imageChangeLimiterService;
+    private ImageModerationService imageModerationService;
+    private TaskAnalysisService taskAnalysisService;
     private DefaultImageService defaultImageService;
 
     @BeforeEach
@@ -58,11 +65,13 @@ class GroupServiceTest {
         taskParticipantRepository = mock(TaskParticipantRepository.class);
         taskFileRepository = mock(TaskFileRepository.class);
         taskAssigneeFileRepository = mock(TaskAssigneeFileRepository.class);
+        fileReviewStatusRepository = mock(FileReviewStatusRepository.class);
         groupMembershipRepository = mock(GroupMembershipRepository.class);
         groupEventRepository = mock(GroupEventRepository.class);
         effectiveCurrentUser = mock(EffectiveCurrentUser.class);
         deletedTaskRepository = mock(DeletedTaskRepository.class);
         emailClientProvider = mock(ObjectProvider.class);
+        emailQueueService = mock(EmailQueueService.class);
         blobStorageService = mock(BlobStorageService.class);
         authorizationService = mock(AuthorizationService.class);
         defaultImageService = mock(DefaultImageService.class);
@@ -71,6 +80,8 @@ class GroupServiceTest {
         planLimits = mock(PlanLimits.class);
         downloadGuardService = mock(DownloadGuardService.class);
         imageChangeLimiterService = mock(ImageChangeLimiterService.class);
+        imageModerationService = mock(ImageModerationService.class);
+        taskAnalysisService = mock(TaskAnalysisService.class);
 
         groupService = new GroupServiceImpl(
                 groupRepository,
@@ -81,10 +92,12 @@ class GroupServiceTest {
                 taskParticipantRepository,
                 taskFileRepository,
                 taskAssigneeFileRepository,
+                fileReviewStatusRepository,
                 groupMembershipRepository,
                 groupEventRepository,
                 effectiveCurrentUser,
                 emailClientProvider,
+                emailQueueService,
                 blobStorageService,
                 authorizationService,
                 defaultImageService,
@@ -94,6 +107,8 @@ class GroupServiceTest {
                 planLimits,
                 downloadGuardService,
                 imageChangeLimiterService,
+                imageModerationService,
+                taskAnalysisService,
                 mock(org.springframework.core.env.Environment.class)
         );
     }

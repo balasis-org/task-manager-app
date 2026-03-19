@@ -3,6 +3,10 @@ import { AuthContext } from "./AuthContext";
 import { apiGet, apiPost, registerAuthHandlers } from "@assets/js/apiClient.js";
 import { useToast } from "@context/ToastContext";
 
+// on mount: fetches /api/users/me to check session cookie.
+// registers a global 401 handler in apiClient so any request
+// that gets 401 triggers a single retry via /users/me (refresh-cookie
+// rotation happens server-side in JwtInterceptor).
 let isRefreshing = false;
 
 export default function AuthProvider({ children }) {

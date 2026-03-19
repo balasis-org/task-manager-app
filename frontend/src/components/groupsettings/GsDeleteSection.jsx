@@ -4,6 +4,9 @@ import { apiDelete } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import "@styles/groupsettings/GsDeleteSection.css";
 
+// two-step delete: click "Delete" → confirm box with warning.
+// the backend cascades (tasks, files, memberships, blobs) so this
+// is genuinely permanent.
 export default function GsDeleteSection({ group, onDeleted }) {
     const showToast = useToast();
     const [confirmDelete, setConfirmDelete] = useState(false);

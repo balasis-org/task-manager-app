@@ -10,7 +10,7 @@ import io.github.balasis.taskmanager.context.web.resource.user.inbound.UserInbou
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserMiniForDropdownOutboundResource;
 import io.github.balasis.taskmanager.context.web.resource.user.outbound.UserOutboundResource;
 import io.github.balasis.taskmanager.context.web.validation.ResourceDataValidator;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+// thin REST controller for profile + account CRUD — delegates everything to UserService,
+// enriches responses with plan-specific limits (storage budget, download budget, email quota)
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
@@ -42,6 +44,7 @@ public class UserController extends BaseComponent {
         resource.setMaxMembersPerGroup(planLimits.maxMembersPerGroup(me.getSubscriptionPlan()));
         resource.setImageScansPerMonth(planLimits.imageScansPerMonth(me.getSubscriptionPlan()));
         resource.setEmailsPerMonth(planLimits.emailQuotaPerMonth(me.getSubscriptionPlan()));
+        resource.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(me.getSubscriptionPlan()));
         return ResponseEntity.ok(resource);
     }
 
@@ -71,6 +74,7 @@ public class UserController extends BaseComponent {
         resource.setMaxMembersPerGroup(planLimits.maxMembersPerGroup(patched.getSubscriptionPlan()));
         resource.setImageScansPerMonth(planLimits.imageScansPerMonth(patched.getSubscriptionPlan()));
         resource.setEmailsPerMonth(planLimits.emailQuotaPerMonth(patched.getSubscriptionPlan()));
+        resource.setTaskAnalysisCreditsPerMonth(planLimits.taskAnalysisCreditsPerMonth(patched.getSubscriptionPlan()));
         return ResponseEntity.ok(resource);
     }
 

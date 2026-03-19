@@ -15,20 +15,16 @@
 
 - [ ] backend (engine / context)
 - [ ] frontend
-- [ ] contracts
+- [ ] shared
 - [ ] maintenance
 - [ ] k6
 - [ ] .github/workflows
 - [ ] infrastructure (Bicep)
-
+- [ ] Documentation
+- 
 ## Checklist
 
 - [ ] Code compiles without errors
-- [ ] Existing tests pass (`mvn verify` / `npm run lint`)
-- [ ] New functionality has been tested locally
-- [ ] k6 security scripts still pass (if security-related change)
-- [ ] No secrets, keys, or credentials in this PR
-- [ ] Documentation updated (if applicable)
 
 ## Screenshots (if UI change)
 

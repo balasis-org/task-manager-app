@@ -8,7 +8,7 @@ import "@styles/popups/Popup.css";
 import "@styles/popups/NewTaskPopup.css";
 
 const STATE_OPTIONS = [
-    { value: "TODO", label: "TODO" },
+    { value: "TODO", label: "To Do" },
     { value: "IN_PROGRESS", label: "In Progress" },
     { value: "TO_BE_REVIEWED", label: "To Be Reviewed" },
     { value: "DONE", label: "Done" },
@@ -17,7 +17,12 @@ const STATE_OPTIONS = [
 const REVIEWER_ELIGIBLE_ROLES = ["REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 const ASSIGNEE_ELIGIBLE_ROLES = ["MEMBER", "REVIEWER", "TASK_MANAGER", "GROUP_LEADER"];
 
-export default function NewTaskPopup({ groupId, initialState, members, groupDetail, onClose, onCreated, onRefresh, maxCreatorFiles, maxFileSizeBytes }) {
+// full task creation form — title, desc, state, priority, due, reviewers,
+// assignees, files, and per-task file limits. submits as multipart/form-data
+// with a JSON "data" part + file attachments.
+// the role-filtering for reviewers and assignees mirrors the backend's
+// @PreAuthorize checks: REVIEWER+ can review, MEMBER+ can be assigned.
+export default function NewTaskPopup({ groupId, initialState, members, groupDetail, onClose, onCreated, onRefresh, maxCreatorFiles, maxAssigneeFiles, maxFileSizeBytes }) {
     const blobUrl = useBlobUrl();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -27,10 +32,14 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
     const [selectedReviewers, setSelectedReviewers] = useState([]);
     const [selectedAssignees, setSelectedAssignees] = useState([]);
     const [files, setFiles] = useState([]);
+    const [taskMaxAssigneeFiles, setTaskMaxAssigneeFiles] = useState("");
+    const [taskMaxFileSizeMB, setTaskMaxFileSizeMB] = useState("");
     const [reviewerSearch, setReviewerSearch] = useState("");
     const [assigneeSearch, setAssigneeSearch] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+
+    const isFree = groupDetail?.op === "FREE";
 
     const reviewerIds = new Set(selectedReviewers.map((m) => m.user?.id));
     const assigneeIds = new Set(selectedAssignees.map((m) => m.user?.id));
@@ -45,6 +54,8 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
                                   || (m.user?.email || "").toLowerCase().includes(assigneeSearch.toLowerCase()))
     );
 
+    // prune stale selections when members list changes (e.g. someone
+    // was kicked from the group while the popup was open)
     useEffect(() => {
         const currentMemberIds = new Set((members || []).map((m) => m.user?.id));
         setSelectedReviewers((prev) => prev.filter((m) => currentMemberIds.has(m.user?.id)));
@@ -72,6 +83,13 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
             if (dueDate) payload.dueDate = new Date(dueDate).toISOString();
             if (selectedAssignees.length) payload.assignedIds = selectedAssignees.map((m) => m.user?.id);
             if (selectedReviewers.length) payload.reviewerIds = selectedReviewers.map((m) => m.user?.id);
+            // per-task limits: only sent if stricter than the group-level defaults
+            if (taskMaxAssigneeFiles !== "" && Number(taskMaxAssigneeFiles) < maxAssigneeFiles)
+                payload.maxAssigneeFiles = Number(taskMaxAssigneeFiles);
+            if (taskMaxFileSizeMB !== "") {
+                const bytes = Number(taskMaxFileSizeMB) * 1024 * 1024;
+                if (bytes < maxFileSizeBytes) payload.maxFileSizeBytes = bytes;
+            }
 
             const fd = new FormData();
             fd.append(
@@ -151,6 +169,7 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
                                 onChange={(e) => setPriority(e.target.value)}
                                 placeholder="-"
                             />
+                            <span className="popup-hint">Higher number = more urgent</span>
                         </label>
                     </div>
 
@@ -162,6 +181,36 @@ export default function NewTaskPopup({ groupId, initialState, members, groupDeta
                             onChange={(e) => setDueDate(e.target.value)}
                         />
                     </label>
+
+                    <div className="popup-form-row">
+                        <label className="popup-form-half" title={isFree ? "Upgrade to customise per-task limits" : ""}>
+                            Max assignee files
+                            <input
+                                type="number"
+                                min={1}
+                                max={maxAssigneeFiles}
+                                value={taskMaxAssigneeFiles}
+                                onChange={(e) => setTaskMaxAssigneeFiles(e.target.value)}
+                                placeholder={`Up to ${maxAssigneeFiles}`}
+                                disabled={isFree}
+                            />
+                            <span className="popup-hint">How many files each assignee can upload</span>
+                        </label>
+
+                        <label className="popup-form-half" title={isFree ? "Upgrade to customise per-task limits" : ""}>
+                            Max file size
+                            <select
+                                value={taskMaxFileSizeMB}
+                                onChange={(e) => setTaskMaxFileSizeMB(e.target.value)}
+                                disabled={isFree}
+                            >
+                                <option value="">Plan default</option>
+                                {[1, 5, 10, 25, 50, 100].filter((mb) => mb * 1024 * 1024 <= maxFileSizeBytes).map((mb) => (
+                                    <option key={mb} value={mb}>{mb} MB</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
 
                     { }
                     <NtMemberPicker

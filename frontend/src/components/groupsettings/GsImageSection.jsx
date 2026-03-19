@@ -1,6 +1,6 @@
 ﻿// Group cover image - drag-drop upload or pick from defaults
 import { useState, useRef, useContext, useMemo } from "react";
-import { FiCheck, FiX } from "react-icons/fi";
+import { FiCheck, FiX, FiImage } from "react-icons/fi";
 import { apiPatch, apiMultipart } from "@assets/js/apiClient";
 import { useToast } from "@context/ToastContext";
 import { LIMITS } from "@assets/js/inputValidation";
@@ -10,6 +10,10 @@ import { AuthContext } from "@context/AuthContext";
 import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/groupsettings/GsImageSection.css";
 
+// Group cover image - drag-drop upload or pick from defaults.
+// custom upload goes through /api/groups/{id}/image (multipart),
+// default image pick goes through /api/groups/{id}/image/pick-default.
+// both bump usedImageScansMonth because the backend runs moderation on upload.
 export default function GsImageSection({ group, ownerPlan, onUpdated }) {
     const showToast = useToast();
     const blobUrl = useBlobUrl();
@@ -105,7 +109,7 @@ export default function GsImageSection({ group, ownerPlan, onUpdated }) {
     return (
         <section className="gs-section">
             <div className="gs-section-header">
-                <span className="gs-section-label">Group image</span>
+                <span className="gs-section-label"><FiImage size={14} /> Group image</span>
                 {atScanLimit && (
                     <span className="gs-limit-note">Reached the limit</span>
                 )}

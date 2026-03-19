@@ -12,17 +12,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+// configures Azure Monitor OpenTelemetry SDK with a custom sampler that drops
+// polling endpoints (has-changed, presence, check-new) before applying a 10%
+// ratio sampler to everything else. this keeps App Insights costs down while
+// still capturing enough traces for debugging.
+// three separate bean methods because each profile reads a different
+// Application Insights connection string (dev vs prod-h2 vs prod-azuresql).
 @AllArgsConstructor
 @Configuration
 @Profile("OpenTelemetry")
 public class OpenTelemetryConfig {
     private final SecretClientProvider secretClientProvider;
 
-    /**
-     * Percentage of non-polling requests to sample (0.0 to 1.0).
-     * Change this single value to adjust telemetry volume and cost.
-     * 0.10 = 10% of requests are recorded. Polling endpoints are always dropped.
-     */
+    // Fraction of non-polling requests to sample (0.0–1.0).
+    // Tweak this to control telemetry volume / cost. Polling endpoints are always dropped.
     private static final double SAMPLING_RATIO = 0.10;
 
     @Bean

@@ -5,6 +5,8 @@ import io.github.balasis.taskmanager.engine.infrastructure.secret.SecretClientPr
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+// prod: fetches secrets from Azure Key Vault on every call (not cached here,
+// the Azure SDK has its own internal cache strategy)
 @Profile({"prod-h2", "prod-azuresql", "prod-arena-stress", "prod-arena-security"})
 @Component
 public class AzureSecretClientProviderImpl implements SecretClientProvider {

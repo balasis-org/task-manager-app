@@ -8,6 +8,10 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
+// tracks an invitation from one user to another to join a specific group.
+// the invitedBy user specifies what role the invitee will get if they accept.
+// lifecycle: PENDING -> ACCEPTED or DECLINED. accepted invitations create a
+// GroupMembership; declined ones just sit here for recordkeeping.
 @Getter
 @Setter
 @SuperBuilder

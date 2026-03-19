@@ -1,4 +1,5 @@
-
+# same pattern as the backend Dockerfile — JRE-only, non-root, ExitOnOOM.
+# this container runs as a scheduled job (cron), not a long-running service.
 FROM eclipse-temurin:21-jre-alpine
 
 RUN addgroup -S appgrp && adduser -S appuser -G appgrp

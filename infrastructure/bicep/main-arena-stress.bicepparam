@@ -9,7 +9,7 @@ using './main.bicep'
 
 // Core
 param location = 'italynorth'
-param contentSafetyLocation = 'westeurope'
+param cognitiveServicesLocation = 'westeurope'
 param projectName = 'taskmanager-arena'
 param tags = {
   project: 'MyTeamTasks-Arena'

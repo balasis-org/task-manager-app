@@ -20,4 +20,6 @@ public class GroupInboundPatchResource extends BaseInboundResource {
     private String announcement;
     private Boolean allowEmailNotification;
     private Boolean allowAssigneeEmailNotification;
+    private Boolean dailyDownloadCapEnabled;
+    private Boolean downgradeShielded;
 }

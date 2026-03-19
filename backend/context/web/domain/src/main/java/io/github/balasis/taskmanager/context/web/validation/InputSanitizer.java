@@ -1,5 +1,7 @@
 package io.github.balasis.taskmanager.context.web.validation;
 
+// strips invisible / zero-width Unicode characters (NBSP, ZWSP, etc.) and trims.
+// used by SanitizingRequestBodyAdvice on every inbound String field.
 public final class InputSanitizer {
 
     private InputSanitizer() {}

@@ -29,9 +29,12 @@ public class AdminUserResource extends BaseOutboundResource {
     private Long usedDownloadBytesMonth;
     private Integer usedEmailsMonth;
     private Integer usedImageScansMonth;
-    /** Populated at the controller level */
+    // populated at the controller level
     private Long storageBudgetBytes;
     private Long downloadBudgetBytes;
     private Integer emailsPerMonth;
     private Integer imageScansPerMonth;
+    private Integer usedTaskAnalysisCreditsMonth;
+    // populated at the controller level — monthly analysis credit cap
+    private Integer taskAnalysisCreditsPerMonth;
 }

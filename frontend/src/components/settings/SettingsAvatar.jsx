@@ -9,6 +9,10 @@ import { useBlobUrl } from "@context/BlobSasContext";
 import DefaultImagePicker from "@components/DefaultImagePicker";
 import "@styles/settings/SettingsAvatar.css";
 
+// profile image upload — drag-drop or click, with DefaultImagePicker fallback.
+// GIFs are blocked client-side (the backend also rejects them).
+// bumps usedImageScansMonth locally to keep the Settings budget bar accurate
+// before the next /users/me refresh.
 export default function SettingsAvatar() {
     const { user, setUser } = useContext(AuthContext);
     const showToast = useToast();

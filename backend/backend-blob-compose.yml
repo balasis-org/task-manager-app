@@ -1,3 +1,4 @@
+# Azurite (Azure Blob Storage emulator) for local dev file uploads
 services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite

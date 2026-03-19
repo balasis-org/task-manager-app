@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -17,19 +18,17 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 
-/**
- * Checks if the daily maintenance job is overdue and alerts the admin.
- * NOT a HealthIndicator — stale maintenance shouldn't restart the container.
- */
+// Checks whether the daily maintenance job is overdue and sends an admin alert.
+// Not a HealthIndicator — stale maintenance alone shouldn't restart the container.
 @Component
 public class MaintenanceStalenessChecker {
 
     private static final Logger logger = LoggerFactory.getLogger(MaintenanceStalenessChecker.class);
 
-    /** Alert if nextResetAt is more than 12 hours in the past. */
+    // Alert when nextResetAt is over 12 hours in the past
     private static final Duration STALENESS_THRESHOLD = Duration.ofHours(12);
 
-    /** Don't spam emails — wait at least 6 h between sends. */
+    // Cooldown between alert emails — at least 6 h gap
     private static final Duration EMAIL_COOLDOWN = Duration.ofHours(6);
 
     private static final String INSTANCE_ID = resolveInstanceId();
@@ -42,18 +41,15 @@ public class MaintenanceStalenessChecker {
 
     public MaintenanceStalenessChecker(
             DataSource dataSource,
-            @Autowired(required = false) EmailClient emailClient,
+            @Autowired(required = false) @Qualifier("adminEmailClient") EmailClient emailClient,
             @Value("${admin.email:}") String adminEmail) {
         this.dataSource = dataSource;
         this.emailClient = emailClient;
         this.adminEmail = adminEmail;
     }
 
-    /**
-     * Runs every hour, starting 5 minutes after boot.
-     * Reads the singleton MaintenanceStatus row (id = 1) and checks
-     * whether {@code nextResetAt} is dangerously far in the past.
-     */
+    // Runs every hour (5 min delay after boot). Reads the singleton
+    // MaintenanceStatus row (id=1) and checks if nextResetAt is overdue.
     @Scheduled(fixedDelay = 3_600_000, initialDelay = 300_000)
     public void checkStaleness() {
         try {

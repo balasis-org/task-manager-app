@@ -6,6 +6,9 @@ import { FiUsers, FiImage } from "react-icons/fi";
 import "@styles/popups/Popup.css";
 import "@styles/popups/NewGroupPopup.css";
 
+// group creation form with optional cover image (drag-drop or click).
+// if cover is provided, submits as multipart; otherwise plain JSON.
+// GIF rejection + size check must match the backend's validation.
 export default function NewGroupPopup({ onClose, onCreated, user }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");

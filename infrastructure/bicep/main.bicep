@@ -1,5 +1,5 @@
 // main.bicep — MyTeamTasks Azure Infrastructure
-// Phase 1: Base (identity, monitoring, storage, SQL, Redis, KV, ACR, Content Safety, ACS, RBAC)
+// Phase 1: Base (identity, monitoring, storage, SQL, Redis, KV, ACR, Content Safety, Text Analytics, ACS, RBAC)
 // Phase 2: Compute (App Service Plan, Web App, Container App Jobs)
 // Phase 3: Front Door (WAF, routes, rule sets)
 
@@ -8,8 +8,8 @@
 @description('Primary Azure region')
 param location string
 
-@description('Region for Content Safety (limited regional availability)')
-param contentSafetyLocation string = 'westeurope'
+@description('Region for Cognitive Services — Content Safety + Text Analytics (limited regional availability)')
+param cognitiveServicesLocation string = 'westeurope'
 
 @description('Project name used as prefix for resource names')
 param projectName string
@@ -58,6 +58,9 @@ param customDomainHost string = ''
 @description('Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually.')
 param enableWafBlockAll bool = false
 
+@description('Override image for Container App Jobs on first deploy (ACR is empty). Leave blank after CI/CD has pushed images.')
+param containerImageOverride string = ''
+
 @description('Comma-separated Spring Boot profiles (e.g., prod-azuresql or prod-arena-stress,DataLoader)')
 param springProfilesActive string = 'prod-azuresql'
 
@@ -78,7 +81,7 @@ var suffix = uniqueString(resourceGroup().id)
 var storageAccountName = toLower('${take(projectName, 10)}${take(suffix, 13)}')
 var redisName            = '${projectName}-redis-${take(suffix, 8)}'
 var keyVaultName         = '${take(projectName, 14)}-kv-${take(suffix, 6)}'
-var acrName              = toLower('${take(projectName, 30)}${take(suffix, 13)}')
+var acrName              = toLower(replace('${take(projectName, 30)}${take(suffix, 13)}', '-', ''))
 var webAppName           = '${projectName}-app-${take(suffix, 8)}'
 var frontDoorName        = '${projectName}-fd-${take(suffix, 8)}'
 var sqlServerName        = '${projectName}-sql-${take(suffix, 8)}'
@@ -89,8 +92,9 @@ var imagePrefix          = toLower('${acr.properties.loginServer}/${projectName}
 
 // Placeholder image used on first deploy before CI/CD has pushed actual images.
 // ACA validates the image ref at resource-creation time, so we need a real pullable image.
+// App Service pulls lazily and tolerates missing images, so backendImage can always point at ACR.
 var backendImage         = '${imagePrefix}-backend:latest'
-var maintenanceImage     = '${imagePrefix}-maintenance:latest'
+var maintenanceImage     = containerImageOverride != '' ? containerImageOverride : '${imagePrefix}-maintenance:latest'
 
 var blobContainers = [
   'task-files'
@@ -111,10 +115,22 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
   tags: tags
 }
 
-// 2. Log Analytics Workspace
+// 2. Log Analytics Workspaces (one per environment — keeps telemetry isolated)
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: '${projectName}-logs'
+resource logAnalyticsProd 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${projectName}-logs-prod'
+  location: location
+  tags: tags
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
+resource logAnalyticsDev 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${projectName}-logs-dev'
   location: location
   tags: tags
   properties: {
@@ -134,7 +150,7 @@ resource appInsightsProd 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
+    WorkspaceResourceId: logAnalyticsProd.id
   }
 }
 
@@ -145,7 +161,7 @@ resource appInsightsDev 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
+    WorkspaceResourceId: logAnalyticsDev.id
   }
 }
 
@@ -328,11 +344,27 @@ resource kvSecretContentSafetyEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-0
   }
 }
 
+resource kvSecretTextAnalyticsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'TASKMANAGER-TEXT-ANALYTICS-ENDPOINT'
+  properties: {
+    value: textAnalytics.properties.endpoint
+  }
+}
+
 resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'TASKMANAGER-ACS-ENDPOINT'
   properties: {
     value: 'https://${acs.properties.hostName}'
+  }
+}
+
+resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'TASKMANAGER-ACS-ADMIN-ENDPOINT'
+  properties: {
+    value: 'https://${acsAdmin.properties.hostName}'
   }
 }
 
@@ -370,7 +402,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
 
 resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
   name: '${projectName}-contentsafety'
-  location: contentSafetyLocation
+  location: cognitiveServicesLocation
   tags: tags
   kind: 'ContentSafety'
   sku: {
@@ -381,7 +413,42 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   }
 }
 
+// 9b. Text Analytics (Comment Intelligence — sentiment, key phrases, PII, summarisation) — West Europe
+
+resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
+  name: '${projectName}-textanalytics'
+  location: cognitiveServicesLocation
+  tags: tags
+  kind: 'TextAnalytics'
+  sku: {
+    name: 'S'
+  }
+  properties: {
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
 // 10. Azure Communication Services (email) — Global
+
+resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
+  name: '${projectName}-email'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+  }
+}
+
+resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+  parent: emailService
+  name: 'AzureManagedDomain'
+  location: 'global'
+  tags: tags
+  properties: {
+    domainManagement: 'AzureManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
 
 resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
   name: '${projectName}-acs'
@@ -389,6 +456,45 @@ resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
   tags: tags
   properties: {
     dataLocation: 'Europe'
+    linkedDomains: [
+      emailDomain.id
+    ]
+  }
+}
+
+// 10b. Azure Communication Services — Admin Alerts (separate quota pool)
+// Isolates critical admin emails (CriticalExceptionAlerter, MaintenanceStalenessChecker)
+// from user-facing email traffic so platform rate limits (100/hour) never block alerts.
+
+resource emailServiceAdmin 'Microsoft.Communication/emailServices@2023-04-01' = {
+  name: '${projectName}-email-admin'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+  }
+}
+
+resource emailDomainAdmin 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+  parent: emailServiceAdmin
+  name: 'AzureManagedDomain'
+  location: 'global'
+  tags: tags
+  properties: {
+    domainManagement: 'AzureManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
+
+resource acsAdmin 'Microsoft.Communication/communicationServices@2023-04-01' = {
+  name: '${projectName}-acs-admin'
+  location: 'global'
+  tags: tags
+  properties: {
+    dataLocation: 'Europe'
+    linkedDomains: [
+      emailDomainAdmin.id
+    ]
   }
 }
 
@@ -416,10 +522,21 @@ resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Cognitive Services User — image moderation
+// Cognitive Services User — image moderation (Content Safety)
 resource csRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: contentSafety
   name: guid(contentSafety.id, managedIdentity.id, 'CognitiveServicesUser')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services User — comment analysis (Text Analytics / AI Language)
+resource taRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: textAnalytics
+  name: guid(textAnalytics.id, managedIdentity.id, 'CognitiveServicesUser')
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
     principalId: managedIdentity.properties.principalId
@@ -438,13 +555,13 @@ resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
   }
 }
 
-// Blob Data Reader — Front Door reads blobs
-resource fdBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: storageAccount
-  name: guid(storageAccount.id, frontDoor.id, 'StorageBlobDataReader')
+// ACS Admin Contributor — send admin alert emails via managed identity
+resource acsAdminRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acsAdmin
+  name: guid(acsAdmin.id, managedIdentity.id, 'Contributor')
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
-    principalId: frontDoor.identity.principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -578,8 +695,8 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
+        customerId: logAnalyticsProd.properties.customerId
+        sharedKey: logAnalyticsProd.listKeys().primarySharedKey
       }
     }
   }
@@ -806,7 +923,10 @@ resource frontDoor 'Microsoft.Cdn/profiles@2024-02-01' = {
     name: 'Standard_AzureFrontDoor'
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
   }
   properties: {
     originResponseTimeoutSeconds: 60
@@ -854,7 +974,10 @@ resource fdOriginGroupApi 'Microsoft.Cdn/profiles/originGroups@2025-09-01-previe
       probeRequestType: 'HEAD'
     }
     authentication: {
-      type: 'SystemAssignedIdentity'
+      type: 'UserAssignedIdentity'
+      userAssignedIdentity: {
+        id: managedIdentity.id
+      }
       scope: 'api://${authAppClientId}/.default'
     }
   }
@@ -884,7 +1007,10 @@ resource fdOriginGroupBlob 'Microsoft.Cdn/profiles/originGroups@2025-09-01-previ
       successfulSamplesRequired: 3
     }
     authentication: {
-      type: 'SystemAssignedIdentity'
+      type: 'UserAssignedIdentity'
+      userAssignedIdentity: {
+        id: managedIdentity.id
+      }
       scope: 'https://storage.azure.com/.default'
     }
   }

@@ -6,24 +6,51 @@ import com.azure.core.util.BinaryData;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUploadException;
 import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
+import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ModerationResult;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
+// calls the Azure Content Safety image-analysis REST API.
+// Azure Content Safety scans images for harmful content across 4 categories:
+//   - SEXUAL:    nudity, sexual acts, sexual solicitation
+//   - VIOLENCE:  gore, weapons, injury, fighting
+//   - HATE:      hate symbols, supremacist iconography, slurs in images
+//   - SELF_HARM: self-injury, suicide imagery
+//
+// each category returns a severity score on a 0-6 integer scale:
+//   0 = safe, 2 = low, 4 = medium, 6 = high.
+// we check each category against per-category thresholds:
+//   SEXUAL is strict (>=2 = violation) because even mild nudity isnt appropriate.
+//   the rest are lenient (>=4) to tolerate anime/game-art style avatars.
+//
+// API limit: images must be under 4 MB and in JPEG/PNG/GIF/BMP/TIFF/WEBP format.
+// the SDK sends the raw bytes (not a URL) via BinaryData.fromBytes().
 public class ContentSafetyServiceImpl extends BaseComponent implements ContentSafetyService {
 
     private final ContentSafetyClient client;
 
     private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
+    // Per-category severity thresholds — at or above this value = violation
+    private static final Map<ImageCategory, Integer> THRESHOLDS = Map.of(
+            ImageCategory.SEXUAL,    2,  // strict
+            ImageCategory.VIOLENCE,  4,  // lenient (anime/game art tolerance)
+            ImageCategory.HATE,      4,
+            ImageCategory.SELF_HARM, 4
+    );
+
+    private static final int DEFAULT_THRESHOLD = 4;
+
     public ContentSafetyServiceImpl(ContentSafetyClient client) {
         this.client = client;
     }
 
     @Override
-    public boolean isSafe(InputStream input) {
+    public ModerationResult analyze(InputStream input) {
         try {
             byte[] bytes = readCapped(input, MAX_IMAGE_BYTES);
             var imageData = new ContentSafetyImageData()
@@ -38,9 +65,16 @@ public class ContentSafetyServiceImpl extends BaseComponent implements ContentSa
                 logger.trace("{} severity: {}", c.getCategory(), c.getSeverity());
             }
 
-            return categories.stream()
-                    .map(ImageCategoriesAnalysis::getSeverity)
-                    .allMatch(severity -> severity == null || severity < 3);
+            for (ImageCategoriesAnalysis c : categories) {
+                int severity = c.getSeverity() != null ? c.getSeverity() : 0;
+                int threshold = THRESHOLDS.getOrDefault(c.getCategory(), DEFAULT_THRESHOLD);
+                if (severity >= threshold) {
+                    return ModerationResult.rejected(
+                            c.getCategory().toString(), severity);
+                }
+            }
+
+            return ModerationResult.safe();
 
         } catch (IOException e) {
             throw new BlobUploadException("Failed reading image: " + e.getMessage());

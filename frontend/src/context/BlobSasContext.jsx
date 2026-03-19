@@ -1,5 +1,8 @@
 import { createContext, useContext, useCallback } from "react";
 
+// builds full image URLs by prepending the Front Door blob prefix or direct
+// blob base URL. the frontend stores only relative paths (e.g. "profile-images/abc.jpg")
+// and this context adds the CDN/storage prefix at render time.
 const BlobUrlContext = createContext(null);
 
 const FD_BLOB_PREFIX = import.meta.env.VITE_FD_BLOB_PREFIX || "";

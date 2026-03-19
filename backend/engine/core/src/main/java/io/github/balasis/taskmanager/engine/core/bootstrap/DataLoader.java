@@ -4,6 +4,7 @@ import com.thedeanda.lorem.Lorem;
 import com.thedeanda.lorem.LoremIpsum;
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
 import io.github.balasis.taskmanager.context.base.enumeration.SubscriptionPlan;
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
 import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
@@ -11,7 +12,7 @@ import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.model.User;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.GroupInvitationRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
@@ -31,6 +32,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+// seeds the database with fake users, groups, tasks, invitations, and near-limit
+// budget counters for local dev. only active when the "DataLoader" Spring profile
+// is enabled. creates one group per subscription tier so every plan can be tested.
+// LOWEST_PRECEDENCE ordering ensures DefaultImageBootstrap runs first — we need
+// default images available before assigning them to seed users.
 @Component
 @Profile({"DataLoader"})
 @RequiredArgsConstructor
@@ -47,6 +53,9 @@ public class DataLoader extends BaseComponent {
     private final DefaultImageService defaultImageService;
     private final StartupGate startupGate;
 
+    // idempotent: if lena already exists, the whole data load is skipped.
+    // the finally block marks StartupGate as data-ready even on failure,
+    // otherwise the app would stay in 503 mode forever.
     @EventListener(ApplicationReadyEvent.class)
     @Order(Ordered.LOWEST_PRECEDENCE)
     public void onApplicationReady(ApplicationReadyEvent evt)  {
@@ -64,9 +73,12 @@ public class DataLoader extends BaseComponent {
                 seedStudentTierGroup(users);
                 seedOrganizerTierGroup(users);
                 seedTeamTierGroup(users);
+                seedTeamsProTierGroup(users);
             } finally {
                 userContext.clear();
             }
+
+            applyNearLimitBudgets(users);
 
             logger.trace("=== DataLoader finished ===");
         } finally {
@@ -74,6 +86,8 @@ public class DataLoader extends BaseComponent {
         }
     }
 
+    // members shared across 3+ groups need at least STUDENT plan
+    // because FREE only allows 2 group memberships
     private Map<String, User> seedUsers() {
         logger.trace("Seeding users...");
 
@@ -84,16 +98,22 @@ public class DataLoader extends BaseComponent {
         seeds.put("MARCO",  new SeedUser(devAzureKey("marco.dev@example.com"),  "marco.dev@example.com",  "Marco Dev",  SubscriptionPlan.STUDENT));
         seeds.put("NINA",   new SeedUser(devAzureKey("nina.dev@example.com"),   "nina.dev@example.com",   "Nina Dev",   SubscriptionPlan.ORGANIZER));
         seeds.put("TOMAS",  new SeedUser(devAzureKey("tomas.dev@example.com"),  "tomas.dev@example.com",  "Tomas Dev",  SubscriptionPlan.TEAM));
+        seeds.put("ALINA",  new SeedUser(devAzureKey("alina.dev@example.com"),  "alina.dev@example.com",  "Alina Dev",  SubscriptionPlan.TEAMS_PRO));
 
-        // Regular members (default FREE)
-        seeds.put("SOFIA",  new SeedUser(devAzureKey("sofia.dev@example.com"),  "sofia.dev@example.com",  "Sofia Dev",  null));
-        seeds.put("PETER",  new SeedUser(devAzureKey("peter.dev@example.com"),  "peter.dev@example.com",  "Peter Dev",  null));
-        seeds.put("HANNA",  new SeedUser(devAzureKey("hanna.dev@example.com"),  "hanna.dev@example.com",  "Hanna Dev",  null));
+        // TODO: Remove admin seed user before final submission — added for diagnostics testing only
+        seeds.put("ADMIN",  new SeedUser(devAzureKey("admin.dev@example.com"),  "admin.dev@example.com",  "Admin Dev",  SubscriptionPlan.TEAMS_PRO));
+
+        // Members shared across 3+ groups need STUDENT plan (maxGroups=5)
+        seeds.put("SOFIA",  new SeedUser(devAzureKey("sofia.dev@example.com"),  "sofia.dev@example.com",  "Sofia Dev",  SubscriptionPlan.STUDENT));
+        seeds.put("PETER",  new SeedUser(devAzureKey("peter.dev@example.com"),  "peter.dev@example.com",  "Peter Dev",  SubscriptionPlan.STUDENT));
+        seeds.put("HANNA",  new SeedUser(devAzureKey("hanna.dev@example.com"),  "hanna.dev@example.com",  "Hanna Dev",  SubscriptionPlan.STUDENT));
+        seeds.put("LEON",   new SeedUser(devAzureKey("leon.dev@example.com"),   "leon.dev@example.com",   "Leon Dev",   SubscriptionPlan.STUDENT));
+
+        // Regular members in ≤2 groups (FREE is fine)
         seeds.put("ERIK",   new SeedUser(devAzureKey("erik.dev@example.com"),   "erik.dev@example.com",   "Erik Dev",   null));
         seeds.put("JULIA",  new SeedUser(devAzureKey("julia.dev@example.com"),  "julia.dev@example.com",  "Julia Dev",  null));
         seeds.put("RAVI",   new SeedUser(devAzureKey("ravi.dev@example.com"),   "ravi.dev@example.com",   "Ravi Dev",   null));
         seeds.put("KATYA",  new SeedUser(devAzureKey("katya.dev@example.com"),  "katya.dev@example.com",  "Katya Dev",  null));
-        seeds.put("LEON",   new SeedUser(devAzureKey("leon.dev@example.com"),   "leon.dev@example.com",   "Leon Dev",   null));
 
         // stress-test users (stress01 - stress38)
         for (int i = 1; i <= 38; i++) {
@@ -121,6 +141,13 @@ public class DataLoader extends BaseComponent {
                                     .build()
                     ));
             created.put(entry.getKey(), user);
+        }
+
+        // TODO: Remove admin promotion before final submission — added for diagnostics testing only
+        User adminUser = created.get("ADMIN");
+        if (adminUser != null) {
+            adminUser.setSystemRole(SystemRole.ADMIN);
+            userRepository.save(adminUser);
         }
 
         logger.trace("Seeded {} users", created.size());
@@ -186,6 +213,28 @@ public class DataLoader extends BaseComponent {
         });
     }
 
+    // ── Teams Pro Tier Group (leader: Alina, cap 50) ────────────────
+    private void seedTeamsProTierGroup(Map<String, User> users) {
+        logger.trace("Seeding Teams Pro Tier Group...");
+
+        User leader = users.get("ALINA");
+
+        withUser(leader, () -> {
+            Group group = groupService.create(Group.builder()
+                    .name("Teams Pro Tier Group")
+                    .description("Teams-Pro plan group (Comment Intelligence enabled)")
+                    .announcement("Welcome to the Teams Pro Tier Group")
+                    .build());
+
+            inviteAndAccept(group.getId(), users.get("SOFIA"), Role.TASK_MANAGER, "Seed invite");
+            inviteAndAccept(group.getId(), users.get("PETER"), Role.REVIEWER,     "Seed invite");
+            inviteAndAccept(group.getId(), users.get("HANNA"), Role.MEMBER,       "Seed invite");
+            inviteAndAccept(group.getId(), users.get("LEON"),  Role.MEMBER,       "Seed invite");
+
+            seedTasksForGroup(group.getId(), users.get("SOFIA"), users.get("PETER"), users.get("HANNA"), users.get("LEON"));
+        });
+    }
+
     // ── Team Tier Group (leader: Tomas, cap 50, stress-test target) ──
     private void seedTeamTierGroup(Map<String, User> users) {
         logger.trace("Seeding Team Tier Group (stress target)...");
@@ -220,7 +269,10 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-        private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
+    // withUser temporarily swaps the UserContext so GroupService sees
+    // the seed user as the "logged in" user. crucial because group creation
+    // assigns ownership to the current user.
+    private void inviteAndAccept(Long groupId, User invitee, Role role, String comment) {
         User inviteeWithCode = userRepository.findById(invitee.getId()).orElseThrow();
         if (inviteeWithCode.getInviteCode() == null || inviteeWithCode.getInviteCode().isBlank()) {
             inviteeWithCode.refreshInviteCode();
@@ -337,6 +389,53 @@ public class DataLoader extends BaseComponent {
                         .build());
             });
         });
+    }
+
+    // ── Near-limit budget seeding ────────────────────────────────────
+    // All tier leaders are fully consumed except ALINA (TEAMS_PRO),
+    // who keeps a tiny gap — the only account that can still use resources.
+    // sets all tier leaders to their plan's exact limits (fully consumed) except
+    // ALINA (TEAMS_PRO) who keeps a tiny gap. this lets us test "over budget" UI
+    // states for every tier while still having one account that can do stuff.
+    private void applyNearLimitBudgets(Map<String, User> users) {
+        logger.trace("Setting budget counters near plan limits...");
+
+        // FREE — LENA: download budget fully consumed
+        User lena = users.get("LENA");
+        lena.setUsedDownloadBytesMonth(500L * 1024 * 1024);     // 500 MB = limit
+        userRepository.save(lena);
+
+        // STUDENT — MARCO: fully consumed
+        User marco = users.get("MARCO");
+        marco.setUsedImageScansMonth(50);                        // 50/50
+        marco.setUsedDownloadBytesMonth(4L * 1024 * 1024 * 1024); // 4 GB = limit
+        marco.setUsedStorageBytes(500L * 1024 * 1024);           // 500 MB = limit
+        userRepository.save(marco);
+
+        // ORGANIZER — NINA: fully consumed
+        User nina = users.get("NINA");
+        nina.setUsedImageScansMonth(100);                         // 100/100
+        nina.setUsedEmailsMonth(150);                             // 150/150
+        nina.setUsedDownloadBytesMonth(25L * 1024 * 1024 * 1024); // 25 GB = limit
+        nina.setUsedStorageBytes(2L * 1024 * 1024 * 1024);       // 2 GB = limit
+        userRepository.save(nina);
+
+        // TEAM — TOMAS: fully consumed
+        User tomas = users.get("TOMAS");
+        tomas.setUsedImageScansMonth(150);                         // 150/150
+        tomas.setUsedEmailsMonth(10_000);                          // 10,000/10,000
+        tomas.setUsedDownloadBytesMonth(50L * 1024 * 1024 * 1024); // 50 GB = limit
+        tomas.setUsedStorageBytes(5L * 1024 * 1024 * 1024);       // 5 GB = limit
+        userRepository.save(tomas);
+
+        // TEAMS_PRO — ALINA: the ONE account with remaining allowance
+        User alina = users.get("ALINA");
+        alina.setUsedImageScansMonth(148);                         // 2 scans remaining
+        alina.setUsedEmailsMonth(9_998);                           // 2 emails remaining
+        alina.setUsedTaskAnalysisCreditsMonth(7_990);              // 10 credits remaining
+        alina.setUsedDownloadBytesMonth(50L * 1024 * 1024 * 1024 - 100L * 1024 * 1024); // ~100 MB remaining
+        alina.setUsedStorageBytes(5L * 1024 * 1024 * 1024 - 50L * 1024 * 1024);         // ~50 MB remaining
+        userRepository.save(alina);
     }
 
     private void withUser(User user, Runnable action) {

@@ -10,8 +10,8 @@ using './main.bicep'
 //
 //  Prerequisites (set as environment variables before deploying):
 //    SQL_ADMIN_PASSWORD      — SQL Server admin password
-//    ARENA_AUTH_CLIENT_ID    — Entra ID App Registration client ID
-//    ARENA_AUTH_TENANT_ID    — Entra ID App Registration tenant ID
+//    ARENA_AUTH_CLIENT_ID    — Auth App Registration client ID (guide 02, not the CI/CD SP)
+//    ARENA_AUTH_TENANT_ID    — Auth App Registration tenant ID (guide 02)
 //
 //  Deploy command:
 //    az deployment group create \
@@ -25,6 +25,13 @@ using './main.bicep'
 //       because enableWafBlockAll = true).
 //    2. Push the container image to the arena ACR.
 //    3. Run the appropriate k6 scripts from task-manager-k6scripts/.
+//
+//  FIRST DEPLOY (empty ACR):
+//    Container App Jobs validate images at creation time, so the
+//    first deploy will fail if the ACR is empty. Pass the override:
+//      --parameters main-arena-stress.bicepparam containerImageOverride='mcr.microsoft.com/k8se/quickstart:latest'
+//    After CI/CD pushes real images, redeploy WITHOUT the override
+//    (or with containerImageOverride='') to switch to your ACR images.
 //
 //  To switch modes: redeploy with the other .bicepparam file.
 //  Both modes share the same infrastructure (same projectName),

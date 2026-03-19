@@ -1,3 +1,4 @@
+# backend only — use alongside backend-db-compose + backend-blob-compose
 services:
   backend:
     build:

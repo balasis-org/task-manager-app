@@ -8,6 +8,8 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.springframework.stereotype.Component;
 
+// manually triggers Jakarta Bean Validation on inbound resources — Spring skips
+// @Valid for @RequestBody when using manual ObjectMapper deserialization.
 @Component
 public class ResourceDataValidator extends BaseComponent {
     private final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();

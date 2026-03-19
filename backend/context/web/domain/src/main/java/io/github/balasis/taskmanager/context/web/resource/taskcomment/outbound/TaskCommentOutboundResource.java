@@ -15,4 +15,5 @@ public class TaskCommentOutboundResource extends BaseOutboundResource {
     private String creatorNameSnapshot;
     private String comment;
     private Instant createdAt;
+    private boolean containsPii;
 }

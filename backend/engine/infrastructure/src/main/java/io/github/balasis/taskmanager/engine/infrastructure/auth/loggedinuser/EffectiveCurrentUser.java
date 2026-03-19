@@ -3,6 +3,9 @@ package io.github.balasis.taskmanager.engine.infrastructure.auth.loggedinuser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+// bridge between request scope (CurrentUser) and thread-local (UserContext).
+// tries the request-scoped bean first; if outside a request (e.g. scheduler, DataLoader)
+// falls back to the thread-local. this way services don't care where the userId came from.
 @Component
 @RequiredArgsConstructor
 public class EffectiveCurrentUser {

@@ -27,6 +27,17 @@ build/
 summary.json
 
 # =========================
+# Ownership proof (personal backup, not for repo)
+# =========================
+proof-of-ownership/
+generate-ownership-proof.ps1
+
+# =========================
+# Diagnostics
+# =========================
+diagnostics/
+
+# =========================
 # Misc
 # =========================
 *.old
@@ -39,6 +50,8 @@ default-images/
 # bicepparam files are safe to commit — secrets are read via
 # readEnvironmentVariable() at deploy time, not stored in the file.
 !*.bicepparam.example
+# Generated ARM templates from Bicep build — not source-controlled
+docs/iac/bicep/main.json
 
 # =========================
 # IAC env files (secrets)

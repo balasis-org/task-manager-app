@@ -13,14 +13,15 @@ The Front Door profile uses **different security mechanisms** for its two origin
 ### Blob Storage Origin (Origin Authentication + IAM)
 
 ```
-Front Door ──[Bearer token (MI, scope: storage.azure.com)]──→ Blob Storage (validates token + RBAC)
+Front Door ──[Bearer token (UAI, scope: storage.azure.com)]──→ Blob Storage (validates token + RBAC)
 ```
 
-1. The FD profile has a **System-Assigned Managed Identity**
+1. The FD profile has the project’s **User-Assigned Managed Identity** attached
 2. FD origin authentication (preview) acquires an Entra ID token with scope
    `https://storage.azure.com/.default` and sends it as `Authorization: Bearer` to blob storage
-3. An IAM role assignment grants `Storage Blob Data Reader` to FD's MI on the storage account
-   — this is the **authorisation** layer (what FD is allowed to do)
+3. An IAM role assignment grants `Storage Blob Data Contributor` to the UAI on the storage account
+   — this is the **authorisation** layer (what FD is allowed to do). the same role assignment also
+   covers the web app and maintenance jobs (they share the same identity)
 4. All blob containers are **private** (`publicAccess: None`)
 5. Both layers are required: origin auth = authentication (who you are), RBAC = authorisation (what you can do)
 
@@ -31,14 +32,14 @@ Front Door ──[Bearer token (MI, scope: storage.azure.com)]──→ Blob Sto
 ### Web App Origin (Three-Layer Defence-in-Depth)
 
 ```
-Front Door ──[1. service tag + 2. FDID header + 3. Bearer token (MI)]──→ App Service (Easy Auth validates)
+Front Door ──[1. service tag + 2. FDID header + 3. Bearer token (UAI)]──→ App Service (Easy Auth validates)
 ```
 
 1. **Network (IP):** App Service `ipSecurityRestrictions` allows ONLY the `AzureFrontDoor.Backend`
    **service tag** — any request not from an Azure Front Door IP is rejected (HTTP 403)
 2. **Instance (Header):** The restriction also checks the `X-Azure-FDID` **header** matches this
-   specific FD profile's ID — prevents requests from OTHER customers' FD profiles
-3. **Cryptographic (Token):** FD origin authentication (preview) uses FD's system-assigned MI to
+   specific FD profile’s ID — prevents requests from OTHER customers’ FD profiles
+3. **Cryptographic (Token):** FD origin authentication (preview) uses the project’s user-assigned MI to
    acquire an Entra ID token (scope: `api://<client-id>/.default`) and sets it as
    `Authorization: Bearer <token>` on every forwarded request. Easy Auth on the App Service
    validates the token's audience, issuer, and tenant — **cryptographic proof** that the request
@@ -56,7 +57,7 @@ JWT cookies. Instead, Easy Auth serves as the **cryptographic anti-spoofing laye
 **How the token flow works:**
 
 1. Front Door's origin group has origin authentication enabled (preview feature)
-2. FD uses its **system-assigned managed identity** to acquire an Entra ID access
+2. FD uses the project’s **user-assigned managed identity** to acquire an Entra ID access
    token with scope `api://<client-id>/.default`
 3. FD sets the token as `Authorization: Bearer <token>` on every forwarded request
 4. Easy Auth intercepts the request, validates the Bearer token (audience, issuer, tenant)
@@ -104,6 +105,6 @@ Four protection layers, each handled by a different Bicep resource:
 | **Network** | Service tag `AzureFrontDoor.Backend` | `webApp.siteConfig.ipSecurityRestrictions` | All traffic not from an Azure FD IP |
 | **Instance** | `X-Azure-FDID` header match | Same restriction block | Requests from other customers' FD profiles |
 | **Cryptographic** | FD origin auth (MI → Bearer token) + Easy Auth | `fdOriginGroupApi.authentication` + `webAppAuth` | IP spoofing (requires valid Entra ID token) |
-| **Blob origin** | Origin auth (MI → Bearer token) + IAM | `fdOriginGroupBlob.authentication` + `fdBlobRoleAssignment` | Keeps blob storage fully private |
+| **Blob origin** | Origin auth (UAI → Bearer token) + IAM | `fdOriginGroupBlob.authentication` + `blobRoleAssignment` | Keeps blob storage fully private |
 
 The origin authentication feature is currently in preview. The Bicep template uses the `@2025-09-01-preview` API version for the API origin group. Front Door Premium SKU supports Private Link to App Service (eliminating the public endpoint entirely) but costs ~$330/month vs ~$35/month for Standard.

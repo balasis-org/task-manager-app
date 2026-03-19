@@ -10,8 +10,7 @@ import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUplo
 import io.github.balasis.taskmanager.context.base.exception.critical.CriticalBlobStorageException;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.engine.infrastructure.contentsafety.ContentSafetyService;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.image.ImageResizeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,21 +23,30 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+// central blob operations for all container types.
+//
+// Azure Blob Storage hierarchy: Storage Account > Container > Blob.
+// a "container" is like a top-level folder. BlobContainerClient gives CRUD on one container;
+// BlobClient points to a single blob (file) inside it.
+//
+// on construction it eagerly creates any missing containers (idempotent).
+// PublicAccessType.BLOB = anonymous read access to individual blobs (for profile/group images
+// served directly to browsers). private containers (task files) require auth.
+//
+// images are resized via ImageResizeService before upload. task files stored as-is.
+// deletes are fire-and-forget async — if they fail, the maintenance BlobCleanerService sweeps orphans.
 @Service
 public class BlobStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(BlobStorageService.class);
 
-    private final ContentSafetyService contentSafetyService;
     private final ImageResizeService imageResizeService;
 
     private final Map<BlobContainerType, BlobContainerClient> containers =
             new EnumMap<>(BlobContainerType.class);
 
     public BlobStorageService(BlobServiceClient blobServiceClient,
-                              ContentSafetyService contentSafetyService,
                               ImageResizeService imageResizeService) {
-        this.contentSafetyService = contentSafetyService;
         this.imageResizeService = imageResizeService;
 
         for (BlobContainerType type : BlobContainerType.values()) {
@@ -77,22 +85,17 @@ public class BlobStorageService {
     public String uploadProfileImage(MultipartFile file, Long prefixId){
         validateImageFormat(file);
         byte[] resized = imageResizeService.resize(file, ImageResizeService.PROFILE_SIZE);
-        assertContentSafety(resized);
         return uploadBytes(BlobContainerType.PROFILE_IMAGES, resized, prefixId, file.getOriginalFilename());
     }
 
     public String uploadGroupImage(MultipartFile file, Long prefixId){
         validateImageFormat(file);
         byte[] resized = imageResizeService.resize(file, ImageResizeService.GROUP_SIZE);
-        assertContentSafety(resized);
         return uploadBytes(BlobContainerType.GROUP_IMAGES, resized, prefixId, file.getOriginalFilename());
     }
 
-    /**
-     * Uploads a pre-trusted image (e.g. Microsoft profile photo) to the
-     * profile-images container. Resizes but skips Content Safety —
-     * the source is already moderated by Microsoft.
-     */
+    // Uploads a pre-trusted image (e.g. MS profile photo) to the profile-images
+    // container. Resizes but skips Content Safety since the source is already moderated.
     public String uploadTrustedProfileImage(byte[] imageBytes, Long userId) {
         byte[] resized = imageResizeService.resize(imageBytes, ImageResizeService.PROFILE_SIZE);
         return uploadBytes(BlobContainerType.PROFILE_IMAGES, resized, userId, "ms-photo.jpg");
@@ -132,12 +135,8 @@ public class BlobStorageService {
         }
     }
 
-    /**
-     * True fire-and-forget: dispatches the delete to a background thread
-     * and returns immediately.  The caller is never blocked.  If the
-     * delete fails for any reason the orphan blob will be swept by
-     * the next scheduled maintenance run.
-     */
+    // Fire-and-forget delete: dispatches to a background thread and returns immediately.
+    // If it fails, the maintenance job will clean up the orphan blob later.
     private void tryDeleteAsync(BlobContainerType type, String blobName) {
         if (blobName == null || blobName.isBlank()) return;
         CompletableFuture.runAsync(() -> deleteInternal(type, blobName))
@@ -156,15 +155,9 @@ public class BlobStorageService {
         tryDeleteAsync(BlobContainerType.GROUP_IMAGES, blobName);
     }
 
-    public void deleteTaskFile(String blobName) {
-        if (blobName == null || blobName.isBlank()) return;
-        deleteInternal(BlobContainerType.TASK_FILES, blobName);
-    }
-
-    public void deleteTaskAssigneeFile(String blobName) {
-        if (blobName == null || blobName.isBlank()) return;
-        deleteInternal(BlobContainerType.TASK_ASSIGNEE_FILES, blobName);
-    }
+    // Task file blob deletion is handled exclusively by the maintenance job.
+    // DB records are removed in removeTaskFile / removeAssigneeTaskFile;
+    // the orphaned blob is swept by BlobCleanerService.clean().
 
     private void assertTaskAssigneeFile(MultipartFile file, long maxSizeBytes) {
         if (file == null || file.isEmpty()) {
@@ -226,10 +219,16 @@ public class BlobStorageService {
         }
     }
 
-    private void assertContentSafety(byte[] imageBytes) {
-        if (!contentSafetyService.isSafe(new ByteArrayInputStream(imageBytes))) {
-            throw new BlobUploadImageException("Image failed content safety check (potential adult content)");
-        }
+    // Downloads raw blob bytes for the moderation drainer to scan.
+    // Returns null when the blob no longer exists.
+    public byte[] downloadBlobBytes(String entityType, String blobName) {
+        BlobContainerType type = "USER".equals(entityType)
+                ? BlobContainerType.PROFILE_IMAGES
+                : BlobContainerType.GROUP_IMAGES;
+        BlobContainerClient container = containers.get(type);
+        BlobClient blobClient = container.getBlobClient(blobName);
+        if (!blobClient.exists()) return null;
+        return blobClient.downloadContent().toBytes();
     }
 
     private String uploadBytes(BlobContainerType type, byte[] data, Long prefixId, String originalFilename) {

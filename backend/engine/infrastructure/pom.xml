@@ -93,6 +93,10 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-ai-contentsafety</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-ai-textanalytics</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.bucket4j</groupId>

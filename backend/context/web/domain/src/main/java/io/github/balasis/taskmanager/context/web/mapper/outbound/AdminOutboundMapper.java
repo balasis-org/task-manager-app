@@ -2,12 +2,16 @@ package io.github.balasis.taskmanager.context.web.mapper.outbound;
 
 import io.github.balasis.taskmanager.context.base.model.*;
 import io.github.balasis.taskmanager.context.web.resource.admin.outbound.*;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
-import io.github.balasis.taskmanager.contracts.enums.BlobDefaultImageContainer;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobDefaultImageContainer;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+// admin-specific mapper with list vs detail variants: list ignores heavy nested
+// fields (members, description) for page performance, detail includes them.
+// URL converters prepend the blob container name so the frontend can build
+// the full SAS URL — same pattern used in GroupOutboundMapper/UserOutboundMapper.
 @Mapper(componentModel = "spring")
 public interface AdminOutboundMapper {
 
@@ -18,6 +22,7 @@ public interface AdminOutboundMapper {
     @Mapping(target = "downloadBudgetBytes", ignore = true)
     @Mapping(target = "emailsPerMonth", ignore = true)
     @Mapping(target = "imageScansPerMonth", ignore = true)
+    @Mapping(target = "taskAnalysisCreditsPerMonth", ignore = true)
     AdminUserResource toUserResource(User user);
 
     @Named("groupList")

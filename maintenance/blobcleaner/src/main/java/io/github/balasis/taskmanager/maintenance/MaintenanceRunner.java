@@ -1,17 +1,21 @@
 package io.github.balasis.taskmanager.maintenance;
 
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
 import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepository;
 import io.github.balasis.taskmanager.maintenance.service.AcrCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.AssetCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.BlobCleanerService;
 import io.github.balasis.taskmanager.maintenance.service.DatabaseCleanupService;
+import io.github.balasis.taskmanager.maintenance.service.DowngradeCleanupService;
 import io.github.balasis.taskmanager.maintenance.service.UserCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+// runs once on container start, then exits — Azure Container Apps restarts it on cron.
+// two modes: "task-blobs" (runs every 30-45 min, orphan scan only) and
+// "full" (daily, does everything: blobs + assets + users + DB + counters + ACR)
 @Component
 public class MaintenanceRunner extends BaseComponent implements CommandLineRunner {
 
@@ -22,15 +26,18 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
     private final UserCleanupService userCleanupService;
     private final AssetCleanerService assetCleanerService;
     private final DatabaseCleanupService databaseCleanupService;
+    private final DowngradeCleanupService downgradeCleanupService;
     private final AcrCleanerService acrCleanerService;
     private final MaintenanceRepository maintenanceRepository;
 
+    // AcrCleanerService is optional — only exists in prod-azuresql profile
     @Autowired
     public MaintenanceRunner(
             BlobCleanerService blobCleanerService,
             UserCleanupService userCleanupService,
             AssetCleanerService assetCleanerService,
             DatabaseCleanupService databaseCleanupService,
+            DowngradeCleanupService downgradeCleanupService,
             MaintenanceRepository maintenanceRepository,
             @Autowired(required = false) AcrCleanerService acrCleanerService
     ) {
@@ -38,6 +45,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         this.userCleanupService = userCleanupService;
         this.assetCleanerService = assetCleanerService;
         this.databaseCleanupService = databaseCleanupService;
+        this.downgradeCleanupService = downgradeCleanupService;
         this.maintenanceRepository = maintenanceRepository;
         this.acrCleanerService = acrCleanerService;
     }
@@ -56,6 +64,7 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         logger.info("Maintenance run finished (mode={}). Container will exit.", mode);
     }
 
+    // env var takes priority, then CLI arg, then default to full
     private String resolveMode(String[] args) {
         String envMode = System.getenv("MAINTENANCE_MODE");
         if (envMode != null && !envMode.isBlank()) {
@@ -67,10 +76,8 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         return MODE_FULL;
     }
 
-    /**
-     * Short-interval mode (every 30-45 min).
-     * Only scans task-file containers where orphans accumulate fastest.
-     */
+    // Short-interval mode (every 30–45 min).
+    // Only scans task-file containers where orphans accumulate fastest.
     private void runTaskBlobsOnly() {
         int totalOrphans = 0;
         int totalScanned = 0;
@@ -81,12 +88,9 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         maintenanceRepository.upsertMaintenanceStatus(false, totalOrphans, totalScanned, 0);
     }
 
-    /**
-     * Full daily mode.
-     * Scans ALL blob containers (task files, images, group images),
-     * cleans stale assets, purges inactive users, runs DB hygiene,
-     * resets group-creation counters and optionally cleans ACR images.
-     */
+    // Full daily mode. Scans ALL blob containers (task files, images,
+    // group images), cleans stale assets, purges inactive users,
+    // runs DB hygiene, resets counters and optionally cleans ACR images.
     private void runFull() {
         for (BlobContainerType type : BlobContainerType.values()) {
             blobCleanerService.clean(type);
@@ -102,8 +106,10 @@ public class MaintenanceRunner extends BaseComponent implements CommandLineRunne
         int reconciled = maintenanceRepository.reconcileStorageBudgets();
         logger.info("Reconciled storage budgets for {} user(s).", reconciled);
 
+        downgradeCleanupService.cleanGraceExpiredUsers();
+
         int monthlyReset = maintenanceRepository.resetMonthlyBudgets();
-        logger.info("Reset monthly download + email counters for {} user(s).", monthlyReset);
+        logger.info("Reset monthly download, email, and analysis-credit counters for {} user(s).", monthlyReset);
 
         if (acrCleanerService != null) {
             acrCleanerService.cleanOldImages();

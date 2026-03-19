@@ -1,7 +1,7 @@
 package io.github.balasis.taskmanager.maintenance.service;
 
 import com.azure.storage.blob.models.BlobItem;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
 import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepository;
 import lombok.AllArgsConstructor;
@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+// scans a blob container for orphans (blobs not referenced by any DB row)
+// and deletes them. processes in batches of 50 with 200ms pauses to stay
+// gentle on Azure storage rate limits.
 @Service
 @AllArgsConstructor
 public class BlobCleanerService extends BaseComponent {
@@ -50,9 +53,21 @@ public class BlobCleanerService extends BaseComponent {
 
     private int processBatch(List<BlobItem> batch, BlobContainerType type) {
         int deleted = 0;
+        // task-file blobs use the full blob name as FK, image blobs use
+        // an "entityId-uuid" naming convention so we extract the numeric prefix
+        boolean isTaskContainer = type == BlobContainerType.TASK_FILES
+                || type == BlobContainerType.TASK_ASSIGNEE_FILES;
+
         for (BlobItem blob : batch) {
-            long id = extractId(blob.getName());
-            if (id <= 0 || !repository.existsById(type, id)) {
+            boolean isOrphan;
+            if (isTaskContainer) {
+                isOrphan = !repository.existsByBlobName(type, blob.getName());
+            } else {
+                long id = extractId(blob.getName());
+                isOrphan = id <= 0 || !repository.existsById(type, id);
+            }
+
+            if (isOrphan) {
                 blobAccessService.deleteBlob(type, blob.getName());
                 logger.info("Deleted orphan blob: {}", blob.getName());
                 deleted++;
