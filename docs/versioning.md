@@ -317,3 +317,4 @@ No consequences to consistency since any other module existing before v0.5 was j
 ## Notes
 - `v0.1.0` is a lightweight tag (points directly at a commit). Later tags are annotated and have a separate tag object SHA.
 - From v0.5.0 onward the scope covers full-stack changes, not just backend.
+- **Post-v1.0 versioning approach:** Once v1.0.0 is tagged, all modules will adopt a unified lock-step version managed by a root `VERSION` file, Maven `${revision}` property with `flatten-maven-plugin`, and npm `version` in `package.json`. A single CHANGELOG.md will track releases, noting which modules were affected. Conventional Commit prefixes (`feat:`, `fix:`, `infra:`) will drive SemVer increments.
