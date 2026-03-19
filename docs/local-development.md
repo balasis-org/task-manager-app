@@ -80,11 +80,11 @@ the remaining values (Content Safety, Redis connection, etc.) have sensible defa
 
 ## 4. build and run the backend
 
-the backend depends on the contracts module, so build that first:
+the backend depends on the shared module, so build that first:
 
 ```bash
 # from the repo root
-mvn -f contracts/pom.xml clean install
+mvn -f shared/pom.xml clean install
 ```
 
 then run the backend.

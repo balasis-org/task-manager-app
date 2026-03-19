@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.contracts.enums;
+package io.github.balasis.taskmanager.shared.enums;
 
 import lombok.Getter;
 
@@ -7,7 +7,7 @@ import lombok.Getter;
 // in a container still has a matching row in the DB. if not its an orphan
 // and gets deleted. containerName is the actual Azure container name,
 // tableName/columnName tell the scanner where to look.
-// the contracts module is shared between backend and maintenance so both
+// the shared module is consumed by both backend and maintenance so both
 // agree on the same container layout.
 @Getter
 public enum BlobContainerType {

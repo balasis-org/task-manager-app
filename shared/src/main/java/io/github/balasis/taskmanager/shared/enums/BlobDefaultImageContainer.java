@@ -1,4 +1,4 @@
-package io.github.balasis.taskmanager.contracts.enums;
+package io.github.balasis.taskmanager.shared.enums;
 
 import lombok.Getter;
 

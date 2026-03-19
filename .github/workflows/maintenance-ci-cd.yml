@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths:
       - 'maintenance/**'
-      - 'contracts/**'
+      - 'shared/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -37,9 +37,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Build contract dependency first
+      - name: Build shared dependency first
         run: |
-          mvn -f contracts/pom.xml clean install
+          mvn -f shared/pom.xml clean install
 
       - name: Build and run tests with H2
         run: |
@@ -73,9 +73,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Build contract dependency first
+      - name: Build shared dependency first
         run: |
-          mvn -f contracts/pom.xml clean install
+          mvn -f shared/pom.xml clean install
 
       - name: Create package
         run: |

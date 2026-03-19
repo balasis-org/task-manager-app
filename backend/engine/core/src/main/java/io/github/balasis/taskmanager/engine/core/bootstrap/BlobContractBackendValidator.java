@@ -1,7 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.bootstrap;
 
 import io.github.balasis.taskmanager.context.base.component.BaseComponent;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.EntityType;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
-// startup cross-check between the BlobContainerType contract (in the contracts module)
+// startup cross-check between the BlobContainerType enum (in the shared module)
 // and the actual JPA metamodel. if someone adds a new BlobContainerType but forgets
 // to create the matching entity/column, this fails fast at boot instead of blowing up
 // at runtime when a file upload hits that container.

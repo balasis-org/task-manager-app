@@ -1,6 +1,6 @@
 package io.github.balasis.taskmanager.maintenance;
 
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.maintenance.base.BaseComponent;
 import io.github.balasis.taskmanager.maintenance.repository.MaintenanceRepository;
 import io.github.balasis.taskmanager.maintenance.service.AcrCleanerService;

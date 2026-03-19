@@ -146,7 +146,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 four GitHub Actions workflows:
 
 - **deploy-infra** — manually triggered. provisions all 16 Azure resources via Bicep and writes generated names (ACR, web app, storage account, Front Door endpoint) back to GitHub Environment variables using the GH CLI. the three deployment workflows reference these dynamically — zero hardcoded resource names. cross-platform PowerShell scripts serve as a manual fallback.
-- **backend-ci-cd** — triggers on pushes to main touching `backend/**` or `contracts/**`. builds + tests the Spring Boot app, pushes a Docker image to ACR with a timestamp tag (`yyyyMMddHHmmss`), updates the App Service container.
+- **backend-ci-cd** — triggers on pushes to main touching `backend/**` or `shared/**`. builds + tests the Spring Boot app, pushes a Docker image to ACR with a timestamp tag (`yyyyMMddHHmmss`), updates the App Service container.
 - **frontend-ci-cd** — triggers on pushes to main touching `frontend/**`. builds the React app, uploads static files to Blob Storage (`$web`), purges the Front Door cache.
 - **maintenance-ci-cd** — triggers on pushes to main touching `maintenance/**`. builds the maintenance jar, pushes to ACR, updates both ACA cron jobs.
 
@@ -187,7 +187,7 @@ backend/                        spring boot 10-module reactor
   engine/                         domain: entities, services, azure adapters, monitoring
   context/                        HTTP: controllers, interceptors, DTOs, security filters
 frontend/                       react 19 SPA (vite)
-contracts/                      shared DTOs and enums (backend + maintenance)
+shared/                         shared enums (backend + maintenance)
 maintenance/                    scheduled cleanup jobs (container app jobs)
 k6/                             k6 attack simulations + stress tests
 .github/workflows/              4 workflows: infra, backend, frontend, maintenance

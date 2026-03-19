@@ -1,10 +1,12 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Counter, Rate, Trend } from "k6/metrics";
-import { BASE_URL, ALL_USERS, TIER_LEADERS } from "../config.js";
+import { BASE_URL, ALL_USERS, TIER_LEADERS, dynamicUser } from "../config.js";
 import {
     loginWithFakeCredentials,
+    loginAsTierLeader,
     findTierGroupId,
+    preJoinDynamicUsers,
     parseDurationToMilliseconds,
 } from "../http-helpers.js";
 
@@ -14,9 +16,9 @@ import {
 // Default (30 VUs): regression baseline — ~50% of S1 DTU capacity.
 //   Stable, repeatable. Code changes show as measurable delta.
 //
-// Full stress (50 VUs): saturates Bucket4j-limited throughput.
-//   Use for capacity ceiling discovery: k6 run -e VUS=50 download-storm.js
-//   All 50 users must be seeded by DataLoader.
+// Full stress (50+ VUs): saturates Bucket4j-limited throughput.
+//   Use for capacity ceiling discovery: k6 run -e VUS=100 download-storm.js
+//   VUs beyond the 50 seeded users auto-create via DevAuthController.
 // ────────────────────────────────────────────────────────────
 const VIRTUAL_USERS = parseInt(__ENV.VUS || "30", 10);
 const DURATION      = __ENV.DURATION || "3m";
@@ -33,7 +35,7 @@ export const options = {
     scenarios: {
         download_storm: {
             executor:    "per-vu-iterations",
-            vus:         Math.min(VIRTUAL_USERS, ALL_USERS.length),
+            vus:         VIRTUAL_USERS,
             iterations:  1,
             maxDuration: DURATION,
         },
@@ -67,6 +69,7 @@ function getTestFileBytes() {
 /**
  * setup() runs ONCE before VUs start. Creates a task with an attached
  * file in the Team Tier Group so every VU has something to download.
+ * Also pre-joins dynamic users (beyond the seeded 50) to the group.
  */
 export function setup() {
     const leader = TIER_LEADERS.TEAM;
@@ -77,6 +80,8 @@ export function setup() {
         console.error("SETUP FAILED: Team Tier Group not found");
         return null;
     }
+
+    preJoinDynamicUsers(groupId, cookies, VIRTUAL_USERS);
 
     const taskData = {
         title: "Stress Download Task",
@@ -130,7 +135,7 @@ export function setup() {
 export default function (data) {
     if (!data) return;
 
-    const user = ALL_USERS[__VU - 1];
+    const user = dynamicUser(__VU - 1);
     const cookies = loginWithFakeCredentials(user.email, user.name, user.plan);
     const deadline = Date.now() + parseDurationToMilliseconds(DURATION);
 

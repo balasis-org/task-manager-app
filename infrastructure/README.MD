@@ -242,7 +242,7 @@ after completing phase 4, the system is fully operational.
 
 once infrastructure is deployed and environment variables are populated, the CI/CD workflows trigger automatically on push to `main`:
 
-- **backend-ci-cd** triggers on backend or contracts path changes. builds and tests the Spring Boot app, pushes a Docker image to ACR, and updates the App Service container.
+- **backend-ci-cd** triggers on backend or shared path changes. builds and tests the Spring Boot app, pushes a Docker image to ACR, and updates the App Service container.
 - **frontend-ci-cd** triggers on frontend path changes. builds the React app, uploads static files to blob storage, and purges the Front Door cache.
 - **maintenance-ci-cd** triggers on maintenance path changes. builds the maintenance jar, pushes to ACR, and updates both ACA cron jobs.
 

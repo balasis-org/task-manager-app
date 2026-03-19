@@ -2,7 +2,7 @@
 // and typed request wrappers. all requests go through BASE_URL.
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, TIER_LEADERS, TIER_GROUP_NAMES } from "./config.js";
+import { BASE_URL, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
 
 export function extractCookiesFromResponse(response) {
     const setCookieHeader = response.headers["Set-Cookie"];
@@ -127,4 +127,59 @@ export function buildRepeatString(character, count) {
     let result = "";
     for (let i = 0; i < count; i++) result += character;
     return result;
+}
+
+// pre-registers dynamic users (beyond the seeded 50) and joins them to the
+// target group via the invitation flow. runs once in setup() before VUs start.
+// DevAuthController auto-creates users on fake-login; this function then
+// uses the invite+accept handshake so the new users become group members.
+export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
+    const seeded = ALL_USERS.length;
+    if (vuCount <= seeded) return;
+
+    console.log(`Pre-joining ${vuCount - seeded} dynamic users to group ${groupId}...`);
+
+    for (let i = seeded; i < vuCount; i++) {
+        const user = dynamicUser(i);
+        const userCookies = loginWithFakeCredentials(user.email, user.name);
+
+        const meRes = http.get(`${BASE_URL}/users/me`, {
+            headers: { Cookie: userCookies },
+        });
+        if (meRes.status !== 200) {
+            console.warn(`dynamic user ${i}: /users/me returned ${meRes.status}`);
+            continue;
+        }
+        const inviteCode = meRes.json().inviteCode;
+        if (!inviteCode) continue;
+
+        http.post(
+            `${BASE_URL}/groups/${groupId}/invite`,
+            JSON.stringify({
+                inviteCode: inviteCode,
+                userToBeInvitedRole: "MEMBER",
+                sendEmail: false,
+            }),
+            { headers: { "Content-Type": "application/json", Cookie: leaderCookies } }
+        );
+
+        const invRes = http.get(`${BASE_URL}/group-invitations/me`, {
+            headers: { Cookie: userCookies },
+        });
+        if (invRes.status !== 200) continue;
+        const invitations = invRes.json();
+        const pending = Array.isArray(invitations)
+            ? invitations.find(inv => inv.invitationStatus === "PENDING")
+            : null;
+        if (pending) {
+            http.request(
+                "PATCH",
+                `${BASE_URL}/group-invitations/${pending.id}/status?status=ACCEPTED`,
+                null,
+                { headers: { Cookie: userCookies } }
+            );
+        }
+    }
+
+    console.log(`Dynamic user pre-join complete.`);
 }

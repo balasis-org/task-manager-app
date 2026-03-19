@@ -45,6 +45,18 @@ export const STRESS_USERS = generateStressUsers(38);
 
 export const ALL_USERS = [...CORE_USERS, ...STRESS_USERS];
 
+// dynamic user generation — creates a unique identity per VU index.
+// DevAuthController auto-creates users on fake-login if they don't exist,
+// so stress tests are no longer bounded by a predetermined user list.
+export function dynamicUser(vuIndex) {
+    if (vuIndex < ALL_USERS.length) return ALL_USERS[vuIndex];
+    const num = String(vuIndex + 1).padStart(4, "0");
+    return {
+        email: `dynamic${num}.dev@example.com`,
+        name:  `Dynamic${num} Dev`,
+    };
+}
+
 function generateStressUsers(count) {
     const users = [];
     for (let i = 1; i <= count; i++) {

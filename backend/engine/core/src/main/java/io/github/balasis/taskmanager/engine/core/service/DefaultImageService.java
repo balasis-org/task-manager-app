@@ -1,7 +1,7 @@
 package io.github.balasis.taskmanager.engine.core.service;
 
 import io.github.balasis.taskmanager.context.base.model.DefaultImage;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.core.repository.DefaultImageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

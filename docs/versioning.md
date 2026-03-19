@@ -215,7 +215,7 @@ No consequences to consistency since any other module existing before v0.5 was j
     **Repository restructure (504 files affected):**
     - Root-level folder renames — removed redundant `task-manager-` prefix from all top-level directories:
         - `task-manager-backend/` → `backend/`
-        - `task-manager-contracts/` → `contracts/`
+        - `task-manager-contracts/` → `contracts/` → `shared/` (renamed again in v0.9.1+)
         - `task-manager-maintenance/` → `maintenance/`
         - `task-manager-k6scripts/` → `k6/`
     - Frontend flattened from double-nested `task-manager-frontend/task-manager-app-frontend/` → `frontend/`.
@@ -236,7 +236,7 @@ No consequences to consistency since any other module existing before v0.5 was j
     - Repository README prerequisites table refined.
     - Auth app registration guide: single-tenant vs multi-tenant rationale clarified.
     - Markdown guides restructured for IaC setup documentation.
-    - Contracts POM module description added.
+    - Shared module POM description added.
 
 ### v0.9.0 — AI Comment Intelligence, per-file review, per-task file limits and queue architecture
 - Date: 2026-03-16

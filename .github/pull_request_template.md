@@ -15,7 +15,7 @@
 
 - [ ] backend (engine / context)
 - [ ] frontend
-- [ ] contracts
+- [ ] shared
 - [ ] maintenance
 - [ ] k6
 - [ ] .github/workflows
