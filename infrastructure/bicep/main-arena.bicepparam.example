@@ -77,6 +77,8 @@ param enableWafBlockAll = true
 // param springProfilesActive = 'prod-arena-stress,DataLoader'
 // param wafGlobalRateLimit = 0
 // param wafAuthRateLimit = 0
+// // CDN caching stays enabled (default) — stress tests hit /api/* which is never cached;
+// // enabling caching mirrors the production stack so results are representative.
 
 // ── SECURITY MODE ────────────────────────────────────────────
 // OWASP-style vulnerability probing with 1 VU per script.
@@ -84,7 +86,9 @@ param enableWafBlockAll = true
 // All application limits at production values.
 // Content Safety enabled (upload abuse is tested surface).
 // Cost guard active (max 3 concurrent, 500 req/hour budget).
+// CDN caching disabled — security tests must verify raw origin responses.
 //
 // param springProfilesActive = 'prod-arena-security,DataLoader'
+// param enableFdCaching = false
 // param wafGlobalRateLimit = 2000
 // param wafAuthRateLimit = 200

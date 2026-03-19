@@ -25,6 +25,7 @@ build/
 # =========================
 *.har
 summary.json
+k6/results/*.json
 
 # =========================
 # Ownership proof (personal backup, not for repo)

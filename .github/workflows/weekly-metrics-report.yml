@@ -1,0 +1,76 @@
+name: weekly-metrics-report
+
+# Collects 7 days of FREE Azure Monitor platform metrics every Monday at 06:00 UTC.
+# Runs collect-metrics.ps1 and uploads the JSON output as a GitHub Actions artifact.
+# Requires Azure service principal with Reader role on the production resource group.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      hours_back:
+        description: 'Hours of metric history to collect'
+        required: false
+        default: '168'
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  collect_metrics:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Collect platform metrics
+        shell: pwsh
+        run: |
+          $hours = "${{ inputs.hours_back }}"
+          if (-not $hours) { $hours = "168" }
+
+          $outFile = "metrics-report-$(Get-Date -Format 'yyyy-MM-dd').json"
+
+          pwsh -File infrastructure/ps1-az-scripts/collect-metrics.ps1 `
+            -ResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
+            -HoursBack ([int]$hours) `
+            -OutputFile $outFile
+
+          echo "REPORT_FILE=$outFile" >> $env:GITHUB_ENV
+
+      - name: Write job summary
+        shell: pwsh
+        run: |
+          $json = Get-Content $env:REPORT_FILE | ConvertFrom-Json
+          $md = "## Weekly Metrics Report`n"
+          $md += "**Resource Group:** $($json.resourceGroup)`n"
+          $md += "**Window:** $($json.startTime) → $($json.endTime)`n`n"
+          $md += "| Metric | Avg | Max | Last |`n"
+          $md += "|--------|-----|-----|------|`n"
+          foreach ($key in $json.metrics.PSObject.Properties.Name) {
+            $v = $json.metrics.$key
+            $md += "| $key | $($v.avg) | $($v.max) | $($v.last) |`n"
+          }
+          $md | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: ${{ env.REPORT_FILE }}
+          retention-days: 90

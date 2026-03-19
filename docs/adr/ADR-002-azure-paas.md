@@ -32,7 +32,7 @@ passwordless authentication to all services (SQL, Blob, Key Vault, Redis).
 
 Deploy on **Azure PaaS** using App Service B1 (Linux, 2 instances) as the
 primary compute, with Container App Jobs for scheduled maintenance workloads.
-All 16 resources are provisioned from a single Bicep template.
+All 24 resources are provisioned from a single Bicep template.
 
 Azure-specific SDK usage is isolated to infrastructure adapter modules within
 the Engine layer. Domain logic uses framework-standard abstractions (Spring

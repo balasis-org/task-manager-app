@@ -5,12 +5,14 @@
 
 ## what you're creating
 
-An **App Registration** (the definition) + **Service Principal** (the identity) + **client secret** (the credential) in Azure AD (Entra ID), with two subscription-level roles:
+An **App Registration** (the definition) + **Service Principal** (the identity) + **client secret** (the credential) in Azure AD (Entra ID), with three subscription-level roles:
 
 - **Contributor** — lets it create and destroy resource groups and all Azure resources
 - **User Access Administrator** — lets it create RBAC role assignments inside the Bicep template (Key Vault, Storage, Cognitive Services, ACS, Front Door)
+- **Storage Blob Data Contributor** — lets CI/CD workflows upload blobs via `--auth-mode login` (the frontend-ci-cd and maintenance-ci-cd workflows push to Blob Storage using the SP's identity; Contributor alone only grants management-plane access, not data-plane blob operations)
 
 without User Access Administrator the deployment fails at the RBAC role-assignment resources with `AuthorizationFailed`.
+without Storage Blob Data Contributor the frontend deploy fails at `az storage blob upload-batch` with a permissions error.
 
 > You may want to repeat this guide twice if you want separate service principals for manual use and GitHub CI/CD, but using the same credentials for both is simpler and recommended.
 
@@ -36,6 +38,7 @@ without User Access Administrator the deployment fails at the RBAC role-assignme
 2. Click **+ Add** → **Add role assignment**
 3. Role: **Contributor** → Members tab → **User, group, or service principal** → search for your app name (e.g. `taskmanager-cicd`) → select → **Review + assign**
 4. **Repeat steps 2-3** for the **User Access Administrator** role
+5. **Repeat steps 2-3** for the **Storage Blob Data Contributor** role
 
 ---
 
@@ -76,6 +79,12 @@ az role assignment create \
 az role assignment create \
   --assignee <APP_ID> \
   --role "User Access Administrator" \
+  --scope /subscriptions/<SUBSCRIPTION_ID>
+
+# assign Storage Blob Data Contributor — upload blobs in CI/CD via --auth-mode login
+az role assignment create \
+  --assignee <APP_ID> \
+  --role "Storage Blob Data Contributor" \
   --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 

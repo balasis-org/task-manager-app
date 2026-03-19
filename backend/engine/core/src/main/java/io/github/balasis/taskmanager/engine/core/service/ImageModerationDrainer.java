@@ -67,6 +67,7 @@ public class ImageModerationDrainer {
     private final ContentSafetyService contentSafetyService;
     private final BlobStorageService blobStorageService;
     private final ImageModerationLockService lockService;
+    private final AiServiceHealthTracker aiHealthTracker;
     private final TransactionTemplate txTemplate;
 
     public ImageModerationDrainer(
@@ -76,6 +77,7 @@ public class ImageModerationDrainer {
             ContentSafetyService contentSafetyService,
             BlobStorageService blobStorageService,
             ImageModerationLockService lockService,
+            AiServiceHealthTracker aiHealthTracker,
             PlatformTransactionManager txManager) {
         this.queueRepository = queueRepository;
         this.userRepository = userRepository;
@@ -83,6 +85,7 @@ public class ImageModerationDrainer {
         this.contentSafetyService = contentSafetyService;
         this.blobStorageService = blobStorageService;
         this.lockService = lockService;
+        this.aiHealthTracker = aiHealthTracker;
         this.txTemplate = new TransactionTemplate(txManager);
     }
 
@@ -114,8 +117,15 @@ public class ImageModerationDrainer {
                 return;
             }
 
-            ModerationResult result = contentSafetyService.analyze(
-                    new ByteArrayInputStream(imageBytes));
+            ModerationResult result;
+            try {
+                result = contentSafetyService.analyze(
+                        new ByteArrayInputStream(imageBytes));
+                aiHealthTracker.markContentSafetyHealthy();
+            } catch (Exception e) {
+                aiHealthTracker.markContentSafetyDegraded();
+                throw e;
+            }
 
             txTemplate.executeWithoutResult(status -> {
                 if (result.isSafe()) {

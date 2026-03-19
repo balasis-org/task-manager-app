@@ -7,6 +7,7 @@ import { useToast } from "@context/ToastContext";
 import Footer from "@components/footer/Footer";
 import SidebarProfile from "@components/layout/SidebarProfile";
 import SidebarNav from "@components/layout/SidebarNav";
+import AiStatusBanner from "@components/layout/AiStatusBanner";
 import "@styles/Layout.css";
 
 // main shell: collapsible sidebar + top mini-info bar + content area.
@@ -166,6 +167,7 @@ export default function Layout({ children }) {
                         {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                 </div>
+                <AiStatusBanner />
                 <main className="layout-main">{children}</main>
             </div>
         </div>

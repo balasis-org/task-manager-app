@@ -70,6 +70,23 @@ param wafGlobalRateLimit int = 2000
 @description('Per-IP req/5min on /api/auth/*. 0 disables the rule (for arena stress testing).')
 param wafAuthRateLimit int = 200
 
+@description('Enable Front Door CDN caching on static asset and image routes. Disable for security testing where unprocessed origin responses must be verified.')
+param enableFdCaching bool = true
+
+// --- Parameters: Observability ---
+
+@description('Email address for Azure alert notifications (budget, origin health). Leave empty to skip alert resources.')
+param alertEmailAddress string = ''
+
+@description('Monthly budget in the billing currency for this resource group. 0 = no budget alert deployed.')
+param monthlyBudgetAmount int = 0
+
+@description('Deploy observability alerts and diagnostics (budget, origin health, WAF logs). Disable for arena.')
+param enableObservabilityAlerts bool = true
+
+@description('Auto-filled start date for the monthly budget (1st of current month). Do not override.')
+param budgetStartDate string = utcNow('yyyy-MM-01')
+
 // --- Variables ---
 
 var useCustomDomain = customDomainHost != ''
@@ -95,6 +112,30 @@ var imagePrefix          = toLower('${acr.properties.loginServer}/${projectName}
 // App Service pulls lazily and tolerates missing images, so backendImage can always point at ACR.
 var backendImage         = '${imagePrefix}-backend:latest'
 var maintenanceImage     = containerImageOverride != '' ? containerImageOverride : '${imagePrefix}-maintenance:latest'
+
+// Front Door CDN cache configurations (null = caching disabled, property omitted from ARM)
+var staticCacheConfig = enableFdCaching ? {
+  queryStringCachingBehavior: 'IgnoreQueryString'
+  compressionSettings: {
+    isCompressionEnabled: true
+    contentTypesToCompress: [
+      'text/html'
+      'text/css'
+      'application/javascript'
+      'text/javascript'
+      'application/json'
+      'text/plain'
+      'image/svg+xml'
+    ]
+  }
+} : null
+
+var imageCacheConfig = enableFdCaching ? {
+  queryStringCachingBehavior: 'IgnoreQueryString'
+  compressionSettings: {
+    isCompressionEnabled: false
+  }
+} : null
 
 var blobContainers = [
   'task-files'
@@ -126,6 +167,9 @@ resource logAnalyticsProd 'Microsoft.OperationalInsights/workspaces@2023-09-01' 
       name: 'PerGB2018'
     }
     retentionInDays: 30
+    workspaceCapping: {
+      dailyQuotaGb: json('0.28')
+    }
   }
 }
 
@@ -138,6 +182,9 @@ resource logAnalyticsDev 'Microsoft.OperationalInsights/workspaces@2023-09-01' =
       name: 'PerGB2018'
     }
     retentionInDays: 30
+    workspaceCapping: {
+      dailyQuotaGb: json('0.2')
+    }
   }
 }
 
@@ -1396,6 +1443,7 @@ resource routeAssets 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
     forwardingProtocol: 'HttpsOnly'
     linkToDefaultDomain: 'Enabled'
     customDomains: useCustomDomain ? [{ id: fdCustomDomain.id }] : []
+    cacheConfiguration: staticCacheConfig
     ruleSets: []
   }
   dependsOn: [fdOriginBlob]
@@ -1413,6 +1461,7 @@ resource routeStaticFrontend 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02
     forwardingProtocol: 'HttpsOnly'
     linkToDefaultDomain: 'Enabled'
     customDomains: useCustomDomain ? [{ id: fdCustomDomain.id }] : []
+    cacheConfiguration: staticCacheConfig
     ruleSets: [
       { id: rsSecurityHeaders.id }
       { id: rsRewriteStaticFrontend.id }
@@ -1433,6 +1482,7 @@ resource routeBlobProfileImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024
     forwardingProtocol: 'HttpsOnly'
     linkToDefaultDomain: 'Enabled'
     customDomains: useCustomDomain ? [{ id: fdCustomDomain.id }] : []
+    cacheConfiguration: imageCacheConfig
     ruleSets: [
       { id: rsSecurityHeaders.id }
       { id: rsStripBlobProfileImages.id }
@@ -1453,6 +1503,7 @@ resource routeBlobGroupImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-0
     forwardingProtocol: 'HttpsOnly'
     linkToDefaultDomain: 'Enabled'
     customDomains: useCustomDomain ? [{ id: fdCustomDomain.id }] : []
+    cacheConfiguration: imageCacheConfig
     ruleSets: [
       { id: rsSecurityHeaders.id }
       { id: rsStripBlobGroupImages.id }
@@ -1473,12 +1524,121 @@ resource routeBlobDefaultImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024
     forwardingProtocol: 'HttpsOnly'
     linkToDefaultDomain: 'Enabled'
     customDomains: useCustomDomain ? [{ id: fdCustomDomain.id }] : []
+    cacheConfiguration: imageCacheConfig
     ruleSets: [
       { id: rsSecurityHeaders.id }
       { id: rsStripBlobDefaultImages.id }
     ]
   }
   dependsOn: [fdOriginBlob]
+}
+
+// ─── 24. Observability: Alerts, Budget & Diagnostics (prod only) ────────────
+
+// Action group: email recipient for all Azure-native alerts
+resource actionGroupEmail 'Microsoft.Insights/actionGroups@2023-09-01-preview' = if (enableObservabilityAlerts && alertEmailAddress != '') {
+  name: '${projectName}-alerts-email'
+  location: 'global'
+  tags: tags
+  properties: {
+    groupShortName: 'AlertEmail'
+    enabled: true
+    emailReceivers: [
+      {
+        name: 'AdminEmail'
+        emailAddress: alertEmailAddress
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+}
+
+// Monthly budget alert (resource-group scoped — deleted when RG is deleted)
+resource budget 'Microsoft.Consumption/budgets@2023-11-01' = if (enableObservabilityAlerts && monthlyBudgetAmount > 0) {
+  name: '${projectName}-monthly-budget'
+  properties: {
+    category: 'Cost'
+    amount: monthlyBudgetAmount
+    timeGrain: 'Monthly'
+    timePeriod: {
+      startDate: budgetStartDate
+    }
+    notifications: {
+      actual80pct: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 80
+        contactEmails: alertEmailAddress != '' ? [alertEmailAddress] : []
+        thresholdType: 'Actual'
+      }
+      actual100pct: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 100
+        contactEmails: alertEmailAddress != '' ? [alertEmailAddress] : []
+        thresholdType: 'Actual'
+      }
+      forecasted120pct: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 120
+        contactEmails: alertEmailAddress != '' ? [alertEmailAddress] : []
+        thresholdType: 'Forecasted'
+      }
+    }
+  }
+}
+
+// Front Door origin-health metric alert (30-min evaluation window → no false alarms during restarts)
+resource originHealthAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (enableObservabilityAlerts && alertEmailAddress != '') {
+  name: '${projectName}-fd-origin-down'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Front Door origin health dropped below 100% for 30 minutes — backend may be unreachable.'
+    severity: 1
+    enabled: true
+    scopes: [frontDoor.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT30M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'OriginHealthDrop'
+          metricName: 'OriginHealthPercentage'
+          metricNamespace: 'Microsoft.Cdn/profiles'
+          operator: 'LessThan'
+          threshold: 100
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [
+      { actionGroupId: actionGroupEmail.id }
+    ]
+  }
+}
+
+// Front Door access-log diagnostic setting (includes WAF action data on Standard tier)
+resource fdDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableObservabilityAlerts) {
+  name: '${projectName}-fd-diagnostics'
+  scope: frontDoor
+  properties: {
+    workspaceId: logAnalyticsProd.id
+    logs: [
+      {
+        category: 'FrontDoorAccessLog'
+        enabled: true
+      }
+      {
+        category: 'FrontDoorHealthProbeLog'
+        enabled: true
+      }
+    ]
+    metrics: []
+  }
 }
 
 // Outputs

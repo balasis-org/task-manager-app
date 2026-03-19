@@ -20,7 +20,7 @@ single template. Two Infrastructure-as-Code tools were evaluated:
 
 Use **Bicep** for all infrastructure provisioning.
 
-A single `main.bicep` file (~1,374 lines) provisions all 16 resources.
+A single `main.bicep` file (~1,350 lines) provisions all 24 resources.
 Environment-specific configuration is driven by `.bicepparam` files
 (`main.bicepparam`, `main-arena-security.bicepparam`,
 `main-arena-stress.bicepparam`). The `deploy-infra` GitHub Actions workflow

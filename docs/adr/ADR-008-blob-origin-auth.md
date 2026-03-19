@@ -50,7 +50,8 @@ benefit from edge caching.
 - **Positive:** Managed Identity is the sole authentication mechanism across
   all Azure services — consistent zero-credential model.
 - **Negative:** Front Door CDN caching means image updates have a propagation
-  delay until the cache is purged or expires. Mitigated by cache-busting query
-  parameters based on content hashes.
+  delay until the cache is purged or expires. Mitigated by unique blob names —
+  each upload generates a UUID-prefixed filename, so the CDN URL changes on
+  every upload and caches are never stale.
 - **Negative:** The Front Door origin auth feature is in preview. Accepted
   because the fallback (SAS tokens) is a known-good path if needed.

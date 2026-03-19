@@ -1,6 +1,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Counter, Rate, Trend } from "k6/metrics";
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.1.0/index.js";
 import { BASE_URL, ALL_USERS, TIER_LEADERS, dynamicUser } from "../config.js";
 import {
     loginWithFakeCredentials,
@@ -170,4 +171,13 @@ export default function (data) {
 
         sleep(THINK_TIME);
     }
+}
+
+export function handleSummary(data) {
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const name = __ENV.TEST_NAME || "download-storm";
+    return {
+        [`../results/${name}-${ts}.json`]: JSON.stringify(data, null, 2),
+        stdout: textSummary(data, { indent: " ", enableColors: true }),
+    };
 }

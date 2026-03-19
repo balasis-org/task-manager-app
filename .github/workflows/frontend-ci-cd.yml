@@ -111,11 +111,12 @@ jobs:
             --destination web \
             --overwrite
 
-      - name: Purge CDN cache
+      - name: Purge CDN cache (fire-and-forget)
         run: |
           az afd endpoint purge \
             --resource-group ${{ vars.RG_NAME }} \
             --profile-name ${{ vars.FD_PROFILE_NAME }} \
             --endpoint-name ${{ vars.FD_ENDPOINT_NAME }} \
             --domains ${{ vars.FD_ENDPOINT_HOSTNAME }} \
-            --content-paths "/*"
+            --content-paths "/*" \
+            --no-wait
