@@ -15,7 +15,7 @@ AthensTech College · Academic collaboration with CITY College, University of Yo
 
 [[[Image here: hero screenshot — group dashboard or task board view, dark mode, showing real UI with tasks and members]]]
 
-a containerised, full-stack group task management platform deployed on 16 Azure PaaS resources. built as a BSc thesis to prove that enterprise-grade security, AI-assisted workflows, and operational automation can work on a student budget (~$108–128/month). not a demo. not a prototype. nine OWASP attack simulations run 41 assertions against the live system — 100% pass rate. the FREE tier generates exactly $0 variable Azure cost. every cost-generating Azure API call is gated by an atomic SQL check before it executes.
+a containerised, full-stack group task management platform deployed on 16 Azure PaaS resources. built as a BSc thesis to prove that enterprise-grade security, AI-assisted workflows, and operational automation can work on a student budget (~$108–128/month baseline — stress-tested and validated; scaling levers documented in §6.5 of the thesis). not a demo. not a prototype. nine OWASP attack simulations run 41 assertions against the live system — 100% pass rate. the FREE tier generates exactly $0 variable Azure cost. every cost-generating Azure API call is gated by an atomic SQL check before it executes.
 
 
 ## highlights
@@ -23,7 +23,7 @@ a containerised, full-stack group task management platform deployed on 16 Azure 
 | | | |
 |:--|:--|:--|
 | **16** Azure PaaS resources — one Bicep template | **41** OWASP security assertions — 100% pass | **$0** variable cost on the FREE tier |
-| **7** independent security layers | **18** JPA entities, **75+** custom queries | **~$0.02** per maintenance job run |
+| **7** independent security layers | **18** JPA entities, **75+** custom queries | **<$0.002** per maintenance job run |
 | **9** automated k6 attack simulations | **AES-256-GCM** encrypted client-side cache | **AI** content moderation + comment intelligence |
 
 
@@ -83,7 +83,7 @@ three stress tests validate the B1 tier under concurrent load: polling load (30 
 
 ## cost engineering
 
-total Azure cost: ~$108–128/month. cost isn't an afterthought — it's a first-class architectural concern that shaped 12 major design decisions.
+total Azure cost: ~$108–128/month (initial baseline for current SKU selection — validated by k6 stress tests under aggressive concurrency scenarios; metric-based scaling triggers and first upgrade levers are documented in the thesis §6.5). cost isn't an afterthought — it's a first-class architectural concern that shaped 12 major design decisions.
 
 every cost-generating API call (upload, download, email, image scan, AI analysis) is gated by an atomic SQL check before the Azure API is invoked:
 
@@ -117,7 +117,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 
 **database** — Azure SQL (S1, 20 DTU) with 18 JPA entities, 75+ custom `@Query` methods, nine Flyway migrations. every association-loading query uses `LEFT JOIN FETCH` (1 SQL statement instead of 201 for N+1 problems). H2 compatibility mode for zero-cost local development.
 
-**maintenance** — two Azure Container App Jobs (billed per-execution, ~$0.02/run): a daily full sweep (orphan blob cleanup, inactive user anonymisation, expired invite cleanup, budget reconciliation, counter resets, ACR image pruning) and a 30-minute blob-only scan for fast orphan detection.
+**maintenance** — two Azure Container App Jobs (billed per-execution, <$0.002/run): a daily full sweep (orphan blob cleanup, inactive user anonymisation, expired invite cleanup, budget reconciliation, counter resets, ACR image pruning) and a 30-minute blob-only scan for fast orphan detection.
 
 
 ## stack
@@ -201,6 +201,7 @@ infrastructure/manual-setup/    one-time Azure setup + post-deployment
 - **[Local development](docs/local-development.md)** — run the full stack locally with Docker
 - **[Production deployment](infrastructure/README.MD)** — Bicep provisioning, GitHub Environments setup, CI/CD configuration
 - **[Azure manual setup](infrastructure/manual-setup/)** — service principal, OAuth 2.0 app registration, post-deployment Key Vault setup
+- **[Architecture Decision Records](docs/adr/)** — 10 ADRs documenting major technical decisions with alternatives and trade-offs
 - **[Versioning](docs/versioning.md)** — milestone changelog from v0.1.0 through current release
 
 
