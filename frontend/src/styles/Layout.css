@@ -200,3 +200,13 @@
         color: var(--text-placeholder);
     }
 }
+
+/* AI service degradation banner */
+.ai-status-banner {
+    background: #fff3cd;
+    color: #856404;
+    border-bottom: 1px solid #ffc107;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    text-align: center;
+}

@@ -61,6 +61,7 @@ public class CommentAnalysisDrainer {
     private final TextAnalyticsService textAnalyticsService;
     private final CommentAnalysisLockService lockService;
     private final ObjectMapper objectMapper;
+    private final AiServiceHealthTracker aiHealthTracker;
     private final TransactionTemplate txTemplate;
 
     public CommentAnalysisDrainer(
@@ -71,6 +72,7 @@ public class CommentAnalysisDrainer {
             TextAnalyticsService textAnalyticsService,
             CommentAnalysisLockService lockService,
             ObjectMapper objectMapper,
+            AiServiceHealthTracker aiHealthTracker,
             PlatformTransactionManager txManager) {
         this.requestRepository = requestRepository;
         this.snapshotRepository = snapshotRepository;
@@ -79,6 +81,7 @@ public class CommentAnalysisDrainer {
         this.textAnalyticsService = textAnalyticsService;
         this.lockService = lockService;
         this.objectMapper = objectMapper;
+        this.aiHealthTracker = aiHealthTracker;
         this.txTemplate = new TransactionTemplate(txManager);
     }
 
@@ -123,6 +126,7 @@ public class CommentAnalysisDrainer {
 
                 if (type == AnalysisType.ANALYSIS_ONLY || type == AnalysisType.FULL) {
                     BatchAnalysisResult result = textAnalyticsService.analyzeBatch(docs);
+                    aiHealthTracker.markTextAnalyticsHealthy();
                     snapshot.setOverallSentiment(OverallSentiment.valueOf(result.overallSentiment()));
                     snapshot.setOverallConfidence(result.overallConfidence());
                     snapshot.setPositiveCount(result.positiveCount());
@@ -138,6 +142,7 @@ public class CommentAnalysisDrainer {
 
                 if (type == AnalysisType.SUMMARY_ONLY || type == AnalysisType.FULL) {
                     CommentSummaryResult summary = textAnalyticsService.summarizeBatch(docs);
+                    aiHealthTracker.markTextAnalyticsHealthy();
                     snapshot.setSummaryText(summary.summaryText());
                     snapshot.setSummaryCommentCount(summary.commentCount());
                     snapshot.setSummarizedAt(now);
@@ -168,6 +173,7 @@ public class CommentAnalysisDrainer {
                 request.setProcessedAt(Instant.now());
                 userRepository.decrementTaskAnalysisCredits(
                         request.getRequestedByUserId(), request.getCreditsCharged());
+                aiHealthTracker.markTextAnalyticsDegraded();
             } else {
                 request.setStatus("PENDING");
             }

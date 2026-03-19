@@ -34,3 +34,4 @@ param springProfilesActive = 'prod-arena-stress,DataLoader'
 param enableWafBlockAll = true
 param wafGlobalRateLimit = 0
 param wafAuthRateLimit = 0
+param enableObservabilityAlerts = false

@@ -23,3 +23,7 @@ param authAppClientId = '7b429825-f7cf-4971-b9b7-36c491c8ed3e'
 param authAppTenantId = '9cce5f41-4493-4fac-936e-f4f739db8315'
 
 param customDomainHost = 'www.myteamtasks.net'
+
+// Observability
+param alertEmailAddress = readEnvironmentVariable('ALERT_EMAIL', '')
+param monthlyBudgetAmount = 13

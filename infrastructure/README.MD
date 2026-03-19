@@ -65,7 +65,7 @@ Phase 4 ─ Post-deployment          seed Key Vault secrets, add FD redirect URI
 
 follow the first two guides in `manual-setup/`, in order:
 
-1. **[01-create-cicd-service-principal.md](manual-setup/01-create-cicd-service-principal.md)** — create the CI/CD App Registration + Service Principal in Entra ID, assign Contributor and User Access Administrator roles at subscription scope
+1. **[01-create-cicd-service-principal.md](manual-setup/01-create-cicd-service-principal.md)** — create the CI/CD App Registration + Service Principal in Entra ID, assign Contributor, User Access Administrator, and Storage Blob Data Contributor roles at subscription scope
 2. **[02-create-auth-app-registration.md](manual-setup/02-create-auth-app-registration.md)** — create the OAuth 2.0 Auth App Registration, configure redirect URIs, enable ID tokens, and set the Application ID URI
 
 each guide offers both **Azure Portal** and **Azure CLI** options — pick whichever you prefer and follow it end to end.
@@ -254,11 +254,17 @@ all three use `environment: production` and read resource names from `vars.*`.
 
 **`uniqueString()` for resource names** — Azure requires globally unique names for storage accounts, ACRs, web apps, etc. instead of picking names manually and hoping they don't collide, Bicep generates deterministic names from `uniqueString(resourceGroup().id)`. same RG always produces the same names (idempotent). different RG produces different names (no collisions between environments).
 
-**subscription-level SP roles** — resource groups come and go (redeploy, rename, tear down). assigning roles at RG level breaks every time the RG is recreated. the subscription persists, so assigning Contributor + User Access Administrator once at subscription scope avoids that issue. the App Registration + SP cost nothing when idle.
+**subscription-level SP roles** — resource groups come and go (redeploy, rename, tear down). assigning roles at RG level breaks every time the RG is recreated. the subscription persists, so assigning Contributor + User Access Administrator + Storage Blob Data Contributor once at subscription scope avoids that issue. the App Registration + SP cost nothing when idle.
 
 **PAT for deploy-infra** — the default `GITHUB_TOKEN` can't create or update GitHub environment variables. a classic PAT with `repo` scope is the simplest solution. fine-grained PATs with `Variables: Read and Write` + `Environments: Read and Write` permissions also work if you prefer narrower scope.
 
-**`--auth-mode login` instead of storage account keys** — the CI/CD workflows authenticate to blob storage using the SP's Azure identity rather than a storage account key. this eliminates the `STORAGE_ACCOUNT_KEY` secret and relies on RBAC instead (the SP gets `Storage Blob Data Contributor` via a Bicep role assignment).
+**`--auth-mode login` instead of storage account keys** — the CI/CD workflows authenticate to blob storage using the SP's Azure identity rather than a storage account key. this eliminates the `STORAGE_ACCOUNT_KEY` secret and relies on RBAC instead (the SP needs `Storage Blob Data Contributor` at subscription scope, assigned in [guide 01](manual-setup/01-create-cicd-service-principal.md)).
+
+**`enableFdCaching` parameter** — Front Door CDN caching is enabled on five static/image routes (`/assets/*`, `/static_frontend/*`, `/blob/profile-images/*`, `/blob/group-images/*`, `/blob/default-images/*`) and disabled on the API route (`/api/*`) and the SPA catch-all (`/*`). the `enableFdCaching` parameter (default `true`) lets arena-security disable caching entirely so security tests verify raw origin responses. arena-stress keeps caching enabled because all k6 scripts hit `/api/*` (never cached) and the production-identical stack ensures representative results. text-based assets get gzip/brotli compression; image routes skip compression since JPEG/PNG/WebP are already compressed.
+
+**bounded observability (daily caps + conditional alerts)** — Log Analytics workspaces have hard daily caps (0.28 GB prod, 0.20 GB dev) to guarantee cost stays within the 5 GB/month free tier under normal operation. worst case is €9.48/month if both caps are hit every day for 30 days — but with 10% OTel sampling + polling endpoint filtering, actual ingestion is well below cap. three alert resources deploy conditionally via `enableObservabilityAlerts` (default `true`): a monthly budget alert (80%/100%/120% thresholds), a Front Door OriginHealth metric alert (< 100% for 30 minutes → email), and a Front Door diagnostic setting routing access logs to the prod workspace. arena `.bicepparam` files set `enableObservabilityAlerts = false` because arenas keep App Insights and LAW for test analysis but don't need alerting infrastructure. platform metrics (SQL DTU, App Service CPU/memory, Redis, Front Door latency) are free forever with 93-day retention — queried on demand via `collect-metrics.ps1` or the weekly GitHub Action, never stored in Log Analytics.
+
+**`alertEmailAddress` / `monthlyBudgetAmount` are not secrets** — the alert email is the same as the published admin/support email (anyone with Reader RBAC can see action group members). the budget amount is a cost threshold, not a billing credential. both go plainly in `.bicepparam` without Key Vault or environment variable wrapping. `alertEmailAddress` uses `readEnvironmentVariable('ALERT_EMAIL', '')` in the prod `.bicepparam` only for CI/CD flexibility — set the `ALERT_EMAIL` OS variable or replace it with a literal string.
 
 ---
 

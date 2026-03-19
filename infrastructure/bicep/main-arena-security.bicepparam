@@ -32,5 +32,7 @@ param authAppTenantId = readEnvironmentVariable('ARENA_AUTH_TENANT_ID', '')
 // ── Arena-security-specific overrides ────────────────────────
 param springProfilesActive = 'prod-arena-security,DataLoader'
 param enableWafBlockAll = true
+param enableFdCaching = false          // disable CDN caching — security tests must verify raw origin responses
 param wafGlobalRateLimit = 2000    // production value — WAF is tested surface
 param wafAuthRateLimit = 200       // production value — WAF is tested surface
+param enableObservabilityAlerts = false
