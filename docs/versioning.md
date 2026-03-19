@@ -153,7 +153,7 @@ No consequences to consistency since any other module existing before v0.5 was j
 - Highlights:
 
     **Infrastructure-as-Code:**
-    - `main.bicep` (1,374 lines) provisioning all 16 Azure PaaS resources from a single template.
+    - `main.bicep` (1,374 lines) provisioning all 24 Azure PaaS resources from a single template.
     - `deploy-infra.yml` — manual-trigger GitHub Actions workflow with what-if/deploy modes. Writes generated resource names (ACR, App Service, Storage, Front Door) back to GitHub Environment variables via GH CLI.
     - `.bicepparam` files for production, arena-stress, and arena-security environments.
     - PowerShell fallback scripts (`ps1-az-scripts/`) with `.env`-based SP authentication.
