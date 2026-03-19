@@ -49,7 +49,7 @@
 
 			<dependency>
 				<groupId>io.github.balasis</groupId>
-				<artifactId>task-manager-contracts</artifactId>
+				<artifactId>task-manager-shared</artifactId>
 				<version>1.0-SNAPSHOT</version>
 			</dependency>
 
@@ -181,7 +181,7 @@
 
 		<dependency>
 			<groupId>io.github.balasis</groupId>
-			<artifactId>task-manager-contracts</artifactId>
+			<artifactId>task-manager-shared</artifactId>
 		</dependency>
 
 		<dependency>

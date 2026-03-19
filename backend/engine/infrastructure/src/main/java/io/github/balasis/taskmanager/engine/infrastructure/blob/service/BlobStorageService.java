@@ -10,7 +10,7 @@ import io.github.balasis.taskmanager.context.base.exception.blob.upload.BlobUplo
 import io.github.balasis.taskmanager.context.base.exception.critical.CriticalBlobStorageException;
 import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
-import io.github.balasis.taskmanager.contracts.enums.BlobContainerType;
+import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
 import io.github.balasis.taskmanager.engine.infrastructure.image.ImageResizeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

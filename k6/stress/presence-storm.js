@@ -1,11 +1,13 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend, Counter, Gauge } from "k6/metrics";
-import { BASE_URL, ALL_USERS } from "../config.js";
+import { BASE_URL, ALL_USERS, TIER_LEADERS, dynamicUser } from "../config.js";
 import {
     loginWithFakeCredentials,
+    loginAsTierLeader,
     findTierGroupId,
     sendAuthenticatedGet,
+    preJoinDynamicUsers,
     parseDurationToMilliseconds,
 } from "../http-helpers.js";
 
@@ -22,7 +24,7 @@ export const options = {
     scenarios: {
         presence: {
             executor:    "per-vu-iterations",
-            vus:         Math.min(VIRTUAL_USERS, ALL_USERS.length),
+            vus:         VIRTUAL_USERS,
             iterations:  1,
             maxDuration: DURATION,
         },
@@ -34,14 +36,25 @@ export const options = {
     },
 };
 
-export default function () {
-    const user = ALL_USERS[__VU - 1];
+export function setup() {
+    const leaderCookies = loginAsTierLeader("TEAM");
+    const groupId = findTierGroupId(leaderCookies, "TEAM");
+    if (!groupId) {
+        console.error("SETUP FAILED: Team Tier Group not found");
+        return null;
+    }
+    preJoinDynamicUsers(groupId, leaderCookies, VIRTUAL_USERS);
+    return { groupId };
+}
+
+export default function (data) {
+    if (!data) return;
+    const user = dynamicUser(__VU - 1);
 
     const cookies = loginWithFakeCredentials(user.email, user.name, user.plan);
     logLoginDetailsForFirstVirtualUser(cookies);
 
-    const groupId = findTeamTierGroupOrAbort(cookies);
-    if (!groupId) return;
+    const groupId = data.groupId;
 
     loadInitialGroupDetail(groupId, cookies);
     let lastSeen = new Date().toISOString();
@@ -58,12 +71,6 @@ function logLoginDetailsForFirstVirtualUser(cookies) {
     if (__VU === 1) {
         console.log("[VU 1] Cookies: " + cookies.substring(0, 80) + "...");
     }
-}
-
-function findTeamTierGroupOrAbort(cookies) {
-    const groupId = findTierGroupId(cookies, "TEAM");
-    if (!groupId) console.error(`VU ${__VU}: Team Tier Group not found!`);
-    return groupId;
 }
 
 function loadInitialGroupDetail(groupId, cookies) {
