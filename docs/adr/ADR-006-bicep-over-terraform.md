@@ -5,7 +5,7 @@
 
 ## Context
 
-The application's 16 Azure PaaS resources must be provisioned reproducibly
+The application's 24 Azure PaaS resources must be provisioned reproducibly
 across three environments (production, arena-security, arena-stress) from a
 single template. Two Infrastructure-as-Code tools were evaluated:
 

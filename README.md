@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-21-orange)](backend/pom.xml)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](frontend/package.json)
-[![Azure](https://img.shields.io/badge/Azure-16%20PaaS%20resources-0078D4)](#architecture)
+[![Azure](https://img.shields.io/badge/Azure-24%20PaaS%20resources-0078D4)](#architecture)
 [![OWASP](https://img.shields.io/badge/OWASP-41%20assertions%20passed-2ea44f)](#security-testing)
 
 BSc thesis project — John Balasis · CSY22117  
@@ -15,14 +15,14 @@ AthensTech College · Academic collaboration with CITY College, University of Yo
 
 [[[Image here: hero screenshot — group dashboard or task board view, dark mode, showing real UI with tasks and members]]]
 
-a containerised, full-stack group task management platform deployed on 16 Azure PaaS resources. built as a BSc thesis to prove that enterprise-grade security, AI-assisted workflows, and operational automation can work on a student budget (~$108–128/month baseline — stress-tested and validated; scaling levers documented in §6.5 of the thesis). not a demo. not a prototype. nine OWASP attack simulations run 41 assertions against the live system — 100% pass rate. the FREE tier generates exactly $0 variable Azure cost. every cost-generating Azure API call is gated by an atomic SQL check before it executes.
+a containerised, full-stack group task management platform deployed on 24 Azure PaaS resources. built as a BSc thesis to prove that enterprise-grade security, AI-assisted workflows, and operational automation can work on a student budget (~$108–128/month baseline — stress-tested and validated; scaling levers documented in §6.5 of the thesis). not a demo. not a prototype. nine OWASP attack simulations run 41 assertions against the live system — 100% pass rate. the FREE tier generates exactly $0 variable Azure cost. every cost-generating Azure API call is gated by an atomic SQL check before it executes.
 
 
 ## highlights
 
 | | | |
 |:--|:--|:--|
-| **16** Azure PaaS resources — one Bicep template | **41** OWASP security assertions — 100% pass | **$0** variable cost on the FREE tier |
+| **24** Azure PaaS resources — one Bicep template | **41** OWASP security assertions — 100% pass | **$0** variable cost on the FREE tier |
 | **7** independent security layers | **18** JPA entities, **75+** custom queries | **<$0.002** per maintenance job run |
 | **9** automated k6 attack simulations | **AES-256-GCM** encrypted client-side cache | **AI** content moderation + comment intelligence |
 
@@ -115,7 +115,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 
 **frontend** — React 19 with the React Compiler (automatic memoisation), Vite 7, ~74 JSX files across 15 routes and 50+ reusable components. five Context providers in dependency order. dark mode via CSS custom properties with pre-hydration flash prevention.
 
-**database** — Azure SQL (S1, 20 DTU) with 18 JPA entities, 75+ custom `@Query` methods, nine Flyway migrations. every association-loading query uses `LEFT JOIN FETCH` (1 SQL statement instead of 201 for N+1 problems). H2 compatibility mode for zero-cost local development.
+**database** — Azure SQL (S1, 20 DTU) with 18 JPA entities, 75+ custom `@Query` methods, 10 Flyway migrations. every association-loading query uses `LEFT JOIN FETCH` (1 SQL statement instead of 201 for N+1 problems). H2 compatibility mode for zero-cost local development.
 
 **maintenance** — two Azure Container App Jobs (billed per-execution, <$0.002/run): a daily full sweep (orphan blob cleanup, inactive user anonymisation, expired invite cleanup, budget reconciliation, counter resets, ACR image pruning) and a 30-minute blob-only scan for fast orphan detection.
 
@@ -137,18 +137,19 @@ the system follows a three-tier architecture with Azure Front Door as the single
 | secrets | Azure Key Vault — single trust root, Managed Identity, startup-only fetch |
 | registry | Azure Container Registry (Basic) — auto-pruned to 2 tags per repo |
 | monitoring | Application Insights + OpenTelemetry (10% sampling, polling traces dropped) · 7 Micrometer metrics · structured JSON logging |
-| CI/CD | GitHub Actions (4 workflows) · Bicep IaC · GitHub Environments |
+| CI/CD | GitHub Actions (5 workflows) · Bicep IaC · GitHub Environments |
 | testing | k6 — 9 OWASP attack scripts (41 assertions) + 3 stress tests |
 
 
 ## CI/CD
 
-four GitHub Actions workflows:
+five GitHub Actions workflows:
 
-- **deploy-infra** — manually triggered. provisions all 16 Azure resources via Bicep and writes generated names (ACR, web app, storage account, Front Door endpoint) back to GitHub Environment variables using the GH CLI. the three deployment workflows reference these dynamically — zero hardcoded resource names. cross-platform PowerShell scripts serve as a manual fallback.
+- **deploy-infra** — manually triggered. provisions all 24 Azure resources via Bicep and writes generated names (ACR, web app, storage account, Front Door endpoint) back to GitHub Environment variables using the GH CLI. the three deployment workflows reference these dynamically — zero hardcoded resource names. cross-platform PowerShell scripts serve as a manual fallback.
 - **backend-ci-cd** — triggers on pushes to main touching `backend/**` or `shared/**`. builds + tests the Spring Boot app, pushes a Docker image to ACR with a timestamp tag (`yyyyMMddHHmmss`), updates the App Service container.
 - **frontend-ci-cd** — triggers on pushes to main touching `frontend/**`. builds the React app, uploads static files to Blob Storage (`$web`), purges the Front Door cache.
 - **maintenance-ci-cd** — triggers on pushes to main touching `maintenance/**`. builds the maintenance jar, pushes to ACR, updates both ACA cron jobs.
+- **weekly-metrics-report** — runs every Monday at 08:00 UTC. collects platform metrics (SQL DTU, App Service CPU/memory, Redis, Front Door latency) via `collect-metrics.ps1` and uploads the JSON report as a workflow artifact. zero Log Analytics cost — queries free platform metrics directly.
 
 path-based filtering ensures unrelated changes never trigger unnecessary builds. timestamp tags enable precise rollback without rebuild. all credentials live in GitHub encrypted Secrets, scoped to minimum permissions.
 
@@ -162,6 +163,9 @@ path-based filtering ensures unrelated changes never trigger unnecessary builds.
 - `CriticalExceptionAlerter` — admin email with exponential backoff (1 min → 4h cap) and instance-ID correlation
 - `MaintenanceStalenessChecker` — alerts if the cleanup job hasn't completed in 12 hours
 - custom health indicators for Blob Storage and Redis feeding into App Service / Front Door routing
+- bounded-cost infrastructure layer — daily caps on Log Analytics (0.28 GB prod, 0.20 GB dev), monthly budget alert (80%/100%/120% thresholds), Front Door OriginHealth metric alert, and WAF access log routing to the prod workspace via diagnostic settings
+- `CriticalAiServiceException` + `AiServiceHealthTracker` — when Content Safety or Text Analytics is unreachable after retries, a frontend banner warns affected-tier users that AI features are temporarily degraded
+- weekly platform metrics collection (GitHub Action + PowerShell) — SQL DTU, App Service CPU/memory, Redis, Front Door latency — queried from free platform metrics, never stored in Log Analytics
 
 
 ## local development
@@ -190,7 +194,7 @@ frontend/                       react 19 SPA (vite)
 shared/                         shared enums (backend + maintenance)
 maintenance/                    scheduled cleanup jobs (container app jobs)
 k6/                             k6 attack simulations + stress tests
-.github/workflows/              4 workflows: infra, backend, frontend, maintenance
+.github/workflows/              5 workflows: infra, backend, frontend, maintenance, weekly-metrics
 infrastructure/                 Bicep templates, param files, fallback PS scripts
 infrastructure/manual-setup/    one-time Azure setup + post-deployment
 ```
@@ -207,4 +211,4 @@ infrastructure/manual-setup/    one-time Azure setup + post-deployment
 
 ---
 
-*16 Azure resources · 10 Maven modules · 75+ REST endpoints · 16 JPA entities · 10 Flyway migrations · 5 subscription tiers · 9 OWASP attack scripts · 41 security assertions · $108–128/month*
+*24 Azure resources · 10 Maven modules · 75+ REST endpoints · 18 JPA entities · 10 Flyway migrations · 5 subscription tiers · 9 OWASP attack scripts · 41 security assertions · $108–128/month*
