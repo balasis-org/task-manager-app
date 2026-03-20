@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 // comments have a soft-link to their creator that gets nullified when a user
@@ -84,5 +85,5 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
         FROM TaskComment tc
         WHERE tc.task.id = :taskId
     """)
-    Object[] countAndSumCharsByTaskId(@Param("taskId") Long taskId);
+    List<Object[]> countAndSumCharsByTaskId(@Param("taskId") Long taskId);
 }
