@@ -675,6 +675,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
+    clientAffinityEnabled: false
     keyVaultReferenceIdentity: managedIdentity.id
     siteConfig: {
       linuxFxVersion: 'DOCKER|${backendImage}'
@@ -701,6 +702,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'DOCKER_REGISTRY_SERVER_URL', value: 'https://${acr.properties.loginServer}' }
         { name: 'DOCKER_REGISTRY_SERVER_USERNAME', value: acr.listCredentials().username }
         { name: 'DOCKER_REGISTRY_SERVER_PASSWORD', value: acr.listCredentials().passwords[0].value }
+        { name: 'APP_PUBLIC_URL', value: useCustomDomain ? 'https://${customDomainHost}' : 'https://${fdEndpoint.properties.hostName}' }
         { name: 'WEBSITES_PORT', value: '8080' }
         { name: 'WEBSITES_CONTAINER_STOP_TIME_LIMIT', value: '30' }
         { name: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TASKMANAGER-AUTH-CLIENT-SECRET)' }
@@ -1484,6 +1486,7 @@ resource routeStaticFrontend 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02
   name: 'staticfrontend'
   properties: {
     originGroup: { id: fdOriginGroupBlob.id }
+    originPath: '/'
     patternsToMatch: ['/static_frontend/*']
     supportedProtocols: ['Http', 'Https']
     httpsRedirect: 'Enabled'
@@ -1505,6 +1508,7 @@ resource routeBlobProfileImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024
   name: 'BlobProfileImages'
   properties: {
     originGroup: { id: fdOriginGroupBlob.id }
+    originPath: '/'
     patternsToMatch: ['/blob/profile-images/*']
     supportedProtocols: ['Http', 'Https']
     httpsRedirect: 'Enabled'
@@ -1526,6 +1530,7 @@ resource routeBlobGroupImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-0
   name: 'BlobGroupImages'
   properties: {
     originGroup: { id: fdOriginGroupBlob.id }
+    originPath: '/'
     patternsToMatch: ['/blob/group-images/*']
     supportedProtocols: ['Http', 'Https']
     httpsRedirect: 'Enabled'
@@ -1547,6 +1552,7 @@ resource routeBlobDefaultImages 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024
   name: 'BlobDefaultImages'
   properties: {
     originGroup: { id: fdOriginGroupBlob.id }
+    originPath: '/'
     patternsToMatch: ['/blob/default-images/*']
     supportedProtocols: ['Http', 'Https']
     httpsRedirect: 'Enabled'

@@ -37,6 +37,9 @@ public class WebConfig implements WebMvcConfigurer {
     private final AccountBanInterceptor accountBanInterceptor;
     private final Environment environment;
 
+    @Value("${app.public-url:}")
+    private String publicUrl;
+
     @Value("${app.download-threads:15}")
     private int downloadThreads;
 
@@ -86,6 +89,12 @@ public class WebConfig implements WebMvcConfigurer {
                 "http://localhost:3000",
                 "http://localhost:8081"
         ));
+
+        // APP_PUBLIC_URL is set by Bicep to the Front Door endpoint (or custom domain).
+        // This lets arena deployments with dynamic FD hostnames pass CORS.
+        if (publicUrl != null && !publicUrl.isBlank() && !origins.contains(publicUrl)) {
+            origins.add(publicUrl);
+        }
 
         // In dev profiles, automatically allow requests from local-network IPs
         // so developers can test on mobile devices via Vite's network URL.
