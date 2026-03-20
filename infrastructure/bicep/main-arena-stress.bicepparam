@@ -35,6 +35,14 @@ param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
 // ── Arena-specific overrides ─────────────────────────────────
 param springProfilesActive = 'prod-arena-stress,DataLoader'
 param enableWafBlockAll = true
+param enableEmailServices = false       // NoOp email beans — ACS not needed
 param wafGlobalRateLimit = 0
 param wafAuthRateLimit = 0
 param enableObservabilityAlerts = false
+
+// Stress header auth — WAF allows requests with matching X-Stress-Key + X-Stress-Nonce headers.
+// Generate secrets: $key = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 32 | % {[char]$_})
+// Set env vars: $env:STRESS_PASSPHRASE_KEY = $key; $env:STRESS_PASSPHRASE_NONCE = $nonce
+// Give both values to the stress tester for k6 --env flags.
+param stressPassphraseKey = readEnvironmentVariable('STRESS_PASSPHRASE_KEY', '')
+param stressPassphraseNonce = readEnvironmentVariable('STRESS_PASSPHRASE_NONCE', '')

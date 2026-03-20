@@ -1,0 +1,2210 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "4252853890295209238"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Primary Azure region"
+      }
+    },
+    "cognitiveServicesLocation": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "Region for Cognitive Services — Content Safety + Text Analytics (limited regional availability)"
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Project name used as prefix for resource names"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Common tags applied to all resources"
+      }
+    },
+    "sqlAdminLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL Server administrator login"
+      }
+    },
+    "sqlAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "SQL Server administrator password"
+      }
+    },
+    "sqlDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL database name"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan name"
+      }
+    },
+    "appServiceInstanceCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "Number of App Service Plan instances"
+      }
+    },
+    "authAppClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "Client ID of the TaskManager-Auth App Registration (manually created in Entra ID)"
+      }
+    },
+    "authAppTenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Entra ID tenant ID for the TaskManager-Auth App Registration"
+      }
+    },
+    "customDomainHost": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom domain hostname (e.g. www.myteamtasks.net). Leave empty to skip."
+      }
+    },
+    "enableWafBlockAll": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually."
+      }
+    },
+    "containerImageOverride": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Override image for Container App Jobs on first deploy (ACR is empty). Leave blank after CI/CD has pushed images."
+      }
+    },
+    "springProfilesActive": {
+      "type": "string",
+      "defaultValue": "prod-azuresql",
+      "metadata": {
+        "description": "Comma-separated Spring Boot profiles (e.g., prod-azuresql or prod-arena-stress,DataLoader)"
+      }
+    },
+    "wafGlobalRateLimit": {
+      "type": "int",
+      "defaultValue": 2000,
+      "metadata": {
+        "description": "Per-IP req/5min on /*. 0 disables the rule (for arena stress testing)."
+      }
+    },
+    "wafAuthRateLimit": {
+      "type": "int",
+      "defaultValue": 200,
+      "metadata": {
+        "description": "Per-IP req/5min on /api/auth/*. 0 disables the rule (for arena stress testing)."
+      }
+    },
+    "enableFdCaching": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Front Door CDN caching on static asset and image routes. Disable for security testing where unprocessed origin responses must be verified."
+      }
+    },
+    "enableEmailServices": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy email infrastructure (ACS + email services). Disable for arena — NoOp email beans make them unnecessary."
+      }
+    },
+    "stressPassphraseKey": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Value for X-Stress-Key header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_KEY env var."
+      }
+    },
+    "stressPassphraseNonce": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Value for X-Stress-Nonce header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_NONCE env var."
+      }
+    },
+    "alertEmailAddress": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Email address for Azure alert notifications (budget, origin health). Leave empty to skip alert resources."
+      }
+    },
+    "monthlyBudgetAmount": {
+      "type": "int",
+      "defaultValue": 0,
+      "metadata": {
+        "description": "Monthly budget in the billing currency for this resource group. 0 = no budget alert deployed."
+      }
+    },
+    "enableObservabilityAlerts": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy observability alerts and diagnostics (budget, origin health, WAF logs). Disable for arena."
+      }
+    },
+    "budgetStartDate": {
+      "type": "string",
+      "defaultValue": "[utcNow('yyyy-MM-01')]",
+      "metadata": {
+        "description": "Auto-filled start date for the monthly budget (1st of current month). Do not override."
+      }
+    },
+    "deployerPrincipalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Object ID of the deploying user (az ad signed-in-user show --query id). Grants Key Vault Secrets Officer + Storage Blob Data Contributor so the deployer can seed secrets and push default images. Leave empty to skip."
+      }
+    },
+    "cicdPrincipalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Object ID of the CI/CD service principal (GitHub Actions). Grants Storage Blob Data Contributor for frontend deployments. Leave empty to skip."
+      }
+    }
+  },
+  "variables": {
+    "useCustomDomain": "[not(equals(parameters('customDomainHost'), ''))]",
+    "suffix": "[uniqueString(resourceGroup().id)]",
+    "storageAccountName": "[toLower(format('{0}{1}', take(parameters('projectName'), 10), take(variables('suffix'), 13)))]",
+    "redisName": "[format('{0}-redis-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "keyVaultName": "[format('{0}-kv-{1}', take(parameters('projectName'), 14), take(variables('suffix'), 6))]",
+    "acrName": "[toLower(replace(format('{0}{1}', take(parameters('projectName'), 30), take(variables('suffix'), 13)), '-', ''))]",
+    "webAppName": "[format('{0}-app-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "frontDoorName": "[format('{0}-fd-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "sqlServerName": "[format('{0}-sql-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "contentSafetyName": "[format('{0}-cs-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "textAnalyticsName": "[format('{0}-ta-{1}', parameters('projectName'), take(variables('suffix'), 8))]",
+    "wafPolicyName": "[toLower(replace(format('{0}waf', parameters('projectName')), '-', ''))]",
+    "staticCacheConfig": "[if(parameters('enableFdCaching'), createObject('queryStringCachingBehavior', 'IgnoreQueryString', 'compressionSettings', createObject('isCompressionEnabled', true(), 'contentTypesToCompress', createArray('text/html', 'text/css', 'application/javascript', 'text/javascript', 'application/json', 'text/plain', 'image/svg+xml'))), null())]",
+    "imageCacheConfig": "[if(parameters('enableFdCaching'), createObject('queryStringCachingBehavior', 'IgnoreQueryString', 'compressionSettings', createObject('isCompressionEnabled', false())), null())]",
+    "blobContainers": [
+      "task-files",
+      "task-assignee-files",
+      "profile-images",
+      "group-images",
+      "default-images",
+      "web",
+      "assets",
+      "staticfrontend"
+    ],
+    "useStressHeaders": "[and(not(equals(parameters('stressPassphraseKey'), '')), not(equals(parameters('stressPassphraseNonce'), '')))]",
+    "stressHeaderRule": "[if(variables('useStressHeaders'), createArray(createObject('name', 'AllowStressHeaders', 'priority', 2, 'ruleType', 'MatchRule', 'action', 'Allow', 'enabledState', 'Enabled', 'matchConditions', createArray(createObject('matchVariable', 'RequestHeader', 'selector', 'X-Stress-Key', 'operator', 'Equal', 'negateCondition', false(), 'matchValue', createArray(parameters('stressPassphraseKey')), 'transforms', createArray()), createObject('matchVariable', 'RequestHeader', 'selector', 'X-Stress-Nonce', 'operator', 'Equal', 'negateCondition', false(), 'matchValue', createArray(parameters('stressPassphraseNonce')), 'transforms', createArray())))), createArray())]",
+    "baseWafRules": [
+      {
+        "name": "BlockInternalEndpoints",
+        "priority": 1,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "enabledState": "Enabled",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestUri",
+            "operator": "Contains",
+            "negateCondition": false,
+            "matchValue": [
+              "/actuator"
+            ],
+            "transforms": [
+              "Lowercase"
+            ]
+          }
+        ]
+      }
+    ],
+    "blockAllRule": [
+      {
+        "name": "BlockAllTraffic",
+        "priority": 5,
+        "ruleType": "MatchRule",
+        "action": "Block",
+        "enabledState": "[if(parameters('enableWafBlockAll'), 'Enabled', 'Disabled')]",
+        "matchConditions": [
+          {
+            "matchVariable": "RequestUri",
+            "operator": "BeginsWith",
+            "negateCondition": false,
+            "matchValue": [
+              "/"
+            ],
+            "transforms": []
+          }
+        ]
+      }
+    ],
+    "rateLimitRules": [
+      {
+        "name": "RateLimitAuth",
+        "priority": 10,
+        "ruleType": "RateLimitRule",
+        "action": "Block",
+        "enabledState": "[if(greater(parameters('wafAuthRateLimit'), 0), 'Enabled', 'Disabled')]",
+        "rateLimitThreshold": "[if(greater(parameters('wafAuthRateLimit'), 0), parameters('wafAuthRateLimit'), 1)]",
+        "rateLimitDurationInMinutes": 5,
+        "matchConditions": [
+          {
+            "matchVariable": "RequestUri",
+            "operator": "Contains",
+            "negateCondition": false,
+            "matchValue": [
+              "/api/auth/"
+            ],
+            "transforms": []
+          }
+        ]
+      },
+      {
+        "name": "GlobalRateLimit",
+        "priority": 100,
+        "ruleType": "RateLimitRule",
+        "action": "Block",
+        "enabledState": "[if(greater(parameters('wafGlobalRateLimit'), 0), 'Enabled', 'Disabled')]",
+        "rateLimitThreshold": "[if(greater(parameters('wafGlobalRateLimit'), 0), parameters('wafGlobalRateLimit'), 1)]",
+        "rateLimitDurationInMinutes": 5,
+        "matchConditions": [
+          {
+            "matchVariable": "RequestUri",
+            "operator": "BeginsWith",
+            "negateCondition": false,
+            "matchValue": [
+              "/"
+            ],
+            "transforms": []
+          }
+        ]
+      }
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[format('{0}-identity', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}-logs-prod', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "workspaceCapping": {
+          "dailyQuotaGb": "[json('0.28')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}-logs-dev', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "workspaceCapping": {
+          "dailyQuotaGb": "[json('0.2')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('{0}-ai-prod', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName')))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('{0}-ai-dev', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-dev', parameters('projectName')))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-dev', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "properties": {
+        "deleteRetentionPolicy": {
+          "enabled": false
+        },
+        "containerDeleteRetentionPolicy": {
+          "enabled": false
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "blobContainerResources",
+        "count": "[length(variables('blobContainers'))]"
+      },
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('blobContainers')[copyIndex()])]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "administratorLogin": "[parameters('sqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
+        "minimalTlsVersion": "1.2",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), parameters('sqlDatabaseName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "S1",
+        "tier": "Standard"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cache/redisEnterprise",
+      "apiVersion": "2024-10-01",
+      "name": "[variables('redisName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Balanced_B0"
+      }
+    },
+    {
+      "type": "Microsoft.Cache/redisEnterprise/databases",
+      "apiVersion": "2024-10-01",
+      "name": "[format('{0}/{1}', variables('redisName'), 'default')]",
+      "properties": {
+        "clientProtocol": "Encrypted",
+        "evictionPolicy": "NoEviction",
+        "clusteringPolicy": "EnterpriseCluster",
+        "port": 10000
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cache/redisEnterprise', variables('redisName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "tenantId": "[subscription().tenantId]",
+        "enableRbacAuthorization": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 7,
+        "enabledForDeployment": false,
+        "enabledForTemplateDeployment": false,
+        "enabledForDiskEncryption": false
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-AZURE-DB-URL')]",
+      "properties": {
+        "value": "[format('jdbc:sqlserver://{0}:1433;database={1};encrypt=true;trustServerCertificate=false;loginTimeout=30;', reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2023-08-01-preview').fullyQualifiedDomainName, parameters('sqlDatabaseName'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-AZURE-DB-USERNAME')]",
+      "properties": {
+        "value": "[parameters('sqlAdminLogin')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-AZURE-DB-PASSWORD')]",
+      "properties": {
+        "value": "[parameters('sqlAdminPassword')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-BLOB-SERVICE-ENDPOINT')]",
+      "properties": {
+        "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-REDIS-ENDPOINT')]",
+      "properties": {
+        "value": "[format('{0}:10000', reference(resourceId('Microsoft.Cache/redisEnterprise', variables('redisName')), '2024-10-01').hostName)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Cache/redisEnterprise', variables('redisName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-REDIS-ACCESS-KEY')]",
+      "properties": {
+        "value": "[listKeys(resourceId('Microsoft.Cache/redisEnterprise/databases', variables('redisName'), 'default'), '2024-10-01').primaryKey]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Cache/redisEnterprise/databases', variables('redisName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-CONTENT-SAFETY-ENDPOINT')]",
+      "properties": {
+        "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyName')), '2023-10-01-preview').endpoint]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-TEXT-ANALYTICS-ENDPOINT')]",
+      "properties": {
+        "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('textAnalyticsName')), '2023-10-01-preview').endpoint]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('textAnalyticsName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-ACS-ENDPOINT')]",
+      "properties": {
+        "value": "[format('https://{0}', reference(resourceId('Microsoft.Communication/communicationServices', format('{0}-acs', parameters('projectName'))), '2023-04-01').hostName)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-ACS-ADMIN-ENDPOINT')]",
+      "properties": {
+        "value": "[format('https://{0}', reference(resourceId('Microsoft.Communication/communicationServices', format('{0}-acs-admin', parameters('projectName'))), '2023-04-01').hostName)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs-admin', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-APP-INSIGHT-CONN-STR-PROD')]",
+      "properties": {
+        "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-ai-prod', parameters('projectName'))), '2020-02-02').ConnectionString]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-ai-prod', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-APP-INSIGHT-CONN-STR-DEV')]",
+      "properties": {
+        "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-ai-dev', parameters('projectName'))), '2020-02-02').ConnectionString]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-ai-dev', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-11-01-preview",
+      "name": "[variables('acrName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-10-01-preview",
+      "name": "[variables('contentSafetyName')]",
+      "location": "[parameters('cognitiveServicesLocation')]",
+      "tags": "[parameters('tags')]",
+      "kind": "ContentSafety",
+      "sku": {
+        "name": "S0"
+      },
+      "properties": {
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-10-01-preview",
+      "name": "[variables('textAnalyticsName')]",
+      "location": "[parameters('cognitiveServicesLocation')]",
+      "tags": "[parameters('tags')]",
+      "kind": "TextAnalytics",
+      "sku": {
+        "name": "S"
+      },
+      "properties": {
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/emailServices",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-email', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "dataLocation": "Europe"
+      }
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/emailServices/domains",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}/{1}', format('{0}-email', parameters('projectName')), 'AzureManagedDomain')]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "domainManagement": "AzureManaged",
+        "userEngagementTracking": "Disabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/emailServices', format('{0}-email', parameters('projectName')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/communicationServices",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-acs', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "dataLocation": "Europe",
+        "linkedDomains": [
+          "[resourceId('Microsoft.Communication/emailServices/domains', format('{0}-email', parameters('projectName')), 'AzureManagedDomain')]"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/emailServices/domains', format('{0}-email', parameters('projectName')), 'AzureManagedDomain')]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/emailServices",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-email-admin', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "dataLocation": "Europe"
+      }
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/emailServices/domains",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}/{1}', format('{0}-email-admin', parameters('projectName')), 'AzureManagedDomain')]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "domainManagement": "AzureManaged",
+        "userEngagementTracking": "Disabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/emailServices', format('{0}-email-admin', parameters('projectName')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Communication/communicationServices",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-acs-admin', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "dataLocation": "Europe",
+        "linkedDomains": [
+          "[resourceId('Microsoft.Communication/emailServices/domains', format('{0}-email-admin', parameters('projectName')), 'AzureManagedDomain')]"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/emailServices/domains', format('{0}-email-admin', parameters('projectName')), 'AzureManagedDomain')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'KeyVaultSecretsUser')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'StorageBlobDataContributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "condition": "[not(equals(parameters('deployerPrincipalId'), ''))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('deployerPrincipalId'), 'KeyVaultSecretsOfficer')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')]",
+        "principalId": "[parameters('deployerPrincipalId')]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[not(equals(parameters('deployerPrincipalId'), ''))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), parameters('deployerPrincipalId'), 'StorageBlobDataContributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[parameters('deployerPrincipalId')]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "condition": "[not(equals(parameters('cicdPrincipalId'), ''))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), parameters('cicdPrincipalId'), 'StorageBlobDataContributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[parameters('cicdPrincipalId')]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'CognitiveServicesUser')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('textAnalyticsName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('textAnalyticsName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'CognitiveServicesUser')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('textAnalyticsName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs', parameters('projectName')))]",
+      "name": "[guid(resourceId('Microsoft.Communication/communicationServices', format('{0}-acs', parameters('projectName'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'Contributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs', parameters('projectName')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableEmailServices')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs-admin', parameters('projectName')))]",
+      "name": "[guid(resourceId('Microsoft.Communication/communicationServices', format('{0}-acs-admin', parameters('projectName'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), 'Contributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Communication/communicationServices', format('{0}-acs-admin', parameters('projectName')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-12-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "linux",
+      "sku": {
+        "name": "B1",
+        "tier": "Basic",
+        "capacity": "[parameters('appServiceInstanceCount')]"
+      },
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('webAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "app,linux,container",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))))]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "httpsOnly": true,
+        "clientAffinityEnabled": false,
+        "keyVaultReferenceIdentity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]",
+        "siteConfig": {
+          "linuxFxVersion": "[format('DOCKER|{0}', format('{0}-backend:latest', toLower(format('{0}/{1}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer, parameters('projectName')))))]",
+          "alwaysOn": true,
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "http20Enabled": true,
+          "ipSecurityRestrictions": [
+            {
+              "ipAddress": "AzureFrontDoor.Backend",
+              "action": "Allow",
+              "tag": "ServiceTag",
+              "priority": 100,
+              "name": "AllowFrontDoor",
+              "headers": {
+                "X-Azure-FDID": [
+                  "[reference(resourceId('Microsoft.Cdn/profiles', variables('frontDoorName')), '2024-02-01').frontDoorId]"
+                ]
+              }
+            }
+          ],
+          "appSettings": [
+            {
+              "name": "MANAGED_IDENTITY_CLIENT_ID",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
+            },
+            {
+              "name": "KEYVAULT_URI",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri]"
+            },
+            {
+              "name": "SPRING_PROFILES_ACTIVE",
+              "value": "[parameters('springProfilesActive')]"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_URL",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer)]"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').username]"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').passwords[0].value]"
+            },
+            {
+              "name": "APP_PUBLIC_URL",
+              "value": "[if(variables('useCustomDomain'), format('https://{0}', parameters('customDomainHost')), format('https://{0}', reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName'))), '2024-02-01').hostName))]"
+            },
+            {
+              "name": "WEBSITES_PORT",
+              "value": "8080"
+            },
+            {
+              "name": "WEBSITES_CONTAINER_STOP_TIME_LIMIT",
+              "value": "30"
+            },
+            {
+              "name": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=TASKMANAGER-AUTH-CLIENT-SECRET)', variables('keyVaultName'))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2023-12-01",
+      "name": "[format('{0}/{1}', variables('webAppName'), 'authsettingsV2')]",
+      "properties": {
+        "platform": {
+          "enabled": true
+        },
+        "globalValidation": {
+          "requireAuthentication": true,
+          "unauthenticatedClientAction": "RedirectToLoginPage",
+          "redirectToProvider": "azureActiveDirectory"
+        },
+        "identityProviders": {
+          "azureActiveDirectory": {
+            "enabled": true,
+            "registration": {
+              "clientId": "[parameters('authAppClientId')]",
+              "clientSecretSettingName": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
+              "openIdIssuer": "[format('https://sts.windows.net/{0}/v2.0', parameters('authAppTenantId'))]"
+            },
+            "validation": {
+              "allowedAudiences": [
+                "[format('api://{0}', parameters('authAppClientId'))]"
+              ],
+              "defaultAuthorizationPolicy": {
+                "allowedApplications": [
+                  "[parameters('authAppClientId')]",
+                  "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
+                ]
+              }
+            }
+          }
+        },
+        "login": {
+          "tokenStore": {
+            "enabled": true
+          }
+        },
+        "httpSettings": {
+          "requireHttps": true,
+          "forwardProxy": {
+            "convention": "Standard"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]",
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}-cae', parameters('projectName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName'))), '2023-09-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName'))), '2023-09-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/jobs",
+      "apiVersion": "2024-03-01",
+      "name": "maintenance-job-full",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))))]": {}
+        }
+      },
+      "properties": {
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-cae', parameters('projectName')))]",
+        "configuration": {
+          "triggerType": "Schedule",
+          "replicaTimeout": 1200,
+          "replicaRetryLimit": 1,
+          "scheduleTriggerConfig": {
+            "cronExpression": "15 3 * * *",
+            "parallelism": 1,
+            "replicaCompletionCount": 1
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').passwords[0].value]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "maintenance",
+              "image": "[if(not(equals(parameters('containerImageOverride'), '')), parameters('containerImageOverride'), format('{0}-maintenance:latest', toLower(format('{0}/{1}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer, parameters('projectName')))))]",
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              },
+              "env": [
+                {
+                  "name": "MANAGED_IDENTITY_CLIENT_ID",
+                  "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
+                },
+                {
+                  "name": "KEYVAULT_URI",
+                  "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri]"
+                },
+                {
+                  "name": "SPRING_PROFILES_ACTIVE",
+                  "value": "[parameters('springProfilesActive')]"
+                },
+                {
+                  "name": "MAINTENANCE_MODE",
+                  "value": "full"
+                },
+                {
+                  "name": "MAINTENANCE_FULL_INTERVAL_HOURS",
+                  "value": "24"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-cae', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/jobs",
+      "apiVersion": "2024-03-01",
+      "name": "maintenance-job-blobs",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))))]": {}
+        }
+      },
+      "properties": {
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-cae', parameters('projectName')))]",
+        "configuration": {
+          "triggerType": "Schedule",
+          "replicaTimeout": 600,
+          "replicaRetryLimit": 1,
+          "scheduleTriggerConfig": {
+            "cronExpression": "*/30 * * * *",
+            "parallelism": 1,
+            "replicaCompletionCount": 1
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').passwords[0].value]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "maintenance",
+              "image": "[if(not(equals(parameters('containerImageOverride'), '')), parameters('containerImageOverride'), format('{0}-maintenance:latest', toLower(format('{0}/{1}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer, parameters('projectName')))))]",
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              },
+              "env": [
+                {
+                  "name": "MANAGED_IDENTITY_CLIENT_ID",
+                  "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
+                },
+                {
+                  "name": "KEYVAULT_URI",
+                  "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri]"
+                },
+                {
+                  "name": "SPRING_PROFILES_ACTIVE",
+                  "value": "[parameters('springProfilesActive')]"
+                },
+                {
+                  "name": "MAINTENANCE_MODE",
+                  "value": "task-blobs"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-cae', parameters('projectName')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+      "apiVersion": "2024-02-01",
+      "name": "[variables('wafPolicyName')]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_AzureFrontDoor"
+      },
+      "properties": {
+        "policySettings": {
+          "enabledState": "Enabled",
+          "mode": "Prevention"
+        },
+        "customRules": {
+          "rules": "[concat(variables('baseWafRules'), variables('stressHeaderRule'), variables('blockAllRule'), variables('rateLimitRules'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Cdn/profiles",
+      "apiVersion": "2024-02-01",
+      "name": "[variables('frontDoorName')]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_AzureFrontDoor"
+      },
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))))]": {}
+        }
+      },
+      "properties": {
+        "originResponseTimeoutSeconds": 60
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+      "location": "global",
+      "properties": {
+        "enabledState": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "condition": "[variables('useCustomDomain')]",
+      "type": "Microsoft.Cdn/profiles/customDomains",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+      "properties": {
+        "hostName": "[parameters('customDomainHost')]",
+        "tlsSettings": {
+          "certificateType": "ManagedCertificate",
+          "minimumTlsVersion": "TLS12"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/originGroups",
+      "apiVersion": "2025-09-01-preview",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'api-origin-group')]",
+      "properties": {
+        "loadBalancingSettings": {
+          "sampleSize": 4,
+          "successfulSamplesRequired": 3
+        },
+        "healthProbeSettings": {
+          "probePath": "/actuator/health",
+          "probeProtocol": "Https",
+          "probeIntervalInSeconds": 30,
+          "probeRequestType": "HEAD"
+        },
+        "authentication": {
+          "type": "UserAssignedIdentity",
+          "userAssignedIdentity": {
+            "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+          },
+          "scope": "[format('api://{0}/.default', parameters('authAppClientId'))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/originGroups/origins",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'api-origin-group', 'api-origin')]",
+      "properties": {
+        "hostName": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-12-01').defaultHostName]",
+        "httpPort": 80,
+        "httpsPort": 443,
+        "originHostHeader": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-12-01').defaultHostName]",
+        "priority": 1,
+        "weight": 1000,
+        "enabledState": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'api-origin-group')]",
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/originGroups",
+      "apiVersion": "2025-09-01-preview",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'blob-origin-group')]",
+      "properties": {
+        "loadBalancingSettings": {
+          "sampleSize": 4,
+          "successfulSamplesRequired": 3
+        },
+        "authentication": {
+          "type": "UserAssignedIdentity",
+          "userAssignedIdentity": {
+            "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+          },
+          "scope": "https://storage.azure.com/.default"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/originGroups/origins",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+      "properties": {
+        "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob, 'https://', ''), '/', '')]",
+        "httpPort": 80,
+        "httpsPort": 443,
+        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob, 'https://', ''), '/', '')]",
+        "priority": 1,
+        "weight": 1000,
+        "enabledState": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'SecurityHeaders')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'SecurityHeaders', 'SetHeaders')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "Strict-Transport-Security",
+              "value": "max-age=31536000; includeSubDomains"
+            }
+          },
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "Content-Security-Policy",
+              "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'"
+            }
+          },
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "X-Frame-Options",
+              "value": "DENY"
+            }
+          },
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          },
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            }
+          },
+          {
+            "name": "ModifyResponseHeader",
+            "parameters": {
+              "typeName": "DeliveryRuleHeaderActionParameters",
+              "headerAction": "Overwrite",
+              "headerName": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=(), payment=()"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'StripApi')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'StripApi', 'RewriteApi')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripApi')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'RewriteStaticFrontend')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'RewriteStaticFrontend', 'RewriteStaticFe')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/staticfrontend/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'RewriteStaticFrontend')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'StripBlobDefaultImages')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'StripBlobDefaultImages', 'RewriteDefaultImg')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/default-images/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobDefaultImages')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'StripBlobGroupImages')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'StripBlobGroupImages', 'RewriteGroupImg')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/group-images/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobGroupImages')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'StripBlobProfileImages')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'StripBlobProfileImages', 'RewriteProfileImg')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Continue",
+        "conditions": [],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/profile-images/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobProfileImages')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'WebSPAFallback')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'WebSPAFallback', 'StaticAssets')]",
+      "properties": {
+        "order": 1,
+        "matchProcessingBehavior": "Stop",
+        "conditions": [
+          {
+            "name": "UrlFileExtension",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlFileExtensionMatchConditionParameters",
+              "operator": "Equal",
+              "matchValues": [
+                "html",
+                "png",
+                "jpg",
+                "jpeg",
+                "gif",
+                "svg",
+                "ico"
+              ],
+              "negateCondition": false,
+              "transforms": [
+                "Lowercase"
+              ]
+            }
+          }
+        ],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/web/",
+              "preserveUnmatchedPath": true
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'WebSPAFallback')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), 'WebSPAFallback', 'SPAFallback')]",
+      "properties": {
+        "order": 2,
+        "matchProcessingBehavior": "Stop",
+        "conditions": [
+          {
+            "name": "UrlFileExtension",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlFileExtensionMatchConditionParameters",
+              "operator": "Equal",
+              "matchValues": [
+                "html",
+                "png",
+                "jpg",
+                "jpeg",
+                "gif",
+                "svg",
+                "ico"
+              ],
+              "negateCondition": true,
+              "transforms": [
+                "Lowercase"
+              ]
+            }
+          }
+        ],
+        "actions": [
+          {
+            "name": "UrlRewrite",
+            "parameters": {
+              "typeName": "DeliveryRuleUrlRewriteActionParameters",
+              "sourcePattern": "/",
+              "destination": "/web/index.html",
+              "preserveUnmatchedPath": false
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'WebSPAFallback')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/securityPolicies",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}', variables('frontDoorName'), 'waf-association')]",
+      "properties": {
+        "parameters": {
+          "type": "WebApplicationFirewall",
+          "wafPolicy": {
+            "id": "[resourceId('Microsoft.Network/FrontDoorWebApplicationFirewallPolicies', variables('wafPolicyName'))]"
+          },
+          "associations": [
+            {
+              "domains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))), createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName'))))))]",
+              "patternsToMatch": [
+                "/*"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+        "[resourceId('Microsoft.Network/FrontDoorWebApplicationFirewallPolicies', variables('wafPolicyName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'taskmanager')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "patternsToMatch": [
+          "/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'WebSPAFallback')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'WebSPAFallback')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'taskmanager-backend')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'api-origin-group')]"
+        },
+        "patternsToMatch": [
+          "/api/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripApi')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'api-origin-group', 'api-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'api-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripApi')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'assets')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "patternsToMatch": [
+          "/assets/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "cacheConfiguration": "[variables('staticCacheConfig')]",
+        "ruleSets": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'staticfrontend')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "originPath": "/",
+        "patternsToMatch": [
+          "/static_frontend/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "cacheConfiguration": "[variables('staticCacheConfig')]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'RewriteStaticFrontend')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'RewriteStaticFrontend')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'BlobProfileImages')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "originPath": "/",
+        "patternsToMatch": [
+          "/blob/profile-images/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "cacheConfiguration": "[variables('imageCacheConfig')]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobProfileImages')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobProfileImages')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'BlobGroupImages')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "originPath": "/",
+        "patternsToMatch": [
+          "/blob/group-images/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "cacheConfiguration": "[variables('imageCacheConfig')]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobGroupImages')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobGroupImages')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+      "apiVersion": "2024-02-01",
+      "name": "[format('{0}/{1}/{2}', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')), 'BlobDefaultImages')]",
+      "properties": {
+        "originGroup": {
+          "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]"
+        },
+        "originPath": "/",
+        "patternsToMatch": [
+          "/blob/default-images/*"
+        ],
+        "supportedProtocols": [
+          "Http",
+          "Https"
+        ],
+        "httpsRedirect": "Enabled",
+        "forwardingProtocol": "HttpsOnly",
+        "linkToDefaultDomain": "Enabled",
+        "customDomains": "[if(variables('useCustomDomain'), createArray(createObject('id', resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-')))), createArray())]",
+        "cacheConfiguration": "[variables('imageCacheConfig')]",
+        "ruleSets": [
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]"
+          },
+          {
+            "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobDefaultImages')]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles/customDomains', variables('frontDoorName'), replace(parameters('customDomainHost'), '.', '-'))]",
+        "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', variables('frontDoorName'), 'blob-origin-group', 'blob-origin')]",
+        "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'blob-origin-group')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'SecurityHeaders')]",
+        "[resourceId('Microsoft.Cdn/profiles/ruleSets', variables('frontDoorName'), 'StripBlobDefaultImages')]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('enableObservabilityAlerts'), not(equals(parameters('alertEmailAddress'), '')))]",
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-09-01-preview",
+      "name": "[format('{0}-alerts-email', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "groupShortName": "AlertEmail",
+        "enabled": true,
+        "emailReceivers": [
+          {
+            "name": "AdminEmail",
+            "emailAddress": "[parameters('alertEmailAddress')]",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[and(parameters('enableObservabilityAlerts'), greater(parameters('monthlyBudgetAmount'), 0))]",
+      "type": "Microsoft.Consumption/budgets",
+      "apiVersion": "2023-11-01",
+      "name": "[format('{0}-monthly-budget', parameters('projectName'))]",
+      "properties": {
+        "category": "Cost",
+        "amount": "[parameters('monthlyBudgetAmount')]",
+        "timeGrain": "Monthly",
+        "timePeriod": {
+          "startDate": "[parameters('budgetStartDate')]"
+        },
+        "notifications": {
+          "actual80pct": {
+            "enabled": true,
+            "operator": "GreaterThanOrEqualTo",
+            "threshold": 80,
+            "contactEmails": "[if(not(equals(parameters('alertEmailAddress'), '')), createArray(parameters('alertEmailAddress')), createArray())]",
+            "thresholdType": "Actual"
+          },
+          "actual100pct": {
+            "enabled": true,
+            "operator": "GreaterThanOrEqualTo",
+            "threshold": 100,
+            "contactEmails": "[if(not(equals(parameters('alertEmailAddress'), '')), createArray(parameters('alertEmailAddress')), createArray())]",
+            "thresholdType": "Actual"
+          },
+          "forecasted120pct": {
+            "enabled": true,
+            "operator": "GreaterThanOrEqualTo",
+            "threshold": 120,
+            "contactEmails": "[if(not(equals(parameters('alertEmailAddress'), '')), createArray(parameters('alertEmailAddress')), createArray())]",
+            "thresholdType": "Forecasted"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[and(parameters('enableObservabilityAlerts'), not(equals(parameters('alertEmailAddress'), '')))]",
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('{0}-fd-origin-down', parameters('projectName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "description": "Front Door origin health dropped below 100% for 30 minutes — backend may be unreachable.",
+        "severity": 1,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT30M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "OriginHealthDrop",
+              "metricName": "OriginHealthPercentage",
+              "metricNamespace": "Microsoft.Cdn/profiles",
+              "operator": "LessThan",
+              "threshold": 100,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', format('{0}-alerts-email', parameters('projectName')))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', format('{0}-alerts-email', parameters('projectName')))]",
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableObservabilityAlerts')]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+      "name": "[format('{0}-fd-diagnostics', parameters('projectName'))]",
+      "properties": {
+        "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName')))]",
+        "logs": [
+          {
+            "category": "FrontDoorAccessLog",
+            "enabled": true
+          },
+          {
+            "category": "FrontDoorHealthProbeLog",
+            "enabled": true
+          }
+        ],
+        "metrics": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-prod', parameters('projectName')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "managedIdentityClientId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
+    },
+    "managedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').principalId]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri]"
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer]"
+    },
+    "sqlServerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2023-08-01-preview').fullyQualifiedDomainName]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    },
+    "storageEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+    },
+    "storageBlobHostName": {
+      "type": "string",
+      "value": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob, 'https://', ''), '/', '')]"
+    },
+    "appInsightsProdConnStr": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-ai-prod', parameters('projectName'))), '2020-02-02').ConnectionString]"
+    },
+    "appInsightsDevConnStr": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-ai-dev', parameters('projectName'))), '2020-02-02').ConnectionString]"
+    },
+    "webAppName": {
+      "type": "string",
+      "value": "[variables('webAppName')]"
+    },
+    "webAppDefaultHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2023-12-01').defaultHostName]"
+    },
+    "frontDoorProfileName": {
+      "type": "string",
+      "value": "[variables('frontDoorName')]"
+    },
+    "frontDoorEndpointName": {
+      "type": "string",
+      "value": "[format('{0}-endpoint', parameters('projectName'))]"
+    },
+    "frontDoorEndpointHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName'))), '2024-02-01').hostName]"
+    }
+  }
+}

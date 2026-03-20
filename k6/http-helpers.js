@@ -2,7 +2,16 @@
 // and typed request wrappers. all requests go through BASE_URL.
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
+import { BASE_URL, STRESS_KEY, STRESS_NONCE, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
+
+// Stress header injection — if STRESS_KEY and STRESS_NONCE are set, every request
+// includes them so the WAF AllowStressHeaders rule lets traffic through.
+function stressHeaders() {
+    if (STRESS_KEY && STRESS_NONCE) {
+        return { "X-Stress-Key": STRESS_KEY, "X-Stress-Nonce": STRESS_NONCE };
+    }
+    return {};
+}
 
 export function extractCookiesFromResponse(response) {
     const setCookieHeader = response.headers["Set-Cookie"];
@@ -19,7 +28,7 @@ export function loginWithFakeCredentials(email, name, plan) {
     const response = http.post(
         `${BASE_URL}/auth/fake-login`,
         JSON.stringify(body),
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json", ...stressHeaders() } }
     );
     check(response, { "login 200": (r) => r.status === 200 });
     return extractCookiesFromResponse(response);
@@ -32,7 +41,7 @@ export function loginAsTierLeader(tier) {
 
 export function findGroupByName(cookies, groupName) {
     const response = http.get(`${BASE_URL}/groups`, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
     });
     check(response, { "GET /groups 200": (r) => r.status === 200 });
     const groups = response.json();
@@ -48,7 +57,7 @@ export function findTierGroupId(cookies, tier) {
 
 export function findFirstAvailableGroupId(cookies) {
     const response = http.get(`${BASE_URL}/groups`, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
     });
     check(response, { "GET /groups 200": (r) => r.status === 200 });
     const groups = response.json();
@@ -57,7 +66,7 @@ export function findFirstAvailableGroupId(cookies) {
 
 export function postJsonPayload(path, body, cookies) {
     return http.post(`${BASE_URL}${path}`, JSON.stringify(body), {
-        headers: { "Content-Type": "application/json", Cookie: cookies },
+        headers: { "Content-Type": "application/json", Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
@@ -67,47 +76,47 @@ export function postTaskPayload(path, taskData, cookies) {
         data: http.file(JSON.stringify(taskData), "data.json", "application/json"),
     };
     return http.post(`${BASE_URL}${path}`, payload, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
 
 export function postRawPayload(path, rawBody, cookies) {
     return http.post(`${BASE_URL}${path}`, rawBody, {
-        headers: { "Content-Type": "application/json", Cookie: cookies },
+        headers: { "Content-Type": "application/json", Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedGet(path, cookies) {
     return http.get(`${BASE_URL}${path}`, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedDelete(path, cookies) {
     return http.request("DELETE", `${BASE_URL}${path}`, null, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedPatch(path, cookies) {
     return http.request("PATCH", `${BASE_URL}${path}`, null, {
-        headers: { Cookie: cookies },
+        headers: { Cookie: cookies, ...stressHeaders() },
         redirects: 0,
     });
 }
 
 export function sendUnauthenticatedGet(url) {
-    return http.get(url, { redirects: 0 });
+    return http.get(url, { redirects: 0, headers: { ...stressHeaders() } });
 }
 
 export function sendGetWithCustomCookies(path, cookieString) {
     return http.get(`${BASE_URL}${path}`, {
         redirects: 0,
-        headers: { Cookie: cookieString },
+        headers: { Cookie: cookieString, ...stressHeaders() },
     });
 }
 
@@ -144,7 +153,7 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
         const userCookies = loginWithFakeCredentials(user.email, user.name);
 
         const meRes = http.get(`${BASE_URL}/users/me`, {
-            headers: { Cookie: userCookies },
+            headers: { Cookie: userCookies, ...stressHeaders() },
         });
         if (meRes.status !== 200) {
             console.warn(`dynamic user ${i}: /users/me returned ${meRes.status}`);
@@ -160,11 +169,11 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
                 userToBeInvitedRole: "MEMBER",
                 sendEmail: false,
             }),
-            { headers: { "Content-Type": "application/json", Cookie: leaderCookies } }
+            { headers: { "Content-Type": "application/json", Cookie: leaderCookies, ...stressHeaders() } }
         );
 
         const invRes = http.get(`${BASE_URL}/group-invitations/me`, {
-            headers: { Cookie: userCookies },
+            headers: { Cookie: userCookies, ...stressHeaders() },
         });
         if (invRes.status !== 200) continue;
         const invitations = invRes.json();
@@ -176,7 +185,7 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
                 "PATCH",
                 `${BASE_URL}/group-invitations/${pending.id}/status?status=ACCEPTED`,
                 null,
-                { headers: { Cookie: userCookies } }
+                { headers: { Cookie: userCookies, ...stressHeaders() } }
             );
         }
     }

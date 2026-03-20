@@ -73,6 +73,17 @@ param wafAuthRateLimit int = 200
 @description('Enable Front Door CDN caching on static asset and image routes. Disable for security testing where unprocessed origin responses must be verified.')
 param enableFdCaching bool = true
 
+@description('Deploy email infrastructure (ACS + email services). Disable for arena — NoOp email beans make them unnecessary.')
+param enableEmailServices bool = true
+
+// --- Parameters: Stress Header Auth ---
+
+@description('Value for X-Stress-Key header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_KEY env var.')
+param stressPassphraseKey string = ''
+
+@description('Value for X-Stress-Nonce header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_NONCE env var.')
+param stressPassphraseNonce string = ''
+
 // --- Parameters: Observability ---
 
 @description('Email address for Azure alert notifications (budget, origin health). Leave empty to skip alert resources.')
@@ -91,6 +102,9 @@ param budgetStartDate string = utcNow('yyyy-MM-01')
 
 @description('Object ID of the deploying user (az ad signed-in-user show --query id). Grants Key Vault Secrets Officer + Storage Blob Data Contributor so the deployer can seed secrets and push default images. Leave empty to skip.')
 param deployerPrincipalId string = ''
+
+@description('Object ID of the CI/CD service principal (GitHub Actions). Grants Storage Blob Data Contributor for frontend deployments. Leave empty to skip.')
+param cicdPrincipalId string = ''
 
 // --- Variables ---
 
@@ -406,7 +420,7 @@ resource kvSecretTextAnalyticsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-0
   }
 }
 
-resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (enableEmailServices) {
   parent: keyVault
   name: 'TASKMANAGER-ACS-ENDPOINT'
   properties: {
@@ -414,7 +428,7 @@ resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
-resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (enableEmailServices) {
   parent: keyVault
   name: 'TASKMANAGER-ACS-ADMIN-ENDPOINT'
   properties: {
@@ -483,8 +497,9 @@ resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
 }
 
 // 10. Azure Communication Services (email) — Global
+// Skipped for arena deployments — Spring NoOp email beans make ACS unnecessary.
 
-resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
+resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = if (enableEmailServices) {
   name: '${projectName}-email'
   location: 'global'
   tags: tags
@@ -493,7 +508,7 @@ resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
   }
 }
 
-resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' = if (enableEmailServices) {
   parent: emailService
   name: 'AzureManagedDomain'
   location: 'global'
@@ -504,7 +519,7 @@ resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' 
   }
 }
 
-resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
+resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = if (enableEmailServices) {
   name: '${projectName}-acs'
   location: 'global'
   tags: tags
@@ -520,7 +535,7 @@ resource acs 'Microsoft.Communication/communicationServices@2023-04-01' = {
 // Isolates critical admin emails (CriticalExceptionAlerter, MaintenanceStalenessChecker)
 // from user-facing email traffic so platform rate limits (100/hour) never block alerts.
 
-resource emailServiceAdmin 'Microsoft.Communication/emailServices@2023-04-01' = {
+resource emailServiceAdmin 'Microsoft.Communication/emailServices@2023-04-01' = if (enableEmailServices) {
   name: '${projectName}-email-admin'
   location: 'global'
   tags: tags
@@ -529,7 +544,7 @@ resource emailServiceAdmin 'Microsoft.Communication/emailServices@2023-04-01' = 
   }
 }
 
-resource emailDomainAdmin 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+resource emailDomainAdmin 'Microsoft.Communication/emailServices/domains@2023-04-01' = if (enableEmailServices) {
   parent: emailServiceAdmin
   name: 'AzureManagedDomain'
   location: 'global'
@@ -540,7 +555,7 @@ resource emailDomainAdmin 'Microsoft.Communication/emailServices/domains@2023-04
   }
 }
 
-resource acsAdmin 'Microsoft.Communication/communicationServices@2023-04-01' = {
+resource acsAdmin 'Microsoft.Communication/communicationServices@2023-04-01' = if (enableEmailServices) {
   name: '${projectName}-acs-admin'
   location: 'global'
   tags: tags
@@ -598,6 +613,17 @@ resource blobDeployerRoleAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+// Blob Data Contributor — lets CI/CD (GitHub Actions) deploy frontend and push blobs
+resource blobCicdRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (cicdPrincipalId != '') {
+  scope: storageAccount
+  name: guid(storageAccount.id, cicdPrincipalId, 'StorageBlobDataContributor')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: cicdPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Cognitive Services User — image moderation (Content Safety)
 resource csRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: contentSafety
@@ -621,7 +647,7 @@ resource taRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 }
 
 // ACS Contributor — send emails via managed identity
-resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableEmailServices) {
   scope: acs
   name: guid(acs.id, managedIdentity.id, 'Contributor')
   properties: {
@@ -632,7 +658,7 @@ resource acsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
 }
 
 // ACS Admin Contributor — send admin alert emails via managed identity
-resource acsAdminRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource acsAdminRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableEmailServices) {
   scope: acsAdmin
   name: guid(acsAdmin.id, managedIdentity.id, 'Contributor')
   properties: {
@@ -905,6 +931,116 @@ resource maintenanceJobBlobs 'Microsoft.App/jobs@2024-03-01' = {
 
 // 17. WAF Policy
 
+// Stress header passthrough — allows requests with both X-Stress-Key and X-Stress-Nonce.
+// Deployed only for stress testing. The deployer generates the secrets and gives them
+// to the tester — avoids IP whitelisting while keeping BlockAllTraffic armed.
+var useStressHeaders = stressPassphraseKey != '' && stressPassphraseNonce != ''
+
+var stressHeaderRule = useStressHeaders ? [
+  {
+    name: 'AllowStressHeaders'
+    priority: 2
+    ruleType: 'MatchRule'
+    action: 'Allow'
+    enabledState: 'Enabled'
+    matchConditions: [
+      {
+        matchVariable: 'RequestHeader'
+        selector: 'X-Stress-Key'
+        operator: 'Equal'
+        negateCondition: false
+        matchValue: [stressPassphraseKey]
+        transforms: []
+      }
+      {
+        matchVariable: 'RequestHeader'
+        selector: 'X-Stress-Nonce'
+        operator: 'Equal'
+        negateCondition: false
+        matchValue: [stressPassphraseNonce]
+        transforms: []
+      }
+    ]
+  }
+] : []
+
+var baseWafRules = [
+  {
+    name: 'BlockInternalEndpoints'
+    priority: 1
+    ruleType: 'MatchRule'
+    action: 'Block'
+    enabledState: 'Enabled'
+    matchConditions: [
+      {
+        matchVariable: 'RequestUri'
+        operator: 'Contains'
+        negateCondition: false
+        matchValue: ['/actuator']
+        transforms: ['Lowercase']
+      }
+    ]
+  }
+]
+
+var blockAllRule = [
+  {
+    name: 'BlockAllTraffic'
+    priority: 5
+    ruleType: 'MatchRule'
+    action: 'Block'
+    enabledState: enableWafBlockAll ? 'Enabled' : 'Disabled'
+    matchConditions: [
+      {
+        matchVariable: 'RequestUri'
+        operator: 'BeginsWith'
+        negateCondition: false
+        matchValue: ['/']
+        transforms: []
+      }
+    ]
+  }
+]
+
+var rateLimitRules = [
+  {
+    name: 'RateLimitAuth'
+    priority: 10
+    ruleType: 'RateLimitRule'
+    action: 'Block'
+    enabledState: wafAuthRateLimit > 0 ? 'Enabled' : 'Disabled'
+    rateLimitThreshold: wafAuthRateLimit > 0 ? wafAuthRateLimit : 1
+    rateLimitDurationInMinutes: 5
+    matchConditions: [
+      {
+        matchVariable: 'RequestUri'
+        operator: 'Contains'
+        negateCondition: false
+        matchValue: ['/api/auth/']
+        transforms: []
+      }
+    ]
+  }
+  {
+    name: 'GlobalRateLimit'
+    priority: 100
+    ruleType: 'RateLimitRule'
+    action: 'Block'
+    enabledState: wafGlobalRateLimit > 0 ? 'Enabled' : 'Disabled'
+    rateLimitThreshold: wafGlobalRateLimit > 0 ? wafGlobalRateLimit : 1
+    rateLimitDurationInMinutes: 5
+    matchConditions: [
+      {
+        matchVariable: 'RequestUri'
+        operator: 'BeginsWith'
+        negateCondition: false
+        matchValue: ['/']
+        transforms: []
+      }
+    ]
+  }
+]
+
 resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@2024-02-01' = {
   name: wafPolicyName
   location: 'global'
@@ -918,76 +1054,7 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
       mode: 'Prevention'
     }
     customRules: {
-      rules: [
-        {
-          name: 'BlockInternalEndpoints'
-          priority: 1
-          ruleType: 'MatchRule'
-          action: 'Block'
-          enabledState: 'Enabled'
-          matchConditions: [
-            {
-              matchVariable: 'RequestUri'
-              operator: 'Contains'
-              negateCondition: false
-              matchValue: ['/actuator']
-              transforms: ['Lowercase']
-            }
-          ]
-        }
-        {
-          name: 'BlockAllTraffic'
-          priority: 2
-          ruleType: 'MatchRule'
-          action: 'Block'
-          enabledState: enableWafBlockAll ? 'Enabled' : 'Disabled'
-          matchConditions: [
-            {
-              matchVariable: 'RequestUri'
-              operator: 'BeginsWith'
-              negateCondition: false
-              matchValue: ['/']
-              transforms: []
-            }
-          ]
-        }
-        {
-          name: 'RateLimitAuth'
-          priority: 10
-          ruleType: 'RateLimitRule'
-          action: 'Block'
-          enabledState: wafAuthRateLimit > 0 ? 'Enabled' : 'Disabled'
-          rateLimitThreshold: wafAuthRateLimit > 0 ? wafAuthRateLimit : 1
-          rateLimitDurationInMinutes: 5
-          matchConditions: [
-            {
-              matchVariable: 'RequestUri'
-              operator: 'Contains'
-              negateCondition: false
-              matchValue: ['/api/auth/']
-              transforms: []
-            }
-          ]
-        }
-        {
-          name: 'GlobalRateLimit'
-          priority: 100
-          ruleType: 'RateLimitRule'
-          action: 'Block'
-          enabledState: wafGlobalRateLimit > 0 ? 'Enabled' : 'Disabled'
-          rateLimitThreshold: wafGlobalRateLimit > 0 ? wafGlobalRateLimit : 1
-          rateLimitDurationInMinutes: 5
-          matchConditions: [
-            {
-              matchVariable: 'RequestUri'
-              operator: 'BeginsWith'
-              negateCondition: false
-              matchValue: ['/']
-              transforms: []
-            }
-          ]
-        }
-      ]
+      rules: concat(baseWafRules, stressHeaderRule, blockAllRule, rateLimitRules)
     }
   }
 }
