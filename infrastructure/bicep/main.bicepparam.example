@@ -5,6 +5,9 @@ using './main.bicep'
 param location = 'italynorth'
 param cognitiveServicesLocation = 'westeurope'
 
+// Deployer RBAC (get your object ID: az ad signed-in-user show --query id -o tsv)
+param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
+
 // Observability (prod only — arenas set enableObservabilityAlerts = false)
 param alertEmailAddress = 'your-email@example.com'
 param monthlyBudgetAmount = 13

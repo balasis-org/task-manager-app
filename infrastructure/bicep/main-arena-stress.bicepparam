@@ -29,6 +29,9 @@ param appServiceInstanceCount = 2
 param authAppClientId = readEnvironmentVariable('ARENA_AUTH_CLIENT_ID', '')
 param authAppTenantId = readEnvironmentVariable('ARENA_AUTH_TENANT_ID', '')
 
+// Deployer RBAC (get your object ID: az ad signed-in-user show --query id -o tsv)
+param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
+
 // ── Arena-specific overrides ─────────────────────────────────
 param springProfilesActive = 'prod-arena-stress,DataLoader'
 param enableWafBlockAll = true

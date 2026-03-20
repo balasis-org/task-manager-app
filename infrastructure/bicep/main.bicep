@@ -87,6 +87,11 @@ param enableObservabilityAlerts bool = true
 @description('Auto-filled start date for the monthly budget (1st of current month). Do not override.')
 param budgetStartDate string = utcNow('yyyy-MM-01')
 
+// --- Parameters: Deployer RBAC ---
+
+@description('Object ID of the deploying user (az ad signed-in-user show --query id). Grants Key Vault Secrets Officer + Storage Blob Data Contributor so the deployer can seed secrets and push default images. Leave empty to skip.')
+param deployerPrincipalId string = ''
+
 // --- Variables ---
 
 var useCustomDomain = customDomainHost != ''
@@ -568,6 +573,28 @@ resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+// KV Secrets Officer — lets the deployer view and seed secrets via Portal / CLI
+resource kvDeployerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployerPrincipalId != '') {
+  scope: keyVault
+  name: guid(keyVault.id, deployerPrincipalId, 'KeyVaultSecretsOfficer')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
+    principalId: deployerPrincipalId
+    principalType: 'User'
+  }
+}
+
+// Blob Data Contributor — lets the deployer push default images
+resource blobDeployerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployerPrincipalId != '') {
+  scope: storageAccount
+  name: guid(storageAccount.id, deployerPrincipalId, 'StorageBlobDataContributor')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: deployerPrincipalId
+    principalType: 'User'
   }
 }
 
