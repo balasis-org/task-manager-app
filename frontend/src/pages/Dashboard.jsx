@@ -305,6 +305,12 @@ export default function Dashboard() {
                 </div>
             )}
 
+            {groupDetail?.d && (
+                <div className="dashboard-description">
+                    <strong>About:</strong> {groupDetail.d}
+                </div>
+            )}
+
             {loadingDetail ? (
                 <Spinner />
             ) : (

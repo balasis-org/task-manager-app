@@ -133,7 +133,7 @@ export default function NewGroupPopup({ onClose, onCreated, user }) {
                     </div>
                     <div>
                         <h2>New group</h2>
-                        <p>Give it a name, context, and optional banner to welcome members.</p>
+                        <p>Give it a name and context to get started.</p>
                     </div>
                 </div>
 
@@ -197,7 +197,7 @@ export default function NewGroupPopup({ onClose, onCreated, user }) {
                             ) : (
                                 <>
                                     <FiImage size={28} />
-                                    <strong>Upload a banner</strong>
+                                    <strong>Upload a cover image</strong>
                                     <span>PNG, JPG or WebP, up to 5 MB.</span>
                                 </>
                             )}
