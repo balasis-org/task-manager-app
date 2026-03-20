@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Profile;
 // uses automatically to get OAuth2 tokens for the Content Safety API.
 // endpoint URL comes from Key Vault.
 @Configuration
-@Profile({"prod-h2", "prod-azuresql", "prod-arena-security"})
+@Profile({"prod-h2", "prod-azuresql"})
 @RequiredArgsConstructor
 public class ContentSafetyProdConfig {
     private final SecretClientProvider secretClientProvider;

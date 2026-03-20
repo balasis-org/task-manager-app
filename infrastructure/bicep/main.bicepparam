@@ -24,6 +24,9 @@ param authAppTenantId = '9cce5f41-4493-4fac-936e-f4f739db8315'
 
 param customDomainHost = 'www.myteamtasks.net'
 
+// Deployer RBAC (get your object ID: az ad signed-in-user show --query id -o tsv)
+param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
+
 // Observability
 param alertEmailAddress = readEnvironmentVariable('ALERT_EMAIL', '')
 param monthlyBudgetAmount = 13
