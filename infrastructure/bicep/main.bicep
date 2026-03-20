@@ -102,6 +102,8 @@ var acrName              = toLower(replace('${take(projectName, 30)}${take(suffi
 var webAppName           = '${projectName}-app-${take(suffix, 8)}'
 var frontDoorName        = '${projectName}-fd-${take(suffix, 8)}'
 var sqlServerName        = '${projectName}-sql-${take(suffix, 8)}'
+var contentSafetyName    = '${projectName}-cs-${take(suffix, 8)}'
+var textAnalyticsName    = '${projectName}-ta-${take(suffix, 8)}'
 var wafPolicyName        = toLower(replace('${projectName}waf', '-', ''))
 
 // Lowercase image prefix for OCI compliance (image refs must be all-lowercase)
@@ -448,7 +450,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
 // 9. Content Safety (image moderation) — West Europe
 
 resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
-  name: '${projectName}-contentsafety'
+  name: contentSafetyName
   location: cognitiveServicesLocation
   tags: tags
   kind: 'ContentSafety'
@@ -463,7 +465,7 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
 // 9b. Text Analytics (Comment Intelligence — sentiment, key phrases, PII, summarisation) — West Europe
 
 resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
-  name: '${projectName}-textanalytics'
+  name: textAnalyticsName
   location: cognitiveServicesLocation
   tags: tags
   kind: 'TextAnalytics'
