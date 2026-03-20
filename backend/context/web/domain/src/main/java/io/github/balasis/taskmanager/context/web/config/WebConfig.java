@@ -93,6 +93,7 @@ public class WebConfig implements WebMvcConfigurer {
         // APP_PUBLIC_URL is set by Bicep to the Front Door endpoint (or custom domain).
         // This lets arena deployments with dynamic FD hostnames pass CORS.
         if (publicUrl != null && !publicUrl.isBlank() && !origins.contains(publicUrl)) {
+            log.info("Public url is : " + publicUrl);//for debugging reasons
             origins.add(publicUrl);
         }
 
