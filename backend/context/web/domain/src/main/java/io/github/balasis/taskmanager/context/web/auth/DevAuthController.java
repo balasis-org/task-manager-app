@@ -46,6 +46,11 @@ public class DevAuthController extends BaseComponent {
 
     public record FakeLoginRequest(String email, String name, String subscriptionPlan) {}
 
+    @GetMapping("/dev-auth-available")
+    public ResponseEntity<Void> devAuthAvailable() {
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/fake-login")
     public ResponseEntity<Map<String, Object>> fakeLogin(@RequestBody FakeLoginRequest request) {
         logger.debug("Dev fake-login endpoint reached");

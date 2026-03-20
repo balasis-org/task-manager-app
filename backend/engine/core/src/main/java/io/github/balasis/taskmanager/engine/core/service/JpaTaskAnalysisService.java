@@ -32,7 +32,8 @@ public class JpaTaskAnalysisService implements TaskAnalysisService {
     @Override
     @Transactional
     public TaskAnalysisSnapshot estimateCredits(Long taskId) {
-        Object[] stats = commentRepository.countAndSumCharsByTaskId(taskId);
+        List<Object[]> result = commentRepository.countAndSumCharsByTaskId(taskId);
+        Object[] stats = result.isEmpty() ? new Object[]{0L, 0L} : result.get(0);
         int commentCount = ((Number) stats[0]).intValue();
         long totalChars = ((Number) stats[1]).longValue();
 

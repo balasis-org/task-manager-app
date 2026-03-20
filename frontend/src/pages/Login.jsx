@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Navigate, Link, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
@@ -9,7 +9,6 @@ import "@styles/pages/Login.css";
 // login page: production uses Azure AD redirect (getLoginUrl), dev profiles
 // show a fake-login panel with preset users across all subscription tiers.
 // redirects to returnUrl after successful auth (saved in sessionStorage).
-const IS_DEV = import.meta.env.DEV;
 
 // GF=Free  GS=Student  GO=Organizer  GT=Team(stress)  GP=TeamsPro
 const DEV_USERS = [
@@ -44,11 +43,19 @@ export default function Login() {
     const storedReturn = sessionStorage.getItem("returnUrl");
     const returnUrl = storedReturn || location.state?.returnUrl || "/dashboard";
 
+    const [devAuthAvailable, setDevAuthAvailable] = useState(import.meta.env.DEV);
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
     const [fakePlan, setFakePlan] = useState("");
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
+
+    useEffect(() => {
+        if (import.meta.env.DEV) return;
+        fetch("/api/auth/dev-auth-available")
+            .then((r) => { if (r.ok) setDevAuthAvailable(true); })
+            .catch(() => {});
+    }, []);
 
     usePageTitle("Sign in");
 
@@ -99,7 +106,7 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            {IS_DEV && (
+            {devAuthAvailable && (
                 <button
                     type="button"
                     className="login-dev-toggle"
@@ -142,7 +149,7 @@ export default function Login() {
                     Sign in with Microsoft
                 </button>
 
-                {IS_DEV && devOpen && (
+                {devAuthAvailable && devOpen && (
                     <>
                         <div className="login-divider"><span>dev only</span></div>
 
