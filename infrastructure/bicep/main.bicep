@@ -696,7 +696,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       ]
       appSettings: [
         { name: 'MANAGED_IDENTITY_CLIENT_ID', value: managedIdentity.properties.clientId }
-        { name: 'KEY_VAULT_URI', value: keyVault.properties.vaultUri }
+        { name: 'KEYVAULT_URI', value: keyVault.properties.vaultUri }
         { name: 'SPRING_PROFILES_ACTIVE', value: springProfilesActive }
         { name: 'DOCKER_REGISTRY_SERVER_URL', value: 'https://${acr.properties.loginServer}' }
         { name: 'DOCKER_REGISTRY_SERVER_USERNAME', value: acr.listCredentials().username }
@@ -829,7 +829,7 @@ resource maintenanceJobFull 'Microsoft.App/jobs@2024-03-01' = {
           }
           env: [
             { name: 'MANAGED_IDENTITY_CLIENT_ID', value: managedIdentity.properties.clientId }
-            { name: 'KEY_VAULT_URI', value: keyVault.properties.vaultUri }
+            { name: 'KEYVAULT_URI', value: keyVault.properties.vaultUri }
             { name: 'SPRING_PROFILES_ACTIVE', value: springProfilesActive }
             { name: 'MAINTENANCE_MODE', value: 'full' }
             { name: 'MAINTENANCE_FULL_INTERVAL_HOURS', value: '24' }
@@ -890,7 +890,7 @@ resource maintenanceJobBlobs 'Microsoft.App/jobs@2024-03-01' = {
           }
           env: [
             { name: 'MANAGED_IDENTITY_CLIENT_ID', value: managedIdentity.properties.clientId }
-            { name: 'KEY_VAULT_URI', value: keyVault.properties.vaultUri }
+            { name: 'KEYVAULT_URI', value: keyVault.properties.vaultUri }
             { name: 'SPRING_PROFILES_ACTIVE', value: springProfilesActive }
             { name: 'MAINTENANCE_MODE', value: 'task-blobs' }
           ]
