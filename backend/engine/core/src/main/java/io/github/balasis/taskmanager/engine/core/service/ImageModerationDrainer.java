@@ -41,7 +41,7 @@ import java.util.List;
 // uses manual TransactionTemplate because @Scheduled methods can't participate in
 // Spring's @Transactional proxy — the scheduled thread bypasses the proxy.
 @Service
-@Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-security", "prod-arena-stress", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class ImageModerationDrainer {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageModerationDrainer.class);

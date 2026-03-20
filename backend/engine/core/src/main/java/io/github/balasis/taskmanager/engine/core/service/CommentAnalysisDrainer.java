@@ -45,7 +45,7 @@ import java.util.List;
 // on failure: retries up to 3x, then marks FAILED and refunds the user's analysis
 // credits (credits are the tier-based quota for running AI analysis).
 @Service
-@Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-security", "prod-arena-stress", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class CommentAnalysisDrainer {
 
     private static final Logger logger = LoggerFactory.getLogger(CommentAnalysisDrainer.class);

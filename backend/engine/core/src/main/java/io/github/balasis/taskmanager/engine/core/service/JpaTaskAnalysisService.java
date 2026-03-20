@@ -21,7 +21,7 @@ import java.util.List;
 // credit formula: 3 credits/comment for analysis, ceil(totalChars/5120) for summarization,
 // plus a small egress surcharge for Italy North ↔ West Europe cross-region traffic.
 @Service
-@Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-security", "prod-arena-stress", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor
 public class JpaTaskAnalysisService implements TaskAnalysisService {
 
