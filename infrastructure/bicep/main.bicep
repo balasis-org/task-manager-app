@@ -744,6 +744,7 @@ resource webAppAuth 'Microsoft.Web/sites/config@2023-12-01' = {
           defaultAuthorizationPolicy: {
             allowedApplications: [
               authAppClientId
+              managedIdentity.properties.clientId
             ]
           }
         }
