@@ -424,7 +424,7 @@ resource kvSecretAcsEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if
   parent: keyVault
   name: 'TASKMANAGER-ACS-ENDPOINT'
   properties: {
-    value: 'https://${acs.properties.hostName}'
+    value: 'https://${acs!.properties.hostName}'
   }
 }
 
@@ -432,7 +432,7 @@ resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01'
   parent: keyVault
   name: 'TASKMANAGER-ACS-ADMIN-ENDPOINT'
   properties: {
-    value: 'https://${acsAdmin.properties.hostName}'
+    value: 'https://${acsAdmin!.properties.hostName}'
   }
 }
 
@@ -478,6 +478,7 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   }
   properties: {
     publicNetworkAccess: 'Enabled'
+    restore: true
   }
 }
 
@@ -493,6 +494,7 @@ resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   }
   properties: {
     publicNetworkAccess: 'Enabled'
+    restore: true
   }
 }
 
