@@ -4,6 +4,12 @@
 // Defaults to localhost for local development against Docker Compose stack
 export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 
+// Stress header auth — WAF AllowStressHeaders rule requires both headers.
+// The deployer generates the secrets and provides them to the tester.
+// Usage: k6 run --env STRESS_KEY=<value> --env STRESS_NONCE=<value> ...
+export const STRESS_KEY   = __ENV.STRESS_KEY   || "";
+export const STRESS_NONCE = __ENV.STRESS_NONCE || "";
+
 // One group leader per subscription tier
 export const TIER_LEADERS = {
     FREE:      { email: "lena.dev@example.com",   name: "Lena Dev",   plan: "FREE" },

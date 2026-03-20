@@ -36,6 +36,7 @@ param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
 param springProfilesActive = 'prod-arena-security,DataLoader'
 param enableWafBlockAll = true
 param enableFdCaching = false          // disable CDN caching — security tests must verify raw origin responses
+param enableEmailServices = false      // NoOp email beans — ACS not needed
 param wafGlobalRateLimit = 2000    // production value — WAF is tested surface
 param wafAuthRateLimit = 200       // production value — WAF is tested surface
 param enableObservabilityAlerts = false
