@@ -28,7 +28,7 @@ import java.util.List;
 // a Redis distributed lock ensures only one app instance drains at a time across
 // horizontally scaled replicas in Azure App Service.
 @Service
-@Profile({"prod-h2", "prod-azuresql", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
+@Profile({"prod-h2", "prod-azuresql", "prod-arena-security", "prod-arena-stress", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 public class EmailQueueDrainer {
 
     private static final Logger log = LoggerFactory.getLogger(EmailQueueDrainer.class);
