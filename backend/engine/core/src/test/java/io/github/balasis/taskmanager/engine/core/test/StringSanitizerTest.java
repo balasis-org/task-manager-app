@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class StringSanitizerTest {
 
-    // ── sanitizeFilename ────────────────────────────────────────
+    // sanitizeFilename
 
     @Test
     void sanitizeFilename_nullInput_returnsFallbackUuid() {
@@ -62,7 +62,7 @@ class StringSanitizerTest {
         assertEquals("file.txt", result);
     }
 
-    // ── sanitizeFilenameForHeader ───────────────────────────────
+    // sanitizeFilenameForHeader
 
     @Test
     void sanitizeFilenameForHeader_delegatesToSanitizeFilename() {
@@ -71,7 +71,7 @@ class StringSanitizerTest {
         assertEquals(direct, header);
     }
 
-    // ── toSafeBlobKey ───────────────────────────────────────────
+    // toSafeBlobKey
 
     @Test
     void toSafeBlobKey_withPrefixId_prependsIdDash() {
@@ -111,7 +111,7 @@ class StringSanitizerTest {
         assertTrue(result.startsWith("1-"), "should still have prefix");
     }
 
-    // ── private helpers ─────────────────────────────────────────
+    // private helpers
 
     private String SanitizeFilename(String input) {
         return StringSanitizer.sanitizeFilename(input);

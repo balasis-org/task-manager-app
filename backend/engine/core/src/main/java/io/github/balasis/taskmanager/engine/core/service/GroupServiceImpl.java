@@ -100,7 +100,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     // injected to read app.public-url for email deep links
     private final org.springframework.core.env.Environment environment;
 
-    // ── limit-resolution helpers ────────────────────────────────────────
+    // limit-resolution helpers
     // 3-level fallback: task override → group override → plan default.
     // Overrides can only tighten (lower) the plan limit, never widen it.
 
@@ -1746,7 +1746,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         );
     }
 
-    // ── change-tracking timestamps ───────────────────────────────────────────
+    // change-tracking timestamps
     // multiple timestamps per group/task let the frontend polling decide
     // which parts of the UI need re-rendering. having separate timestamps
     // for participants, comments, and metadata means the frontend doesnt
@@ -1862,7 +1862,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
              creatorMembership.get().getRole() != Role.TASK_MANAGER);
     }
 
-    // ── Comment Intelligence ────────────────────────────────────
+    // Comment Intelligence
 
     private Task findTaskInGroup(Long groupId, Long taskId) {
         Task task = taskRepository.findById(taskId)
@@ -1945,7 +1945,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         return taskAnalysisService.getSnapshot(taskId);
     }
 
-    // ── File Gallery & Per-File Review ──────────────────────────
+    // File Gallery & Per-File Review
     // file gallery is a group-wide view of all files across all tasks.
     // leaders/task managers see all files, regular members only see files
     // from tasks they participate in.

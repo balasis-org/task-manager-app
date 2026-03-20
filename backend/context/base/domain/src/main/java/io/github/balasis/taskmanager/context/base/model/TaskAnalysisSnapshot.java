@@ -13,7 +13,7 @@ import java.time.Instant;
 // holds the cached AI analysis results for a task's comments.
 // one-to-one with taskId (unique index). split into three sections:
 // 1) estimate cache: computed locally before sending to Azure, so the user can
-//    see how many credits it will cost before committing
+// see how many credits it will cost before committing
 // 2) analysis results: sentiment, key phrases, PII counts, per-comment breakdowns
 // 3) summary results: extractive summary of the conversation
 // each section is nullable until that operation has actually run.
@@ -33,7 +33,7 @@ public class TaskAnalysisSnapshot extends BaseModel {
     @Column(nullable = false, unique = true)
     private Long taskId;
 
-    // ── Estimate cache ──────────────────────────────────────────
+    // Estimate cache
     // these are computed locally (no Azure call) so we can show the user
     // a cost preview before they run the actual analysis
     @Column

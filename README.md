@@ -157,9 +157,9 @@ path-based filtering ensures unrelated changes never trigger unnecessary builds.
 ## monitoring
 
 - OpenTelemetry distributed tracing → Application Insights (10% base sampling, polling traces dropped by custom `PollingEndpointSampler`)
-- 7 custom Micrometer metrics via Spring AOP (rate limit rejections, blob ops, auth attempts, critical exceptions)
+- 6 custom Micrometer metrics via Spring AOP (`rate_limit_rejections_total`, `rate_limit_infra_failures_total`, `blob_uploads_total`, `blob_upload_duration`, `authentication_attempts_total`, `critical_exceptions_total`)
 - structured JSON logging (`LogstashEncoder`) with MDC context fields, queryable via KQL
-- 13 pre-built KQL diagnostic queries across 8 categories
+- 25 pre-built KQL diagnostic queries across 10 categories
 - `CriticalExceptionAlerter` — admin email with exponential backoff (1 min → 4h cap) and instance-ID correlation
 - `MaintenanceStalenessChecker` — alerts if the cleanup job hasn't completed in 12 hours
 - custom health indicators for Blob Storage and Redis feeding into App Service / Front Door routing

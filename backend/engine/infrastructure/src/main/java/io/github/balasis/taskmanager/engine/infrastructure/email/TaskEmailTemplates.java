@@ -6,7 +6,7 @@ public final class TaskEmailTemplates {
 
     private TaskEmailTemplates() {}
 
-    /* ── task notification (manual email button) ─────────────────────── */
+    /* task notification (manual email button) */
 
     public static String notifySubject(String taskTitle) {
         return "Task notification: " + taskTitle;
@@ -33,7 +33,7 @@ public final class TaskEmailTemplates {
         return sb.toString();
     }
 
-    /* ── group invitation ─────────────────────────────────────────────  */
+    /* group invitation */
 
     public static String inviteSubject(String groupName) {
         return "Group invitation: " + groupName;
@@ -56,7 +56,7 @@ public final class TaskEmailTemplates {
         return sb.toString();
     }
 
-    /* ── helpers ──────────────────────────────────────────────────────  */
+    /* helpers */
 
     private static String taskLink(String appUrl, Long groupId, Long taskId) {
         String base = (appUrl == null || appUrl.isBlank()) ? "http://localhost:5173" : appUrl;

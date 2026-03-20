@@ -695,7 +695,7 @@ public class GroupController extends BaseComponent {
         );
     }
 
-    // ── File Gallery & Per-File Review ─────────────────────────
+    // File Gallery & Per-File Review
 
     @GetMapping("/{groupId}/files")
     public ResponseEntity<List<GroupFileDto>> getGroupFiles(@PathVariable Long groupId) {
@@ -726,7 +726,7 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok().build();
     }
 
-    // ── Comment Intelligence ─────────────────────────────────────
+    // Comment Intelligence
 
     @GetMapping("/{groupId}/task/{taskId}/analysis-estimate")
     public ResponseEntity<TaskAnalysisEstimateResource> getAnalysisEstimate(
@@ -786,7 +786,7 @@ public class GroupController extends BaseComponent {
         return ResponseEntity.ok(Map.of("deleted", deleted));
     }
 
-    // ── private helpers ──────────────────────────────────────────
+    // private helpers
 
     private TaskOutboundResource mapAndEnrich(io.github.balasis.taskmanager.context.base.model.Task task, Long groupId) {
         var resource = taskOutboundMapper.toResource(task);

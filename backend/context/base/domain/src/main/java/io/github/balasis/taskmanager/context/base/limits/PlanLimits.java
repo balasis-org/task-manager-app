@@ -25,7 +25,7 @@ public class PlanLimits {
         return maxUsers;
     }
 
-    // ── group caps ──────────────────────────────────────────────
+    // group caps
 
     public int maxGroups(SubscriptionPlan plan) {
         return switch (plan) {
@@ -37,7 +37,7 @@ public class PlanLimits {
         };
     }
 
-    // ── member caps (per group) ──────────────────────────────────
+    // member caps (per group)
 
     public int maxMembersPerGroup(SubscriptionPlan plan) {
         return switch (plan) {
@@ -49,7 +49,7 @@ public class PlanLimits {
         };
     }
 
-    // ── task caps ───────────────────────────────────────────────
+    // task caps
 
     public int maxTasksPerGroup(SubscriptionPlan plan) {
         return switch (plan) {
@@ -61,7 +61,7 @@ public class PlanLimits {
         };
     }
 
-    // ── file-count caps (per task) ──────────────────────────────
+    // file-count caps (per task)
 
     public int maxCreatorFilesPerTask(SubscriptionPlan plan) {
         return switch (plan) {
@@ -83,14 +83,14 @@ public class PlanLimits {
         };
     }
 
-    // ── per-file size cap ───────────────────────────────────────
+    // per-file size cap
 
     // Plan-level default for the max single-file upload size in bytes.
     // All paid tiers share the hard-cap; real differentiation between tiers
     // is the total storage budget, not per-file size.
     public long maxFileSizeBytes(SubscriptionPlan plan) {
         return switch (plan) {
-            case FREE      -> 5L * 1024 * 1024;          //   5 MB
+            case FREE      -> 5L * 1024 * 1024;          // 5 MB
             case STUDENT   -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
             case ORGANIZER -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
             case TEAM      -> HARD_CAP_FILE_SIZE_BYTES;   // 100 MB
@@ -98,7 +98,7 @@ public class PlanLimits {
         };
     }
 
-    // ── storage budget (bytes) ────────────────────────────────
+    // storage budget (bytes)
 
     // Total bytes the group owner may store across all their groups.
     // FREE gets 100 MB (enough for normal use but below STUDENT at 500 MB),
@@ -108,27 +108,27 @@ public class PlanLimits {
         return switch (plan) {
             case FREE      -> 100L * 1024 * 1024;          // 100 MB
             case STUDENT   -> 500L  * 1024 * 1024;       // 500 MB
-            case ORGANIZER -> 2L    * 1024 * 1024 * 1024; //   2 GB
-            case TEAM      -> 5L    * 1024 * 1024 * 1024; //   5 GB
-            case TEAMS_PRO -> 5L    * 1024 * 1024 * 1024; //   5 GB
+            case ORGANIZER -> 2L    * 1024 * 1024 * 1024; // 2 GB
+            case TEAM      -> 5L    * 1024 * 1024 * 1024; // 5 GB
+            case TEAMS_PRO -> 5L    * 1024 * 1024 * 1024; // 5 GB
         };
     }
 
-    // ── monthly download budget (bytes, 0 = no budget tracking) ─
+    // monthly download budget (bytes, 0 = no budget tracking)
 
     // Monthly download budget in bytes. Tracked on the owner, charged when
     // any group member downloads a file. Reset monthly by maintenance.
     public long downloadBudgetBytes(SubscriptionPlan plan) {
         return switch (plan) {
-            case FREE      -> 500L  * 1024 * 1024;        //  500 MB
-            case STUDENT   -> 4L    * 1024 * 1024 * 1024; //    4 GB
-            case ORGANIZER -> 25L   * 1024 * 1024 * 1024; //   25 GB
-            case TEAM      -> 50L   * 1024 * 1024 * 1024; //   50 GB
-            case TEAMS_PRO -> 50L   * 1024 * 1024 * 1024; //   50 GB
+            case FREE      -> 500L  * 1024 * 1024;        // 500 MB
+            case STUDENT   -> 4L    * 1024 * 1024 * 1024; // 4 GB
+            case ORGANIZER -> 25L   * 1024 * 1024 * 1024; // 25 GB
+            case TEAM      -> 50L   * 1024 * 1024 * 1024; // 50 GB
+            case TEAMS_PRO -> 50L   * 1024 * 1024 * 1024; // 50 GB
         };
     }
 
-    // ── monthly email quota (0 = emails disabled for tier) ──────
+    // monthly email quota (0 = emails disabled for tier)
 
     // Max outbound emails per month for groups this user owns.
     // FREE and STUDENT get 0 (email is an Organizer+ feature).
@@ -144,7 +144,7 @@ public class PlanLimits {
         };
     }
 
-    // ── group-creation window cap ───────────────────────────────
+    // group-creation window cap
 
     // Max groups a user can create between maintenance resets.
     // Prevents delete-and-recreate abuse that piles up orphan blobs.
@@ -158,17 +158,17 @@ public class PlanLimits {
         };
     }
 
-    // ── download timeout tiers ──────────────────────────────────
+    // download timeout tiers
 
     // Per-tier caps on download duration. Keeps free-tier tight to limit
     // abuse surface; paying users get progressively more headroom.
     public long downloadTimeoutCapMs(SubscriptionPlan plan) {
         return switch (plan) {
-            case FREE      ->  30_000;  //  30 s — plenty for 5 MB max
-            case STUDENT   ->  60_000;  //  1 min
-            case ORGANIZER ->  90_000;  //  1.5 min
-            case TEAM      -> 120_000;  //  2 min
-            case TEAMS_PRO -> 120_000;  //  2 min
+            case FREE      ->  30_000;  // 30 s — plenty for 5 MB max
+            case STUDENT   ->  60_000;  // 1 min
+            case ORGANIZER ->  90_000;  // 1.5 min
+            case TEAM      -> 120_000;  // 2 min
+            case TEAMS_PRO -> 120_000;  // 2 min
         };
     }
 
@@ -184,14 +184,14 @@ public class PlanLimits {
         return Math.max(10_000, Math.min(cap, unclamped));
     }
 
-    // ── helpers: plan-awareness check ───────────────────────────
+    // helpers: plan-awareness check
 
     // True for any paid tier
     public boolean isPaid(SubscriptionPlan plan) {
         return plan != SubscriptionPlan.FREE;
     }
 
-    // ── monthly image-scan budget ───────────────────────────────
+    // monthly image-scan budget
 
     // Max Content Safety scans per month for image uploads.
     // FREE tier can't upload custom images (0 scans).
@@ -207,7 +207,7 @@ public class PlanLimits {
         };
     }
 
-    // ── monthly task-analysis credit budget ──────────────────────
+    // monthly task-analysis credit budget
 
     public int taskAnalysisCreditsPerMonth(SubscriptionPlan plan) {
         return switch (plan) {
@@ -219,7 +219,7 @@ public class PlanLimits {
         };
     }
 
-    // ── helpers: pro-tier check ─────────────────────────────────
+    // helpers: pro-tier check
 
     public boolean isPaidPro(SubscriptionPlan plan) {
         return plan == SubscriptionPlan.TEAMS_PRO;
