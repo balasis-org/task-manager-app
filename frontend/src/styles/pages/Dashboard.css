@@ -25,6 +25,13 @@
     border-bottom-color: var(--border-primary);
 }
 
+.dashboard-description {
+    padding: 0.5em 1em;
+    font-size: 0.81em;
+    color: var(--text-secondary);
+    border-bottom: 0.06em solid var(--border-primary);
+}
+
 .dashboard-tasks {
     flex: 1;
     overflow-x: auto;
@@ -107,9 +114,9 @@
 
 .dashboard-downgrade-banner {
     padding: 0.5em 1em;
-    background: var(--downgrade-bg, #ffe0e0);
-    color: var(--downgrade-text, #8b1a1a);
-    border: 1px solid var(--downgrade-border, #e57373);
+    background: #ffe0e0;
+    color: #8b1a1a;
+    border: 1px solid #e57373;
     border-radius: 6px;
     margin: 0.5em 0.75em;
     font-size: 0.82em;
