@@ -16,7 +16,7 @@ class PlanLimitsTest {
         planLimits = new PlanLimits();
     }
 
-    // ── group caps ──────────────────────────────────────────────
+    // group caps
 
     @Test
     void maxGroups_freeIsLowest_teamIsHighest() {
@@ -33,7 +33,7 @@ class PlanLimitsTest {
         assertEquals(2, groupCap(SubscriptionPlan.FREE));
     }
 
-    // ── member caps ─────────────────────────────────────────────
+    // member caps
 
     @Test
     void maxMembersPerGroup_freeIsLowest_teamIsHighest() {
@@ -45,7 +45,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── task caps ───────────────────────────────────────────────
+    // task caps
 
     @Test
     void maxTasksPerGroup_freeIsLowest_teamIsHighest() {
@@ -57,7 +57,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── file count caps ─────────────────────────────────────────
+    // file count caps
 
     @Test
     void maxCreatorFilesPerTask_freeGetsOneFile() {
@@ -69,7 +69,7 @@ class PlanLimitsTest {
         assertEquals(2, planLimits.maxAssigneeFilesPerTask(SubscriptionPlan.FREE));
     }
 
-    // ── file size caps ──────────────────────────────────────────
+    // file size caps
 
     @Test
     void maxFileSizeBytes_freeGetsFiveMegabytes() {
@@ -85,7 +85,7 @@ class PlanLimitsTest {
         assertEquals(hundredMb, fileSizeCap(SubscriptionPlan.TEAM));
     }
 
-    // ── storage budget ──────────────────────────────────────────
+    // storage budget
 
     @Test
     void storageBudgetBytes_freeGetsHundredMegabytes() {
@@ -103,7 +103,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── download budget ─────────────────────────────────────────
+    // download budget
 
     @Test
     void downloadBudgetBytes_allTiersPositiveAndIncreasing() {
@@ -115,7 +115,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── email quota ─────────────────────────────────────────────
+    // email quota
 
     @Test
     void emailQuotaPerMonth_freeAndStudentGetZero() {
@@ -129,7 +129,7 @@ class PlanLimitsTest {
                 < planLimits.emailQuotaPerMonth(SubscriptionPlan.TEAM));
     }
 
-    // ── image scans ─────────────────────────────────────────────
+    // image scans
 
     @Test
     void imageScansPerMonth_freeGetsZero() {
@@ -146,7 +146,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── isPaid ──────────────────────────────────────────────────
+    // isPaid
 
     @Test
     void isPaid_freeReturnsFalse() {
@@ -160,7 +160,7 @@ class PlanLimitsTest {
         assertTrue(planLimits.isPaid(SubscriptionPlan.TEAM));
     }
 
-    // ── download timeout ────────────────────────────────────────
+    // download timeout
 
     @Test
     void downloadTimeoutCapMs_freeIsLowest_teamIsHighest() {
@@ -195,7 +195,7 @@ class PlanLimitsTest {
                 "paid tier should get at least as much time as free");
     }
 
-    // ── group creation window ───────────────────────────────────
+    // group creation window
 
     @Test
     void maxGroupCreationsPerWindow_freeIsLowest_teamIsHighest() {
@@ -207,7 +207,7 @@ class PlanLimitsTest {
         );
     }
 
-    // ── private helpers ─────────────────────────────────────────
+    // private helpers
 
     private int groupCap(SubscriptionPlan plan) {
         return planLimits.maxGroups(plan);

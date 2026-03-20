@@ -125,7 +125,7 @@ public interface GroupService{
     // Lightweight membership gate — throws if the caller is not a member
     void checkMembership(Long groupId);
 
-    // ── Comment Intelligence (Teams Pro only) ─────────────────
+    // Comment Intelligence (Teams Pro only)
     // AI-driven analysis of task comment threads. estimate shows the
     // credit cost before the user commits; requestAnalysis actually
     // queues the work; getAnalysisSnapshot returns the results.
@@ -136,7 +136,7 @@ public interface GroupService{
 
     TaskAnalysisSnapshot getAnalysisSnapshot(Long groupId, Long taskId);
 
-    // ── File Gallery & Per-File Review ──────────────────────────    // browse all files across all tasks in one place,
+    // File Gallery & Per-File Review     // browse all files across all tasks in one place,
     // plus per-file approve/reject by reviewers
     List<GroupFileDto> getGroupFiles(Long groupId);
 

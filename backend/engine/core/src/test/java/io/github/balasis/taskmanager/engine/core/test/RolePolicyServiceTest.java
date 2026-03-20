@@ -18,7 +18,7 @@ class RolePolicyServiceTest {
         rolePolicyService = new RolePolicyService();
     }
 
-    // ── reviewer eligibility ────────────────────────────────────
+    // reviewer eligibility
 
     @Test
     void canBeReviewer_guestIsNotAllowed() {
@@ -45,7 +45,7 @@ class RolePolicyServiceTest {
         assertTrue(checkReviewer(Role.GROUP_LEADER));
     }
 
-    // ── assignee eligibility ────────────────────────────────────
+    // assignee eligibility
 
     @Test
     void canBeAssignee_guestIsNotAllowed() {
@@ -72,7 +72,7 @@ class RolePolicyServiceTest {
         assertTrue(checkAssignee(Role.GROUP_LEADER));
     }
 
-    // ── role sets ───────────────────────────────────────────────
+    // role sets
 
     @Test
     void getAllowedReviewerRoles_containsExactlyThreeRoles() {
@@ -96,7 +96,7 @@ class RolePolicyServiceTest {
                 "every reviewer should also be eligible as an assignee");
     }
 
-    // ── private helpers ─────────────────────────────────────────
+    // private helpers
 
     private boolean checkReviewer(Role role) {
         return rolePolicyService.canBeReviewer(role);

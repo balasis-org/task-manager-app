@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class TaskAnalysisSnapshotResource implements Serializable {
 
-    // ── Analysis section (nullable until analysis run) ──────────
+    // Analysis section (nullable until analysis run)
     private String overallSentiment;
     private Double overallConfidence;
     private Integer positiveCount;
@@ -28,7 +28,7 @@ public class TaskAnalysisSnapshotResource implements Serializable {
     private Instant analyzedAt;
     private boolean analysisStale;
 
-    // ── Summary section (nullable until summary run) ────────────
+    // Summary section (nullable until summary run)
     private String summaryText;
     private Integer summaryCommentCount;
     private Instant summarizedAt;

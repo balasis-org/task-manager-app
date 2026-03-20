@@ -154,7 +154,7 @@ public class DataLoader extends BaseComponent {
         return created;
     }
 
-    // ── Free Tier Group (leader: Lena, cap 8) ─────────────────────
+    // Free Tier Group (leader: Lena, cap 8)
     private void seedFreeTierGroup(Map<String, User> users) {
         logger.trace("Seeding Free Tier Group...");
 
@@ -169,7 +169,7 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    // ── Student Tier Group (leader: Marco, cap 20) ──────────────
+    // Student Tier Group (leader: Marco, cap 20)
     private void seedStudentTierGroup(Map<String, User> users) {
         logger.trace("Seeding Student Tier Group...");
 
@@ -191,7 +191,7 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    // ── Organizer Tier Group (leader: Nina, cap 30) ─────────────
+    // Organizer Tier Group (leader: Nina, cap 30)
     private void seedOrganizerTierGroup(Map<String, User> users) {
         logger.trace("Seeding Organizer Tier Group...");
 
@@ -213,7 +213,7 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    // ── Teams Pro Tier Group (leader: Alina, cap 50) ────────────────
+    // Teams Pro Tier Group (leader: Alina, cap 50)
     private void seedTeamsProTierGroup(Map<String, User> users) {
         logger.trace("Seeding Teams Pro Tier Group...");
 
@@ -235,7 +235,7 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    // ── Team Tier Group (leader: Tomas, cap 50, stress-test target) ──
+    // Team Tier Group (leader: Tomas, cap 50, stress-test target)
     private void seedTeamTierGroup(Map<String, User> users) {
         logger.trace("Seeding Team Tier Group (stress target)...");
 
@@ -391,7 +391,7 @@ public class DataLoader extends BaseComponent {
         });
     }
 
-    // ── Near-limit budget seeding ────────────────────────────────────
+    // Near-limit budget seeding
     // All tier leaders are fully consumed except ALINA (TEAMS_PRO),
     // who keeps a tiny gap — the only account that can still use resources.
     // sets all tier leaders to their plan's exact limits (fully consumed) except
