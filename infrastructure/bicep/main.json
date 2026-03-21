@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "4252853890295209238"
+      "templateHash": "17826624632018426528"
     }
   },
   "parameters": {
@@ -89,7 +89,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually."
+        "description": "Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually (IPv4 + IPv6 /64 prefix)."
       }
     },
     "containerImageOverride": {
@@ -146,6 +146,13 @@
       "defaultValue": "",
       "metadata": {
         "description": "Value for X-Stress-Nonce header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_NONCE env var."
+      }
+    },
+    "devAuthSecret": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "App-level gate for dev-auth endpoints. When set, fake-login requires this value as X-Dev-Auth-Key header or DevGate cookie. Empty = no gate (local dev)."
       }
     },
     "alertEmailAddress": {
@@ -250,7 +257,7 @@
         "matchConditions": [
           {
             "matchVariable": "RequestUri",
-            "operator": "BeginsWith",
+            "operator": "Contains",
             "negateCondition": false,
             "matchValue": [
               "/"
@@ -628,6 +635,18 @@
       ]
     },
     {
+      "condition": "[not(empty(parameters('devAuthSecret')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-DEV-AUTH-SECRET')]",
+      "properties": {
+        "value": "[parameters('devAuthSecret')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.KeyVault/vaults/secrets",
       "apiVersion": "2023-07-01",
       "name": "[format('{0}/{1}', variables('keyVaultName'), 'TASKMANAGER-APP-INSIGHT-CONN-STR-PROD')]",
@@ -675,7 +694,8 @@
         "name": "S0"
       },
       "properties": {
-        "publicNetworkAccess": "Enabled"
+        "publicNetworkAccess": "Enabled",
+        "restore": true
       }
     },
     {
@@ -689,7 +709,8 @@
         "name": "S"
       },
       "properties": {
-        "publicNetworkAccess": "Enabled"
+        "publicNetworkAccess": "Enabled",
+        "restore": true
       }
     },
     {
@@ -969,48 +990,7 @@
               }
             }
           ],
-          "appSettings": [
-            {
-              "name": "MANAGED_IDENTITY_CLIENT_ID",
-              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId]"
-            },
-            {
-              "name": "KEYVAULT_URI",
-              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri]"
-            },
-            {
-              "name": "SPRING_PROFILES_ACTIVE",
-              "value": "[parameters('springProfilesActive')]"
-            },
-            {
-              "name": "DOCKER_REGISTRY_SERVER_URL",
-              "value": "[format('https://{0}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer)]"
-            },
-            {
-              "name": "DOCKER_REGISTRY_SERVER_USERNAME",
-              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').username]"
-            },
-            {
-              "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
-              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').passwords[0].value]"
-            },
-            {
-              "name": "APP_PUBLIC_URL",
-              "value": "[if(variables('useCustomDomain'), format('https://{0}', parameters('customDomainHost')), format('https://{0}', reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName'))), '2024-02-01').hostName))]"
-            },
-            {
-              "name": "WEBSITES_PORT",
-              "value": "8080"
-            },
-            {
-              "name": "WEBSITES_CONTAINER_STOP_TIME_LIMIT",
-              "value": "30"
-            },
-            {
-              "name": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
-              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=TASKMANAGER-AUTH-CLIENT-SECRET)', variables('keyVaultName'))]"
-            }
-          ]
+          "appSettings": "[flatten(createArray(createArray(createObject('name', 'MANAGED_IDENTITY_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('projectName'))), '2023-01-31').clientId), createObject('name', 'KEYVAULT_URI', 'value', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri), createObject('name', 'SPRING_PROFILES_ACTIVE', 'value', parameters('springProfilesActive')), createObject('name', 'DOCKER_REGISTRY_SERVER_URL', 'value', format('https://{0}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').loginServer)), createObject('name', 'DOCKER_REGISTRY_SERVER_USERNAME', 'value', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').username), createObject('name', 'DOCKER_REGISTRY_SERVER_PASSWORD', 'value', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-11-01-preview').passwords[0].value), createObject('name', 'APP_PUBLIC_URL', 'value', if(variables('useCustomDomain'), format('https://{0}', parameters('customDomainHost')), format('https://{0}', reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), format('{0}-endpoint', parameters('projectName'))), '2024-02-01').hostName))), createObject('name', 'WEBSITES_PORT', 'value', '8080'), createObject('name', 'WEBSITES_CONTAINER_STOP_TIME_LIMIT', 'value', '30'), createObject('name', 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TASKMANAGER-AUTH-CLIENT-SECRET)', variables('keyVaultName')))), if(empty(parameters('devAuthSecret')), createArray(), createArray(createObject('name', 'DEV_AUTH_SECRET', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName=TASKMANAGER-DEV-AUTH-SECRET)', variables('keyVaultName')))))))]"
         }
       },
       "dependsOn": [
@@ -1808,6 +1788,7 @@
         "originGroup": {
           "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'api-origin-group')]"
         },
+        "originPath": "/",
         "patternsToMatch": [
           "/api/*"
         ],

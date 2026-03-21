@@ -55,7 +55,7 @@ param authAppTenantId string
 @description('Custom domain hostname (e.g. www.myteamtasks.net). Leave empty to skip.')
 param customDomainHost string = ''
 
-@description('Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually.')
+@description('Blocks all traffic by default. For arena deploys the tester adds a higher-priority IP whitelist rule manually (IPv4 + IPv6 /64 prefix).')
 param enableWafBlockAll bool = false
 
 @description('Override image for Container App Jobs on first deploy (ACR is empty). Leave blank after CI/CD has pushed images.')
@@ -1533,6 +1533,7 @@ resource routeBackend 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = 
   name: 'taskmanager-backend'
   properties: {
     originGroup: { id: fdOriginGroupApi.id }
+    originPath: '/'
     patternsToMatch: ['/api/*']
     supportedProtocols: ['Http', 'Https']
     httpsRedirect: 'Enabled'

@@ -21,8 +21,10 @@ using './main.bicep'
 //
 //  After deployment:
 //    1. In the Azure portal, add a WAF custom rule "AllowMyIP"
-//       with priority 1 that allows your tester IP (required
-//       because enableWafBlockAll = true).
+//       with priority 2 that allows your tester IPv4 and IPv6 /64
+//       prefix (e.g. 2a02:214a:8406:5500::/64). Use /64 because
+//       IPv6 Privacy Extensions (RFC 4941) rotate the interface ID.
+//       Required because enableWafBlockAll = true.
 //    2. Push the container image to the arena ACR.
 //    3. Run the appropriate k6 scripts from task-manager-k6scripts/.
 //
@@ -63,7 +65,7 @@ param authAppTenantId = readEnvironmentVariable('ARENA_AUTH_TENANT_ID', '')
 // Deployer RBAC (get your object ID: az ad signed-in-user show --query id -o tsv)
 param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
 
-// Block all traffic by default; tester adds own IP whitelist in portal
+// Block all traffic by default; tester adds own IPv4 + IPv6 /64 whitelist in portal
 param enableWafBlockAll = true
 
 // ═══════════════════════════════════════════════════════════════

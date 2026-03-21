@@ -5,7 +5,7 @@ using './main.bicep'
 // See main-arena.bicepparam.example for the full template.
 //   - Spring profile: prod-arena-stress,DataLoader
 //   - WAF IP rate limits: disabled (k6 shares a single source IP)
-//   - BlockAllTraffic: enabled (tester adds own IP whitelist manually)
+//   - BlockAllTraffic: enabled (tester adds own IPv4 + IPv6 /64 whitelist manually)
 
 // Core
 param location = 'italynorth'

@@ -76,6 +76,10 @@ jobs:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
           ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
           ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
+          DEPLOYER_PRINCIPAL_ID: ${{ secrets.DEPLOYER_PRINCIPAL_ID }}
+          DEV_AUTH_SECRET: ${{ secrets.DEV_AUTH_SECRET }}
+          STRESS_PASSPHRASE_KEY: ${{ secrets.STRESS_PASSPHRASE_KEY }}
+          STRESS_PASSPHRASE_NONCE: ${{ secrets.STRESS_PASSPHRASE_NONCE }}
         run: |
           EXTRA_PARAMS=""
           if [ "${{ inputs.first_deploy }}" = "true" ]; then
@@ -92,6 +96,10 @@ jobs:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
           ARENA_AUTH_CLIENT_ID: ${{ secrets.ARENA_AUTH_CLIENT_ID }}
           ARENA_AUTH_TENANT_ID: ${{ secrets.ARENA_AUTH_TENANT_ID }}
+          DEPLOYER_PRINCIPAL_ID: ${{ secrets.DEPLOYER_PRINCIPAL_ID }}
+          DEV_AUTH_SECRET: ${{ secrets.DEV_AUTH_SECRET }}
+          STRESS_PASSPHRASE_KEY: ${{ secrets.STRESS_PASSPHRASE_KEY }}
+          STRESS_PASSPHRASE_NONCE: ${{ secrets.STRESS_PASSPHRASE_NONCE }}
         run: |
           EXTRA_PARAMS=""
           if [ "${{ inputs.first_deploy }}" = "true" ]; then
