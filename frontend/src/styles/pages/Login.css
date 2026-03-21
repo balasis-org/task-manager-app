@@ -233,6 +233,25 @@
     border-color: var(--border-focus);
 }
 
+.login-field-input {
+    padding: 0.56em 0.75em;
+    border: 0.06em solid var(--border-input);
+    border-radius: 0.375em;
+    font-size: 0.875em;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.login-field-input:focus {
+    border-color: var(--border-focus);
+}
+
+.login-field-input::placeholder {
+    color: var(--text-disabled);
+}
+
 .login-btn-dev {
     background: var(--bg-active);
     color: var(--text-secondary);

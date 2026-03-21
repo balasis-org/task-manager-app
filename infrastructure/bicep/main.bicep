@@ -84,6 +84,10 @@ param stressPassphraseKey string = ''
 @description('Value for X-Stress-Nonce header (WAF allow rule). Only used with stress profiles. Set via STRESS_PASSPHRASE_NONCE env var.')
 param stressPassphraseNonce string = ''
 
+@secure()
+@description('App-level gate for dev-auth endpoints. When set, fake-login requires this value as X-Dev-Auth-Key header or DevGate cookie. Empty = no gate (local dev).')
+param devAuthSecret string = ''
+
 // --- Parameters: Observability ---
 
 @description('Email address for Azure alert notifications (budget, origin health). Leave empty to skip alert resources.')
@@ -436,6 +440,14 @@ resource kvSecretAcsAdminEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-07-01'
   }
 }
 
+resource kvSecretDevAuthSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(devAuthSecret)) {
+  parent: keyVault
+  name: 'TASKMANAGER-DEV-AUTH-SECRET'
+  properties: {
+    value: devAuthSecret
+  }
+}
+
 resource kvSecretAppInsightsProd 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'TASKMANAGER-APP-INSIGHT-CONN-STR-PROD'
@@ -734,6 +746,9 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'WEBSITES_PORT', value: '8080' }
         { name: 'WEBSITES_CONTAINER_STOP_TIME_LIMIT', value: '30' }
         { name: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TASKMANAGER-AUTH-CLIENT-SECRET)' }
+        ...(empty(devAuthSecret) ? [] : [
+          { name: 'DEV_AUTH_SECRET', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=TASKMANAGER-DEV-AUTH-SECRET)' }
+        ])
       ]
     }
   }
@@ -995,7 +1010,7 @@ var blockAllRule = [
     matchConditions: [
       {
         matchVariable: 'RequestUri'
-        operator: 'BeginsWith'
+        operator: 'Contains'
         negateCondition: false
         matchValue: ['/']
         transforms: []

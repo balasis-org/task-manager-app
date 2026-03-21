@@ -16,6 +16,7 @@ spring:
 
 app:
   jwt-secret-name: TASKMANAGER-JWT-SECRET
+  dev-auth-secret: ${DEV_AUTH_SECRET:}
   hikari:
     maximum-pool-size: 8
     minimum-idle: 4

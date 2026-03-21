@@ -2,15 +2,20 @@
 // and typed request wrappers. all requests go through BASE_URL.
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, STRESS_KEY, STRESS_NONCE, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
+import { BASE_URL, STRESS_KEY, STRESS_NONCE, DEV_AUTH_KEY, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
 
 // Stress header injection — if STRESS_KEY and STRESS_NONCE are set, every request
 // includes them so the WAF AllowStressHeaders rule lets traffic through.
 function stressHeaders() {
+    const hdrs = {};
     if (STRESS_KEY && STRESS_NONCE) {
-        return { "X-Stress-Key": STRESS_KEY, "X-Stress-Nonce": STRESS_NONCE };
+        hdrs["X-Stress-Key"] = STRESS_KEY;
+        hdrs["X-Stress-Nonce"] = STRESS_NONCE;
     }
-    return {};
+    if (DEV_AUTH_KEY) {
+        hdrs["X-Dev-Auth-Key"] = DEV_AUTH_KEY;
+    }
+    return hdrs;
 }
 
 export function extractCookiesFromResponse(response) {

@@ -10,6 +10,10 @@ export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 export const STRESS_KEY   = __ENV.STRESS_KEY   || "";
 export const STRESS_NONCE = __ENV.STRESS_NONCE || "";
 
+// Dev-auth app-level gate — sent as X-Dev-Auth-Key header on /auth/fake-login.
+// Usage: k6 run --env DEV_AUTH_KEY=<value> ...
+export const DEV_AUTH_KEY = __ENV.DEV_AUTH_KEY || "";
+
 // One group leader per subscription tier
 export const TIER_LEADERS = {
     FREE:      { email: "lena.dev@example.com",   name: "Lena Dev",   plan: "FREE" },

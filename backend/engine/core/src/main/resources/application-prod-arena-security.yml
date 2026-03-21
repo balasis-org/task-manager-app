@@ -8,6 +8,7 @@ spring:
 
 app:
   jwt-secret-name: TASKMANAGER-JWT-SECRET
+  dev-auth-secret: ${DEV_AUTH_SECRET:}
   security-guard:
     max-concurrent-requests: 3
     hourly-request-budget: 500
