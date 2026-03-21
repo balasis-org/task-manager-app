@@ -116,6 +116,10 @@ all three environments can share the same SP credentials if the SP has subscript
 |--------|--------|-------------|
 | `ARENA_AUTH_CLIENT_ID` | guide 02 | **Auth App** Registration client ID — the app from [guide 02](manual-setup/02-create-auth-app-registration.md), **not** the CI/CD SP from guide 01 |
 | `ARENA_AUTH_TENANT_ID` | guide 02 | **Auth App** Registration tenant ID |
+| `DEPLOYER_PRINCIPAL_ID` | `az ad signed-in-user show --query id -o tsv` | Your Entra ID object ID — used for RBAC role assignments on arena resources |
+| `DEV_AUTH_SECRET` | you generate | App-level gate for dev-auth endpoints (`/auth/dev-unlock`, `/auth/fake-login`). Generate: `-join ((48..57)+(65..90)+(97..122) \| Get-Random -Count 32 \| % {[char]$_})` |
+| `STRESS_PASSPHRASE_KEY` | you generate | WAF header-auth key for stress testing (arena-stress only). Generate same way as above |
+| `STRESS_PASSPHRASE_NONCE` | you generate | WAF header-auth nonce for stress testing (arena-stress only). Generate same way as above |
 
 > **Why arena externalises Auth App IDs but production hardcodes them:**
 > Client IDs and tenant IDs are public identifiers (they appear in redirect URIs and OpenID discovery documents) — they are not secrets.
