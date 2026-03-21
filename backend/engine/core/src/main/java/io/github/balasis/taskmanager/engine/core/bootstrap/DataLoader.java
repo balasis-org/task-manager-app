@@ -9,10 +9,12 @@ import io.github.balasis.taskmanager.context.base.enumeration.InvitationStatus;
 import io.github.balasis.taskmanager.context.base.enumeration.ReviewersDecision;
 import io.github.balasis.taskmanager.context.base.enumeration.Role;
 import io.github.balasis.taskmanager.context.base.enumeration.TaskState;
+import io.github.balasis.taskmanager.context.base.model.BootstrapLock;
 import io.github.balasis.taskmanager.context.base.model.Group;
 import io.github.balasis.taskmanager.context.base.model.Task;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.shared.enums.BlobContainerType;
+import io.github.balasis.taskmanager.engine.core.repository.BootstrapLockRepository;
 import io.github.balasis.taskmanager.engine.core.repository.GroupInvitationRepository;
 import io.github.balasis.taskmanager.engine.core.repository.UserRepository;
 import io.github.balasis.taskmanager.engine.core.service.DefaultImageService;
@@ -25,7 +27,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -47,42 +52,79 @@ public class DataLoader extends BaseComponent {
     private static final String GROUP_A_LEADER_AZURE_KEY = "dev-fake:lena.dev@example.com";
 
     private final UserRepository userRepository;
+    private final BootstrapLockRepository bootstrapLockRepository;
     private final GroupInvitationRepository groupInvitationRepository;
     private final GroupService groupService;
     private final UserContext userContext;
     private final DefaultImageService defaultImageService;
     private final StartupGate startupGate;
+    private final PlatformTransactionManager transactionManager;
 
-    // idempotent: if lena already exists, the whole data load is skipped.
-    // the finally block marks StartupGate as data-ready even on failure,
-    // otherwise the app would stay in 503 mode forever.
+    // multi-instance safe: a database pessimistic lock (SELECT FOR UPDATE on
+    // BootstrapLocks) ensures only one App Service instance seeds the database.
+    // the losing instance blocks until the winner commits, then reads
+    // completed=true and skips. the finally block marks StartupGate as
+    // data-ready even on skip/failure, otherwise the app stays in 503 mode.
     @EventListener(ApplicationReadyEvent.class)
     @Order(Ordered.LOWEST_PRECEDENCE)
     public void onApplicationReady(ApplicationReadyEvent evt)  {
         logger.trace("=== Running DataLoader ===");
 
         try {
+            // fast path: if seed data already exists, skip without touching the lock
             if (userRepository.existsByAzureKey(GROUP_A_LEADER_AZURE_KEY)) {
                 logger.trace("Seed users already exist; skipping DataLoader run.");
                 return;
             }
 
-            Map<String, User> users = seedUsers();
-            try {
-                seedFreeTierGroup(users);
-                seedStudentTierGroup(users);
-                seedOrganizerTierGroup(users);
-                seedTeamTierGroup(users);
-                seedTeamsProTierGroup(users);
-            } finally {
-                userContext.clear();
-            }
+            ensureLockRowExists();
 
-            applyNearLimitBudgets(users);
+            new TransactionTemplate(transactionManager).execute(status -> {
+                BootstrapLock lock = bootstrapLockRepository
+                        .findByNameForUpdate("DATA_LOADER").orElseThrow();
 
-            logger.trace("=== DataLoader finished ===");
+                if (lock.isCompleted()) {
+                    logger.trace("Another instance already seeded; skipping.");
+                    return null;
+                }
+
+                Map<String, User> users = seedUsers();
+                try {
+                    seedFreeTierGroup(users);
+                    seedStudentTierGroup(users);
+                    seedOrganizerTierGroup(users);
+                    seedTeamTierGroup(users);
+                    seedTeamsProTierGroup(users);
+                } finally {
+                    userContext.clear();
+                }
+
+                applyNearLimitBudgets(users);
+
+                lock.setCompleted(true);
+                logger.trace("=== DataLoader finished ===");
+                return null;
+            });
         } finally {
             startupGate.markDataReady();
+        }
+    }
+
+    // bootstraps the lock row for profiles that use ddl-auto:create (Hibernate
+    // creates the empty table but no seed data). Flyway profiles get the row
+    // from the V10 migration. a DataIntegrityViolationException is caught ONLY
+    // here — it covers the narrow (dev-only) window where two instances try to
+    // INSERT the initial lock row simultaneously.
+    private void ensureLockRowExists() {
+        if (bootstrapLockRepository.findByName("DATA_LOADER").isPresent()) {
+            return;
+        }
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                    bootstrapLockRepository.saveAndFlush(
+                            BootstrapLock.builder().name("DATA_LOADER").completed(false).build()));
+        } catch (DataIntegrityViolationException ignored) {
+            // another instance created the row concurrently — safe to proceed
         }
     }
 
