@@ -56,3 +56,15 @@ CREATE UNIQUE INDEX UX_FRS_AssigneeFile_Reviewer
 -- Lookup: "all reviews for files in task X" — join through TaskFiles/TaskAssigneeFiles
 CREATE INDEX IX_FRS_TaskFile         ON FileReviewStatuses (taskFileId)         WHERE taskFileId IS NOT NULL;
 CREATE INDEX IX_FRS_AssigneeFile     ON FileReviewStatuses (taskAssigneeFileId) WHERE taskAssigneeFileId IS NOT NULL;
+
+-- ── 3. Bootstrap lock for multi-instance DataLoader coordination ────
+
+CREATE TABLE [BootstrapLocks] (
+    [id]        BIGINT      IDENTITY(1,1) PRIMARY KEY,
+    [name]      VARCHAR(50) NOT NULL,
+    [completed] BIT         NOT NULL DEFAULT 0,
+
+    CONSTRAINT UQ_BootstrapLocks_Name UNIQUE ([name])
+);
+
+INSERT INTO [BootstrapLocks] ([name], [completed]) VALUES ('DATA_LOADER', 0);
