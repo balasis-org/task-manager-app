@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import { Navigate, Link, useLocation } from "react-router-dom";
 import { AuthContext } from "@context/AuthContext";
 import { apiPost } from "@assets/js/apiClient";
-import { FiUsers, FiLogIn, FiTool } from "react-icons/fi";
+import { FiUsers, FiLogIn, FiTool, FiLock } from "react-icons/fi";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/Login.css";
 
@@ -47,6 +47,7 @@ export default function Login() {
     const [devOpen, setDevOpen] = useState(false);
     const [fakeEmail, setFakeEmail] = useState(DEV_USERS[0].email);
     const [fakePlan, setFakePlan] = useState("");
+    const [devKey, setDevKey] = useState("");
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
 
@@ -70,6 +71,16 @@ export default function Login() {
         setError("");
         setBusy(true);
         try {
+            // if a dev key is provided, set the DevGate cookie first
+            if (devKey) {
+                const gate = await fetch(
+                    `/api/auth/dev-unlock?key=${encodeURIComponent(devKey)}`,
+                    { credentials: "include", redirect: "manual" }
+                );
+                if (!gate.ok && gate.type !== "opaqueredirect") {
+                    throw { status: 403, message: "Invalid dev key" };
+                }
+            }
             const name = fakeEmail.split("@")[0].replace(".dev", "");
             const body = { email: fakeEmail, name };
             if (fakePlan) body.subscriptionPlan = fakePlan;
@@ -80,9 +91,11 @@ export default function Login() {
             window.location.reload();
         } catch (err) {
             setError(
-                err?.status === 503
-                    ? err.message
-                    : "Login failed. Please check your credentials."
+                err?.status === 403
+                    ? "Invalid dev key."
+                    : err?.status === 503
+                        ? err.message
+                        : "Login failed. Please check your credentials."
             );
         } finally {
             setBusy(false);
@@ -177,6 +190,20 @@ export default function Login() {
                                         ))}
                                     </optgroup>
                                 </select>
+                            </label>
+
+                            <label className="login-field">
+                                <span className="login-field-label">
+                                    <FiLock size={13} /> Dev key
+                                </span>
+                                <input
+                                    type="password"
+                                    className="login-field-input"
+                                    value={devKey}
+                                    onChange={(e) => setDevKey(e.target.value)}
+                                    placeholder="Leave empty for local dev"
+                                    autoComplete="off"
+                                />
                             </label>
 
                             <label className="login-field">

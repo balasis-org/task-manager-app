@@ -40,3 +40,7 @@ param enableEmailServices = false      // NoOp email beans — ACS not needed
 param wafGlobalRateLimit = 2000    // production value — WAF is tested surface
 param wafAuthRateLimit = 200       // production value — WAF is tested surface
 param enableObservabilityAlerts = false
+
+// Dev-auth app-level gate — visit /auth/dev-unlock?key=<value> once to set browser cookie.
+// Generate: $env:DEV_AUTH_SECRET = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 32 | % {[char]$_})
+param devAuthSecret = readEnvironmentVariable('DEV_AUTH_SECRET', '')

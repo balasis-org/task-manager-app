@@ -46,3 +46,7 @@ param enableObservabilityAlerts = false
 // Give both values to the stress tester for k6 --env flags.
 param stressPassphraseKey = readEnvironmentVariable('STRESS_PASSPHRASE_KEY', '')
 param stressPassphraseNonce = readEnvironmentVariable('STRESS_PASSPHRASE_NONCE', '')
+
+// Dev-auth app-level gate — k6 sends this as X-Dev-Auth-Key header.
+// The same value must be passed to k6 via --env DEV_AUTH_KEY=<value>.
+param devAuthSecret = readEnvironmentVariable('DEV_AUTH_SECRET', '')
