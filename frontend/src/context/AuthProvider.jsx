@@ -18,21 +18,31 @@ export default function AuthProvider({ children }) {
 
     useEffect(() => {
         const loadUser = async () => {
-            try {
-                const me = await apiGet("/api/users/me");
-                setUser(me);
-                setAuthError(null);
-            } catch (err) {
-                setUser(null);
-                if (err?.status === 503) {
-                    const msg = err.message || "Service temporarily unavailable. Please try again later.";
-                    setAuthError(msg);
-                    showToast(msg, "error", 6000);
+            const MAX_RETRIES = 8;
+            const RETRY_MS    = 3000;
+
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    const me = await apiGet("/api/users/me");
+                    setUser(me);
+                    setAuthError(null);
+                    break;
+                } catch (err) {
+                    if (err?.status === 503 && attempt < MAX_RETRIES) {
+                        await new Promise(r => setTimeout(r, RETRY_MS));
+                        continue;
+                    }
+                    setUser(null);
+                    if (err?.status === 503) {
+                        const msg = err.message || "Service temporarily unavailable. Please try again later.";
+                        setAuthError(msg);
+                        showToast(msg, "error", 6000);
+                    }
+                    break;
                 }
-            } finally {
-                setLoading(false);
-                setBootstrapped(true);
             }
+            setLoading(false);
+            setBootstrapped(true);
         };
 
         loadUser();
