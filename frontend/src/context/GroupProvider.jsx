@@ -313,32 +313,46 @@ export default function GroupProvider({ children }) {
             setActiveGroup(matchedGroup || cachedGroupsList[0]);
         }
 
-        // Always hit the API to get the real list
-        try {
-            const freshGroups = await apiGet("/api/groups");
-            const groupsList  = Array.isArray(freshGroups) ? freshGroups : [];
-            setGroups(groupsList);
+        // Always hit the API to get the real list.
+        // Retry on 503 (backend still starting / StartupBlockingFilter)
+        // so the sidebar doesn't stay empty after a deploy.
+        const MAX_RETRIES = 8;
+        const RETRY_MS    = 3000;
+        let   fetched     = false;
 
-            // Persist the fresh list into encrypted LS
-            if (encryptionKey) {
-                const encrypted = await encryptForCache(encryptionKey, groupsList);
-                storageSetRaw(groupsListKey(user.id), encrypted);
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const freshGroups = await apiGet("/api/groups");
+                const groupsList  = Array.isArray(freshGroups) ? freshGroups : [];
+                setGroups(groupsList);
+
+                // Persist the fresh list into encrypted LS
+                if (encryptionKey) {
+                    const encrypted = await encryptForCache(encryptionKey, groupsList);
+                    storageSetRaw(groupsListKey(user.id), encrypted);
+                }
+
+                markUserActive(user.id);
+
+                // Re-resolve active group from fresh data
+                const savedActiveId = storageGetJson(activeGroupIdKey(user.id));
+                const matchedGroup  = groupsList.find(g => g.id === savedActiveId);
+                if (matchedGroup)          setActiveGroup(matchedGroup);
+                else if (groupsList.length) setActiveGroup(groupsList[0]);
+                else                        setActiveGroup(null);
+                fetched = true;
+                break;
+            } catch (err) {
+                if (err?.status === 503 && attempt < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, RETRY_MS));
+                    continue;
+                }
+                // API failed - keep cached data if we had any, otherwise show empty
+                if (!cachedGroupsList) setGroups([]);
+                break;
             }
-
-            markUserActive(user.id);
-
-            // Re-resolve active group from fresh data
-            const savedActiveId = storageGetJson(activeGroupIdKey(user.id));
-            const matchedGroup  = groupsList.find(g => g.id === savedActiveId);
-            if (matchedGroup)          setActiveGroup(matchedGroup);
-            else if (groupsList.length) setActiveGroup(groupsList[0]);
-            else                        setActiveGroup(null);
-        } catch {
-            // API failed - keep cached data if we had any, otherwise show empty
-            if (!cachedGroupsList) setGroups([]);
-        } finally {
-            setLoadingGroups(false);
         }
+        setLoadingGroups(false);
     }
 
 
