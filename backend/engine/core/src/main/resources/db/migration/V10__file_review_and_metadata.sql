@@ -68,3 +68,4 @@ CREATE TABLE [BootstrapLocks] (
 );
 
 INSERT INTO [BootstrapLocks] ([name], [completed]) VALUES ('DATA_LOADER', 0);
+INSERT INTO [BootstrapLocks] ([name], [completed]) VALUES ('DEFAULT_IMAGES', 0);
