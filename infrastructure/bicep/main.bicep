@@ -492,7 +492,6 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   properties: {
     customSubDomainName: contentSafetyName
     publicNetworkAccess: 'Enabled'
-    restore: true
   }
 }
 
@@ -509,7 +508,6 @@ resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   properties: {
     customSubDomainName: textAnalyticsName
     publicNetworkAccess: 'Enabled'
-    restore: true
   }
 }
 
