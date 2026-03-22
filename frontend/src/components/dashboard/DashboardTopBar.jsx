@@ -92,7 +92,7 @@ export default function DashboardTopBar({
                         {roleLabel && (
                             <span className="topbar-role-tag">({roleLabel})</span>
                         )}
-                        {!isLeader && activeGroup && (
+                        {!isLeader && activeGroup && myRole && (
                             <>
                                 {!confirmLeave ? (
                                     <button

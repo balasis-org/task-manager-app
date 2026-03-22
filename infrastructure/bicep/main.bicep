@@ -352,6 +352,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
+    createMode: 'recover'
     enabledForDeployment: false
     enabledForTemplateDeployment: false
     enabledForDiskEncryption: false
@@ -489,6 +490,7 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
     name: 'S0'
   }
   properties: {
+    customSubDomainName: contentSafetyName
     publicNetworkAccess: 'Enabled'
     restore: true
   }
@@ -505,6 +507,7 @@ resource textAnalytics 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
     name: 'S'
   }
   properties: {
+    customSubDomainName: textAnalyticsName
     publicNetworkAccess: 'Enabled'
     restore: true
   }
