@@ -16,7 +16,6 @@ import { LIMITS } from "@assets/js/inputValidation";
 import useSmartPoll from "@hooks/useSmartPoll";
 import { useBlobUrl } from "@context/BlobSasContext";
 import { formatDateTime } from "@assets/js/formatDate";
-import Spinner from "@components/Spinner";
 import CommentCard from "@components/comments/CommentCard";
 import CommentComposer from "@components/comments/CommentComposer";
 import CommentDeleteModal from "@components/comments/CommentDeleteModal";
@@ -147,7 +146,13 @@ export default function Comments() {
             );
             setNewComment("");
             setShowEmojis(false);
-            setSearchParams({}, { replace: true });
+            // navigate directly to last page instead of clearing params
+            // (clearing params → urlPage=null → invisible Spinner flash)
+            const data = await apiGet(
+                `/api/groups/${groupId}/task/${taskId}/comments?page=0&size=${PAGE_SIZE}&sort=createdAt,asc`
+            );
+            const lastPage = Math.max(1, data.totalPages || 1);
+            setSearchParams({ page: String(lastPage) }, { replace: true });
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
             refreshActiveGroup();
@@ -220,7 +225,7 @@ export default function Comments() {
 
     const groupName = activeGroup?.name || `Group ${groupId}`;
 
-    if ((loading && urlPage !== null) || urlPage === null) return <Spinner />;
+    const pageReady = urlPage !== null && !loading;
     if (error) return <div className="comments-page-error">{error}</div>;
 
     return (
@@ -260,7 +265,7 @@ export default function Comments() {
 
 
 
-            {totalPages > 1 && (
+            {pageReady && totalPages > 1 && (
                 <div className="comments-pagination">
                     {currentPage > 1 && (
                         <button
@@ -285,7 +290,12 @@ export default function Comments() {
             )}
 
             <div className="comments-list">
-                {comments.length === 0 ? (
+                {!pageReady ? (
+                    <div className="comments-inline-loading">
+                        <div className="comments-inline-spinner" />
+                        <span>Loading comments…</span>
+                    </div>
+                ) : comments.length === 0 ? (
                     <div className="comments-empty">
                         <p>No comments yet</p>
                     </div>

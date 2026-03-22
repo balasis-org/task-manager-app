@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FiCpu } from "react-icons/fi";
 import { apiGet, apiPost, apiDelete } from "@assets/js/apiClient.js";
 import { formatDateTime } from "@assets/js/formatDate";
@@ -40,10 +40,12 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
     const [snapshot, setSnapshot] = useState(null);
     const [analysisType, setAnalysisType] = useState("FULL");
     const [submitting, setSubmitting] = useState(false);
+    const [analyzing, setAnalyzing] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [showPerComment, setShowPerComment] = useState(false);
     const [bulkConfirm, setBulkConfirm] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
+    const pollRef = useRef(null);
 
     const fetchEstimate = useCallback(async () => {
         if (!isTeamsPro) return;
@@ -63,28 +65,68 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
         }
     }, [groupId, taskId, isTeamsPro]);
 
+    // On mount (or when groupId/taskId changes): fetch current data immediately,
+    // then re-check at 5s and 12s to catch analysis that completed while the
+    // user was on another page. Backend processes in ~5-8s, two re-checks
+    // cover the full window. These are plain GETs — cheap and stateless.
+    // No context or sessionStorage required: the fetch IS the source of truth.
     useEffect(() => {
         fetchEstimate();
         fetchSnapshot();
+        const t1 = setTimeout(() => fetchSnapshot(), 5000);
+        const t2 = setTimeout(() => { fetchSnapshot(); fetchEstimate(); }, 12000);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
     }, [fetchEstimate, fetchSnapshot]);
 
     if (!isTeamsPro) return null;
 
-    // fires two polls after queueing: 4s and 10s — the backend processes
-    // analysis async via the outbox pattern, usually finishes within 5-8s
+    // fires a polling loop after queueing: checks every 3s (up to 30s)
+    // until a fresh snapshot arrives, then stops.
     async function handleAnalyze() {
         setSubmitting(true);
+        const beforeTimestamp = snapshot?.analyzedAt;
         try {
             await apiPost(`/api/groups/${groupId}/task/${taskId}/analyze?type=${analysisType}`);
             showToast("Analysis queued — results will appear shortly.", "success");
-            // poll for results after a short delay
-            setTimeout(() => { fetchSnapshot(); fetchEstimate(); }, 4000);
-            setTimeout(() => fetchSnapshot(), 10000);
+            setAnalyzing(true);
         } catch (err) {
             showToast(err?.message || "Failed to start analysis");
+            return;
         } finally {
             setSubmitting(false);
         }
+        // clear any previous poll before starting a new one
+        if (pollRef.current) clearInterval(pollRef.current);
+        // poll until fresh results arrive (new analyzedAt or summarizedAt)
+        let attempts = 0;
+        const maxAttempts = 10;
+        const intervalMs = 3000;
+        pollRef.current = setInterval(async () => {
+            attempts++;
+            try {
+                const res = await apiGet(`/api/groups/${groupId}/task/${taskId}/analysis`);
+                const isNew = res?.analyzedAt && res.analyzedAt !== beforeTimestamp
+                           || res?.summarizedAt && res.summarizedAt !== snapshot?.summarizedAt;
+                if (res && isNew) {
+                    setSnapshot(res);
+                    fetchEstimate();
+                    setAnalyzing(false);
+                    clearInterval(pollRef.current);
+                    pollRef.current = null;
+                }
+            } catch { /* ignore */ }
+            if (attempts >= maxAttempts) {
+                setAnalyzing(false);
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+                fetchEstimate();
+                fetchSnapshot();
+            }
+        }, intervalMs);
     }
 
     async function handleBulkDelete() {
@@ -128,6 +170,13 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
 
             {expanded && (
                 <div className="analysis-panel-body">
+                    {/* ── Analyzing indicator ── */}
+                    {analyzing && (
+                        <div className="analysis-progress-banner">
+                            <div className="analysis-progress-spinner" />
+                            <span>Analyzing — this may take a few seconds…</span>
+                        </div>
+                    )}
                     {/* ── Estimate ── */}
                     {estimate && (
                         <div className="analysis-estimate">
@@ -167,9 +216,9 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
                         <button
                             className="analysis-run-btn"
                             onClick={handleAnalyze}
-                            disabled={submitting || noComments || creditsForType > (estimate?.budgetRemaining ?? 0)}
+                            disabled={submitting || analyzing || noComments || creditsForType > (estimate?.budgetRemaining ?? 0)}
                         >
-                            {submitting ? "Queuing…" : <><FiCpu size={12} style={{ verticalAlign: '-0.12em', marginRight: '0.3em' }} />Analyze ({creditsForType} cr)</>}
+                            {submitting ? "Queuing…" : analyzing ? "Analyzing…" : <><FiCpu size={12} style={{ verticalAlign: '-0.12em', marginRight: '0.3em' }} />Analyze ({creditsForType} cr)</>}
                         </button>
                     </div>
                     {noComments && <p className="analysis-hint">Add comments before running analysis.</p>}

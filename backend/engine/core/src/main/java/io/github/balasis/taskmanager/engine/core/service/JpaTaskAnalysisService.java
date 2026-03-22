@@ -38,9 +38,11 @@ public class JpaTaskAnalysisService implements TaskAnalysisService {
         long totalChars = ((Number) stats[1]).longValue();
 
         int analysisCredits = commentCount * 3;
+        // abstractive summarization costs 2× extractive on Azure ($4 vs $2 per 1k records),
+        // so we double the credit charge to pass the real cost through to the user.
         int summaryCredits = commentCount == 0
                 ? 0
-                : Math.max(1, (int) Math.ceil((double) totalChars / 5120));
+                : Math.max(1, (int) Math.ceil((double) totalChars / 5120)) * 2;
 
         // Inter-region egress: Italy North ↔ West Europe (€0.02/GB).
         // Round-trip ≈ totalChars × 2; 1 credit covers ~48.9 MB of transfer.

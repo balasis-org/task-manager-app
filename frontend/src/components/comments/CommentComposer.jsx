@@ -68,7 +68,7 @@ export default function CommentComposer({
                     disabled={submitting || !newComment.trim()}
                     onClick={onSubmit}
                 >
-                    submit
+                    {submitting ? "Posting…" : "submit"}
                 </button>
             </div>
         </div>

@@ -5,8 +5,8 @@ import com.azure.ai.textanalytics.models.AnalyzeActionsResult;
 import com.azure.ai.textanalytics.models.AnalyzeSentimentAction;
 import com.azure.ai.textanalytics.models.DocumentSentiment;
 import com.azure.ai.textanalytics.models.ExtractKeyPhrasesAction;
-import com.azure.ai.textanalytics.models.ExtractiveSummaryAction;
-import com.azure.ai.textanalytics.models.ExtractiveSummarySentence;
+import com.azure.ai.textanalytics.models.AbstractiveSummaryAction;
+import com.azure.ai.textanalytics.models.AbstractiveSummary;
 import com.azure.ai.textanalytics.models.RecognizePiiEntitiesAction;
 import com.azure.ai.textanalytics.models.SentimentConfidenceScores;
 import com.azure.ai.textanalytics.models.TextAnalyticsActions;
@@ -191,32 +191,32 @@ public class TextAnalyticsServiceImpl implements TextAnalyticsService {
             docs.add(new TextDocumentInput(String.valueOf(docIdx), chunk));
         }
 
-        // extractive summarization: picks up to 6 of the most representative sentences
-        // from the input. this is NOT generative — it selects verbatim sentences, so there
-        // is zero hallucination risk. Azure ranks sentences by centrality + redundancy.
+        // abstractive summarization: generates new condensed text from the input
+        // rather than picking verbatim sentences. produces up to 4 summary sentences
+        // that capture the key points across all comments.
         TextAnalyticsActions actions = new TextAnalyticsActions()
-                .setExtractiveSummaryActions(new ExtractiveSummaryAction()
-                        .setMaxSentenceCount(6));
+                .setAbstractiveSummaryActions(new AbstractiveSummaryAction()
+                        .setSentenceCount(4));
 
         var poller = client.beginAnalyzeActions(docs, actions, null, Context.NONE);
         var results = poller.getFinalResult();
 
-        List<String> sentences = new ArrayList<>();
+        List<String> summaries = new ArrayList<>();
         for (AnalyzeActionsResult page : results) {
-            page.getExtractiveSummaryResults().forEach(actionResult ->
+            page.getAbstractiveSummaryResults().forEach(actionResult ->
                     actionResult.getDocumentsResults().forEach(docResult -> {
                         if (!docResult.isError()) {
-                            for (ExtractiveSummarySentence s : docResult.getSentences()) {
-                                sentences.add(s.getText());
+                            for (AbstractiveSummary s : docResult.getSummaries()) {
+                                summaries.add(s.getText());
                             }
                         }
                     })
             );
         }
 
-        String summaryText = sentences.isEmpty()
+        String summaryText = summaries.isEmpty()
                 ? "No summary could be generated."
-                : String.join(" ", sentences);
+                : String.join(" ", summaries);
 
         return new CommentSummaryResult(summaryText, comments.size());
     }
