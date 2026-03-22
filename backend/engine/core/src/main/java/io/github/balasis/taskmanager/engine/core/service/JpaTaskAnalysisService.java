@@ -18,8 +18,8 @@ import java.util.List;
 // core-layer impl of TaskAnalysisService. handles the lifecycle before the drainer picks it up:
 // estimate credits (including inter-region egress cost), check for in-progress requests,
 // enqueue a new analysis, and retrieve the snapshot.
-// credit formula: 3 credits/comment for analysis, ceil(totalChars/5120) for summarization,
-// plus a small egress surcharge for Italy North ↔ West Europe cross-region traffic.
+// credit formula: 1 credit = $0.001 Azure cost. 3 credits/comment for analysis (3 API actions),
+// ceil(totalChars/5120)*4 for abstractive summarization ($4/1k records), plus egress surcharge.
 @Service
 @Profile({"prod-h2", "prod-azuresql", "prod-arena-security", "prod-arena-stress", "dev-h2", "dev-mssql", "dev-flyway-mssql"})
 @RequiredArgsConstructor
@@ -38,11 +38,12 @@ public class JpaTaskAnalysisService implements TaskAnalysisService {
         long totalChars = ((Number) stats[1]).longValue();
 
         int analysisCredits = commentCount * 3;
-        // abstractive summarization costs 2× extractive on Azure ($4 vs $2 per 1k records),
-        // so we double the credit charge to pass the real cost through to the user.
+        // 1 credit = $0.001 of Azure cost.
+        // analysis: 3 actions × $1/1k records = $0.003/comment → 3 credits ✓
+        // abstractive summary: $4/1k records = $0.004/record → 4 credits/record
         int summaryCredits = commentCount == 0
                 ? 0
-                : Math.max(1, (int) Math.ceil((double) totalChars / 5120)) * 2;
+                : Math.max(1, (int) Math.ceil((double) totalChars / 5120)) * 4;
 
         // Inter-region egress: Italy North ↔ West Europe (€0.02/GB).
         // Round-trip ≈ totalChars × 2; 1 credit covers ~48.9 MB of transfer.
