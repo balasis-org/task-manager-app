@@ -89,6 +89,19 @@ jobs:
             --resource-group "${{ vars.RG_NAME }}" \
             --parameters "${{ steps.params.outputs.file }}" $EXTRA_PARAMS
 
+      - name: Purge soft-deleted Cognitive Services
+        if: inputs.mode == 'deploy'
+        run: |
+          echo "Checking for soft-deleted Cognitive Services in RG ${{ vars.RG_NAME }}..."
+          az cognitiveservices account list-deleted --query "[?contains(resourceGroup, '${{ vars.RG_NAME }}')].[name, location]" -o tsv | while IFS=$'\t' read -r NAME LOCATION; do
+            echo "Purging soft-deleted: $NAME ($LOCATION)"
+            az cognitiveservices account purge \
+              --name "$NAME" \
+              --resource-group "${{ vars.RG_NAME }}" \
+              --location "$LOCATION" || true
+          done
+          echo "Purge check complete."
+
       - name: Deploy Bicep
         if: inputs.mode == 'deploy'
         id: bicep
