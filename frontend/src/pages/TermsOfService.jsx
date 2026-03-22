@@ -204,7 +204,7 @@ export default function TermsOfService() {
                                 <td>&mdash;</td>
                                 <td>&mdash;</td>
                                 <td>&mdash;</td>
-                                <td>8,000</td>
+                                <td>7,000</td>
                             </tr>
                         </tbody>
                     </table>

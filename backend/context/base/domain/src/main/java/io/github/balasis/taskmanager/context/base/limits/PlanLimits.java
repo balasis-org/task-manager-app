@@ -215,7 +215,7 @@ public class PlanLimits {
             case STUDENT   -> 0;
             case ORGANIZER -> 0;
             case TEAM      -> 0;
-            case TEAMS_PRO -> 8_000;
+            case TEAMS_PRO -> 7_000;
         };
     }
 

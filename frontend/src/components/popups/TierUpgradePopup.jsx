@@ -62,7 +62,7 @@ export default function TierUpgradePopup({ onClose }) {
                             <tr><td>Image uploads / mo</td><td>-</td><td>50</td><td>100</td><td>150</td><td>150</td></tr>
                             <tr className="tier-ai-row">
                                 <td><FiCpu size={12} className="tier-ai-inline" /> AI analysis credits / mo</td>
-                                <td>-</td><td>-</td><td>-</td><td>-</td><td>8,000</td>
+                                <td>-</td><td>-</td><td>-</td><td>-</td><td>7,000</td>
                             </tr>
                         </tbody>
                     </table>

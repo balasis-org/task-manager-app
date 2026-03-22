@@ -252,7 +252,7 @@ No consequences to consistency since any other module existing before v0.5 was j
     - New entities: `TaskAnalysisRequest` (tracks type, credit cost, status), `TaskAnalysisSnapshot` (stores results — sentiment, key phrases, PII findings, summary).
     - New enums: `AnalysisType` (FULL/QUICK), `OverallSentiment`.
     - `AnalysisPanel.jsx` frontend component with credit estimate preview and result display.
-    - Atomic credit enforcement via `PlanLimits.maxTaskAnalysisCreditsPerMonth` (8,000 for TEAMS_PRO, 0 for all others).
+    - Atomic credit enforcement via `PlanLimits.maxTaskAnalysisCreditsPerMonth` (7,000 for TEAMS_PRO, 0 for all others).
 
     **Asynchronous queue architecture (email + image moderation):**
     - `EmailQueueService` interface + `JpaEmailQueueService`: email dispatch decoupled from request handling via `EmailOutbox` entity.

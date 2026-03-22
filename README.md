@@ -36,7 +36,7 @@ a containerised, full-stack group task management platform deployed on 24 Azure 
 - **encrypted cache** — AES-256-GCM with PBKDF2-derived keys (100k iterations) in localStorage, stale-while-revalidate pattern, automatic key rotation every 7 days, multi-user eviction (up to 3 users per device)
 - **email** — group invitations and critical system alerts via Azure Communication Services, fire-and-forget async delivery
 - **subscriptions** — five tiers with atomic SQL budget enforcement (`UPDATE ... WHERE budget >= cost`) — if the budget is exceeded, the Azure API is never invoked. no distributed locks, no race conditions
-- **comment intelligence** — TEAMS_PRO tier gets AI-powered comment analysis (sentiment, key phrases, PII detection, summarisation) via Azure AI Language, with an 8,000 credit/month budget and async outbox-drainer architecture
+- **comment intelligence** — TEAMS_PRO tier gets AI-powered comment analysis (sentiment, key phrases, PII detection, summarisation) via Azure AI Language, with a 7,000 credit/month budget and async outbox-drainer architecture
 - **admin panel** — system-wide user management, plan assignment, searchable paginated tables with debounced input, admin role assignable only via Key Vault secret
 
 [[[Image here: 3-4 panel collage — group list view, task detail with files, admin panel, and maybe the login/landing page]]]
@@ -133,7 +133,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 | auth | Azure AD (Entra ID) · OAuth 2.0 Authorization Code Grant · HMAC-SHA256 JWT in httpOnly cookies |
 | email | Azure Communication Services (Managed Identity) |
 | moderation | Azure AI Content Safety (S0) — fail-open policy, budget-gated per tier |
-| comment intelligence | Azure AI Language (Text Analytics S) — sentiment, key phrases, PII, summarisation. TEAMS_PRO only, 8,000 credits/month |
+| comment intelligence | Azure AI Language (Text Analytics S) — sentiment, key phrases, PII, summarisation. TEAMS_PRO only, 7,000 credits/month |
 | secrets | Azure Key Vault — single trust root, Managed Identity, startup-only fetch |
 | registry | Azure Container Registry (Basic) — auto-pruned to 2 tags per repo |
 | monitoring | Application Insights + OpenTelemetry (10% sampling, polling traces dropped) · 7 Micrometer metrics · structured JSON logging |
