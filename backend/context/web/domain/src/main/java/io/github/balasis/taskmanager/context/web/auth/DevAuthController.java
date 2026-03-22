@@ -23,6 +23,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.annotation.PostConstruct;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -57,6 +58,14 @@ public class DevAuthController extends BaseComponent {
     private static final String DEV_AUTH_HEADER = "X-Dev-Auth-Key";
     private static final String DEV_GATE_COOKIE = "DevGate";
 
+    @PostConstruct
+    void logSecretState() {
+        boolean blank  = devAuthSecret == null || devAuthSecret.isBlank();
+        boolean looksLikeKvRef = devAuthSecret != null && devAuthSecret.startsWith("@Microsoft.KeyVault");
+        logger.info("DevAuth secret state: blank={}, length={}, looksLikeUnresolvedKvRef={}",
+                blank, devAuthSecret == null ? 0 : devAuthSecret.length(), looksLikeKvRef);
+    }
+
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
     private final long REFRESH_COOKIE_EXPIRE_IN_SECONDS_TIME = 24 * 60 * 60;
 
@@ -69,12 +78,16 @@ public class DevAuthController extends BaseComponent {
     public ResponseEntity<Void> devUnlock(@RequestParam String key, HttpServletRequest request) {
         if (devAuthSecret.isBlank() || !MessageDigest.isEqual(
                 devAuthSecret.getBytes(), key.getBytes())) {
+            logger.warn("dev-unlock REJECTED: secretBlank={}, keyLength={}, secretLength={}",
+                    devAuthSecret.isBlank(), key.length(), devAuthSecret.length());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        logger.info("dev-unlock ACCEPTED, setting DevGate cookie (secure={}, path=/)",
+                request.isSecure());
         ResponseCookie gate = ResponseCookie.from(DEV_GATE_COOKIE, devAuthSecret)
                 .httpOnly(true)
                 .secure(request.isSecure())
-                .path("/auth")
+                .path("/")
                 .maxAge(Duration.ofHours(12))
                 .sameSite("Strict")
                 .build();
@@ -183,17 +196,27 @@ public class DevAuthController extends BaseComponent {
         String header = request.getHeader(DEV_AUTH_HEADER);
         if (header != null && MessageDigest.isEqual(
                 devAuthSecret.getBytes(), header.getBytes())) {
+            logger.debug("isDevAuthAllowed: passed via header");
             return true;
         }
-        if (request.getCookies() != null) {
+        boolean hasCookies = request.getCookies() != null;
+        boolean foundGate  = false;
+        if (hasCookies) {
             for (Cookie c : request.getCookies()) {
-                if (DEV_GATE_COOKIE.equals(c.getName())
-                        && MessageDigest.isEqual(
+                if (DEV_GATE_COOKIE.equals(c.getName())) {
+                    foundGate = true;
+                    if (MessageDigest.isEqual(
                             devAuthSecret.getBytes(), c.getValue().getBytes())) {
-                    return true;
+                        logger.debug("isDevAuthAllowed: passed via DevGate cookie");
+                        return true;
+                    }
+                    logger.warn("isDevAuthAllowed: DevGate cookie PRESENT but value mismatch (cookieLen={}, secretLen={})",
+                            c.getValue().length(), devAuthSecret.length());
                 }
             }
         }
+        logger.warn("isDevAuthAllowed: DENIED (hasCookies={}, foundGateCookie={}, hasHeader={})",
+                hasCookies, foundGate, header != null);
         return false;
     }
 

@@ -100,7 +100,7 @@ export default function GsImageSection({ group, ownerPlan, onUpdated }) {
 
     function imgSrc() {
         const base = group.imgUrl ? blobUrl(group.imgUrl) : blobUrl(group.defaultImgUrl);
-        return imgVersion ? `${base}&_v=${imgVersion}` : base;
+        return imgVersion ? `${base}${base.includes('?') ? '&' : '?'}_v=${imgVersion}` : base;
     }
 
     // What to show on the left thumbnail: local preview if file picked, else current image

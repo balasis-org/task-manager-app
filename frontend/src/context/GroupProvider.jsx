@@ -318,7 +318,7 @@ export default function GroupProvider({ children }) {
         // so the sidebar doesn't stay empty after a deploy.
         const MAX_RETRIES = 8;
         const RETRY_MS    = 3000;
-        let   fetched     = false;
+        // let   fetched     = false;
 
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -340,7 +340,7 @@ export default function GroupProvider({ children }) {
                 if (matchedGroup)          setActiveGroup(matchedGroup);
                 else if (groupsList.length) setActiveGroup(groupsList[0]);
                 else                        setActiveGroup(null);
-                fetched = true;
+                // fetched = true;
                 break;
             } catch (err) {
                 if (err?.status === 503 && attempt < MAX_RETRIES) {
