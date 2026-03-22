@@ -100,51 +100,84 @@ public class CommentAnalysisDrainer {
     }
 
     private void processRequest(TaskAnalysisRequest request) {
+        // Phase 1 — claim request and load comments (short DB transaction)
+        record AnalysisInput(List<CommentDocument> docs, Long taskId,
+                             AnalysisType type, int commentCount) {}
+        AnalysisInput input;
         try {
-            txTemplate.executeWithoutResult(status -> {
+            input = txTemplate.execute(status -> {
                 int updated = requestRepository.casUpdateStatus(
                         request.getId(), "PENDING", "PROCESSING");
-                if (updated == 0) return;
+                if (updated == 0) return null;
 
                 List<TaskComment> comments = commentRepository.findAllByTask_id(
                         request.getTaskId(), Pageable.unpaged()).getContent();
 
                 if (comments.isEmpty()) {
                     completeRequest(request);
-                    return;
+                    return null;
                 }
 
-                List<CommentDocument> docs = comments.stream()
-                        .map(c -> new CommentDocument(c.getId().toString(), c.getComment()))
-                        .toList();
+                return new AnalysisInput(
+                        comments.stream()
+                                .map(c -> new CommentDocument(c.getId().toString(), c.getComment()))
+                                .toList(),
+                        request.getTaskId(),
+                        request.getAnalysisType(),
+                        comments.size());
+            });
+        } catch (Exception e) {
+            logger.warn("Phase 1 failed for request id={}: {}", request.getId(), e.getMessage());
+            handleFailure(request);
+            return;
+        }
+        if (input == null) return;
 
-                TaskAnalysisSnapshot snapshot = snapshotRepository.findByTaskId(request.getTaskId())
-                        .orElse(TaskAnalysisSnapshot.builder().taskId(request.getTaskId()).build());
+        // Phase 2 — call Azure Text Analytics (no DB connection held)
+        BatchAnalysisResult analysisResult = null;
+        CommentSummaryResult summaryResult = null;
+        try {
+            if (input.type() == AnalysisType.ANALYSIS_ONLY || input.type() == AnalysisType.FULL) {
+                analysisResult = textAnalyticsService.analyzeBatch(input.docs());
+                aiHealthTracker.markTextAnalyticsHealthy();
+            }
+            if (input.type() == AnalysisType.SUMMARY_ONLY || input.type() == AnalysisType.FULL) {
+                summaryResult = textAnalyticsService.summarizeBatch(input.docs());
+                aiHealthTracker.markTextAnalyticsHealthy();
+            }
+        } catch (Exception e) {
+            logger.warn("Azure API failed for request id={}: {}", request.getId(), e.getMessage());
+            handleFailure(request);
+            return;
+        }
 
-                AnalysisType type = request.getAnalysisType();
+        // Phase 3 — persist results (short DB transaction)
+        final BatchAnalysisResult ar = analysisResult;
+        final CommentSummaryResult sr = summaryResult;
+        try {
+            txTemplate.executeWithoutResult(status -> {
+                TaskAnalysisSnapshot snapshot = snapshotRepository.findByTaskId(input.taskId())
+                        .orElse(TaskAnalysisSnapshot.builder().taskId(input.taskId()).build());
+
                 Instant now = Instant.now();
 
-                if (type == AnalysisType.ANALYSIS_ONLY || type == AnalysisType.FULL) {
-                    BatchAnalysisResult result = textAnalyticsService.analyzeBatch(docs);
-                    aiHealthTracker.markTextAnalyticsHealthy();
-                    snapshot.setOverallSentiment(OverallSentiment.valueOf(result.overallSentiment()));
-                    snapshot.setOverallConfidence(result.overallConfidence());
-                    snapshot.setPositiveCount(result.positiveCount());
-                    snapshot.setNeutralCount(result.neutralCount());
-                    snapshot.setNegativeCount(result.negativeCount());
-                    snapshot.setKeyPhrases(toJson(result.topKeyPhrases()));
-                    snapshot.setPiiDetectedCount(result.totalPiiCount());
-                    snapshot.setCommentResults(toJson(result.commentResults()));
-                    snapshot.setAnalysisCommentCount(comments.size());
+                if (ar != null) {
+                    snapshot.setOverallSentiment(OverallSentiment.valueOf(ar.overallSentiment()));
+                    snapshot.setOverallConfidence(ar.overallConfidence());
+                    snapshot.setPositiveCount(ar.positiveCount());
+                    snapshot.setNeutralCount(ar.neutralCount());
+                    snapshot.setNegativeCount(ar.negativeCount());
+                    snapshot.setKeyPhrases(toJson(ar.topKeyPhrases()));
+                    snapshot.setPiiDetectedCount(ar.totalPiiCount());
+                    snapshot.setCommentResults(toJson(ar.commentResults()));
+                    snapshot.setAnalysisCommentCount(input.commentCount());
                     snapshot.setAnalyzedAt(now);
                     snapshot.setAnalysisChangeMarker(now);
                 }
 
-                if (type == AnalysisType.SUMMARY_ONLY || type == AnalysisType.FULL) {
-                    CommentSummaryResult summary = textAnalyticsService.summarizeBatch(docs);
-                    aiHealthTracker.markTextAnalyticsHealthy();
-                    snapshot.setSummaryText(summary.summaryText());
-                    snapshot.setSummaryCommentCount(summary.commentCount());
+                if (sr != null) {
+                    snapshot.setSummaryText(sr.summaryText());
+                    snapshot.setSummaryCommentCount(sr.commentCount());
                     snapshot.setSummarizedAt(now);
                     snapshot.setSummaryChangeMarker(now);
                 }
@@ -153,7 +186,7 @@ public class CommentAnalysisDrainer {
                 completeRequest(request);
             });
         } catch (Exception e) {
-            logger.warn("Analysis failed for request id={}: {}", request.getId(), e.getMessage());
+            logger.warn("Phase 3 failed for request id={}: {}", request.getId(), e.getMessage());
             handleFailure(request);
         }
     }

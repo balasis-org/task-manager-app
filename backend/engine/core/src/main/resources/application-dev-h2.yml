@@ -19,7 +19,7 @@ spring:
     username: user
     password: pass
     hikari:
-      maximum-pool-size: 4
+      maximum-pool-size: 5
       minimum-idle: 2
       idle-timeout: 500000
       max-lifetime: 1200000

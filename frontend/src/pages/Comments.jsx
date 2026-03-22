@@ -153,6 +153,7 @@ export default function Comments() {
             );
             const lastPage = Math.max(1, data.totalPages || 1);
             setSearchParams({ page: String(lastPage) }, { replace: true });
+            setRefreshKey(k => k + 1);
         } catch (err) {
             showToast(err?.message || "Failed to add comment");
             refreshActiveGroup();

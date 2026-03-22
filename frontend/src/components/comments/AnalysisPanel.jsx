@@ -103,7 +103,7 @@ export default function AnalysisPanel({ groupId, taskId, groupDetail, showToast 
         if (pollRef.current) clearInterval(pollRef.current);
         // poll until fresh results arrive (new analyzedAt or summarizedAt)
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 20;
         const intervalMs = 3000;
         pollRef.current = setInterval(async () => {
             attempts++;

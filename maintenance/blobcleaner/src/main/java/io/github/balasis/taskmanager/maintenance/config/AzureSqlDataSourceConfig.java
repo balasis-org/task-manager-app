@@ -29,7 +29,7 @@ public class AzureSqlDataSourceConfig {
         ds.setPassword(dbPasswordSecret.getValue());
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
-        ds.setMaximumPoolSize(4);
+        ds.setMaximumPoolSize(5);
         ds.setMinimumIdle(2);
         ds.setIdleTimeout(500_000);
         ds.setMaxLifetime(1_200_000);

@@ -20,7 +20,7 @@ public class AzureSqlDataSourceConfig {
 
     private final SecretClient secretClient;
 
-    @Value("${app.hikari.maximum-pool-size:3}")
+    @Value("${app.hikari.maximum-pool-size:4}")
     private int maxPoolSize;
 
     @Value("${app.hikari.minimum-idle:2}")

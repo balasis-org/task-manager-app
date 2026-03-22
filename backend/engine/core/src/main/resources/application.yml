@@ -22,6 +22,10 @@ spring:
     open-in-view: false    # no lazy loading outside tx — prevents accidental N+1
   jackson:
     time-zone: UTC
+  task:
+    scheduling:
+      pool:
+        size: 2    # 2 threads: long-running CommentAnalysisDrainer won't block fast drainers
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
