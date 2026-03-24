@@ -59,6 +59,7 @@ public class CommentAnalysisDrainer {
     private static final Duration LOCK_TTL = Duration.ofSeconds(30);
     private static final int MAX_RETRIES = 3;
     private static final int ASYNC_THREADS = 5;
+    private static final Duration STALE_THRESHOLD = Duration.ofMinutes(10);
 
     private final TaskAnalysisRequestRepository requestRepository;
     private final TaskAnalysisSnapshotRepository snapshotRepository;
@@ -121,6 +122,13 @@ public class CommentAnalysisDrainer {
     public void drain() {
         if (!lockService.tryAcquireLock(LOCK_TTL)) return;
         try {
+            txTemplate.executeWithoutResult(status -> {
+                int recovered = requestRepository.recoverStaleProcessing(
+                        Instant.now().minus(STALE_THRESHOLD));
+                if (recovered > 0) {
+                    logger.info("Recovered {} stuck PROCESSING analysis requests", recovered);
+                }
+            });
             List<TaskAnalysisRequest> batch = requestRepository.findByStatus(
                     "PENDING", PageRequest.of(0, BATCH_SIZE));
             for (TaskAnalysisRequest request : batch) {
@@ -139,7 +147,7 @@ public class CommentAnalysisDrainer {
         try {
             return txTemplate.execute(status -> {
                 int updated = requestRepository.casUpdateStatus(
-                        request.getId(), "PENDING", "PROCESSING");
+                        request.getId(), "PENDING", "PROCESSING", Instant.now());
                 if (updated == 0) return null;
 
                 List<TaskComment> comments = commentRepository.findAllByTask_id(

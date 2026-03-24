@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 
 // queue for AI task analysis requests (TEAMS_PRO feature). the drainer picks
@@ -22,11 +23,21 @@ public interface TaskAnalysisRequestRepository extends JpaRepository<TaskAnalysi
     @Modifying
     @Query("""
         UPDATE TaskAnalysisRequest r
-        SET r.status = :newStatus
+        SET r.status = :newStatus, r.processedAt = :now
         WHERE r.id = :id
           AND r.status = :expectedStatus
     """)
     int casUpdateStatus(@Param("id") Long id,
                         @Param("expectedStatus") String expectedStatus,
-                        @Param("newStatus") String newStatus);
+                        @Param("newStatus") String newStatus,
+                        @Param("now") Instant now);
+
+    @Modifying
+    @Query("""
+        UPDATE TaskAnalysisRequest r
+        SET r.status = 'PENDING'
+        WHERE r.status = 'PROCESSING'
+          AND r.processedAt < :threshold
+    """)
+    int recoverStaleProcessing(@Param("threshold") Instant threshold);
 }
