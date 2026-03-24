@@ -23,9 +23,6 @@ public class AzureSqlDataSourceConfig {
     @Value("${app.hikari.maximum-pool-size:4}")
     private int maxPoolSize;
 
-    @Value("${app.hikari.minimum-idle:2}")
-    private int minIdle;
-
     @Value("${app.hikari.connection-timeout:30000}")
     private long connectionTimeout;
 
@@ -48,7 +45,7 @@ public class AzureSqlDataSourceConfig {
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
         ds.setMaximumPoolSize(maxPoolSize);
-        ds.setMinimumIdle(minIdle);
+        ds.setMinimumIdle(maxPoolSize); // fixed-size pool: all connections pre-created at startup
         ds.setIdleTimeout(300_000);
         ds.setMaxLifetime(1_800_000);
         ds.setConnectionTimeout(connectionTimeout);
