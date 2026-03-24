@@ -155,7 +155,7 @@ public class GlobalExceptionHandler {
         logger.warn("Download pool saturated, rejecting async request: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body("Download will take a bit to begin due to server receiving unexpected traffic");
+                .body("The server is currently handling too many downloads. Please try again in a few moments.");
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)

@@ -15,6 +15,7 @@ import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.BatchAn
 import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.CommentDocument;
 import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.CommentSummaryResult;
 import io.github.balasis.taskmanager.engine.infrastructure.textanalytics.TextAnalyticsService;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -28,6 +29,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // drains the TaskAnalysisRequest queue every 10s behind a Redis distributed lock.
 //
@@ -53,6 +58,7 @@ public class CommentAnalysisDrainer {
     private static final int BATCH_SIZE = 5;
     private static final Duration LOCK_TTL = Duration.ofSeconds(30);
     private static final int MAX_RETRIES = 3;
+    private static final int ASYNC_THREADS = 5;
 
     private final TaskAnalysisRequestRepository requestRepository;
     private final TaskAnalysisSnapshotRepository snapshotRepository;
@@ -63,6 +69,7 @@ public class CommentAnalysisDrainer {
     private final ObjectMapper objectMapper;
     private final AiServiceHealthTracker aiHealthTracker;
     private final TransactionTemplate txTemplate;
+    private final ExecutorService analysisExecutor;
 
     public CommentAnalysisDrainer(
             TaskAnalysisRequestRepository requestRepository,
@@ -83,8 +90,33 @@ public class CommentAnalysisDrainer {
         this.objectMapper = objectMapper;
         this.aiHealthTracker = aiHealthTracker;
         this.txTemplate = new TransactionTemplate(txManager);
+        AtomicInteger threadNum = new AtomicInteger(1);
+        this.analysisExecutor = Executors.newFixedThreadPool(ASYNC_THREADS, r -> {
+            Thread t = new Thread(r, "ai-analysis-" + threadNum.getAndIncrement());
+            t.setDaemon(true);
+            return t;
+        });
     }
 
+    @PreDestroy
+    void shutdown() {
+        analysisExecutor.shutdown();
+        try {
+            if (!analysisExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+                analysisExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            analysisExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private record AnalysisInput(List<CommentDocument> docs, Long taskId,
+                                  AnalysisType type, int commentCount) {}
+
+    // drain cycle: scheduler thread does Phase 1 (fast DB reads) for the entire batch,
+    // then fires Phase 2+3 (Azure API + persist) async on the analysis executor.
+    // This keeps the scheduler thread free and processes Azure calls concurrently.
     @Scheduled(fixedDelay = 10_000)
     public void drain() {
         if (!lockService.tryAcquireLock(LOCK_TTL)) return;
@@ -92,20 +124,20 @@ public class CommentAnalysisDrainer {
             List<TaskAnalysisRequest> batch = requestRepository.findByStatus(
                     "PENDING", PageRequest.of(0, BATCH_SIZE));
             for (TaskAnalysisRequest request : batch) {
-                processRequest(request);
+                AnalysisInput input = claimAndLoadComments(request);
+                if (input != null) {
+                    analysisExecutor.submit(() -> analyzeAndPersist(input, request));
+                }
             }
         } finally {
             lockService.releaseLock();
         }
     }
 
-    private void processRequest(TaskAnalysisRequest request) {
-        // Phase 1 — claim request and load comments (short DB transaction)
-        record AnalysisInput(List<CommentDocument> docs, Long taskId,
-                             AnalysisType type, int commentCount) {}
-        AnalysisInput input;
+    // Phase 1 — claim request via CAS and load comments. Runs on scheduler thread.
+    private AnalysisInput claimAndLoadComments(TaskAnalysisRequest request) {
         try {
-            input = txTemplate.execute(status -> {
+            return txTemplate.execute(status -> {
                 int updated = requestRepository.casUpdateStatus(
                         request.getId(), "PENDING", "PROCESSING");
                 if (updated == 0) return null;
@@ -129,10 +161,12 @@ public class CommentAnalysisDrainer {
         } catch (Exception e) {
             logger.warn("Phase 1 failed for request id={}: {}", request.getId(), e.getMessage());
             handleFailure(request);
-            return;
+            return null;
         }
-        if (input == null) return;
+    }
 
+    // Phase 2+3 — call Azure APIs then persist results. Runs on analysis executor thread.
+    private void analyzeAndPersist(AnalysisInput input, TaskAnalysisRequest request) {
         // Phase 2 — call Azure Text Analytics (no DB connection held)
         BatchAnalysisResult analysisResult = null;
         CommentSummaryResult summaryResult = null;
