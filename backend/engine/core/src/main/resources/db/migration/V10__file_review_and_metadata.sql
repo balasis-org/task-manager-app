@@ -69,3 +69,18 @@ CREATE TABLE [BootstrapLocks] (
 
 INSERT INTO [BootstrapLocks] ([name], [completed]) VALUES ('DATA_LOADER', 0);
 INSERT INTO [BootstrapLocks] ([name], [completed]) VALUES ('DEFAULT_IMAGES', 0);
+
+-- ── 4. Allow STALE status in image moderation queue ─────────────────
+-- When rapid uploads produce multiple PENDING rows for the same entity,
+-- the drainer marks all but the newest as STALE and skips them.
+
+ALTER TABLE [ImageModerationQueue] DROP CONSTRAINT CK_IMQ_Status;
+ALTER TABLE [ImageModerationQueue] ADD CONSTRAINT CK_IMQ_Status
+    CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'FAILED', 'STALE'));
+
+-- ── 5. Upgrade TaskAnalysisRequests index to composite for ordered batch fetch ─
+-- findByStatus('PENDING') ORDER BY createdAt needs a composite index,
+-- not just (status) alone. Drop the old one and create proper composite.
+
+DROP INDEX IX_TAR_status ON TaskAnalysisRequests;
+CREATE INDEX IX_TAR_status_createdAt ON TaskAnalysisRequests (status, createdAt);

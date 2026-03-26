@@ -271,6 +271,7 @@ public class QueryCacheWarmUp extends BaseComponent {
         logger.info("  Warming: ImageModerationQueueRepository");
         try {
             imageModerationQueueRepository.findPendingBatch(PAGE);
+            imageModerationQueueRepository.existsNewerPending("USER", DUMMY, Instant.EPOCH);
             imageModerationQueueRepository.countViolationsSince(DUMMY, Instant.EPOCH);
             imageModerationQueueRepository.incrementRetryOrFail(DUMMY);
         } catch (Exception e) { logger.debug("  Incomplete: ImageModerationQueueRepository — {}", e.getMessage()); }

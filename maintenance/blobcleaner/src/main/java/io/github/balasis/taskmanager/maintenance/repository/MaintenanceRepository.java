@@ -200,7 +200,7 @@ public class MaintenanceRepository {
     public int purgeProcessedModerations(int retentionDays) {
         return jdbcTemplate.update("""
             DELETE FROM ImageModerationQueue
-            WHERE status IN ('APPROVED', 'REJECTED', 'FAILED')
+            WHERE status IN ('APPROVED', 'REJECTED', 'FAILED', 'STALE')
               AND COALESCE(processedAt, createdAt) < DATEADD(DAY, ?, GETUTCDATE())
         """, -retentionDays);
     }

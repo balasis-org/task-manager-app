@@ -16,7 +16,9 @@ import java.util.List;
 // instances from processing the same request.
 public interface TaskAnalysisRequestRepository extends JpaRepository<TaskAnalysisRequest, Long> {
 
-    List<TaskAnalysisRequest> findByStatus(String status, Pageable pageable);
+    // oldest-first so no request starves — must match IX_TAR_status_createdAt composite index
+    @Query("SELECT r FROM TaskAnalysisRequest r WHERE r.status = :status ORDER BY r.createdAt")
+    List<TaskAnalysisRequest> findByStatus(@Param("status") String status, Pageable pageable);
 
     boolean existsByTaskIdAndStatusIn(Long taskId, List<String> statuses);
 

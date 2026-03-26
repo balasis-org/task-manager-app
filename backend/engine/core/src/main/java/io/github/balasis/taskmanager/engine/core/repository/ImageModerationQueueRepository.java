@@ -31,6 +31,20 @@ public interface ImageModerationQueueRepository extends JpaRepository<ImageModer
     """)
     int countViolationsSince(@Param("userId") Long userId, @Param("since") Instant since);
 
+    // true if a newer PENDING entry exists for the same entity — meaning
+    // this entry is stale (the user uploaded again before we got to it)
+    @Query("""
+        SELECT CASE WHEN COUNT(q) > 0 THEN true ELSE false END
+        FROM ImageModerationQueue q
+        WHERE q.status = 'PENDING'
+          AND q.entityType = :entityType
+          AND q.entityId = :entityId
+          AND q.createdAt > :createdAt
+    """)
+    boolean existsNewerPending(@Param("entityType") String entityType,
+                               @Param("entityId") Long entityId,
+                               @Param("createdAt") Instant createdAt);
+
     // bump retry count and auto-fail after 3 attempts so poison entries
     // dont block the queue forever
     @Modifying

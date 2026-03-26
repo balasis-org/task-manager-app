@@ -13,8 +13,9 @@ import java.time.Instant;
 // we save the blob immediately (so the UI feels instant) then insert a row here.
 // the ImageModerationDrainer picks it up every 10 seconds, downloads the blob,
 // sends it to Azure Content Safety, and if rejected: deletes the blob, reverts
-// the entity's imgUrl to its previous value, refunds the scan credit, and applies
-// escalation bans based on how many times the user has been caught.
+// the entity's imgUrl to null (safe default), and applies escalation bans.
+// if a newer upload exists for the same entity the entry is marked STALE and skipped.
+// statuses: PENDING → APPROVED | REJECTED | FAILED | STALE
 @Entity
 @Table(name = "ImageModerationQueue")
 @Getter

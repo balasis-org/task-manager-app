@@ -26,10 +26,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 // polls the ImageModerationQueue table every 10s on a Redis-locked schedule.
-// grabs up to 5 pending items, downloads the blob bytes from Azure Blob Storage,
-// sends them to Azure Content Safety (severity analysis across 4 categories),
-// then either approves (deletes the old/previous image) or rejects (reverts to
-// previous image, refunds the scan quota credit, and applies the escalation ladder).
+// grabs up to 5 pending items, checks each for staleness (newer PENDING entry for
+// the same entity → mark STALE, delete blob, skip the API call), downloads the blob
+// bytes from Azure Blob Storage, sends them to Azure Content Safety (severity
+// analysis across 4 categories), then either approves (confirms imgUrl, deletes old
+// blob) or rejects (reverts imgUrl to null safe default, deletes offending blob,
+// and applies the escalation ladder). no scan credit refund on rejection — the user
+// is charged for every upload attempt regardless of outcome.
 //
 // escalation ladder: every 3 violations within a 30-day rolling window bumps the level.
 //   L1 = 1-hour upload ban  (user can still read/comment, just not upload images)
@@ -104,6 +107,22 @@ public class ImageModerationDrainer {
     }
 
     private void processSingle(ImageModerationQueue item) {
+        // if a newer PENDING entry exists for the same entity, this upload
+        // was replaced before we got to it — mark STALE, delete its blob,
+        // and skip the Content Safety API call entirely
+        if (queueRepository.existsNewerPending(
+                item.getEntityType(), item.getEntityId(), item.getCreatedAt())) {
+            txTemplate.executeWithoutResult(status -> {
+                item.setStatus("STALE");
+                item.setProcessedAt(Instant.now());
+                queueRepository.save(item);
+            });
+            deleteBlobSafe(item.getEntityType(), item.getNewBlobName());
+            logger.debug("Moderation STALE: queue id={}, entity={}:{} — newer entry exists",
+                    item.getId(), item.getEntityType(), item.getEntityId());
+            return;
+        }
+
         try {
             byte[] imageBytes = blobStorageService.downloadBlobBytes(
                     item.getEntityType(), item.getNewBlobName());
@@ -145,6 +164,10 @@ public class ImageModerationDrainer {
         item.setProcessedAt(Instant.now());
         queueRepository.save(item);
 
+        // explicitly set imgUrl to the approved blob — handles the race where a
+        // concurrent rejection may have nulled imgUrl between upload and approval
+        confirmImage(item);
+
         // delete old blob — the new one is confirmed safe
         if (item.getPreviousBlobName() != null) {
             deleteBlobSafe(item.getEntityType(), item.getPreviousBlobName());
@@ -167,8 +190,8 @@ public class ImageModerationDrainer {
         // revert entity's imgUrl to previous
         revertImage(item);
 
-        // refund the image scan charge — user should not lose quota for rejected content
-        userRepository.decrementImageScanUsage(item.getUserId());
+        // no scan credit refund — the user is charged for every attempt.
+        // uploading rejected content is the user's responsibility.
 
         // apply escalation
         applyEscalation(item.getUserId());
@@ -178,15 +201,34 @@ public class ImageModerationDrainer {
                 result.rejectedCategory(), result.rejectedSeverity());
     }
 
+    // revert to safe default (null) instead of previousBlobName — prevents a race
+    // condition where two rapid uploads both fail moderation: the second rejection
+    // would revert to the first upload's blob which was already deleted by the first
+    // rejection. setting imgUrl = null falls back to defaultImgUrl (pre-seeded, always safe).
+    // any orphaned previous blob is cleaned up by the blob reconciliation maintenance service.
     private void revertImage(ImageModerationQueue item) {
         if ("USER".equals(item.getEntityType())) {
             userRepository.findById(item.getEntityId()).ifPresent(user -> {
-                user.setImgUrl(item.getPreviousBlobName());
+                user.setImgUrl(null);
                 userRepository.save(user);
             });
         } else if ("GROUP".equals(item.getEntityType())) {
             groupRepository.findById(item.getEntityId()).ifPresent(group -> {
-                group.setImgUrl(item.getPreviousBlobName());
+                group.setImgUrl(null);
+                groupRepository.save(group);
+            });
+        }
+    }
+
+    private void confirmImage(ImageModerationQueue item) {
+        if ("USER".equals(item.getEntityType())) {
+            userRepository.findById(item.getEntityId()).ifPresent(user -> {
+                user.setImgUrl(item.getNewBlobName());
+                userRepository.save(user);
+            });
+        } else if ("GROUP".equals(item.getEntityType())) {
+            groupRepository.findById(item.getEntityId()).ifPresent(group -> {
+                group.setImgUrl(item.getNewBlobName());
                 groupRepository.save(group);
             });
         }
