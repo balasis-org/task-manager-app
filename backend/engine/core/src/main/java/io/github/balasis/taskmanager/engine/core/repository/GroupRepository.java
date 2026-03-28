@@ -75,4 +75,29 @@ public interface GroupRepository extends JpaRepository<Group,Long> {
     @Modifying
     @Query("UPDATE Group g SET g.lastChangeInGroup = :now WHERE g.owner.id = :ownerId")
     void touchLastChangeByOwnerId(@Param("ownerId") Long ownerId, @Param("now") Instant now);
+
+    // Atomically bumps the group's member counter.
+    // Returns 0 (no rows updated) when the group is already at its cap,
+    // so the caller can reject the join.
+    @Modifying
+    @Query("""
+        UPDATE Group g
+        SET g.memberCount = g.memberCount + 1
+        WHERE g.id = :groupId
+          AND g.memberCount < :maxMembers
+    """)
+    int incrementMemberCount(@Param("groupId") Long groupId,
+                             @Param("maxMembers") int maxMembers);
+
+    // Atomically decrements member count on removal / leave.
+    // Clamps to zero; maintenance reconciliation handles any drift.
+    @Modifying
+    @Query("""
+        UPDATE Group g
+        SET g.memberCount = CASE
+            WHEN g.memberCount > 0 THEN g.memberCount - 1
+            ELSE 0 END
+        WHERE g.id = :groupId
+    """)
+    void decrementMemberCount(@Param("groupId") Long groupId);
 }

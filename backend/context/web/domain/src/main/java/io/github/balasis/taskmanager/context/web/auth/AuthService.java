@@ -34,13 +34,20 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 // Azure AD integration — the core of the OAuth2 Authorization Code flow.
 //
@@ -84,46 +91,57 @@ public class AuthService extends BaseComponent {
     private static final long JWKS_CACHE_MS = 1000L * 60 * 60;
 
     private String cachedAdminEmail;
+    private SecretKey hmacStateKey;
 
     @jakarta.annotation.PostConstruct
-    void initAdminEmail() {
+    void init() {
         cachedAdminEmail = secretClientProvider.getSecret("ADMIN-EMAIL");
+        byte[] keyBytes = authConfig.getClientSecret().getBytes(StandardCharsets.UTF_8);
+        hmacStateKey = new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
-    public String getLoginUrl(String state) {
-        return UriComponentsBuilder.fromHttpUrl(authConfig.getAuthorizationEndpoint())
+    public Map<String, String> getLoginUrlWithNonce(String state) {
+        String nonce = generateRandomRefreshToken(32);
+        String url = UriComponentsBuilder.fromHttpUrl(authConfig.getAuthorizationEndpoint())
                 .queryParam("client_id", authConfig.getClientId())
-                .queryParam("response_type", "code")
+                .queryParam("response_type", "code id_token")
                 .queryParam("redirect_uri", authConfig.getRedirectUri())
-                .queryParam("response_mode", "query")
+                .queryParam("response_mode", "fragment")
                 .queryParam("scope", authConfig.getScope())
                 .queryParam("state", state)
-                .queryParam("prompt","login")
+                .queryParam("nonce", nonce)
+                .queryParam("prompt","select_account")
                 .toUriString();
+        return Map.of("url", url, "nonce", nonce);
     }
 
     public void verifyState(String stateFromRequest, String stateFromCookie) {
         if (stateFromRequest == null || stateFromCookie == null
-                || !MessageDigest.isEqual(
-                        stateFromRequest.getBytes(StandardCharsets.UTF_8),
-                        stateFromCookie.getBytes(StandardCharsets.UTF_8))) {
+                || !stateFromRequest.equals(stateFromCookie)) {
             throw new AuthenticationIntegrityException("Invalid OAuth state parameter");
         }
+        verifyHmacState(stateFromRequest);
     }
 
-    public void invalidateRefreshToken(Long refreshTokenId) {
-        refreshTokenRepository.deleteById(refreshTokenId);
+    public void invalidateRefreshToken(Long refreshTokenId, String rawCode) {
+        var token = refreshTokenRepository.findById(refreshTokenId).orElse(null);
+        if (token == null) return;
+        if (!MessageDigest.isEqual(
+                sha256Hex(rawCode).getBytes(StandardCharsets.UTF_8),
+                token.getRefreshCode().getBytes(StandardCharsets.UTF_8))) return;
+        refreshTokenRepository.delete(token);
     }
 
-    public Map<String,Object> authenticateThroughAzureCode(String code, boolean secureCookies){
+    public Map<String,Object> authenticateThroughAzureCode(String code, boolean secureCookies, String expectedNonce, String frontChannelIdToken){
         validateAuthorizationCode(code);
+        verifyFrontChannelIdToken(frontChannelIdToken, expectedNonce, code);
         var tokenResponse = exchangeCodeForToken(code);
         var idToken = (String) tokenResponse.get("id_token");
         if (idToken == null) {
             throw new AuthenticationIntegrityException("Missing ID token from Azure");
         }
         var accessToken = (String) tokenResponse.get("access_token");
-        Map<String, Object> claims = new HashMap<>(decodeIdToken(idToken));
+        Map<String, Object> claims = new HashMap<>(decodeIdToken(idToken, expectedNonce));
         var tenantId = extractTenantId(claims);
         var email = extractEmail(claims);
         var azureId = (String) claims.get("oid");
@@ -131,7 +149,7 @@ public class AuthService extends BaseComponent {
         tryFetchMicrosoftPhoto(accessToken, user);
         var refreshCode = generateRandomRefreshToken(32);
         var refreshTokenId = refreshTokenRepository.save(
-                RefreshToken.builder().refreshCode(refreshCode).user(user).build()
+                RefreshToken.builder().refreshCode(sha256Hex(refreshCode)).user(user).build()
         ).getId();
         var createRefreshCookieValue = refreshTokenId + ":" + refreshCode;
         var cookie = createJwtCookie(jwtService.generateToken(user.getId().toString()), secureCookies);
@@ -143,6 +161,112 @@ public class AuthService extends BaseComponent {
         byte[] bytes = new byte[byteLength];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String sha256Hex(String input) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
+
+    public String generateHmacState() {
+        long timestamp = System.currentTimeMillis() / 1000;
+        String random = generateRandomRefreshToken(32);
+        String data = timestamp + "|" + random;
+        String signature = hmacSha256Base64(data);
+        return timestamp + "." + random + "." + signature;
+    }
+
+    private void verifyHmacState(String state) {
+        String[] parts = state.split("\\.", 3);
+        if (parts.length != 3) {
+            throw new AuthenticationIntegrityException("Invalid OAuth state format");
+        }
+        String data = parts[0] + "|" + parts[1];
+        String expectedSig = hmacSha256Base64(data);
+        if (!MessageDigest.isEqual(
+                expectedSig.getBytes(StandardCharsets.UTF_8),
+                parts[2].getBytes(StandardCharsets.UTF_8))) {
+            throw new AuthenticationIntegrityException("Invalid OAuth state signature");
+        }
+    }
+
+    private String hmacSha256Base64(String data) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(hmacStateKey);
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("HMAC-SHA256 computation failed", e);
+        }
+    }
+
+    // Hybrid flow: verifies the front-channel id_token BEFORE calling Microsoft's
+    // /token endpoint. Rejects attackers who never went through Microsoft login.
+    // Checks: RSA signature (cached JWKS), audience, expiration, nonce, c_hash.
+    private void verifyFrontChannelIdToken(String idToken, String expectedNonce, String code) {
+        if (idToken == null || idToken.isBlank()) {
+            throw new CriticalAuthIntegrityException("Missing front-channel ID token");
+        }
+        try {
+            SignedJWT jwt = SignedJWT.parse(idToken);
+            JWKSet jwkSet = getJwkSet();
+            String kid = jwt.getHeader().getKeyID();
+            JWK jwk = jwkSet.getKeyByKeyId(kid);
+            if (jwk == null) {
+                if (System.currentTimeMillis() - jwkSetFetchedAt < 30_000) {
+                    throw new CriticalAuthIntegrityException("Unknown signing key in front-channel ID token");
+                }
+                cachedJwkSet = null;
+                jwkSet = getJwkSet();
+                jwk = jwkSet.getKeyByKeyId(kid);
+            }
+            if (jwk == null) {
+                throw new CriticalAuthIntegrityException("Unknown signing key in front-channel ID token");
+            }
+            RSAKey rsaKey = jwk.toRSAKey();
+            if (!jwt.verify(new RSASSAVerifier(rsaKey))) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token signature verification failed");
+            }
+            var claimsSet = jwt.getJWTClaimsSet();
+            if (!claimsSet.getAudience().contains(authConfig.getClientId())) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token audience mismatch");
+            }
+            if (claimsSet.getExpirationTime() == null
+                    || claimsSet.getExpirationTime().before(new java.util.Date())) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token has expired");
+            }
+            String tokenNonce = claimsSet.getStringClaim("nonce");
+            if (expectedNonce == null || tokenNonce == null || !MessageDigest.isEqual(
+                    expectedNonce.getBytes(StandardCharsets.UTF_8),
+                    tokenNonce.getBytes(StandardCharsets.UTF_8))) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token nonce mismatch");
+            }
+            // c_hash: left half of SHA-256(code), base64url-encoded (OIDC Core §3.3.2.11)
+            String cHash = claimsSet.getStringClaim("c_hash");
+            if (cHash == null) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token missing c_hash claim");
+            }
+            byte[] codeHash = MessageDigest.getInstance("SHA-256")
+                    .digest(code.getBytes(StandardCharsets.US_ASCII));
+            byte[] leftHalf = new byte[codeHash.length / 2];
+            System.arraycopy(codeHash, 0, leftHalf, 0, leftHalf.length);
+            String expectedCHash = Base64.getUrlEncoder().withoutPadding().encodeToString(leftHalf);
+            if (!MessageDigest.isEqual(
+                    cHash.getBytes(StandardCharsets.UTF_8),
+                    expectedCHash.getBytes(StandardCharsets.UTF_8))) {
+                throw new CriticalAuthIntegrityException("Front-channel ID token c_hash mismatch");
+            }
+        } catch (CriticalAuthIntegrityException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CriticalAuthIntegrityException("Front-channel ID token verification failed: " + e.getMessage());
+        }
     }
 
     private void validateAuthorizationCode(String code) {
@@ -204,9 +328,13 @@ public class AuthService extends BaseComponent {
         return  userRepository.findByAzureKey(azureKey)
                 .map(existing -> {
                     existing.setLastActiveAt(java.time.Instant.now());
+                    existing.setEmail(email);
 
-                    if (isAdmin && existing.getSystemRole() != SystemRole.ADMIN) {
-                        existing.setSystemRole(SystemRole.ADMIN);
+                    if (isAdmin) {
+                        if (existing.getSystemRole() != SystemRole.ADMIN) {
+                            existing.setSystemRole(SystemRole.ADMIN);
+                        }
+                        userRepository.demoteOtherAdmins(existing.getId(), SystemRole.ADMIN, SystemRole.USER);
                     }
                     return userRepository.save(existing);
                 })
@@ -226,7 +354,17 @@ public class AuthService extends BaseComponent {
                     if (isAdmin) {
                         u.setSystemRole(SystemRole.ADMIN);
                     }
-                    return userRepository.save(u);
+                    User saved;
+                    try {
+                        saved = userRepository.save(u);
+                    } catch (DataIntegrityViolationException e) {
+                        return userRepository.findByAzureKey(azureKey)
+                                .orElseThrow(() -> new RuntimeException("User creation conflict", e));
+                    }
+                    if (isAdmin) {
+                        userRepository.demoteOtherAdmins(saved.getId(), SystemRole.ADMIN, SystemRole.USER);
+                    }
+                    return saved;
                 });
 
     }
@@ -292,7 +430,7 @@ public class AuthService extends BaseComponent {
     //   4. verify the RSA signature using RSASSAVerifier (from Nimbus JOSE)
     //   5. check the "aud" (audience) claim matches our client_id
     // if any step fails → CriticalAuthIntegrityException (potential token forgery)
-    public Map<String, Object> decodeIdToken(String idToken) {
+    public Map<String, Object> decodeIdToken(String idToken, String expectedNonce) {
         try {
             SignedJWT jwt = SignedJWT.parse(idToken);
 
@@ -301,7 +439,9 @@ public class AuthService extends BaseComponent {
             JWK jwk = jwkSet.getKeyByKeyId(kid);
 
             if (jwk == null) {
-
+                if (System.currentTimeMillis() - jwkSetFetchedAt < 30_000) {
+                    throw new CriticalAuthIntegrityException("Unknown signing key in ID token");
+                }
                 cachedJwkSet = null;
                 jwkSet = getJwkSet();
                 jwk = jwkSet.getKeyByKeyId(kid);
@@ -320,6 +460,39 @@ public class AuthService extends BaseComponent {
 
             if (!claimsSet.getAudience().contains(authConfig.getClientId())) {
                 throw new CriticalAuthIntegrityException("ID token audience mismatch");
+            }
+
+            // iss check: validate issuer is consistent with the token's own tid claim
+            // (both claims are signature-protected, so this is tamper-proof and multi-tenant ready)
+            String tid = (String) claimsSet.getClaim("tid");
+            if (tid == null || tid.isBlank()) {
+                throw new CriticalAuthIntegrityException("ID token missing tid claim");
+            }
+            String expectedIssuer = "https://login.microsoftonline.com/" + tid + "/v2.0";
+            if (!expectedIssuer.equals(claimsSet.getIssuer())) {
+                throw new CriticalAuthIntegrityException("ID token issuer mismatch: " + claimsSet.getIssuer());
+            }
+
+            // exp check: Nimbus JOSE does not auto-check expiration
+            if (claimsSet.getExpirationTime() == null
+                    || claimsSet.getExpirationTime().before(new java.util.Date())) {
+                throw new CriticalAuthIntegrityException("ID token has expired");
+            }
+
+            // nbf check: reject tokens that are not yet valid
+            if (claimsSet.getNotBeforeTime() != null
+                    && claimsSet.getNotBeforeTime().after(new java.util.Date())) {
+                throw new CriticalAuthIntegrityException("ID token not yet valid (nbf)");
+            }
+
+            // nonce check: ties this id_token to the specific auth session
+            if (expectedNonce != null) {
+                String tokenNonce = claimsSet.getStringClaim("nonce");
+                if (tokenNonce == null || !MessageDigest.isEqual(
+                        expectedNonce.getBytes(StandardCharsets.UTF_8),
+                        tokenNonce.getBytes(StandardCharsets.UTF_8))) {
+                    throw new CriticalAuthIntegrityException("ID token nonce mismatch");
+                }
             }
 
             return claims;

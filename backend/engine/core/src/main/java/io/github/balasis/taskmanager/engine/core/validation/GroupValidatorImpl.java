@@ -361,7 +361,8 @@ public class GroupValidatorImpl implements GroupValidator{
         }
 
         var membershipOpt = groupMembershipRepository.findByGroupIdAndUserId(groupId, effectiveCurrentUser.getUserId());
-        boolean isCreator = Objects.equals(existing.getCreator().getId(), effectiveCurrentUser.getUserId());
+        boolean isCreator = existing.getCreator() != null
+                && Objects.equals(existing.getCreator().getId(), effectiveCurrentUser.getUserId());
         boolean isLeaderOrManager = membershipOpt.isPresent() && (
                 membershipOpt.get().getRole() == Role.GROUP_LEADER ||
                         membershipOpt.get().getRole() == Role.TASK_MANAGER

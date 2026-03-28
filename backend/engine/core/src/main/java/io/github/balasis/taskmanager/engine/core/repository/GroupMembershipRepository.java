@@ -43,6 +43,9 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     @Query("SELECT gm FROM GroupMembership gm JOIN FETCH gm.user WHERE gm.id = :id")
     Optional<GroupMembership> findByIdWithUser(@Param("id") Long id);
 
+    @Query("SELECT gm FROM GroupMembership gm JOIN FETCH gm.user WHERE gm.id = :id AND gm.group.id = :groupId")
+    Optional<GroupMembership> findByIdAndGroupIdWithUser(@Param("id") Long id, @Param("groupId") Long groupId);
+
         @EntityGraph(attributePaths = {"user"})
         @Query("""
         select gm

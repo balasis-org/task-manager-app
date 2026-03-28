@@ -110,6 +110,12 @@ public class Group extends BaseModel{
     @Builder.Default
     private Boolean dailyDownloadCapEnabled = true;
 
+    // denormalized member count maintained atomically via
+    // GroupRepository.incrementMemberCount / decrementMemberCount.
+    // avoids the TOCTOU race in count-then-insert membership checks.
+    @Column
+    private int memberCount = 0;
+
     // when true the maintenance DowngradeCleanupService skips this group
     // even if the owner downgraded. admin can set this for special cases.
     @Column

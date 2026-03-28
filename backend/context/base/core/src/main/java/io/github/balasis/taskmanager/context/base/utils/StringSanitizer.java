@@ -11,7 +11,7 @@ public final class StringSanitizer {
     private StringSanitizer() {}
 
     private static final int MAX_FILENAME_LENGTH = 50;
-    private static final Pattern INVALID_FILENAME_PATTERN = Pattern.compile("[\\r\\n\\x00-\\x1F\\x7F/\\\\]+");
+    private static final Pattern INVALID_FILENAME_PATTERN = Pattern.compile("[\\r\\n\\x00-\\x1F\\x7F/\\\\\"]+");
     private static final Pattern BLOB_UNSAFE_PATTERN = Pattern.compile("[^a-zA-Z0-9._-]");
 
     public static String sanitizeFilename(String original) {

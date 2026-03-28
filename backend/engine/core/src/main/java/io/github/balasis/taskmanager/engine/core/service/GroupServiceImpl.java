@@ -178,7 +178,9 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
 
     @Override
     public Group create(Group group){
-        var user = userRepository.findById(effectiveCurrentUser.getUserId())
+        // lock the creator's User row to serialize concurrent creates —
+        // prevents the maxGroups membership-count check from being stale
+        var user = userRepository.findByIdForUpdate(effectiveCurrentUser.getUserId())
                 .orElseThrow(()->new UserNotFoundException("User not found"));
 
         // two separate caps: how many groups you can BE IN vs how many you can CREATE.
@@ -190,10 +192,11 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
             throw new LimitExceededException("Cannot create group. You have reached the max membership number (" + maxGroups + ")");
         }
 
-        // the creation window resets when the maintenance job runs (nextResetAt).
-        // we try to show the user when that is so they know when to try again.
+        // atomic creation-window guard — returns 0 when the window cap is reached.
+        // the counter resets when the maintenance job runs (nextResetAt).
         int maxCreations = planLimits.maxGroupCreationsPerWindow(user.getSubscriptionPlan());
-        if (user.getTotalGroupsCreated() >= maxCreations) {
+        int bumped = userRepository.incrementTotalGroupsCreated(user.getId(), maxCreations);
+        if (bumped == 0) {
             String resetHint = maintenanceStatusRepository.findById(1L)
                     .map(MaintenanceStatus::getNextResetAt)
                     .filter(Objects::nonNull)
@@ -210,6 +213,8 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         group.setOwner(user);
         // every group gets a random default image from the pre-seeded blob container
         group.setDefaultImgUrl(defaultImageService.pickRandom(BlobContainerType.GROUP_IMAGES));
+        // creator auto-joins as GROUP_LEADER — set memberCount = 1 up front
+        group.setMemberCount(1);
         // touchGroupChange bumps lastChangeInGroup so the polling refresh picks it up
         touchGroupChange(group, true);
         Group savedGroup = groupRepository.save(group);
@@ -221,10 +226,6 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
                         .role(Role.GROUP_LEADER)
                         .build()
         );
-
-        // bump the creation counter (checked against the window limit above)
-        user.setTotalGroupsCreated(user.getTotalGroupsCreated() + 1);
-        userRepository.save(user);
 
         return savedGroup;
     }
@@ -702,7 +703,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         if (currentMembershipOpt.isEmpty()) {
             throw new NotAGroupMemberException("Not a member of this group");
         }
-        var targetMembershipOpt = groupMembershipRepository.findById(groupMembershipId);
+        var targetMembershipOpt = groupMembershipRepository.findByIdAndGroupIdWithUser(groupMembershipId, groupId);
         if (targetMembershipOpt.isEmpty()) {
             throw new InvalidMembershipRemovalException("Membership to remove not found");
         }
@@ -730,6 +731,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         taskCommentRepository.detachCreatorFromGroupComments(targetsId, groupId, targetsName);
         taskParticipantRepository.deleteByUserIdAndGroupId(targetsId, groupId);
         groupMembershipRepository.deleteByGroupIdAndUserId(groupId, targetsId);
+        groupRepository.decrementMemberCount(groupId);
     }
 
     // changing role: if someone loses TASK_MANAGER or REVIEWER, we also
@@ -739,7 +741,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     public GroupMembership changeGroupMembershipRole(Long groupId, Long groupMembershipId, Role newRole) {
         authorizationService.requireRoleIn(groupId, Set.of(Role.GROUP_LEADER));
 
-        var targetOpt = groupMembershipRepository.findByIdWithUser(groupMembershipId);
+        var targetOpt = groupMembershipRepository.findByIdAndGroupIdWithUser(groupMembershipId, groupId);
         if (targetOpt.isEmpty()) {
             throw new GroupMembershipNotFoundException("Target membership not found");
         }
@@ -847,19 +849,21 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
         // accepting an invitation: double-check the member cap again because
         // the group might have filled up between the invite send and accept.
         if (status == InvitationStatus.ACCEPTED) {
-            var invitedUser = groupInvitation.getUser();
-            // also check the invitee's own membership cap
+            // lock the invitee's User row to serialize concurrent accepts
+            // for the same user — prevents the maxGroups count from being stale
+            var invitedUser = userRepository.findByIdForUpdate(groupInvitation.getUser().getId())
+                    .orElseThrow(() -> new UserNotFoundException("Invited user not found"));
             long groupCount = groupMembershipRepository.countByUser_Id(invitedUser.getId());
             int maxGroups = planLimits.maxGroups(invitedUser.getSubscriptionPlan());
             if (groupCount >= maxGroups) {
                 throw new LimitExceededException("You can be a member of at most " + maxGroups + " groups");
             }
 
-            // member cap — double-check at accept time in case group filled since invite was sent
+            // atomic member-count guard — returns 0 when the group is at capacity
             var group = groupInvitation.getGroup();
-            long memberCount = groupMembershipRepository.countByGroup_Id(group.getId());
             int maxMembers = planLimits.maxMembersPerGroup(group.getOwner().getSubscriptionPlan());
-            if (memberCount >= maxMembers) {
+            int bumped = groupRepository.incrementMemberCount(group.getId(), maxMembers);
+            if (bumped == 0) {
                 throw new LimitExceededException(
                         "This group has reached its member limit (" + maxMembers + ")");
             }
@@ -1046,6 +1050,7 @@ public class GroupServiceImpl extends BaseComponent implements GroupService{
     @Override
     @Transactional(readOnly = true)
     public Set<Task> findMyTasks(Long groupId, Boolean reviewer, Boolean assigned, TaskState taskState) {
+        authorizationService.requireAnyRoleIn(groupId);
         return taskRepository.searchBy(groupId, effectiveCurrentUser.getUserId(), reviewer, assigned, taskState);
     }
 

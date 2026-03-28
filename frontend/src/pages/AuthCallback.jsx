@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import usePageTitle from "@hooks/usePageTitle";
 import "@styles/pages/AuthCallback.css";
 
-// OAuth2 callback: receives the authorization code from Azure AD redirect,
-// exchanges it via /api/auth/exchange (which sets httpOnly JWT + refresh cookies),
+// OAuth2 hybrid flow callback: reads the authorization code, state, and
+// front-channel id_token from the URL fragment (#), exchanges them via
+// /api/auth/exchange (which sets httpOnly JWT + refresh cookies),
 // then navigates to the saved returnUrl or /dashboard.
 export default function AuthCallback() {
-    const [searchParams] = useSearchParams();
     const [error, setError] = useState("");
 
     usePageTitle("Signing in…");
 
     useEffect(() => {
-        const code = searchParams.get("code");
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+
+        const azureError = params.get("error");
+        const errorDesc = params.get("error_description");
+        if (azureError) {
+            setError(`Authentication failed: ${azureError}${errorDesc ? " — " + errorDesc : ""}`);
+            return;
+        }
+
+        const code = params.get("code");
+        const state = params.get("state");
+        const id_token = params.get("id_token");
 
         if (!code) {
             setError("No authorization code found in the URL.");
@@ -24,12 +35,11 @@ export default function AuthCallback() {
 
         (async () => {
             try {
-                const state = searchParams.get("state");
                 const res = await fetch("/api/auth/exchange", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ code, state }),
+                    body: JSON.stringify({ code, state, id_token }),
                 });
 
                 if (!res.ok) {
@@ -56,7 +66,7 @@ export default function AuthCallback() {
         })();
 
         return () => { cancelled = true; };
-    }, [searchParams]);
+    }, []);
 
     if (error) {
         return (

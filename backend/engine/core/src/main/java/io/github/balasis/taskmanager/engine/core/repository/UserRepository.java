@@ -4,11 +4,15 @@ import io.github.balasis.taskmanager.context.base.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import io.github.balasis.taskmanager.context.base.enumeration.SystemRole;
+
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 // most of the @Modifying queries here do atomic counter updates (storage, downloads,
@@ -141,4 +145,32 @@ public interface UserRepository extends JpaRepository<User,Long> {
       and (:tenantId IS NULL OR u.tenantId = :tenantId)
     """)
     Page<User> searchUserForInvites(@Param("groupId") Long groupId, @Param("q") String q, @Param("tenantId") String tenantId, Pageable pageable);
+
+    // Admin demotion: on admin login, demote any OTHER user who still has ADMIN.
+    // Fires only when the KV-matching admin logs in — zero overhead for regular users.
+    @Modifying
+    @Query("UPDATE User u SET u.systemRole = :newRole WHERE u.systemRole = :oldRole AND u.id <> :adminId")
+    int demoteOtherAdmins(@Param("adminId") Long adminId,
+                          @Param("oldRole") SystemRole oldRole,
+                          @Param("newRole") SystemRole newRole);
+
+    // Pessimistic lock on the User row — used to serialize concurrent
+    // group-create / invitation-accept so the membership-count check
+    // is safe from TOCTOU races (ISSUE-024).
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") Long id);
+
+    // Atomically bumps the group-creation counter.
+    // Returns 0 (no rows updated) when the window limit is reached,
+    // so the caller can reject the create.
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.totalGroupsCreated = u.totalGroupsCreated + 1
+        WHERE u.id = :userId
+          AND u.totalGroupsCreated < :maxCreations
+    """)
+    int incrementTotalGroupsCreated(@Param("userId") Long userId,
+                                    @Param("maxCreations") int maxCreations);
 }

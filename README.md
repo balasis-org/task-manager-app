@@ -23,7 +23,7 @@ a containerised, full-stack group task management platform deployed on 24 Azure 
 | | | |
 |:--|:--|:--|
 | **24** Azure PaaS resources — one Bicep template | **41** OWASP security assertions — 100% pass | **$0** variable cost on the FREE tier |
-| **7** independent security layers | **18** JPA entities, **75+** custom queries | **<$0.002** per maintenance job run |
+| **7** independent security layers | **20** JPA entities, **109** custom queries | **<$0.002** per maintenance job run |
 | **9** automated k6 attack simulations | **AES-256-GCM** encrypted client-side cache | **AI** content moderation + comment intelligence |
 
 
@@ -115,7 +115,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 
 **frontend** — React 19 with the React Compiler (automatic memoisation), Vite 7, ~74 JSX files across 15 routes and 50+ reusable components. five Context providers in dependency order. dark mode via CSS custom properties with pre-hydration flash prevention.
 
-**database** — Azure SQL (S1, 20 DTU) with 18 JPA entities, 75+ custom `@Query` methods, 10 Flyway migrations. every association-loading query uses `LEFT JOIN FETCH` (1 SQL statement instead of 201 for N+1 problems). H2 compatibility mode for zero-cost local development.
+**database** — Azure SQL (S1, 20 DTU) with 20 JPA entities, 109 custom query methods, 11 Flyway migrations. every association-loading query uses `LEFT JOIN FETCH` (1 SQL statement instead of 201 for N+1 problems). H2 compatibility mode for zero-cost local development.
 
 **maintenance** — two Azure Container App Jobs (billed per-execution, <$0.002/run): a daily full sweep (orphan blob cleanup, inactive user anonymisation, expired invite cleanup, budget reconciliation, counter resets, ACR image pruning) and a 30-minute blob-only scan for fast orphan detection.
 
@@ -136,7 +136,7 @@ the system follows a three-tier architecture with Azure Front Door as the single
 | comment intelligence | Azure AI Language (Text Analytics S) — sentiment, key phrases, PII, summarisation. TEAMS_PRO only, 7,000 credits/month |
 | secrets | Azure Key Vault — single trust root, Managed Identity, startup-only fetch |
 | registry | Azure Container Registry (Basic) — auto-pruned to 2 tags per repo |
-| monitoring | Application Insights + OpenTelemetry (10% sampling, polling traces dropped) · 7 Micrometer metrics · structured JSON logging |
+| monitoring | Application Insights + OpenTelemetry (10% sampling, polling traces dropped) · 6 Micrometer metrics · structured JSON logging |
 | CI/CD | GitHub Actions (5 workflows) · Bicep IaC · GitHub Environments |
 | testing | k6 — 9 OWASP attack scripts (41 assertions) + 3 stress tests |
 
@@ -211,4 +211,4 @@ infrastructure/manual-setup/    one-time Azure setup + post-deployment
 
 ---
 
-*24 Azure resources · 10 Maven modules · 75+ REST endpoints · 18 JPA entities · 10 Flyway migrations · 5 subscription tiers · 9 OWASP attack scripts · 41 security assertions · $108–128/month*
+*24 Azure resources · 10 Maven modules · ~85 REST endpoints · 20 JPA entities · 11 Flyway migrations · 5 subscription tiers · 9 OWASP attack scripts · 41 security assertions · $108–128/month*

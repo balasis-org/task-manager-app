@@ -8,11 +8,13 @@ import io.github.balasis.taskmanager.context.base.limits.PlanLimits;
 import io.github.balasis.taskmanager.context.base.model.TaskAnalysisSnapshot;
 import io.github.balasis.taskmanager.context.base.model.User;
 import io.github.balasis.taskmanager.context.base.utils.StringSanitizer;
+import io.github.balasis.taskmanager.context.web.validation.InputSanitizer;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.GroupInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.inbound.TaskInboundMapper;
 import io.github.balasis.taskmanager.context.web.mapper.outbound.*;
 import io.github.balasis.taskmanager.context.web.resource.filereview.inbound.FileReviewInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundPatchResource;
+
 import io.github.balasis.taskmanager.context.web.resource.group.inbound.GroupInboundResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupMiniForDropdownResource;
 import io.github.balasis.taskmanager.context.web.resource.group.outbound.GroupOutboundResource;
@@ -634,7 +636,7 @@ public class GroupController extends BaseComponent {
             @PathVariable Long userId,
             @RequestBody(required = false) java.util.Map<String, String> body
     ){
-        String customNote = (body != null) ? body.get("customNote") : null;
+        String customNote = (body != null) ? InputSanitizer.sanitize(body.get("customNote")) : null;
         groupService.notifyTaskParticipant(groupId,taskId,userId, customNote);
         return ResponseEntity.ok().build();
     }
@@ -648,7 +650,7 @@ public class GroupController extends BaseComponent {
         @SuppressWarnings("unchecked")
         java.util.List<Number> rawIds = (java.util.List<Number>) body.get("userIds");
         java.util.Set<Long> userIds = rawIds.stream().map(Number::longValue).collect(java.util.stream.Collectors.toSet());
-        String customNote = body.get("customNote") != null ? body.get("customNote").toString() : null;
+        String customNote = body.get("customNote") != null ? InputSanitizer.sanitize(body.get("customNote").toString()) : null;
         groupService.notifyTaskParticipants(groupId, taskId, userIds, customNote);
         return ResponseEntity.ok().build();
     }

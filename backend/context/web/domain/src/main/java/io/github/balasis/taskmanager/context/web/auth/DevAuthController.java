@@ -24,6 +24,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.PostConstruct;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -58,12 +61,17 @@ public class DevAuthController extends BaseComponent {
     private static final String DEV_AUTH_HEADER = "X-Dev-Auth-Key";
     private static final String DEV_GATE_COOKIE = "DevGate";
 
+    private String devGateHmac;
+
     @PostConstruct
-    void logSecretState() {
+    void init() {
         boolean blank  = devAuthSecret == null || devAuthSecret.isBlank();
         boolean looksLikeKvRef = devAuthSecret != null && devAuthSecret.startsWith("@Microsoft.KeyVault");
         logger.info("DevAuth secret state: blank={}, length={}, looksLikeUnresolvedKvRef={}",
                 blank, devAuthSecret == null ? 0 : devAuthSecret.length(), looksLikeKvRef);
+        if (!blank) {
+            devGateHmac = hmacSha256(devAuthSecret, "devgate-cookie");
+        }
     }
 
     private final long JWT_COOKIE_EXPIRE_IN_SECONDS_TIME = 10 * 60;
@@ -77,14 +85,14 @@ public class DevAuthController extends BaseComponent {
     @GetMapping("/dev-unlock")
     public ResponseEntity<Void> devUnlock(@RequestParam String key, HttpServletRequest request) {
         if (devAuthSecret.isBlank() || !MessageDigest.isEqual(
-                devAuthSecret.getBytes(), key.getBytes())) {
+                devAuthSecret.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8))) {
             logger.warn("dev-unlock REJECTED: secretBlank={}, keyLength={}, secretLength={}",
                     devAuthSecret.isBlank(), key.length(), devAuthSecret.length());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         logger.info("dev-unlock ACCEPTED, setting DevGate cookie (secure={}, path=/)",
                 request.isSecure());
-        ResponseCookie gate = ResponseCookie.from(DEV_GATE_COOKIE, devAuthSecret)
+        ResponseCookie gate = ResponseCookie.from(DEV_GATE_COOKIE, devGateHmac)
                 .httpOnly(true)
                 .secure(request.isSecure())
                 .path("/")
@@ -195,7 +203,7 @@ public class DevAuthController extends BaseComponent {
         if (devAuthSecret.isBlank()) return true;
         String header = request.getHeader(DEV_AUTH_HEADER);
         if (header != null && MessageDigest.isEqual(
-                devAuthSecret.getBytes(), header.getBytes())) {
+                devAuthSecret.getBytes(StandardCharsets.UTF_8), header.getBytes(StandardCharsets.UTF_8))) {
             logger.debug("isDevAuthAllowed: passed via header");
             return true;
         }
@@ -205,8 +213,8 @@ public class DevAuthController extends BaseComponent {
             for (Cookie c : request.getCookies()) {
                 if (DEV_GATE_COOKIE.equals(c.getName())) {
                     foundGate = true;
-                    if (MessageDigest.isEqual(
-                            devAuthSecret.getBytes(), c.getValue().getBytes())) {
+                    if (devGateHmac != null && MessageDigest.isEqual(
+                            devGateHmac.getBytes(StandardCharsets.UTF_8), c.getValue().getBytes(StandardCharsets.UTF_8))) {
                         logger.debug("isDevAuthAllowed: passed via DevGate cookie");
                         return true;
                     }
@@ -232,6 +240,17 @@ public class DevAuthController extends BaseComponent {
             return SubscriptionPlan.valueOf(raw.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             return SubscriptionPlan.FREE;
+        }
+    }
+
+    private static String hmacSha256(String key, String data) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("HMAC-SHA256 computation failed", e);
         }
     }
 

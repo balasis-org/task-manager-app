@@ -11,9 +11,9 @@ import java.time.Instant;
 
 // JWT refresh tokens. we use short-lived access tokens (from the JWT service)
 // paired with longer-lived refresh tokens stored in the DB. the refresh code
-// is a random 128-char string, not a JWT itself, so it cant be decoded or forged.
-// expires 24 hours after creation. the user can have multiple active refresh tokens
-// (one per device/session).
+// is stored as a SHA-256 hex digest (64 chars); the raw code lives only in the
+// browser cookie. expires 24 hours after creation. the user can have multiple
+// active refresh tokens (one per device/session).
 @Getter
 @Setter
 @SuperBuilder
@@ -24,7 +24,10 @@ import java.time.Instant;
         @Index(name = "idx_rt_user", columnList = "user_id")
 })
 public class RefreshToken extends BaseModel{
-    @Column(nullable = false, length = 128)
+    @Version
+    private Long version;
+
+    @Column(nullable = false, length = 64)
     private String refreshCode;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn

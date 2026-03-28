@@ -15,8 +15,11 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HexFormat;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 // auth interceptor: first line of auth for every API request.
 //
@@ -74,15 +77,26 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
         String[] parts = refreshCookieValue.split(":", 2);
         if (parts.length != 2) throw new UnauthenticatedException("Invalid refresh cookie format");
 
-        Long refreshTokenId = Long.parseLong(parts[0]);
+        long refreshTokenId;
+        try { refreshTokenId = Long.parseLong(parts[0]); }
+        catch (NumberFormatException e) { throw new UnauthenticatedException("Invalid refresh token format"); }
         String refreshCode = parts[1];
 
         var refreshToken = fetchRefreshToken(refreshTokenId);
         verifyRefreshToken(refreshCode, refreshToken);
 
+        if (refreshToken.getExpiresAt() != null
+                && refreshToken.getExpiresAt().isBefore(java.time.Instant.now())) {
+            throw new UnauthenticatedException("Refresh token expired");
+        }
+
         String newRefreshCode = generateRandomRefreshToken(32);
-        refreshToken.setRefreshCode(newRefreshCode);
-        refreshTokenRepository.save(refreshToken);
+        refreshToken.setRefreshCode(sha256Hex(newRefreshCode));
+        try {
+            refreshTokenRepository.save(refreshToken);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new UnauthenticatedException("Refresh token already rotated");
+        }
 
         var user = refreshToken.getUser();
         var newJwt = jwtService.generateToken(user.getId().toString());
@@ -100,10 +114,11 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
                 .orElseThrow(() -> new UnauthenticatedException("Invalid refresh token"));
     }
 
-    private void verifyRefreshToken(String refreshCode, RefreshToken refreshToken) {
+    private void verifyRefreshToken(String rawCode, RefreshToken refreshToken) {
         if (!MessageDigest.isEqual(
-                refreshCode.getBytes(StandardCharsets.UTF_8),
+                sha256Hex(rawCode).getBytes(StandardCharsets.UTF_8),
                 refreshToken.getRefreshCode().getBytes(StandardCharsets.UTF_8))) {
+            refreshTokenRepository.deleteById(refreshToken.getId());
             throw new UnauthenticatedException("Refresh token mismatch");
         }
     }
@@ -145,5 +160,15 @@ public class JwtInterceptor extends BaseComponent implements HandlerInterceptor 
         byte[] bytes = new byte[byteLength];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String sha256Hex(String input) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 }

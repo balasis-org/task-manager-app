@@ -66,6 +66,12 @@ This App Registration serves **two independent purposes** on the same Entra ID o
 Still in **Authentication**:
 
 1. Under "Implicit grant and hybrid flows", check **ID tokens** (leave **Access tokens** unchecked)
+   > **Why:** The backend uses the OAuth 2.0 hybrid flow (`response_type=code id_token`).
+   > Microsoft returns a signed `id_token` in the redirect alongside the authorization code.
+   > The backend verifies this front-channel `id_token` (signature, audience, nonce, `c_hash`)
+   > **before** calling Microsoft's `/token` endpoint — this proves the user actually
+   > authenticated with Microsoft at zero API cost, blocking forged-code spam.
+   > Without this checkbox enabled, Microsoft will reject the hybrid request.
 2. Leave **Allow public client flows** disabled
 3. Leave **Front-channel logout URL** empty
 4. Click **Save**
@@ -122,8 +128,9 @@ az ad app update --id <APP_ID> \
     "http://localhost:5173/auth/callback" \
     "http://localhost:8081/auth/callback"
 
-# Step 4: Enable ID token issuance
-# access tokens left disabled — only ID tokens are needed for the OAuth code flow
+# Step 4: Enable ID token issuance (required for hybrid flow — response_type=code id_token)
+# the backend verifies the front-channel id_token before calling /token,
+# proving the user authenticated with Microsoft at zero API cost
 az ad app update --id <APP_ID> \
   --enable-id-token-issuance true
 
