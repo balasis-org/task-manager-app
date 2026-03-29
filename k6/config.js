@@ -4,13 +4,8 @@
 // Defaults to localhost for local development against Docker Compose stack
 export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 
-// Stress header auth — WAF AllowStressHeaders rule requires both headers.
-// The deployer generates the secrets and provides them to the tester.
-// Usage: k6 run --env STRESS_KEY=<value> --env STRESS_NONCE=<value> ...
-export const STRESS_KEY   = __ENV.STRESS_KEY   || "";
-export const STRESS_NONCE = __ENV.STRESS_NONCE || "";
-
-// Dev-auth app-level gate — sent as X-Dev-Auth-Key header on /auth/fake-login.
+// Dev-auth app-level gate — sent as X-Dev-Auth-Key header on every arena request.
+// Both arena-security and arena-stress deployments require this.
 // Usage: k6 run --env DEV_AUTH_KEY=<value> ...
 export const DEV_AUTH_KEY = __ENV.DEV_AUTH_KEY || "";
 

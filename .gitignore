@@ -34,9 +34,11 @@ proof-of-ownership/
 generate-ownership-proof.ps1
 
 # =========================
-# Diagnostics
+# Diagnostics / Azure logs
 # =========================
 diagnostics/
+**/arena-logs/
+**/arena-logs.zip
 
 # =========================
 # Misc

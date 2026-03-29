@@ -11,7 +11,14 @@ import {
     findTierGroupId,
     preJoinDynamicUsers,
     parseDurationToMilliseconds,
+    enableWafBypass,
 } from "../http-helpers.js";
+
+// WAF bypass — arena-stress uses header-based access instead of IP whitelisting.
+// Pass --env WAF_PASSPHRASE=<value> --env WAF_NONCE=<value> when running.
+const WAF_PASSPHRASE = __ENV.WAF_PASSPHRASE || "";
+const WAF_NONCE      = __ENV.WAF_NONCE      || "";
+if (WAF_PASSPHRASE && WAF_NONCE) enableWafBypass(WAF_PASSPHRASE, WAF_NONCE);
 
 const rateLimitedCounter = new Counter("rate_limited_429");
 const pollSuccessCounter = new Counter("poll_success");

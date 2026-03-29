@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, CORE_USERS } from "../config.js";
+import { BASE_URL, CORE_USERS, DEV_AUTH_KEY } from "../config.js";
 import {
     loginWithFakeCredentials,
     extractCookiesFromResponse,
@@ -43,7 +43,7 @@ function verifySessionFixationIsPreventedOnLogin() {
     const response = http.post(
         BASE_URL + "/auth/fake-login",
         JSON.stringify({ email: CORE_USERS[0].email, name: CORE_USERS[0].name, subscriptionPlan: CORE_USERS[0].plan }),
-        { headers: { "Content-Type": "application/json", Cookie: fixedJwtCookie } }
+        { headers: { "Content-Type": "application/json", Cookie: fixedJwtCookie, ...(DEV_AUTH_KEY ? { "X-Dev-Auth-Key": DEV_AUTH_KEY } : {}) } }
     );
     logResponse(response.status, response.body);
     const newCookies = extractCookiesFromResponse(response);
@@ -89,6 +89,9 @@ function verifyMalformedCookieInjectionIsRejected() {
 function verifyMutatedJwtSignatureIsRejected(validCookies) {
     printTestHeader("Mutated JWT (flip last signature char)");
     logRequest("GET", "/groups  (jwt with flipped sig)");
+    // clear the per-VU cookie jar so the valid jwt doesn't leak through
+    const jar = http.cookieJar();
+    jar.clear(BASE_URL);
     const mutatedCookies = flipLastCharacterOfJwtSignature(validCookies);
     const response = sendGetWithCustomCookies("/groups", mutatedCookies);
     logResponse(response.status, response.body);
@@ -106,9 +109,15 @@ function checkResponseIdentityMatchesUser0(response) {
 }
 
 function flipLastCharacterOfJwtSignature(cookieString) {
-    return cookieString.replace(/jwt=([^;]+)/, (match, token) => {
-        const lastChar = token.slice(-1);
-        const flippedChar = lastChar === "A" ? "B" : "A";
-        return "jwt=" + token.slice(0, -1) + flippedChar;
+    // remove RefreshKey so the server can't auto-renew via refresh token
+    const jwtOnly = cookieString.replace(/;\s*RefreshKey=[^;]*/g, "").replace(/RefreshKey=[^;]*;\s*/g, "");
+    return jwtOnly.replace(/jwt=([^;]+)/, (match, token) => {
+        const parts = token.split(".");
+        const sig = parts[2];
+        // flip a character in the middle of the signature (avoids base64 padding bits)
+        const mid = Math.floor(sig.length / 2);
+        const flippedChar = sig[mid] === "A" ? "B" : "A";
+        const newSig = sig.slice(0, mid) + flippedChar + sig.slice(mid + 1);
+        return "jwt=" + parts[0] + "." + parts[1] + "." + newSig;
     });
 }

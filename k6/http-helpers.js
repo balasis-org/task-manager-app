@@ -1,16 +1,30 @@
-// shared HTTP helpers for k6 tests — login, cookie extraction, group lookups,
+﻿// shared HTTP helpers for k6 tests â€” login, cookie extraction, group lookups,
 // and typed request wrappers. all requests go through BASE_URL.
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, STRESS_KEY, STRESS_NONCE, DEV_AUTH_KEY, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
+import { BASE_URL, DEV_AUTH_KEY, TIER_LEADERS, TIER_GROUP_NAMES, ALL_USERS, dynamicUser } from "./config.js";
 
-// Stress header injection — if STRESS_KEY and STRESS_NONCE are set, every request
-// includes them so the WAF AllowStressHeaders rule lets traffic through.
-function stressHeaders() {
+// Module-level WAF bypass state — stress scripts opt in via enableWafBypass().
+// Security tests never call it, so these stay empty and no WAF headers are sent.
+let _wafPassphrase = "";
+let _wafNonce = "";
+
+// Call from stress script init to inject X-Stress-Key / X-Stress-Nonce on
+// every request.  Security tests (arena-security) use IP whitelisting instead
+// and never need this.
+export function enableWafBypass(passphrase, nonce) {
+    _wafPassphrase = passphrase;
+    _wafNonce = nonce;
+}
+
+// Arena auth headers — injected into every outgoing request.
+// Always includes X-Dev-Auth-Key (app-level gate for fake-login).
+// Includes WAF bypass passphrases only when a stress script has opted in.
+function arenaHeaders() {
     const hdrs = {};
-    if (STRESS_KEY && STRESS_NONCE) {
-        hdrs["X-Stress-Key"] = STRESS_KEY;
-        hdrs["X-Stress-Nonce"] = STRESS_NONCE;
+    if (_wafPassphrase && _wafNonce) {
+        hdrs["X-Stress-Key"] = _wafPassphrase;
+        hdrs["X-Stress-Nonce"] = _wafNonce;
     }
     if (DEV_AUTH_KEY) {
         hdrs["X-Dev-Auth-Key"] = DEV_AUTH_KEY;
@@ -33,7 +47,7 @@ export function loginWithFakeCredentials(email, name, plan) {
     const response = http.post(
         `${BASE_URL}/auth/fake-login`,
         JSON.stringify(body),
-        { headers: { "Content-Type": "application/json", ...stressHeaders() } }
+        { headers: { "Content-Type": "application/json", ...arenaHeaders() } }
     );
     check(response, { "login 200": (r) => r.status === 200 });
     return extractCookiesFromResponse(response);
@@ -46,7 +60,7 @@ export function loginAsTierLeader(tier) {
 
 export function findGroupByName(cookies, groupName) {
     const response = http.get(`${BASE_URL}/groups`, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
     });
     check(response, { "GET /groups 200": (r) => r.status === 200 });
     const groups = response.json();
@@ -62,7 +76,7 @@ export function findTierGroupId(cookies, tier) {
 
 export function findFirstAvailableGroupId(cookies) {
     const response = http.get(`${BASE_URL}/groups`, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
     });
     check(response, { "GET /groups 200": (r) => r.status === 200 });
     const groups = response.json();
@@ -71,7 +85,7 @@ export function findFirstAvailableGroupId(cookies) {
 
 export function postJsonPayload(path, body, cookies) {
     return http.post(`${BASE_URL}${path}`, JSON.stringify(body), {
-        headers: { "Content-Type": "application/json", Cookie: cookies, ...stressHeaders() },
+        headers: { "Content-Type": "application/json", Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
@@ -81,47 +95,47 @@ export function postTaskPayload(path, taskData, cookies) {
         data: http.file(JSON.stringify(taskData), "data.json", "application/json"),
     };
     return http.post(`${BASE_URL}${path}`, payload, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
 
 export function postRawPayload(path, rawBody, cookies) {
     return http.post(`${BASE_URL}${path}`, rawBody, {
-        headers: { "Content-Type": "application/json", Cookie: cookies, ...stressHeaders() },
+        headers: { "Content-Type": "application/json", Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedGet(path, cookies) {
     return http.get(`${BASE_URL}${path}`, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedDelete(path, cookies) {
     return http.request("DELETE", `${BASE_URL}${path}`, null, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
 
 export function sendAuthenticatedPatch(path, cookies) {
     return http.request("PATCH", `${BASE_URL}${path}`, null, {
-        headers: { Cookie: cookies, ...stressHeaders() },
+        headers: { Cookie: cookies, ...arenaHeaders() },
         redirects: 0,
     });
 }
 
 export function sendUnauthenticatedGet(url) {
-    return http.get(url, { redirects: 0, headers: { ...stressHeaders() } });
+    return http.get(url, { redirects: 0, headers: { ...arenaHeaders() } });
 }
 
 export function sendGetWithCustomCookies(path, cookieString) {
     return http.get(`${BASE_URL}${path}`, {
         redirects: 0,
-        headers: { Cookie: cookieString, ...stressHeaders() },
+        headers: { Cookie: cookieString, ...arenaHeaders() },
     });
 }
 
@@ -158,7 +172,7 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
         const userCookies = loginWithFakeCredentials(user.email, user.name);
 
         const meRes = http.get(`${BASE_URL}/users/me`, {
-            headers: { Cookie: userCookies, ...stressHeaders() },
+            headers: { Cookie: userCookies, ...arenaHeaders() },
         });
         if (meRes.status !== 200) {
             console.warn(`dynamic user ${i}: /users/me returned ${meRes.status}`);
@@ -174,11 +188,11 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
                 userToBeInvitedRole: "MEMBER",
                 sendEmail: false,
             }),
-            { headers: { "Content-Type": "application/json", Cookie: leaderCookies, ...stressHeaders() } }
+            { headers: { "Content-Type": "application/json", Cookie: leaderCookies, ...arenaHeaders() } }
         );
 
         const invRes = http.get(`${BASE_URL}/group-invitations/me`, {
-            headers: { Cookie: userCookies, ...stressHeaders() },
+            headers: { Cookie: userCookies, ...arenaHeaders() },
         });
         if (invRes.status !== 200) continue;
         const invitations = invRes.json();
@@ -190,7 +204,7 @@ export function preJoinDynamicUsers(groupId, leaderCookies, vuCount) {
                 "PATCH",
                 `${BASE_URL}/group-invitations/${pending.id}/status?status=ACCEPTED`,
                 null,
-                { headers: { Cookie: userCookies, ...stressHeaders() } }
+                { headers: { Cookie: userCookies, ...arenaHeaders() } }
             );
         }
     }
