@@ -80,6 +80,7 @@ jobs:
           DEV_AUTH_SECRET: ${{ secrets.DEV_AUTH_SECRET }}
           STRESS_PASSPHRASE_KEY: ${{ secrets.STRESS_PASSPHRASE_KEY }}
           STRESS_PASSPHRASE_NONCE: ${{ secrets.STRESS_PASSPHRASE_NONCE }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
         run: |
           EXTRA_PARAMS=""
           if [ "${{ inputs.first_deploy }}" = "true" ]; then
@@ -113,6 +114,7 @@ jobs:
           DEV_AUTH_SECRET: ${{ secrets.DEV_AUTH_SECRET }}
           STRESS_PASSPHRASE_KEY: ${{ secrets.STRESS_PASSPHRASE_KEY }}
           STRESS_PASSPHRASE_NONCE: ${{ secrets.STRESS_PASSPHRASE_NONCE }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
         run: |
           EXTRA_PARAMS=""
           if [ "${{ inputs.first_deploy }}" = "true" ]; then

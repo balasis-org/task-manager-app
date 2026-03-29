@@ -120,10 +120,11 @@ class GroupServiceTest {
         Group savedGroup = Group.builder().id(100L).name("Test Group").description("CI created").build();
 
         when(effectiveCurrentUser.getUserId()).thenReturn(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(user));
         when(groupMembershipRepository.countByUser_Id(1L)).thenReturn(0L);
         when(planLimits.maxGroups(SubscriptionPlan.FREE)).thenReturn(2);
         when(planLimits.maxGroupCreationsPerWindow(SubscriptionPlan.FREE)).thenReturn(4);
+        when(userRepository.incrementTotalGroupsCreated(1L, 4)).thenReturn(1);
         when(groupRepository.save(group)).thenReturn(savedGroup);
 
         groupService.create(group);
@@ -135,6 +136,5 @@ class GroupServiceTest {
                                 membership.getGroup().equals(savedGroup) &&
                                 membership.getRole() == Role.GROUP_LEADER
                 ));
-        verify(userRepository, times(1)).save(user);
     }
 }

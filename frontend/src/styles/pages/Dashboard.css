@@ -114,9 +114,9 @@
 
 .dashboard-downgrade-banner {
     padding: 0.5em 1em;
-    background: #ffe0e0;
-    color: #8b1a1a;
-    border: 1px solid #e57373;
+    background: var(--danger-bg-light, #f8d7da);
+    color: var(--danger-text, #c0392b);
+    border: 1px solid var(--danger, #e74c3c);
     border-radius: 6px;
     margin: 0.5em 0.75em;
     font-size: 0.82em;

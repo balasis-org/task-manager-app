@@ -28,10 +28,12 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.Map;
 
 // dev/arena-only fake-login bypass — creates or updates a user directly without
@@ -177,7 +179,7 @@ public class DevAuthController extends BaseComponent {
 
         String refreshCode = generateRandomRefreshToken(32);
         Long refreshTokenId = refreshTokenRepository.save(
-            RefreshToken.builder().refreshCode(refreshCode).user(user).build()
+            RefreshToken.builder().refreshCode(sha256Hex(refreshCode)).user(user).build()
         ).getId();
 
         String refreshCookieValue = refreshTokenId + ":" + refreshCode;
@@ -232,6 +234,16 @@ public class DevAuthController extends BaseComponent {
         byte[] bytes = new byte[byteLength];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String sha256Hex(String input) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 
     private SubscriptionPlan resolveSubscriptionPlan(String raw) {

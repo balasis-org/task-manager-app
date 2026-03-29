@@ -47,7 +47,7 @@ jobs:
           $outFile = "metrics-report-$(Get-Date -Format 'yyyy-MM-dd').json"
 
           pwsh -File infrastructure/ps1-az-scripts/collect-metrics.ps1 `
-            -ResourceGroup "${{ vars.AZURE_RESOURCE_GROUP }}" `
+            -ResourceGroup "${{ vars.RG_NAME }}" `
             -HoursBack ([int]$hours) `
             -OutputFile $outFile
 

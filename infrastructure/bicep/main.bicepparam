@@ -28,5 +28,5 @@ param customDomainHost = 'www.myteamtasks.net'
 param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
 
 // Observability
-param alertEmailAddress = readEnvironmentVariable('ALERT_EMAIL', '')
+param alertEmailAddress = readEnvironmentVariable('ADMIN_EMAIL', '')
 param monthlyBudgetAmount = 13
